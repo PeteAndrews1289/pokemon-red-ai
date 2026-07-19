@@ -131,6 +131,8 @@ Start with [the documentation hub](docs/index.md), or jump directly to:
 - [State instrumentation](docs/state-observation.md) — exact read-only fields and caveats
 - [Run reports](docs/run-reports.md) — turning traces into local visual summaries
 - [Video outline](docs/video-outline.md) — a possible YouTube structure and shot plan
+- [Video series bible](docs/video-series-bible.md) — the blind-discovery narrative and Episode 1 spine
+- [Overnight analysis](docs/overnight-analysis.md) — turning Monkey/Archivist evidence into an honest story
 - [Visual storytelling](docs/visual-storytelling.md) — charts and visuals worth collecting
 - [Glossary](docs/glossary.md) — technical ideas in audience-friendly language
 - [Development log](docs/devlog.md) and [changelog](CHANGELOG.md) — what changed and why

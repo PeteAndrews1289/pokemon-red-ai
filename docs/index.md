@@ -25,6 +25,8 @@ is an honest pixels-only discovery archive whose limitations are part of the sto
 | Generate a local result page | [Run reports](run-reports.md) | How a JSONL trace becomes a readable standalone report |
 | Audit the current repeated run | [Phase 0 evidence](../experiments/phase-0-bootstrap/README.md) | Public metadata, attempt ledger, exact hashes, and limitations |
 | Plan a video | [Video outline](video-outline.md) | Episode 0, series arc, shots, and claims checklist |
+| Shape the blind-discovery series | [Video series bible](video-series-bible.md) | Central narrative, episode spine, visual grammar, and editorial integrity |
+| Analyze the overnight arms | [Overnight analysis](overnight-analysis.md) | Action/time-matched comparisons, screen review, claims, and morning report |
 | Translate technical terms | [Glossary](glossary.md) | Plain-language definitions used throughout the project |
 | Follow decisions chronologically | [Development log](devlog.md) | Dated implementation decisions and verified milestones |
 | Record an experiment | [Experiment template](experiment-template.md) | A reusable protocol and results record |

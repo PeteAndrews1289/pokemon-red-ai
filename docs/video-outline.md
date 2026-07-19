@@ -5,6 +5,10 @@
 > Monkey and Archivist discovery curves. The detailed Phase 0 material below remains the prologue
 > explaining why the measurements can be trusted. See [Blind curiosity](blind-curiosity.md).
 
+The dedicated [video series bible](video-series-bible.md) now defines the Monkey-versus-Archivist
+episode, central narrative, visual grammar, titles, thumbnail direction, and claim discipline. Use
+the [overnight analysis checklist](overnight-analysis.md) before writing outcome narration.
+
 This document is a production guide for telling the project's story without getting ahead of the
 evidence. It assumes the first public video is made at the end of Phase 0, before model training.
 
