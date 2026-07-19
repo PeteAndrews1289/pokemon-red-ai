@@ -1,5 +1,10 @@
 # Game-naive, pixels-only curiosity
 
+> **Historical baseline note:** this protocol records why Monkey and Archivist were built and keeps
+> their runs reproducible. Pure Monkey is now retired from future headline arenas because it cannot
+> retain successful behavior. Its planned replacement is
+> [Evolutionary Explorer](neuroevolution.md).
+
 ## The question
 
 **How far can an agent get in Pokémon Red when nobody tells it what Pokémon is?**
@@ -21,11 +26,12 @@ boundary.
 
 | ID | Name | What changes with experience? | Status |
 | --- | --- | --- | --- |
-| B0 | **Monkey** | Nothing; buttons are sampled from a frozen distribution | Implemented |
+| B0 | **Monkey** | Nothing; buttons are sampled from a frozen distribution | Implemented, baseline concluded |
 | B1 | **Curious** | A local policy learns to seek visually unfamiliar situations | Planned |
 | B2 | **Archivist** | A trainer preserves novel pixel states and branches random exploration from under-visited cells | Implemented |
 
-B0 is the “monkeys with typewriters” control. B2 is the practical first learner: its individual
+B0 is the “monkeys with typewriters” control. It demonstrated chance but no inheritance and is no
+longer allocated a future long-horizon lane. B2 is the practical first learner: its individual
 buttons are still uniformly random, but its pixel-driven trainer chooses which discoveries receive
 memory and where the next random branch begins. It has no neural network; its archive is persistent
 learned state. Calling it a “snapshot-assisted pixels-only visual-novelty archive search” is
@@ -231,7 +237,8 @@ Ask these questions in order:
 2. **Did discovery continue?** Inspect the curve rather than only the final count.
 3. **What produced the novelty?** Use the reel to separate menus, text, animation, and meaningful
    transitions.
-4. **Did memory help?** Compare Archivist discovery against the Monkey under matched budgets.
+4. **Did memory help?** Preserve the historical Archivist/Monkey comparison; do not spend new
+   long-horizon budgets merely repeating a non-learning control.
 5. **What is the most honest claim?** “Reached a naming screen” is stronger than “learned menus”;
    “found more visual cells” is not the same as “made more game progress.”
 

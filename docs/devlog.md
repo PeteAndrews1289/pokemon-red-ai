@@ -1,5 +1,34 @@
 # Development log
 
+## 2026-07-19 — Random baseline retired; Evolutionary Explorer designed
+
+### Evidence changed the plan
+
+- Concluded that Pure Monkey had answered its question: a fixed uniform action distribution can
+  create lucky game progress, but it cannot retain or amplify that success.
+- Retired Monkey from future headline arenas while preserving its command, artifacts, and role as
+  the reproducible random baseline.
+- Gracefully ended the active four-lane pretrial rather than spend the remaining budget on an
+  obsolete comparison. All four final checkpoints and narrative artifacts were preserved.
+
+### Evolutionary decision
+
+- Chose fixed-topology, mutation-only neuroevolution for version 1 rather than starting with NEAT
+  topology growth and crossover.
+- Chose MAP-Elites-style quality diversity instead of allowing one scalar-score dynasty to erase
+  behaviorally different champions.
+- Split evidence into clean-start policy evolution and checkpoint-assisted expedition modes.
+- Required every promoted checkpoint-assisted milestone to replay its full ancestral action lineage
+  from power-on.
+- Specified a small recurrent pixel policy, four-worker evaluation queue, immutable genealogy,
+  milestone-first selection, dashboard family tree, and bounded calibration sequence.
+
+### Next
+
+1. Implement deterministic recurrent inference and genome round trips.
+2. Implement mutation, archive replacement, genealogy, and resume tests.
+3. Qualify 16-candidate and 128-candidate populations before changing the living arena.
+
 ## 2026-07-19 — Game-naive direction and first curiosity runner
 
 ### Decisions

@@ -640,6 +640,69 @@ Software placed around the emulator to provide consistent inputs, observations, 
 and logs. Phase 0 built this measuring instrument. A harness can make learning possible, but it is
 not itself a trained player.
 
+## Evolution vocabulary
+
+### Genome
+
+The inheritable numerical description of an evolutionary policy. In version 1 it will contain the
+weights and biases of one fixed recurrent neural network. The emulator snapshot and game progress
+are not part of the neural genome, even when an expedition lineage carries them separately.
+
+### Generation
+
+A reporting group of evaluated descendants. Candidates are queued through a small number of
+emulator workers; “128 models in one generation” does not mean 128 emulators run simultaneously.
+
+### Mutation
+
+A recorded random perturbation applied to a copied parent genome. A mutation creates a child. The
+parent remains immutable so a failed child cannot erase a proven elite.
+
+### Neuroevolution
+
+Using evolutionary selection and variation to improve neural-network policies. One child may keep
+fixed weights for its whole lifetime; learning occurs because successful genomes leave descendants.
+
+### Elite / elitism
+
+The best-known genome in a declared behavioral archive cell, and the rule that preserves it
+unchanged while children are tested. “Best” must state the cell and comparison rule; it is not one
+universal champion.
+
+### MAP-Elites / quality diversity
+
+An evolutionary archive that keeps strong solutions across different behavioral descriptors. This
+project plans to retain distinct story, exploration, collection, and interaction lineages so a
+single Route 1 strategy cannot take over merely because it has the largest local score.
+
+### Lineage
+
+The parent-to-child ancestry of a genome. A checkpoint-assisted expedition lineage also records the
+action history and state hashes needed to replay its claimed milestone from power-on.
+
+### Fitness
+
+The declared measurements selection uses to compare descendants. Fitness guides reproduction; it
+is not automatically task completion. Evolutionary Explorer plans milestone-first lexicographic
+fitness rather than one opaque weighted total.
+
+### Crossover
+
+Creating a child from two or more parent genomes. Version 1 deliberately excludes crossover so
+every behavioral change has one parent and one mutation record.
+
+### NEAT
+
+NeuroEvolution of Augmenting Topologies, a method that evolves both neural weights and network
+structure while protecting structural innovations through speciation. It is a possible later
+comparison, not the version-1 implementation.
+
+### Checkpoint-assisted expedition
+
+A search mode where descendants may branch from archived private emulator snapshots. It can make a
+long game tractable, but it proves population-assisted search rather than one policy's clean-start
+ability. This project requires a complete ancestral power-on replay for milestone claims.
+
 ## Terms deliberately kept separate
 
 Some words sound similar but support different claims:

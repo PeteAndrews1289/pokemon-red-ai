@@ -103,6 +103,24 @@ final graphic.
 
 These graphics answer different questions and should not be collapsed into one dashboard.
 
+### Evolutionary visual set
+
+The successor experiment needs visuals that teach inheritance rather than disguising it as an
+ordinary training curve:
+
+| Visual | Question answered | Required labels |
+| --- | --- | --- |
+| Family tree | Which ancestor produced this behavior? | Genome ID, parent ID, generation, milestone |
+| MAP-Elites grid | Which different kinds of champion survived? | Descriptor axes, empty cells, replacement rule |
+| Mutation difference map | What numerically changed from parent to child? | Mutation seed, scale, changed-parameter fraction |
+| Worker queue | How can hundreds of models run on four emulators? | Active workers, queued/evaluated candidates, throughput |
+| Lineage replay ribbon | Does a checkpoint-assisted milestone reproduce from power-on? | Start condition, ancestor boundaries, replay result |
+| Claim ladder | What was actually demonstrated? | Population reached / lineage replayed / one policy solved |
+
+A generation curve should show archive coverage, best milestone, surviving lineage count, and
+median child quality. It must not show only the best descendant. Extinct children remain in the
+denominator even when the graphic visually emphasizes elites.
+
 ### A. Milestone funnel
 
 **Question:** How far do attempts reliably get?

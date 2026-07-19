@@ -5,9 +5,9 @@ This project has two stories running in parallel:
 1. the engineering story — building a trustworthy way to run and measure Pokémon Red; and
 2. the learning story — what an agent eventually tries, learns, forgets, and masters.
 
-The emulator foundation is working, and the first autonomous game-naive search runner now exists.
-There is still **no trained neural Pokémon model or evaluated gameplay result**. The current learner
-is an honest pixels-only discovery archive whose limitations are part of the story.
+The emulator foundation, blind runners, and first online-learning arena are working. There is still
+**no trained neural Pokémon model or evaluated whole-game result**. Pure Monkey has completed its
+role as the random baseline; the next neural population is specified but not yet implemented.
 
 ## Start here
 
@@ -16,6 +16,7 @@ is an honest pixels-only discovery archive whose limitations are part of the sto
 | Understand the project in a few minutes | [Project README](../README.md) | What is being built and how to run it |
 | Audit the primary experiment | [Blind curiosity protocol](blind-curiosity.md) | What the agent sees, how novelty works, and what counts as leakage |
 | Watch the four agents together | [Four-agent arena](four-agent-arena.md) | Exact information ladder, rewards, dashboard, and 48-hour procedure |
+| Learn how evolutionary training will work | [Evolutionary Explorer](neuroevolution.md) | Genomes, mutation, MAP-Elites, lineage replay, compute, and claim boundaries |
 | Follow the central story | [Project narrative](narrative.md) | Why the failures and evidence are part of the project |
 | Understand the reward ladder | [Reward architecture](reward-architecture.md) | Actions, milestones, loop controls, and reporting boundaries |
 | See what is genuinely complete today | [Progress](progress.md) | What is verified, what is merely implemented, and what is still planned |
@@ -37,14 +38,15 @@ is an honest pixels-only discovery archive whose limitations are part of the sto
 
 ```mermaid
 flowchart LR
-    A["✅ Harness"] --> B["🟨 Monkey baseline"]
-    B --> C["🟨 Pixels-only Archivist"]
-    C --> D["⬜ Learned curiosity policy"]
-    D --> E["⬜ Frozen evaluation"]
+    A["✅ Harness"] --> B["✅ Random baseline"]
+    B --> C["✅ Online-learning pretrials"]
+    C --> D["🟨 Evolutionary design"]
+    D --> E["⬜ Population implementation"]
+    E --> F["⬜ Frozen evaluation"]
 ```
 
-The diagram shows project position, not game progress. The current Archivist learns an archive,
-not a neural policy, and an overnight development run is not a frozen evaluation.
+The diagram shows project position, not game progress. The evolutionary population is an E0 design,
+not running code, and a development expedition will not be a frozen evaluation.
 
 ## Three reading paths
 

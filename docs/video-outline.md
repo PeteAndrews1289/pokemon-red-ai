@@ -1,9 +1,9 @@
 # Video and series outline
 
-> **Series-direction update:** The opening question is now “What happens if I give an agent the
-> Pokémon Red screen and buttons, but never tell it what the game is?” Episode 1 compares the
-> Monkey and Archivist discovery curves. The detailed Phase 0 material below remains the prologue
-> explaining why the measurements can be trusted. See [Blind curiosity](blind-curiosity.md).
+> **Series-direction update:** Pure Monkey supplied the opening experiment and the conclusion: luck
+> cannot accumulate when success never changes later behavior. The next episode asks, “What if a
+> useful accident could have children?” Evolutionary Explorer supplies a family tree, mutation
+> history, and visible extinctions. See [the neuroevolution design](neuroevolution.md).
 
 This document is a production guide for telling the project's story without getting ahead of the
 evidence. It assumes the first public video is made at the end of Phase 0, before model training.
@@ -27,16 +27,54 @@ the next test, and lets the evidence change the plan.
 | Episode | Central question | Honest endpoint |
 | --- | --- | --- |
 | 0. Before the AI | How do we know a later success is real and repeatable? | A deterministic, instrumented clean start in the bedroom |
-| 1. Leave the room | Can a small learned policy acquire basic movement? | Held-out bedroom-exit success rate |
-| 2. Leave home | Does the skill survive doors, stairs, and a second map? | House-exit evaluation plus failure atlas |
-| 3. Meet Oak | Can the system trigger the story event and choose a starter? | Starter-choice evaluation with menu failures visible |
-| 4. The first battle | Can battle behavior be learned without scripting the answer? | Rival-battle evaluation under declared observations |
-| 5. A real errand | Can a planner and skills deliver Oak's Parcel after the rival battle? | Clean-start parcel completion rate |
-| 6. Why hybrid? | Which tasks favor language-model, RL, or combined control? | Predeclared engineering comparison |
-| 7. Brock | Can the full system prepare, navigate, and win? | Clean-start Brock attempts, including every failure |
+| 1. Monkeys with controllers | What can true randomness accomplish, and what can it never retain? | Preserved baseline plus the retirement decision |
+| 2. Survival of the luckiest | Can useful accidents accumulate through selection and mutation? | Qualified population and first inherited improvement |
+| 3. Leave home | Do evolved policies retain progress beyond one lucky ancestor? | Family tree plus clean-start house-exit evaluation |
+| 4. Meet Oak | Can a lineage cross navigation, dialogue, menus, and a battle? | Starter milestone and full ancestral replay |
+| 5. A real errand | Can a population extend a verified lineage through Oak's Parcel? | Checkpoint-assisted result clearly separated from clean-start policy ability |
+| 6. Nature or nurture? | Which progress came from pixels, rewards, RAM, or selection? | Four-lane successor arena with declared information budgets |
+| 7. Brock | Can an evolved lineage prepare, navigate, and win? | Power-on lineage replay, including every failed branch |
 
 Do not promise a full playthrough in the first episode. Promise an investigation with the next
 milestone close enough to be credible.
+
+## Featured future episode: “What If Luck Could Reproduce?”
+
+- **Central narrative:** Random play can create a miracle but cannot inherit it. Evolution turns an
+  accident into an ancestor.
+- **Honest endpoint:** The population machinery works, ancestry is reproducible, and at least one
+  descendant adds measurable behavior without erasing the full experimental denominator.
+- **Do not claim:** that one network learned during its lifetime, that checkpoint-assisted search
+  equals one clean-start policy, or that a rising archive score means the game is solved.
+
+### Suggested beats
+
+1. **The retirement:** replay Pure Monkey's best moments, then reveal that every next action still
+   had exactly the same random distribution.
+2. **The inheritance rule:** draw one small neural genome, copy it, mutate a visible subset, and
+   give the child one fixed lifetime.
+3. **The first generation:** show 128 candidates as a queue feeding four emulator workers, not 128
+   or 1,000 simultaneous windows.
+4. **Why one winner is dangerous:** show a Route 1 grinding dynasty taking over a naive
+   winner-takes-all population.
+5. **The ecosystem:** replace the leaderboard with the MAP-Elites grid and keep several behavioral
+   champions alive.
+6. **The family album:** follow one successful mutation backward through parent IDs and exact
+   generation records.
+7. **The replay test:** distinguish a checkpoint-assisted branch from the complete power-on action
+   lineage used to verify it.
+8. **The result:** report descendants evaluated, archive coverage, lineage depth, milestones,
+   compute, crashes, interventions, and all failed children.
+
+### Core visuals
+
+- an animated family tree whose branches brighten, reproduce, or become extinct;
+- a 2D MAP-Elites grid filling with colored champions;
+- four active-worker windows beside a queue of unevaluated genome cards;
+- a parent/child weight-difference heat map;
+- two side-by-side labels: `ONE FIXED LIFETIME` and `LEARNING BETWEEN GENERATIONS`;
+- a continuous ancestral action ribbon replaying from power-on;
+- a claim card separating `POPULATION REACHED`, `LINEAGE REPLAYED`, and `ONE POLICY SOLVED`.
 
 ## Episode 0: “Before I Train an AI to Play Pokémon”
 

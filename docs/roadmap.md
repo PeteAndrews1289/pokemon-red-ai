@@ -1,21 +1,28 @@
 # Roadmap
 
-> **Direction update:** The immediate primary track is now game-naive, pixels-only curiosity. The
-> hybrid Oak's Parcel plan below is retained as a later informed comparison. It no longer defines
-> what the first agent sees or how it is rewarded.
+> **Direction update:** Pure Monkey is retired after establishing the random baseline. The immediate
+> primary track is now [Evolutionary Explorer](neuroevolution.md): a pixels-only recurrent policy
+> population with mutation, quality-diversity selection, and auditable ancestry. Online Q learning
+> and the later informed-agent plan remain comparisons.
 
-## Immediate blind-discovery arc
+## Completed blind-discovery arc
 
 1. ✅ Freeze a pixels-and-buttons-only actor capability.
 2. ✅ Implement a bounded random Monkey and visual-novelty Archivist.
 3. ✅ Add resumable checkpoints, disk/time/action limits, and a live visual dashboard.
-4. 🟨 Run matched overnight Monkey and Archivist development arms from power-on.
-5. ⬜ Diagnose novelty farming and revise the frozen visual-cell representation if necessary.
-6. ⬜ Train a compact pixels-only curiosity policy without demonstrations or semantic rewards.
-7. ⬜ Freeze clean power-on evaluation with learning and archive restores disabled.
+4. ✅ Exercise matched random and learning development arms from power-on.
+5. ✅ Establish that Pure Monkey cannot retain a successful accident.
+6. ✅ Preserve Monkey as a reproducible control and retire it from future headline arenas.
 
-Outcome milestones such as reaching the bedroom, receiving a starter, or delivering Oak's Parcel
-remain useful for post-hoc storytelling. They are not blind-track rewards.
+## Immediate evolutionary arc
+
+1. 🟨 Freeze the version-1 genome, observation boundary, archive descriptors, and claims.
+2. ⬜ Implement deterministic recurrent inference and genome serialization.
+3. ⬜ Implement mutation-only reproduction, MAP-Elites, genealogy, and resume.
+4. ⬜ Qualify 16-candidate and 128-candidate populations on Pokémon.
+5. ⬜ Freeze a clean-start early-game comparison against the preserved random baseline.
+6. ⬜ Add checkpoint-assisted expedition mode with required power-on lineage replay.
+7. ⬜ Replace Monkey in the next four-lane living dashboard.
 
 ## Later informed-agent roadmap
 
@@ -30,12 +37,12 @@ designs should change when evidence points somewhere better.
 
 ```mermaid
 flowchart TD
-    P0["🟨 CURRENT<br/>Phase 0: reliable harness"] --> B["🟨 NEXT<br/>Human baseline"]
-    P0 --> ENV["⬜ PLANNED<br/>Versioned learning environment"]
-    B --> REF["⬜ PLANNED<br/>Frozen referee and milestones"]
-    ENV --> REF
-    REF --> P1["⬜ PLANNED<br/>Phase 1: Oak's Parcel"]
-    P1 --> SK["⬜ PLANNED<br/>Reusable navigation and battle skills"]
+    P0["✅ Harness + random baseline"] --> EV0["🟨 CURRENT<br/>Evolution design"]
+    EV0 --> EV1["⬜ Genome + population engine"]
+    EV1 --> PRE["⬜ Population pretrials"]
+    PRE --> REF["⬜ Frozen clean-start comparison"]
+    REF --> P1["⬜ Checkpoint-assisted expedition"]
+    P1 --> SK["⬜ Reusable navigation and battle behavior"]
     SK --> HY["⬜ PLANNED<br/>Planner + memory + watchdog"]
     HY --> P2["⬜ PLANNED<br/>Phase 2: defeat Brock"]
     P2 --> AB["🧭 LATER<br/>Controlled agent comparisons"]
@@ -178,18 +185,15 @@ knowledge, and tool access must be reported rather than compressed into a single
 
 ## Near-term work queue
 
-The tasks below now apply to the later informed comparison. The immediate blind-discovery tasks are
-listed at the top of this document.
+The immediate build order follows the evolutionary evidence gates.
 
-1. **Human action recorder** — capture a transparent upper reference, not a target the agent is
-   expected to match immediately.
-2. **Random-action stability test** — expose emulator and harness failures before they are mistaken
-   for policy failures.
-3. **Environment contract** — version observations/actions and define sampling boundaries.
-4. **Referee milestones** — write completion conditions before shaping reward.
-5. **Loop detector** — turn repeated position/screen patterns into visible, classified outcomes.
-6. **Small learned baseline** — begin with one bounded behavior and evaluate held-out starts.
-7. **Oak's Parcel integration** — compose the proven pieces and run clean-start evaluation.
+1. **Genome contract** — fixed recurrent topology, pixels-only inputs, deterministic outputs.
+2. **Mutation audit** — immutable parent, child seed, parameter delta, and finite-value checks.
+3. **Quality-diversity archive** — milestone-first cells and deterministic elite replacement.
+4. **Genealogy recorder** — every child, survivor, extinction, and code/configuration hash.
+5. **Synthetic tests** — prove evolution and resume behavior outside the emulator first.
+6. **Pokémon calibration** — 16 candidates, then 128, under bounded action and disk budgets.
+7. **Living dashboard** — family tree, archive map, workers, mutations, and champion replay.
 
 ## What is deliberately not promised
 

@@ -56,6 +56,15 @@ agent operates every frame, every controller press, or only at higher-level deci
 
 If no training occurred, write that explicitly.
 
+For an evolutionary policy also record:
+
+- genome schema, parameter count, and genome hash;
+- parent genome, generation, mutation seed, and mutation magnitude;
+- archive descriptors, cell, and elite-replacement reason;
+- candidate population, workers, evaluated descendants, and emulator-hours;
+- whether the result is clean-start or checkpoint-assisted;
+- complete ancestral replay result and lineage hash, when applicable.
+
 ## Memory and reset rules
 
 Describe what persists:

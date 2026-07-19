@@ -1,15 +1,16 @@
 # Progress and evidence
 
-> **Current research direction:** a game-naive, pixels-only Monkey and Archivist now sit on top of
-> the verified harness. Their first overnight runs are development evidence. No neural policy has
-> been trained and no task-performance evaluation has been claimed. See
-> [Blind curiosity](blind-curiosity.md).
+> **Current research direction:** Pure Monkey has completed its role as the random control and is
+> retired from future headline runs. Three online-learning lanes have completed pretrial work. A
+> quality-diversity neuroevolution replacement is now specified at E0; no evolutionary population
+> has been implemented or trained. See [Evolutionary Explorer](neuroevolution.md).
 
-- **Current stage:** Phase 0 harness plus first pixels-only exploration runner
+- **Current stage:** verified harness, online-learning pretrials, and evolutionary design
 - **Status date:** 2026-07-19
 
-**Most important caveat:** the current learned object is a visual discovery archive, not neural
-policy weights. No autonomous Oak's Parcel evaluation has been run.
+**Most important caveat:** the successor neural population exists only as a design. The previous
+Q-table learners updated during development runs, but no frozen autonomous Oak's Parcel evaluation
+has been run.
 
 The project can now launch the exact supported game revision, issue deterministic controller
 inputs, observe a small documented state, and reproduce the start of a clean game. That is useful
@@ -56,14 +57,16 @@ flowchart LR
 | In-memory snapshots replay deterministically | ✅ Verified | E3 | Repeated in the smoke/bootstrap workflow; snapshots are private and never committed |
 | A clean scripted boot reaches RED's bedroom | ✅ Verified | E3 | Two fresh attempts match at logical frame 9,804; this is a frozen script, not an agent |
 | One-tile movement works at the bedroom start | ✅ Verified | E2 | DOWN moves one tile and snapshot restore returns to the initial state |
-| Named state instrumentation is read-only | ✅ Verified | E2 | Schema 1 exposes six harness/referee fields for the exact supported ROM; no policy consumes them yet |
+| Named state instrumentation is read-only | ✅ Verified | E2 | The sealed referee tracks maps, party, Pokédex, events, items, moves, badges, and blackouts; Conventional alone receives its disclosed coarse subset |
 | Current smoke/bootstrap traces avoid ROM paths and bytes | ✅ Verified | E2 | Current writers and guards cover known private artifact forms; every future trace still requires review |
 | A trace becomes a readable local run report | ✅ Verified | E2 | Standalone HTML escapes trace data, redacts absolute paths, and embeds no gameplay assets |
 | Clean bootstrap has reviewed public evidence | ✅ Verified | E3 | Sanitized trace, two-attempt ledger, exact fingerprints, limitations, and generated report are committed |
+| Pure Monkey is a non-learning random baseline | ✅ Verified | E2 | Its seeded uniform action distribution has no policy update or success-dependent state; it remains reproducible but is retired |
+| The evolutionary successor has a frozen design | 🟨 In progress | E0 | Genome, archive, selection, lineage, compute, and evidence rules are documented; runner code does not exist |
 | Long random action sequences remain stable | ⬜ Planned | E0 | Extended stability run has not been reported |
 | A human Oak's Parcel baseline exists | ⬜ Planned | E0 | No baseline action count or completion time is available yet |
-| A Gymnasium training environment exists | ⬜ Planned | E0 | Observation/action spaces and reward are not implemented |
-| A trained policy leaves the bedroom | ⬜ Planned | E0 | No model training has begun |
+| A population neuroevolution runner exists | ⬜ Planned | E0 | No genome evaluator, mutation engine, genealogy, or MAP-Elites archive is implemented |
+| A trained policy leaves the bedroom | ⬜ Planned | E0 | Development learners have wandered beyond it, but no frozen task evaluation has been run |
 | An agent completes Oak's Parcel | ⬜ Planned | E0 | No autonomous evaluation attempts exist |
 | An agent defeats Brock | 🧭 Later | E0 | This is a future milestone, not a current result |
 
@@ -170,11 +173,11 @@ A compact future update can use this table:
 The immediate goal is not a flashy success clip. It is to make the first learning result
 interpretable.
 
-1. Complete matched bounded Monkey and Archivist runs from clean power-on.
-2. Publish their action budgets, discovery curves, archive growth, and all stop reasons.
-3. Review the screen reels for animation, text, or menu novelty exploits.
-4. Freeze visual-cell version 2 only if the evidence justifies a change.
-5. Train a compact pixel-only curiosity policy, then evaluate it without learning or restores.
+1. Implement and round-trip the fixed recurrent genome deterministically.
+2. Prove that its actor receives only the declared pixels and previous action.
+3. Build and test mutation, elitism, archive replacement, genealogy, and resume logic.
+4. Run 16-candidate and then 128-candidate Pokémon pretrials with four workers.
+5. Freeze a clean-start early-game evaluation before enabling checkpoint-assisted expedition mode.
 
 See [Roadmap](roadmap.md) for acceptance gates and [Visual storytelling](visual-storytelling.md) for
 how those results should be shown.

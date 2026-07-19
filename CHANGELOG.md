@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased — evolutionary successor decision
+
+- Retired Pure Monkey from future headline arenas after it completed its role as a non-learning
+  random baseline; retained its runner and artifacts for reproducibility.
+- Specified Evolutionary Explorer as its planned replacement: a small recurrent pixels-only policy
+  evolved through mutation-only, quality-diversity selection.
+- Defined separate clean-start and checkpoint-assisted evidence tracks, with complete power-on
+  lineage replay required for promoted expedition milestones.
+- Added planned genome, archive, genealogy, dashboard, compute, storage, and qualification gates.
+- Reframed the video narrative around the question, “What if a useful accident could reproduce?”
+
 ## Unreleased — discovery reward protocol
 
 - Standardized all continuous agents on eight deterministic actions and removed Select.

@@ -1,20 +1,26 @@
-# The four-agent arena
+# The four-agent arena: baseline and successor
 
-## The experiment
+> **Decision update, 2026-07-19:** Pure Monkey has completed its role as the true-random control and
+> is retired from future headline arenas. The existing command and artifacts remain reproducible.
+> The next arena will replace it with Evolutionary Explorer after the population runner passes the
+> gates in [the neuroevolution design](neuroevolution.md).
 
-The arena asks how much guidance an agent needs before apparently random Pokémon play becomes
-repeatable progress. Four local emulators begin from the same Pokémon Red revision and power-on
-condition. Each lane adds one category of information or guidance.
+## The completed baseline design
+
+The first arena asked how much guidance an agent needs before apparently random Pokémon play becomes
+repeatable progress. Four local emulators began from the same Pokémon Red revision and power-on
+condition. Each lane added one category of information or guidance.
 
 | Agent | Policy observes | Reward or guidance | Intended role |
 | --- | --- | --- | --- |
-| **Pure Monkey** | Nothing meaningful | Nothing | Literal chance baseline |
+| **Pure Monkey** | Nothing meaningful | Nothing | Completed chance baseline; now retired |
 | **Visually Curious** | Rendered screen pixels | Definite first visits to coarse visual cells | Recommended game-naive learner |
 | **Outcome-Rewarded** | Rendered screen pixels | New positions/maps, party increases, battle types, badges | Blind observation with semantic teaching |
 | **Conventional Agent** | Rendered pixels and disclosed RAM fields | The same explicit outcome objectives | Practical, least monkey-like arm |
 
-The agents are intentionally **not** presented as four equally informed contestants. They are an
-information ladder. Their differences are the subject of the experiment.
+The agents were intentionally **not** presented as four equally informed contestants. They formed
+an information ladder. Pure Monkey did not learn: its seeded random sequence was reproducible, but
+no successful outcome changed a later action probability.
 
 ```mermaid
 flowchart LR
@@ -28,10 +34,39 @@ flowchart LR
     Game -. "map, position, party, battle, badges" .-> V
 ```
 
-## What “learning” means here
+## The planned successor arena
+
+| Agent | Learns through | Central question |
+| --- | --- | --- |
+| **Evolutionary Explorer** | Selection and mutation across a diverse population | Can useful accidents become inherited behavior? |
+| **Visually Curious** | Online visual-novelty Q learning | Can one lifetime learn to seek visually new situations? |
+| **Outcome-Rewarded** | Online Q learning from semantic consequences | Can pixels-only choices benefit from game-aware teaching? |
+| **Conventional** | Online Q learning with coarse RAM and explicit milestones | What does practical game-specific guidance buy? |
+
+Evolutionary Explorer will observe pixels and its own previous action. The sealed referee may use
+RAM to select parents, but those values do not become neural inputs. The evolutionary lane learns
+**between** child evaluations; the other three learn **during** their individual lifetimes.
+
+```mermaid
+flowchart LR
+    Game["Pokémon Red"] --> Pixels["Rendered pixels"]
+    Pixels --> E["Evolutionary recurrent policy"]
+    Pixels --> C["Visually Curious"]
+    Pixels --> O["Outcome-Rewarded"]
+    Pixels --> V["Conventional"]
+    Game -. "sealed progress measurements" .-> QD["Diverse elite archive"]
+    QD --> Mutate["Copy + mutate parent"]
+    Mutate --> E
+    Game -. "declared coarse state" .-> V
+```
+
+This successor is currently an E0 design, not working software. Until it reaches E2, the local
+dashboard continues to represent the legacy arena and must be labeled accordingly.
+
+## What learning meant in the baseline arena
 
 The three guided arms use the same bounded n-step replay Q learner. A rendered frame is reduced to
-a coarse pixels-only situation key; a fixed-size hash table keeps nine action values per situation.
+a coarse pixels-only situation key; a fixed-size hash table keeps eight action values per situation.
 Each transition is trained with a 128-action return, then retained in a 100,000-transition replay
 buffer. A separate 10,000-transition important buffer keeps non-zero returns from being erased by
 long stretches of unrewarded play. Half of replay samples come from that important buffer.
@@ -44,19 +79,10 @@ new observation channel.
 The Visually Curious arm receives `1.0` only for a definite first visit to the frozen visual-cell
 representation. Repeated visual cells receive zero.
 
-The two outcome-guided arms receive:
-
-| Event | Reward |
-| --- | ---: |
-| Game begins | 3 |
-| New map | 5 |
-| New coordinate on a map | 0.20 |
-| Each additional party member | 25 |
-| First observed wild or trainer battle type | 10 |
-| Each new badge | 100 |
-
-These values are frozen in the run manifest. They are engineering choices, not claims about the
-true value of Pokémon progress.
+The reward ladder changed after the first pretrial exposed coordinate farming and sparse story
+credit. [Reward architecture](reward-architecture.md) is the canonical current specification;
+individual run manifests remain the authority for historical values. Reward weights are
+engineering choices, not claims about the true value of Pokémon progress.
 
 Outcome-Rewarded and Conventional receive **no visual novelty reward**. The first trial showed that
 the former `0.05` visual reward still contributed about 97% of their cumulative score, making them
@@ -76,7 +102,7 @@ the built-in Red and Blue names. Every macro action and emulated frame remains i
 other three agents receive no such sequence. After the introduction, its online policy may use the
 declared RAM tuple alongside pixels.
 
-## The living dashboard
+## The legacy living dashboard
 
 `arena-run` starts four isolated runners plus a local-only web dashboard. The arena page refreshes
 every five seconds and shows:
@@ -96,7 +122,7 @@ nearly identical screenshots.
 The dashboard server binds to `127.0.0.1`, so it is visible from this Mac but not exposed to the
 local network or internet. No ROM bytes or emulator save states are served.
 
-## SSD-backed supervised run
+## Reproducing the legacy SSD-backed arena
 
 The internal disk is too full for a multi-day experiment. Use the external T7 volume:
 
@@ -119,10 +145,10 @@ pokemon-red-ai arena-stop "/Volumes/T7 Developer/PokemonRedAI/arenas/supervised-
 Stopping is graceful. Every agent receives a stop marker and writes a final checkpoint before the
 supervisor exits.
 
-## Monday’s 48-hour configuration
+## Retired 48-hour baseline configuration
 
-The final unattended run should use a new directory and an action ceiling high enough that wall
-time—not the former five-million-action cap—ends the experiment:
+This command remains as a reproducibility record. Do **not** use it as the next headline run: it
+still allocates one lane to Pure Monkey.
 
 ```bash
 pokemon-red-ai arena-run \
@@ -167,18 +193,20 @@ controlled stop. The narrative recorder sits outside those caps, but 23,040 Game
 frames over 48 hours should remain well below 1 GiB. Keep 10 GiB free for the experiment itself and
 20–30 GiB if the same SSD will also hold video-editor caches, proxy media, and final exports.
 
-## Qualification before 48 hours
+## Qualification before the successor arena
 
-Every protocol change starts with a fresh two-hour pre-trial: no policy, novelty filter, replay
-transition, checkpoint, or save state may be inherited. The final 48-hour run should not launch
-until the upgraded learner passes these engineering gates:
+Every protocol change starts with bounded calibration. The successor arena should not launch until
+the evolutionary runner passes its own synthetic tests, then 16-candidate and 128-candidate
+Pokémon pretrials. Existing online-learning policies must start fresh in the comparison.
 
-1. all four agents remain healthy and checkpoint-resumable;
+1. all four lanes remain healthy and checkpoint-resumable;
 2. replay transitions and updates increase continuously;
 3. exact semantic-event screenshots agree with their trace records;
 4. Outcome-Rewarded and Conventional report zero visual reward;
 5. at least one rewarded arm records semantic progress after the initial opening burst;
 6. policy-table occupancy, checkpoint duration, disk use, and action throughput remain bounded.
+7. evolutionary genomes, ancestry, mutation seeds, and archive replacements are reproducible;
+8. promoted checkpoint-assisted milestones replay from power-on without intervention.
 
 Passing these gates proves that the mechanism is operating as designed. It still does not guarantee
 that an agent will solve Pokémon Red.
@@ -197,7 +225,7 @@ scientific step is to repeat the most informative arms across multiple seeds.
 
 ## Narrative spine
 
-The arena supplies a natural video structure: **what must we tell a machine before luck becomes
-learning?** Introduce each contestant as one new concession. Let the audience see live screens
-before showing the charts. The ending is not merely a leaderboard; it is an accounting of which
-piece of knowledge bought each piece of progress.
+The baseline supplied the first answer: **luck without inheritance remains luck**. The successor
+asks a stronger question: **what happens when a useful accident is allowed to have descendants?**
+Introduce each generation through its family tree, let the audience meet extinct and surviving
+lineages, and keep checkpoint-assisted population progress separate from a single frozen policy.

@@ -1,10 +1,31 @@
 # Architecture
 
-> **Primary-track update:** The game-naive, pixels-only track now comes first. The planner/RL hybrid
-> described later in this document remains a possible informed comparison, not the source of
-> actions or rewards in the blind experiment. See [Blind curiosity](blind-curiosity.md).
+> **Primary-track update:** the next system is a game-naive recurrent pixel policy evolved through
+> a quality-diversity population. Existing random, archive, and online Q-learning systems remain
+> reproducible comparisons. See [Evolutionary Explorer](neuroevolution.md).
 
-## Pixels-only authority boundary
+## Planned evolutionary authority boundary
+
+```mermaid
+flowchart LR
+    Runtime["Private game runtime"] --> Actor["Pixels + previous action"]
+    Actor --> Genome["Fixed recurrent genome"]
+    Genome --> Buttons["Eight deterministic actions"]
+    Buttons --> Runtime
+    Runtime --> Referee["Sealed progress referee"]
+    Referee --> Archive["Fitness vector + behavior cell"]
+    Archive --> Parent["Select diverse parent"]
+    Parent --> Mutation["Copy + recorded mutation"]
+    Mutation --> Genome
+    Runtime -. "private snapshot" .-> Expedition["Checkpoint-assisted track only"]
+    Expedition --> Replay["Required power-on lineage replay"]
+```
+
+The genome never reads referee state, fitness, milestone labels, archive location, parent score, or
+private snapshots. Selection may use those measurements after a fixed-policy child finishes. This
+is learning between lifetimes, not an extra observation during one lifetime.
+
+## Historical pixels-only authority boundary
 
 ```mermaid
 flowchart LR
@@ -16,14 +37,15 @@ flowchart LR
     ActorView --> Novelty["Pixel-derived novelty"]
     Novelty --> Trainer
 
-    Runtime --> Referee["Privileged referee<br/>not used tonight"]
+    Runtime --> Referee["Privileged referee<br/>reporting only"]
     Referee --> Recorder["Post-hoc interpretation"]
 ```
 
 The `PixelsOnlyActor` object deliberately exposes no raw PyBoy object, RAM reader, tile map,
 snapshot method, OCR, or referee call. Snapshot branching belongs to the Archivist trainer. Its
-selection uses only pixel cells and visit/selection counts. The current runner does not read RAM at
-all. Tests verify the narrow facade and deterministic pixel-cell transformation.
+selection uses only pixel cells and visit/selection counts. Later arena versions added a sealed RAM
+referee to every lane for reporting; only declared rewarded lanes use those outputs for learning,
+and only Conventional adds a disclosed coarse subset to policy state.
 
 ## Later informed-comparison design
 
@@ -67,9 +89,10 @@ method.
 
 ### State instrumentation and future observation adapter
 
-The implemented Phase 0 reader converts six named WRAM fields into a versioned, read-only
-instrumentation snapshot for validation, tracing, and future referee logic. No agent consumes this
-snapshot yet. See [state-observation.md](state-observation.md) for the exact fields and caveats.
+The read-only instrumentation began with six named WRAM fields and now supports expanded referee
+measurements for maps, party, Pokédex, events, items, moves, badges, and blackouts. Actor and reward
+boundaries remain separately declared for every lane. See
+[reward-architecture.md](reward-architecture.md) for the current catalogue.
 
 Phase 1 will define a separate policy observation schema: exactly which pixels and instrumentation
 fields cross into an acting agent, how they are transformed, and when they are sampled. That schema
@@ -147,13 +170,13 @@ flowchart TB
     end
 
     subgraph Next["Next engineering layer"]
-        N1["Gymnasium environment"] --> N2["Human baseline"]
-        N2 --> N3["Weak scripted and random baselines"]
-        N3 --> N4["Loop watchdog"]
+        N1["Recurrent genome"] --> N2["Mutation + genealogy"]
+        N2 --> N3["MAP-Elites archive"]
+        N3 --> N4["Population dashboard"]
     end
 
     subgraph Later["Research systems"]
-        L1["RL skills"] --> L2["Language-model planner"]
+        L1["Checkpoint-assisted expedition"] --> L2["Language-model planner"]
         L2 --> L3["Hybrid evaluation"]
     end
 
@@ -161,8 +184,8 @@ flowchart TB
     N4 --> L1
 ```
 
-This distinction is important: the current repository proves that the measuring instrument is
-stable. It does not yet contain a trained Pokémon-playing model.
+This distinction is important: the repository contains exercised online Q learners, but the neural
+population remains planned. Neither fact is a frozen claim that one model can play Pokémon.
 
 ## Authority matrix
 

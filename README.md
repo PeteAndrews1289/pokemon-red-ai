@@ -9,15 +9,15 @@ This is a transparent, reproducible **game-naive, pixels-only curiosity** experi
 agent begins at power-on with the rendered Game Boy screen and controller buttons—but no map,
 walkthrough, demonstrations, semantic game state, OCR, or Pokémon-specific goal.
 
-> **Current status: the first blind comparison is complete and the four-agent arena is built.**
-> The trustworthy Phase 0 harness remains underneath it. Pure Monkey, Visually Curious,
-> Outcome-Rewarded, and Conventional arms form an explicit ladder from chance to guided play.
-> The second pre-trial adds 128-step credit assignment, bounded replay, protected rare-event
-> replay, million-bucket policies, separated reward channels, and exact milestone evidence.
+> **Current status: the first blind comparisons and reward pretrials are complete.** Pure Monkey
+> established the true-random baseline and is now retired from future headline arenas because it
+> cannot learn from success. Its replacement, Evolutionary Explorer, is fully specified but not yet
+> implemented. Visually Curious, Outcome-Rewarded, and Conventional remain the online learners.
 
-In the current Archivist, individual buttons remain uniformly random. Pixels teach the separate
-trainer which screens are novel and which saved discovery to branch from next. A later Curious
-policy will use pixels to choose the buttons themselves.
+The current code still preserves every historical runner, including Monkey and Archivist, so old
+results remain reproducible. The next research step is a population of small recurrent pixel
+policies whose successful mutations become parents. See
+[Evolutionary Explorer](docs/neuroevolution.md) for the learning design and its claim boundaries.
 
 ## The story so far
 
@@ -38,28 +38,29 @@ direction lives in [The project narrative](docs/narrative.md), and evidence leve
 
 | Question | Current answer |
 | --- | --- |
-| Is there a trained neural Pokémon-playing model yet? | No |
-| Can a game-naive agent explore from power-on? | Yes: random, archive, and online pixels-only runners |
-| What chooses the arena buttons? | One random policy and three explicitly declared online/scripted policies |
+| Is there a trained neural Pokémon-playing model yet? | No; the first neural population is designed, not implemented |
+| Can a game-naive agent explore from power-on? | Yes: random, archive, and online pixels-only runners have been exercised |
+| Why retire Pure Monkey? | Its action distribution never changes; lucky outcomes cannot become future behavior |
+| What will replace it? | A quality-diversity neuroevolution population with visible ancestry |
 | What guides the Archivist trainer? | Coarse pixels, novelty membership, and archive visit counts |
 | Does RAM guide every arm? | No: only declared outcome rewards and the Conventional policy use it |
 | Does the supplied game boot and accept controlled input? | Yes |
 | Can a clean run reach the first playable bedroom state? | Yes, deterministically |
 | Can the harness identify map, position, party size, and battle state? | Yes, read-only |
 | Are ROMs, saves, snapshots, and gameplay captures committed? | No |
-| First comparison | Monkey vs. pixels-only Archivist under matched budgets |
-| Four-agent arena | Live local comparison from chance through explicit objectives |
-| First neural experiment | Learn a curiosity policy from pixels without game labels |
+| Preserved random comparison | Monkey vs. pixels-only Archivist under matched budgets |
+| Next four-agent arena | Evolutionary Explorer, Visually Curious, Outcome-Rewarded, and Conventional |
+| First neural experiment | Evolve a recurrent pixels-only policy through selection and mutation |
 | Later outcome milestones | Bedroom, Oak's Parcel, and Brock—referee-only, never rewards |
 
 ## The journey
 
 ```mermaid
 flowchart LR
-    P0["✅ Harness<br/>trust the stage"] --> B0["🟨 Monkey<br/>random baseline"]
-    B0 --> B2["🟨 Archivist<br/>pixels + memory"]
-    B2 --> B1["⬜ Curious policy<br/>learn novelty seeking"]
-    B1 --> EV["⬜ Frozen<br/>power-on evaluation"]
+    P0["✅ Harness<br/>trust the stage"] --> B0["✅ Monkey<br/>baseline concluded"]
+    B0 --> B2["✅ Online learners<br/>pretrials"]
+    B2 --> B1["🟨 Evolution design<br/>inherit useful accidents"]
+    B1 --> EV["⬜ Population runner<br/>then frozen evaluation"]
 ```
 
 GitHub issues and experiment records will attach evidence to this roadmap. A checked engineering
@@ -88,14 +89,14 @@ that an agent has learned navigation, understood the screen, or completed a ques
 ```mermaid
 flowchart LR
     Game["Pokémon Red"] --> Pixels["Rendered RGB only"]
-    Pixels --> Actor["Monkey / Curious actor"]
-    Actor --> Act["Game Boy controller"]
+    Pixels --> Policy["Small recurrent policy"]
+    Policy --> Act["Game Boy controller"]
     Act --> Game
-    Pixels --> Novelty["Coarse visual novelty"]
-    Novelty --> Archive["Archivist memory"]
-    Archive -. "trainer restore" .-> Game
-    Game --> Referee["Sealed post-hoc referee"]
-    Referee --> Story["Charts + narrative"]
+    Game --> Referee["Sealed progress referee"]
+    Referee --> Selection["Diverse elite selection"]
+    Selection --> Mutation["Recorded mutation"]
+    Mutation --> Policy
+    Referee --> Story["Lineage + charts + narrative"]
 ```
 
 RAM-derived state may later help the sealed referee explain what happened, but it cannot influence
@@ -126,6 +127,7 @@ Start with [the documentation hub](docs/index.md), or jump directly to:
 
 - [Project narrative](docs/narrative.md) — the central question and story arc
 - [Blind curiosity protocol](docs/blind-curiosity.md) — pixels-only rules, novelty, archive, and run guide
+- [Evolutionary Explorer](docs/neuroevolution.md) — how genomes, mutation, selection, lineage, and checkpoint-assisted search will work
 - [Progress](docs/progress.md) — current evidence, status, and reporting rules
 - [Roadmap](docs/roadmap.md) — engineering, learning, and storytelling milestones
 - [Architecture](docs/architecture.md) — components, data flow, and authority boundaries
@@ -199,7 +201,7 @@ image or save state.
 Use `--rom "/absolute/path/to/Pokemon Red.gb"` instead of the environment variable if preferred.
 No OpenAI API key is needed for Phase 0.
 
-Run a bounded game-naive experiment directly from power-on:
+Reproduce a bounded historical game-naive baseline directly from power-on:
 
 ```bash
 pokemon-red-ai blind-run --mode monkey --hours 8 --max-actions 5000000
@@ -210,7 +212,11 @@ Each run writes a live `index.html`, bounded screenshots, status, trace, and rec
 under ignored `runs/`. No OpenAI API key or reinforcement-learning download is required. See the
 [blind curiosity protocol](docs/blind-curiosity.md) before interpreting or publishing a result.
 
-Run all four declared information levels with one living local dashboard:
+The current `arena-run` command reproduces the **legacy** four-lane arena, including Pure Monkey.
+It remains available for audit, but should not be used as the next headline experiment. The future
+command will replace that lane only after the evolutionary runner passes its qualification gates.
+
+Run the legacy arena with one living local dashboard:
 
 ```bash
 pokemon-red-ai arena-run \
@@ -222,8 +228,9 @@ pokemon-red-ai arena-run \
 
 While active, open `http://127.0.0.1:8765/index.html`. The arena is designed for an external SSD,
 five-minute recovery checkpoints, long-spaced visual evidence, and graceful group stopping. See
-[The four-agent arena](docs/four-agent-arena.md) for the precise observations, rewards, fairness
-rules, live controls, and 48-hour configuration.
+[The four-agent arena](docs/four-agent-arena.md) records both the historical protocol and the
+replacement decision. [Evolutionary Explorer](docs/neuroevolution.md) defines the planned next
+lane; its implementation and launch command do not exist yet.
 
 ## Supported ROM
 

@@ -1,9 +1,10 @@
 # The story of this project
 
-> **Editorial update:** The primary protagonist is now a game-naive, pixels-only learner: first a
-> Monkey, then a Curious agent, then an Archivist. Planner and hybrid material below is retained as
-> a possible later comparison. The revised experimental premise and strict information boundary are
-> defined in [Blind curiosity](blind-curiosity.md).
+> **Editorial update:** Pure Monkey has finished its role as the opening control. It could produce
+> accidents but could not remember them. The next protagonist is a population: successful pixel
+> policies have descendants, failed branches go extinct, and several kinds of survivor remain
+> visible. The design and its strict claims are defined in
+> [Evolutionary Explorer](neuroevolution.md).
 
 ## The question
 
@@ -18,15 +19,15 @@ It is much more interesting to keep the failures, define the rules before the at
 agent was allowed to see, and build a trail of evidence from its first useless button presses to its
 first reliable skill. This repository is meant to become that trail.
 
-The eventual character at the center of the story is an agent with an unusual combination of
-abilities: a language model that can form plans, smaller learned skills that can execute them, a
-memory that can retain discoveries, and a watchdog that can notice when the whole system is going
-in circles. The audience should be able to watch those parts disagree, improve, and occasionally
-fail in recognizable ways.
+For the next act, the central character is not one agent but a family tree. Each child lives with a
+fixed neural policy. Selection decides which behaviors receive descendants. The audience can watch
+useful accidents become inherited tendencies, dominant families stall, rare lineages open new
+parts of the game, and old champions go extinct. Planner and hybrid systems remain possible later
+comparisons rather than claims about the current implementation.
 
 ## Where the project honestly stands
 
-**Model training has not started.**
+**Online Q-learning pretrials have run. Neuroevolution has not started.**
 
 Phase 0 built the measuring instrument: a reproducible emulator harness that can start the exact
 same game, issue timed controller inputs, observe a small and disclosed slice of state, restore an
@@ -37,7 +38,7 @@ claim meaningful. Before asking whether an agent improved, we need to know that 
 under the same conditions. Before comparing two approaches, we need one referee. Before making a
 training graph, we need a definition of success that cannot quietly change after seeing the result.
 
-The first concrete milestone is intentionally modest. From a clean boot, the harness can
+The measuring-instrument milestone remains important. From a clean boot, the harness can
 reproducibly move through the introduction, choose the built-in names RED and BLUE, and stop at the
 first playable moment in the bedroom. It can then move exactly one tile and restore the untouched
 starting state. No policy decided those actions and nothing was learned; this is a deterministic
@@ -46,13 +47,15 @@ test sequence used to prove that the laboratory works.
 | Question | Current answer |
 | --- | --- |
 | Has an AI learned to play Pokémon Red? | No. |
-| Has reinforcement learning begun? | No. |
+| Has online reinforcement learning begun? | Yes, in development pretrials; no frozen task evaluation has been claimed. |
+| Does Pure Monkey learn? | No; it is now a preserved and retired random baseline. |
+| Has neuroevolution begun? | No; the successor is designed at E0 but not implemented. |
 | Can the software boot and control the game reproducibly? | Yes. |
 | Can it verify the intended game revision? | Yes. |
 | Can it record controller actions and selected state without leaking the ROM path? | Yes. |
 | Can it reach the first playable state twice with identical results? | Yes. |
 | Is the current test sequence an autonomous playthrough? | No; it is test infrastructure. |
-| What comes next? | A human baseline, an agent-facing environment, and the first learning runs. |
+| What comes next? | Deterministic genome inference, mutation, MAP-Elites, genealogy, and bounded population pretrials. |
 
 Keeping this table current is part of the project. A small true claim is more valuable than a large
 ambiguous one.
@@ -190,7 +193,30 @@ public trace remain useful without containing the owner's private file paths?
 The dramatic tension is trust. By the end of the prologue, the audience should believe the later
 graphs represent real, comparable runs.
 
-### Chapter 1 — Learn to leave home
+### Interlude — Randomness reaches its limit
+
+Pure Monkey is the “monkeys with typewriters” idea made literal. It can stumble into a starter,
+Route 1, or a battle because Pokémon remembers what happened. The actor remembers nothing. A lucky
+run does not make the next button even slightly less random.
+
+That is a conclusion rather than an embarrassment. The random baseline establishes the floor and
+creates the next question: **what if luck could reproduce?** Retiring Monkey on screen gives the
+project a visible moment where evidence changes the plan.
+
+### Chapter 1 — Give accidents descendants
+
+Introduce genomes as inheritable sets of neural-network parameters. One fixed child plays; the
+sealed referee measures what happened; diverse champions produce mutated children. Show the family
+tree before showing a reward curve.
+
+The conflict is not simply “score goes up.” A family that farms Route 1 may dominate a naive genetic
+algorithm. MAP-Elites preserves different champions—map explorers, story-progress lineages,
+collectors, and battle-experienced branches—so one local optimum does not become the entire species.
+
+The honest endpoint is a qualified population engine and the first inherited improvement, not a
+full-game promise.
+
+### Chapter 2 — Learn to leave home
 
 The first agent-facing task should be deliberately small: leave the bedroom, then leave the house.
 A random policy establishes how hard the task is by accident. A human demonstration establishes a
@@ -201,7 +227,7 @@ This chapter can reveal classic learning problems in miniature: walking into wal
 between two tiles, opening menus unintentionally, discovering a reward shortcut, and reaching a
 door without crossing it.
 
-### Chapter 2 — Deliver Oak's Parcel
+### Chapter 3 — Deliver Oak's Parcel
 
 The parcel is the first meaningful quest. It requires the agent to sequence events, survive map
 transitions, remember a return destination, and distinguish temporary movement from actual task
@@ -210,7 +236,7 @@ progress. This is the first strong test of the planner/skill division.
 Success should mean completing a predefined event from a clean start within a fixed action budget,
 not merely reaching Viridian City or touching a promising coordinate.
 
-### Chapter 3 — Defeat Brock
+### Chapter 4 — Defeat Brock
 
 Brock turns the project from navigation into preparation. A successful system must manage a party,
 select battle actions, respond to losses, and coordinate short-term skills with a longer-term goal.

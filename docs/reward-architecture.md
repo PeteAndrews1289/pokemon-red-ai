@@ -1,5 +1,10 @@
 # Reward architecture: from wandering to discovery
 
+> **Historical protocol with a current successor:** these rewards remain canonical for Visually
+> Curious, Outcome-Rewarded, and Conventional. Pure Monkey is now a preserved random baseline, not
+> a future headline lane. [Evolutionary Explorer](neuroevolution.md) will use the same sealed
+> progress catalogue for parent selection while keeping RAM out of its neural policy inputs.
+
 This document defines the second four-agent protocol. It was written after the first scaled
 pretrial produced a striking failure: every agent could start the game, obtain a starter, battle,
 level, and evolve, yet none could reliably escape the Pallet Town and Route 1 loop.
@@ -43,8 +48,27 @@ twelve released frames. The policy chooses the action, not its timing. This remo
 transition noise where the same learned action could previously turn, move, repeat, or fail depending
 on a second random timing choice.
 
-The monkey remains a monkey: it samples uniformly from the eight actions. Deterministic timing makes
-the comparison cleaner without giving it game knowledge.
+The historical Monkey remains reproducible: it samples uniformly from the eight actions.
+Deterministic timing made the comparison cleaner without giving it game knowledge. It is retired
+from future long-horizon arenas because no outcome can change that fixed distribution.
+
+## How evolution uses this catalogue
+
+Evolutionary Explorer will not receive a scalar reward after every action and update a Q table.
+Each child keeps fixed neural weights for its entire evaluation. Afterward, the sealed referee turns
+the recorded outcome into a milestone-first fitness vector and behavioral archive cell. Selection
+then decides which genomes may produce mutated descendants.
+
+This distinction is central:
+
+- **online learners:** experience changes one policy during its lifetime;
+- **evolutionary learner:** experience decides ancestry between fixed-policy lifetimes;
+- **random baseline:** experience changes neither policy nor ancestry.
+
+The evolutionary selector will reuse maps, warps, party, Pokédex, event, item, badge, blackout,
+and loop measurements. It will compare major milestones lexicographically and cap local exploration
+signals so a Route 1 coordinate collector cannot outrank a real story transition. The complete
+selection and checkpoint-inheritance rules live in [the neuroevolution design](neuroevolution.md).
 
 ## Sealed referee catalogue
 
