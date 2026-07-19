@@ -8,6 +8,7 @@ from pathlib import Path
 
 from pokemon_red_ai.bootstrap import run_bootstrap_test
 from pokemon_red_ai.emulator import PokemonRedEmulator
+from pokemon_red_ai.report import generate_run_report
 from pokemon_red_ai.rom import RomValidationError, resolve_rom_path, verify_rom
 from pokemon_red_ai.smoke import run_smoke_test
 
@@ -33,6 +34,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     bootstrap.add_argument("--rom", type=Path, help="Private path to Pokemon Red.gb")
     bootstrap.add_argument("--output", type=Path, help="New directory for the generated trace")
+
+    report = subparsers.add_parser(
+        "report",
+        help="Turn a sanitized JSONL trace into a local visual HTML report.",
+    )
+    report.add_argument("source", type=Path, help="A trace.jsonl file or its run directory")
+    report.add_argument("--output", type=Path, help="HTML destination; defaults beside the trace")
 
     return parser
 
@@ -93,6 +101,14 @@ def run_bootstrap(args: argparse.Namespace) -> int:
     return 0 if result.passed else 1
 
 
+def run_report(args: argparse.Namespace) -> int:
+    source: Path = args.source.expanduser()
+    trace_path = source / "trace.jsonl" if source.is_dir() else source
+    report_path = generate_run_report(trace_path, args.output)
+    print(f"Run report: {report_path.resolve()}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -103,6 +119,8 @@ def main(argv: list[str] | None = None) -> int:
             return run_smoke(args)
         if args.command == "bootstrap-test":
             return run_bootstrap(args)
+        if args.command == "report":
+            return run_report(args)
     except (OSError, RomValidationError, ValueError, RuntimeError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 2

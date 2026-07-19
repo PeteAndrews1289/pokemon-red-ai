@@ -1,0 +1,69 @@
+name: Experiment record
+description: Propose or report a reproducible Pokémon Red AI experiment
+title: "experiment: "
+labels:
+  - experiment
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for a falsifiable experiment, not a highlight clip. Keep ROMs, save states,
+        screenshots, recordings, checkpoints, private paths, and credentials out of GitHub.
+  - type: input
+    id: question
+    attributes:
+      label: Question
+      description: What single question should this experiment answer?
+      placeholder: Does coordinate-cycle detection reduce bedroom-to-door timeouts?
+    validations:
+      required: true
+  - type: textarea
+    id: hypothesis
+    attributes:
+      label: Hypothesis and decision
+      description: State the expected result and what decision each outcome would change.
+    validations:
+      required: true
+  - type: textarea
+    id: protocol
+    attributes:
+      label: Frozen protocol
+      description: Describe the start state, success/failure rules, budgets, attempts, and seeds.
+    validations:
+      required: true
+  - type: dropdown
+    id: observation
+    attributes:
+      label: Observation track
+      options:
+        - Instrumented (pixels plus declared RAM fields)
+        - Pixels only
+        - Referee-only measurement
+        - Not decided
+    validations:
+      required: true
+  - type: textarea
+    id: resources
+    attributes:
+      label: Resource budget
+      description: Include environment steps, emulator frames, wall time, model calls, and cost.
+    validations:
+      required: true
+  - type: textarea
+    id: results
+    attributes:
+      label: Results or expected outputs
+      description: For completed work, include every attempt and intervention; otherwise list planned metrics.
+  - type: checkboxes
+    id: integrity
+    attributes:
+      label: Integrity checklist
+      options:
+        - label: Success is machine-checkable and not merely shaped reward.
+          required: true
+        - label: Policy-visible and referee-only information are separated.
+          required: true
+        - label: Failed and invalid attempts will remain in the record.
+          required: true
+        - label: No private or copyrighted game artifact will be uploaded.
+          required: true

@@ -9,6 +9,7 @@ from pathlib import Path
 from PIL import Image
 
 from pokemon_red_ai.emulator import PokemonRedEmulator
+from pokemon_red_ai.provenance import detect_source_provenance
 from pokemon_red_ai.rom import RomFingerprint
 from pokemon_red_ai.trace import JsonlTrace
 
@@ -49,12 +50,21 @@ def run_smoke_test(
 ) -> SmokeTestResult:
     output = run_directory or default_run_directory()
     output.mkdir(parents=True, exist_ok=False)
+    provenance = detect_source_provenance()
 
     with JsonlTrace(output / "trace.jsonl") as trace:
         trace.write(
             "manifest",
             created_at=datetime.now(UTC).isoformat(),
+            run_type="calibration",
+            run_name="Emulator smoke calibration",
+            actor="scripted_harness",
+            start_condition="emulator_power_on",
+            instrumentation_schema="none",
+            action_schema="controller-v1",
+            intervention_count=0,
             rom=rom.public_dict(),
+            source=provenance.public_dict(),
             software={
                 "python": platform.python_version(),
                 "pyboy": version("pyboy"),

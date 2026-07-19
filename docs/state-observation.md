@@ -1,10 +1,11 @@
-# Read-only state observation
+# Read-only state instrumentation
 
 ## Purpose
 
-The first instrumented observation is intentionally small. It gives an agent or referee enough
-information to recognize maps, position, party size, and battles without exposing all of game
-memory or providing any way to alter it.
+The Phase 0 instrumentation snapshot is intentionally small. It lets the harness validate maps,
+position, party size, and battles without exposing all of game memory or providing any way to alter
+it. No acting agent consumes these fields yet. Phase 1 will separately declare which fields, if any,
+belong in policy observation version 1 and which remain referee-only.
 
 The observer reads only six named bytes:
 
@@ -36,8 +37,9 @@ loss/blackout transition. Unknown values are preserved and labeled `unknown` rat
 - Menu and text scratch variables are deliberately excluded because they can remain stale.
 - Map names, event flags, species, opponent data, text identifiers, and raw memory are not exposed.
 
-Fields should be sampled at controller action boundaries. A later observation schema can add
-carefully justified fields without silently changing version 1.
+Instrumentation fields should be sampled at controller action boundaries. A future policy
+observation schema may select carefully justified fields, but it receives its own version and must
+not silently redefine this instrumentation snapshot.
 
 The clean-boot test separately checks the bedroom's map-script state and input-ignore byte to prove
 the final frame accepts controller input. Those map-specific assertions are not exposed to an agent.

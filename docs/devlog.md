@@ -34,3 +34,19 @@
 1. Build the human action recorder for the Oak's Parcel baseline.
 2. Define the first Gymnasium-compatible observation and action space.
 3. Add loop detection for repeated screens and coordinate cycles.
+
+## 2026-07-19 — Public baseline
+
+### Published
+
+- Created the public `PeteAndrews1289/pokemon-red-ai` repository under the MIT license.
+- Published the verified Phase 0 harness on `main` before beginning model-training claims.
+- Used the GitHub private commit address so the local personal email is not exposed in history.
+
+### Documentation direction
+
+- Treat the project as both an engineering experiment and a documented story.
+- Keep infrastructure, training, and evaluation progress visually distinct.
+- Generate local run reports from sanitized traces while keeping gameplay captures outside Git.
+- Preserve failed attempts and interventions so a future video can show the real learning process,
+  not only a successful montage.

@@ -1,70 +1,148 @@
 # Pokémon Red AI
 
-A transparent experiment in teaching an AI agent to play Pokémon Red.
+[![CI](https://github.com/PeteAndrews1289/pokemon-red-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/PeteAndrews1289/pokemon-red-ai/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-The planned system combines a language model for high-level planning, trained reinforcement-
-learning skills for execution, persistent memory, and a watchdog that detects loops. The immediate
-goal is smaller: build a reliable emulator harness, then work toward delivering Oak's Parcel and
-defeating Brock.
+**Can an AI learn to play Pokémon Red—and can we show the learning process without hiding the
+failures, shortcuts, or human help?**
 
-> **Project status:** Phase 0 — emulator harness and reproducibility groundwork.
+This is a transparent, reproducible attempt to build one. The long-term plan combines a
+language-model planner, trained navigation and battle skills, persistent memory, and a watchdog
+that notices loops. The nearer goal is concrete: deliver Oak's Parcel, then defeat Brock from a
+clean game start.
 
-## What makes this project different?
+> **Current status: Phase 0, the measuring instrument.** The emulator harness is working and
+> reproducible. Model training has **not** started. The project can reliably boot a clean game,
+> choose the built-in RED and BLUE names, reach the bedroom, read a deliberately small state, and
+> prove that two independent runs agree.
 
-The goal is not merely to produce one successful run. It is to make the agent's behavior
-inspectable and the results reproducible. The project will record:
+## The story so far
 
-- What the agent could observe
-- Which component chose each action
-- What the agent remembered
-- When human intervention occurred
-- Training time, emulator steps, language-model usage, and cost
-- Every official evaluation attempt, not only the best run
+Pokémon Red looks simple because a person brings an enormous amount of invisible knowledge: what a
+door looks like, how dialogue advances, why walking in circles is bad, and which tiny victories
+matter on the way to a distant goal. An agent has none of that for free.
 
-This begins as an instrumented experiment, not a screen-only challenge. Emulator memory may be
-read for observation, scoring, and debugging; every use will be documented explicitly.
+Before asking whether a model can learn, this project asks a less glamorous question: **can we trust
+the test?** A surprising amount has to be settled first—one exact ROM revision, deterministic button
+timing, clean start states, observation boundaries, private artifact handling, and a record of every
+attempt. That foundation is Act I of the project, not backstage work to be edited out later.
 
-## Planned architecture
+The full editorial direction lives in [The project narrative](docs/narrative.md). The detailed
+status, including what is measured versus merely planned, is in [Progress](docs/progress.md).
 
-- **Planner:** chooses goals and strategies
-- **Skills:** execute navigation and battle behaviors
-- **Memory:** stores discoveries, map connections, and failed approaches
-- **Executor:** converts decisions into controller inputs
-- **Watchdog:** detects repeated actions and unproductive loops
-- **Referee:** measures progress without controlling the agent
-- **Recorder:** saves sanitized traces, metrics, and video-ready artifacts
+## At a glance
 
-The project will eventually compare three configurations:
+| Question | Current answer |
+| --- | --- |
+| Is there a trained Pokémon-playing model yet? | No |
+| Does the supplied game boot and accept controlled input? | Yes |
+| Can a clean run reach the first playable bedroom state? | Yes, deterministically |
+| Can the harness identify map, position, party size, and battle state? | Yes, read-only |
+| Are ROMs, saves, snapshots, and gameplay captures committed? | No |
+| First learned-skill milestone | Leave the bedroom |
+| First end-to-end quest milestone | Deliver Oak's Parcel |
+| First public boss milestone | Defeat Brock |
+| Planned comparison | Language-model only vs. RL only vs. hybrid |
 
-1. Language-model only
-2. Reinforcement-learning only
-3. Hybrid planner plus trained skills
+## The journey
 
-See [the architecture document](docs/architecture.md) for the component boundaries.
+```mermaid
+flowchart LR
+    P0["🟨 CURRENT<br/>Phase 0: core harness verified"] --> P1["Phase 1<br/>Oak's Parcel"]
+    P1 --> P2["Phase 2<br/>Defeat Brock"]
+    P2 --> P3["Phase 3<br/>Compare agents"]
+    P3 --> P4["Later<br/>Longer game run"]
+```
 
-## Current Phase 0 features
+GitHub issues and experiment records will attach evidence to this roadmap. A checked engineering
+task is not automatically model progress; the [detailed roadmap](docs/roadmap.md) keeps those tracks
+separate.
 
-- Exact ROM revision validation before emulation starts
-- Headless, unlimited-speed PyBoy wrapper
-- Explicit press/release controller timing
-- In-memory save-state snapshots with integrity hashes
-- PNG screenshots and sanitized JSONL traces
-- Read-only memory access at the harness boundary
-- A deterministic clean boot to RED's bedroom, using the built-in RED and BLUE names
-- A versioned six-field read-only state observation
-- Unit and opt-in private-ROM integration tests
-- CI guard against accidentally committing ROMs or save data
+## What Phase 0 proves
 
-## Quick start
+- The target ROM is identified by exact title, size, SHA-1, and SHA-256 before emulation starts.
+- PyBoy runs headlessly at unlimited speed without writing save data beside the private ROM.
+- Every controller action has explicit hold and release durations.
+- In-memory snapshots are integrity-checked and bound to the ROM hash and PyBoy version.
+- A frozen input sequence reaches RED's bedroom at logical frame 9,804.
+- Two independent clean boots produce identical state, pixels, game-area, and snapshot hashes.
+- An 8-frame press plus 16-frame release moves RED exactly one tile at the bedroom start.
+- The current instrumentation reader exposes six named fields and no memory-writing method.
+- Pre-game scratch values are hidden so Oak's introduction cannot masquerade as playable state.
+- Sanitized JSONL traces contain reproducibility hashes, not ROM paths or bytes.
+- CI rejects common ROM, save, snapshot, private-path, and documentation mistakes.
 
-Requirements:
+These claims are covered by the unit and private-ROM integration test suite. They do **not** imply
+that an agent has learned navigation, understood the screen, or completed a quest.
+
+## Planned system
+
+```mermaid
+flowchart LR
+    Game["Pokémon Red"] --> Obs["Pixels + declared state"]
+    Obs --> Planner["Planner"]
+    Obs --> Skills["Trained skills"]
+    Planner --> Choose["Choose bounded skill"]
+    Skills --> Act["Controller executor"]
+    Choose --> Act
+    Memory["Run memory"] <--> Planner
+    Watchdog["Loop watchdog"] --> Act
+    Act --> Game
+    Obs --> Referee["Referee + recorder"]
+```
+
+The planner cannot write game memory or load snapshots. The referee can measure success but cannot
+choose actions. The watchdog may replan or stop a failed attempt; it may not teleport the player.
+See [Architecture](docs/architecture.md) for the full authority boundaries and decision cycle.
+
+## What will count as progress?
+
+The project uses the canonical [Progress evidence ladder](docs/progress.md#evidence-ladder) so a
+polished clip cannot outrank a repeatable result.
+
+| Level | Meaning | Example |
+| --- | --- | --- |
+| E0 — Proposed | A written design or roadmap item | Proposed reward function |
+| E1 — Implemented | Code and a documented interface | Environment wrapper exists |
+| E2 — Checked | Automated unit, integration, lint, or safety check | One-tile timing test passes |
+| E3 — Repeated | Reproducible run artifacts with matching declared outcomes | Two clean boots agree |
+| E4 — Evaluated | Frozen policy, budget, all attempts, and aggregate metrics | 17/20 held-out attempts |
+
+Every public experiment should state its observation track, training budget, evaluation attempts,
+interventions, failures, model usage, cost, and Git commit. Shaped reward is useful diagnostic data;
+it is not proof that a task was solved.
+
+## Documentation map
+
+Start with [the documentation hub](docs/index.md), or jump directly to:
+
+- [Project narrative](docs/narrative.md) — the central question and story arc
+- [Progress](docs/progress.md) — current evidence, status, and reporting rules
+- [Roadmap](docs/roadmap.md) — engineering, learning, and storytelling milestones
+- [Architecture](docs/architecture.md) — components, data flow, and authority boundaries
+- [Experiment protocol](docs/experiment-protocol.md) — what claims require what evidence
+- [State instrumentation](docs/state-observation.md) — exact read-only fields and caveats
+- [Run reports](docs/run-reports.md) — turning traces into local visual summaries
+- [Video outline](docs/video-outline.md) — a possible YouTube structure and shot plan
+- [Visual storytelling](docs/visual-storytelling.md) — charts and visuals worth collecting
+- [Glossary](docs/glossary.md) — technical ideas in audience-friendly language
+- [Development log](docs/devlog.md) and [changelog](CHANGELOG.md) — what changed and why
+
+Reusable records:
+
+- [Experiment record template](docs/experiment-template.md)
+- [Agent card template](docs/agent-card-template.md)
+
+## Reproduce the current milestone
+
+### Requirements
 
 - Python 3.11 or newer
-- A legally obtained supported Pokémon Red ROM
+- A legally obtained Pokémon Red ROM matching the supported fingerprint below
 - macOS, Linux, or Windows with a PyBoy-supported Python build
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/pokemon-red-ai.git
+git clone https://github.com/PeteAndrews1289/pokemon-red-ai.git
 cd pokemon-red-ai
 
 python3 -m venv .venv
@@ -72,7 +150,15 @@ source .venv/bin/activate
 python -m pip install -e ".[dev]"
 ```
 
-Keep the ROM outside the repository and provide its path at runtime:
+On Windows PowerShell, create and activate the environment with:
+
+```powershell
+py -m venv .venv
+.\.venv\Scripts\Activate.ps1
+py -m pip install -e ".[dev]"
+```
+
+Keep the ROM outside the repository and provide its path only at runtime:
 
 ```bash
 export POKEMON_RED_ROM="/absolute/path/to/Pokemon Red.gb"
@@ -82,30 +168,27 @@ pokemon-red-ai smoke-test
 pokemon-red-ai bootstrap-test
 ```
 
-You can use `--rom "/absolute/path/to/Pokemon Red.gb"` instead of the environment variable.
-Generated screenshots and traces go under `runs/`, which Git ignores.
+The bootstrap test starts two clean games, compares the outcomes, verifies the input-ready bedroom
+state, calibrates one-tile movement, and restores the untouched starting snapshot. Generated traces
+and private screenshots go under `runs/`, which Git ignores.
 
-Run the test and safety checks:
-
-```bash
-python scripts/check_private_artifacts.py
-ruff check .
-pytest -m "not integration"
-pytest -m integration  # Requires POKEMON_RED_ROM
-```
-
-The larger RL stack is optional until training begins:
+Turn any smoke or bootstrap trace into a standalone visual report:
 
 ```bash
-python -m pip install -e ".[rl]"
+pokemon-red-ai report runs/bootstrap-YYYYMMDDTHHMMSSZ
 ```
 
-No OpenAI API key is needed for Phase 0. Language-model setup will be added when the planner is
-implemented.
+The resulting `report.html` explains the manifest, outcome, repeated attempts, timeline, and the
+important fact that these harness runs contain no model-training metrics. The generator does not
+add screenshots, ROM assets, JavaScript, or remote dependencies; it redacts common sensitive
+values, but reports still require review before publication. See [Run reports](docs/run-reports.md).
+
+Use `--rom "/absolute/path/to/Pokemon Red.gb"` instead of the environment variable if preferred.
+No OpenAI API key is needed for Phase 0.
 
 ## Supported ROM
 
-**The ROM is not included in this repository.** The Phase 0 harness supports exactly:
+**The ROM is not included in this repository.** The harness currently supports exactly:
 
 ```text
 Title:   POKEMON RED
@@ -114,66 +197,37 @@ SHA-1:   ea9bcae617fdf159b045185467ae58b2e4a48b9a
 SHA-256: 5ca7ba01642a3b27b0cc0b5349b52792795b62d3ed977e98a09390659af96b7b
 ```
 
-The filename is not used as proof of identity. Other revisions may use different memory layouts
-and save states, so the harness refuses them until they are deliberately supported.
+The filename is not proof of identity. Other revisions can have different memory layouts and save
+states, so the harness refuses them until they are deliberately supported. The named state fields
+were checked against a matching build of
+[`pret/pokered`](https://github.com/pret/pokered/tree/1e96034092686d006e863cace09e87273051a3d8).
 
-## Roadmap
+## Development checks
 
-### Phase 0 — Emulator harness
+```bash
+python scripts/check_private_artifacts.py
+python scripts/check_docs.py
+ruff check .
+pytest -m "not integration"
+pytest -m integration  # Requires POKEMON_RED_ROM
+```
 
-- [x] Verify the target ROM fingerprint
-- [x] Boot the ROM headlessly in PyBoy
-- [x] Add controller, screenshot, save-state, and trace primitives
-- [x] Prevent ROM and save artifacts from entering Git
-- [x] Define and test named read-only game-state fields
-- [x] Reproducibly reach the first playable bedroom state
-- [x] Calibrate one-tile overworld controller timing at the bedroom start
-- [ ] Record a human Oak's Parcel baseline
-- [ ] Run an extended random-action stability test
+The reinforcement-learning stack remains optional until training begins:
 
-### Phase 1 — Oak's Parcel
+```bash
+python -m pip install -e ".[rl]"
+```
 
-- [ ] Leave the bedroom and house
-- [ ] Trigger Professor Oak
-- [ ] Choose a starter
-- [ ] Complete the first rival battle
-- [ ] Reach Viridian City
-- [ ] Collect and return Oak's Parcel
-
-### Phase 2 — Brock
-
-- [ ] Navigate Route 1 and Viridian Forest
-- [ ] Train reusable navigation and battle skills
-- [ ] Integrate planner, memory, and watchdog
-- [ ] Defeat Brock from a clean game start
-
-### Later experiments
-
-- [ ] Compare language-model, RL, and hybrid agents
-- [ ] Test stricter observation settings
-- [ ] Run held-out evaluations across multiple seeds
-- [ ] Explore a full-game run
-
-## Reproducibility rules
-
-Each reported experiment should identify its Git commit, configuration, ROM fingerprint, random
-seeds, training budget, model usage, success criteria, and intervention count. Development save
-states may accelerate training, but official end-to-end evaluations begin from a clean game unless
-clearly stated otherwise.
-
-The full rules are in [docs/experiment-protocol.md](docs/experiment-protocol.md).
+See [Contributing](CONTRIBUTING.md) before adding observations, rewards, or published results.
 
 ## Legal and project hygiene
 
 Pokémon is owned by Nintendo, Game Freak, and The Pokémon Company. This is an independent
 educational and research project and is not affiliated with or endorsed by them.
 
-This repository does not distribute game ROMs or proprietary game assets. Contributors are
-responsible for obtaining and using game software in accordance with applicable law. Never commit
-ROMs, save files, emulator states, API keys, private machine paths, checkpoints, or recordings.
+The repository does not distribute ROMs, save data, emulator states, extracted game assets, or
+gameplay recordings. Contributors are responsible for obtaining and using game software in
+accordance with applicable law. Never commit ROMs, saves, snapshots, API keys, private machine
+paths, checkpoints, or recordings.
 
-## Development log
-
-Decisions and milestones are recorded in [docs/devlog.md](docs/devlog.md).
-The exact initial RAM observation and its limits are documented in
-[docs/state-observation.md](docs/state-observation.md).
+The project code and original documentation are available under the [MIT License](LICENSE).
