@@ -13,8 +13,11 @@ pytest -m "not integration"
 ```
 
 Never commit ROMs, save files, emulator snapshots, credentials, absolute private paths, recordings,
-or generated checkpoints. Describe new observation fields and reward signals in the experiment
-protocol, and include tests for any new emulator behavior.
+or generated checkpoints. In the primary blind track, rendered pixels and the actor's own action
+history are the only policy channels; reward must be derived from those same inputs. RAM, tile data,
+OCR, referee fields, start-state selection, and checkpoint selection can all leak information even
+when absent from the observation vector. Describe every new channel and reward in the experiment
+protocol and include an independence test.
 
 Use the [experiment record template](docs/experiment-template.md) for results and the
 [agent card template](docs/agent-card-template.md) when a policy, prompt, model, observation, or

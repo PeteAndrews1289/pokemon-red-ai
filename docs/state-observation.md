@@ -4,8 +4,9 @@
 
 The Phase 0 instrumentation snapshot is intentionally small. It lets the harness validate maps,
 position, party size, and battles without exposing all of game memory or providing any way to alter
-it. No acting agent consumes these fields yet. Phase 1 will separately declare which fields, if any,
-belong in policy observation version 1 and which remain referee-only.
+it. No acting agent consumes these fields. The primary game-naive track permanently keeps all six
+fields out of policy input, reward, termination, resets, archive selection, and checkpoint
+selection. A future explicitly instrumented comparison would be a different protocol.
 
 The observer reads only six named bytes:
 

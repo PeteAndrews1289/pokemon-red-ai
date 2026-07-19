@@ -5,15 +5,16 @@ This project has two stories running in parallel:
 1. the engineering story — building a trustworthy way to run and measure Pokémon Red; and
 2. the learning story — what an agent eventually tries, learns, forgets, and masters.
 
-Only the first story has begun. The emulator foundation is working, but **there is no trained
-model and no autonomous gameplay result yet**. That distinction is the starting point for every
-document in this repository.
+The emulator foundation is working, and the first autonomous game-naive search runner now exists.
+There is still **no trained neural Pokémon model or evaluated gameplay result**. The current learner
+is an honest pixels-only discovery archive whose limitations are part of the story.
 
 ## Start here
 
 | If you want to… | Read… | What it answers |
 | --- | --- | --- |
 | Understand the project in a few minutes | [Project README](../README.md) | What is being built and how to run it |
+| Audit the primary experiment | [Blind curiosity protocol](blind-curiosity.md) | What the agent sees, how novelty works, and what counts as leakage |
 | Follow the central story | [Project narrative](narrative.md) | Why the failures and evidence are part of the project |
 | See what is genuinely complete today | [Progress](progress.md) | What is verified, what is merely implemented, and what is still planned |
 | Follow the journey ahead | [Roadmap](roadmap.md) | Milestones, gates, dependencies, and definitions of done |
@@ -34,14 +35,14 @@ document in this repository.
 
 ```mermaid
 flowchart LR
-    A["🟨 CURRENT<br/>Phase 0: trustworthy harness"] --> B["⬜ PLANNED<br/>Phase 1: Oak's Parcel"]
-    B --> C["⬜ PLANNED<br/>Phase 2: Brock"]
-    C --> D["🧭 LATER<br/>Controlled comparisons"]
+    A["✅ Harness"] --> B["🟨 Monkey baseline"]
+    B --> C["🟨 Pixels-only Archivist"]
+    C --> D["⬜ Learned curiosity policy"]
+    D --> E["⬜ Frozen evaluation"]
 ```
 
-The diagram shows project position, not training progress. Phase 0 has working core features plus
-two remaining validation tasks. Phase 1 is the next research milestone, not a claim that an agent
-is currently learning it.
+The diagram shows project position, not game progress. The current Archivist learns an archive,
+not a neural policy, and an overnight development run is not a frozen evaluation.
 
 ## Three reading paths
 

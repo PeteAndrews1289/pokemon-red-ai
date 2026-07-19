@@ -3,18 +3,20 @@
 [![CI](https://github.com/PeteAndrews1289/pokemon-red-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/PeteAndrews1289/pokemon-red-ai/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**Can an AI learn to play Pokémon Red—and can we show the learning process without hiding the
-failures, shortcuts, or human help?**
+**How far can an agent get in Pokémon Red when nobody tells it what Pokémon is?**
 
-This is a transparent, reproducible attempt to build one. The long-term plan combines a
-language-model planner, trained navigation and battle skills, persistent memory, and a watchdog
-that notices loops. The nearer goal is concrete: deliver Oak's Parcel, then defeat Brock from a
-clean game start.
+This is a transparent, reproducible **game-naive, pixels-only curiosity** experiment. The primary
+agent begins at power-on with the rendered Game Boy screen and controller buttons—but no map,
+walkthrough, demonstrations, semantic game state, OCR, or Pokémon-specific goal.
 
-> **Current status: Phase 0, the measuring instrument.** The emulator harness is working and
-> reproducible. Model training has **not** started. The project can reliably boot a clean game,
-> choose the built-in RED and BLUE names, reach the bedroom, read a deliberately small state, and
-> prove that two independent runs agree.
+> **Current status: the first blind exploration runner is implemented and calibrated.** The
+> trustworthy Phase 0 harness remains underneath it. A random Monkey and a pixel-novelty Archivist
+> can now start from a clean power-on state under fixed time, action, disk, and checkpoint limits.
+> This is adaptive archive search—not yet a trained neural Pokémon model.
+
+In the current Archivist, individual buttons remain uniformly random. Pixels teach the separate
+trainer which screens are novel and which saved discovery to branch from next. A later Curious
+policy will use pixels to choose the buttons themselves.
 
 ## The story so far
 
@@ -27,31 +29,35 @@ the test?** A surprising amount has to be settled first—one exact ROM revision
 timing, clean start states, observation boundaries, private artifact handling, and a record of every
 attempt. That foundation is Act I of the project, not backstage work to be edited out later.
 
-The full editorial direction lives in [The project narrative](docs/narrative.md). The detailed
-status, including what is measured versus merely planned, is in [Progress](docs/progress.md).
+The primary protocol is [Game-naive, pixels-only curiosity](docs/blind-curiosity.md). The editorial
+direction lives in [The project narrative](docs/narrative.md), and evidence levels remain tracked in
+[Progress](docs/progress.md).
 
 ## At a glance
 
 | Question | Current answer |
 | --- | --- |
-| Is there a trained Pokémon-playing model yet? | No |
+| Is there a trained neural Pokémon-playing model yet? | No |
+| Can a game-naive agent explore from power-on? | Yes: random and archive-search runners |
+| What chooses the current buttons? | A seeded uniform pseudorandom generator |
+| What guides the Archivist trainer? | Coarse pixels, novelty membership, and archive visit counts |
+| Does RAM, OCR, a walkthrough, or human play guide it? | No |
 | Does the supplied game boot and accept controlled input? | Yes |
 | Can a clean run reach the first playable bedroom state? | Yes, deterministically |
 | Can the harness identify map, position, party size, and battle state? | Yes, read-only |
 | Are ROMs, saves, snapshots, and gameplay captures committed? | No |
-| First learned-skill milestone | Leave the bedroom |
-| First end-to-end quest milestone | Deliver Oak's Parcel |
-| First public boss milestone | Defeat Brock |
-| Planned comparison | Language-model only vs. RL only vs. hybrid |
+| First comparison | Monkey vs. pixels-only Archivist under matched budgets |
+| First neural experiment | Learn a curiosity policy from pixels without game labels |
+| Later outcome milestones | Bedroom, Oak's Parcel, and Brock—referee-only, never rewards |
 
 ## The journey
 
 ```mermaid
 flowchart LR
-    P0["🟨 CURRENT<br/>Phase 0: core harness verified"] --> P1["Phase 1<br/>Oak's Parcel"]
-    P1 --> P2["Phase 2<br/>Defeat Brock"]
-    P2 --> P3["Phase 3<br/>Compare agents"]
-    P3 --> P4["Later<br/>Longer game run"]
+    P0["✅ Harness<br/>trust the stage"] --> B0["🟨 Monkey<br/>random baseline"]
+    B0 --> B2["🟨 Archivist<br/>pixels + memory"]
+    B2 --> B1["⬜ Curious policy<br/>learn novelty seeking"]
+    B1 --> EV["⬜ Frozen<br/>power-on evaluation"]
 ```
 
 GitHub issues and experiment records will attach evidence to this roadmap. A checked engineering
@@ -75,25 +81,25 @@ separate.
 These claims are covered by the unit and private-ROM integration test suite. They do **not** imply
 that an agent has learned navigation, understood the screen, or completed a quest.
 
-## Planned system
+## Primary experimental system
 
 ```mermaid
 flowchart LR
-    Game["Pokémon Red"] --> Obs["Pixels + declared state"]
-    Obs --> Planner["Planner"]
-    Obs --> Skills["Trained skills"]
-    Planner --> Choose["Choose bounded skill"]
-    Skills --> Act["Controller executor"]
-    Choose --> Act
-    Memory["Run memory"] <--> Planner
-    Watchdog["Loop watchdog"] --> Act
+    Game["Pokémon Red"] --> Pixels["Rendered RGB only"]
+    Pixels --> Actor["Monkey / Curious actor"]
+    Actor --> Act["Game Boy controller"]
     Act --> Game
-    Obs --> Referee["Referee + recorder"]
+    Pixels --> Novelty["Coarse visual novelty"]
+    Novelty --> Archive["Archivist memory"]
+    Archive -. "trainer restore" .-> Game
+    Game --> Referee["Sealed post-hoc referee"]
+    Referee --> Story["Charts + narrative"]
 ```
 
-The planner cannot write game memory or load snapshots. The referee can measure success but cannot
-choose actions. The watchdog may replan or stop a failed attempt; it may not teleport the player.
-See [Architecture](docs/architecture.md) for the full authority boundaries and decision cycle.
+RAM-derived state may later help the sealed referee explain what happened, but it cannot influence
+reward, actions, resets, archive selection, or checkpoints. Archivist restores are trainer-owned,
+pixel-selected, and disclosed; they are disabled in future clean power-on evaluation. See
+[the blind protocol](docs/blind-curiosity.md) and [Architecture](docs/architecture.md).
 
 ## What will count as progress?
 
@@ -117,6 +123,7 @@ it is not proof that a task was solved.
 Start with [the documentation hub](docs/index.md), or jump directly to:
 
 - [Project narrative](docs/narrative.md) — the central question and story arc
+- [Blind curiosity protocol](docs/blind-curiosity.md) — pixels-only rules, novelty, archive, and run guide
 - [Progress](docs/progress.md) — current evidence, status, and reporting rules
 - [Roadmap](docs/roadmap.md) — engineering, learning, and storytelling milestones
 - [Architecture](docs/architecture.md) — components, data flow, and authority boundaries
@@ -189,6 +196,17 @@ image or save state.
 
 Use `--rom "/absolute/path/to/Pokemon Red.gb"` instead of the environment variable if preferred.
 No OpenAI API key is needed for Phase 0.
+
+Run a bounded game-naive experiment directly from power-on:
+
+```bash
+pokemon-red-ai blind-run --mode monkey --hours 8 --max-actions 5000000
+pokemon-red-ai blind-run --mode archivist --hours 8 --max-actions 5000000
+```
+
+Each run writes a live `index.html`, bounded screenshots, status, trace, and recoverable checkpoint
+under ignored `runs/`. No OpenAI API key or reinforcement-learning download is required. See the
+[blind curiosity protocol](docs/blind-curiosity.md) before interpreting or publishing a result.
 
 ## Supported ROM
 

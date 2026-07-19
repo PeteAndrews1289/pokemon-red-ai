@@ -1,10 +1,15 @@
 # Progress and evidence
 
-- **Current stage:** Phase 0 — reproducible emulator foundation
+> **Current research direction:** a game-naive, pixels-only Monkey and Archivist now sit on top of
+> the verified harness. Their first overnight runs are development evidence. No neural policy has
+> been trained and no task-performance evaluation has been claimed. See
+> [Blind curiosity](blind-curiosity.md).
+
+- **Current stage:** Phase 0 harness plus first pixels-only exploration runner
 - **Status date:** 2026-07-19
 
-**Most important caveat:** no model has been trained and no autonomous Oak's Parcel attempt has
-been run.
+**Most important caveat:** the current learned object is a visual discovery archive, not neural
+policy weights. No autonomous Oak's Parcel evaluation has been run.
 
 The project can now launch the exact supported game revision, issue deterministic controller
 inputs, observe a small documented state, and reproduce the start of a clean game. That is useful
@@ -165,11 +170,11 @@ A compact future update can use this table:
 The immediate goal is not a flashy success clip. It is to make the first learning result
 interpretable.
 
-1. Record a human Oak's Parcel baseline with actions, frames, milestones, and interventions.
-2. Run a bounded random-action stability test and classify every termination.
-3. Freeze observation/action schema version 1 for the first training environment.
-4. Define the referee milestones and task success rule before reward tuning.
-5. Train a small baseline and publish all frozen evaluation attempts, including failures.
+1. Complete matched bounded Monkey and Archivist runs from clean power-on.
+2. Publish their action budgets, discovery curves, archive growth, and all stop reasons.
+3. Review the screen reels for animation, text, or menu novelty exploits.
+4. Freeze visual-cell version 2 only if the evidence justifies a change.
+5. Train a compact pixel-only curiosity policy, then evaluate it without learning or restores.
 
 See [Roadmap](roadmap.md) for acceptance gates and [Visual storytelling](visual-storytelling.md) for
 how those results should be shown.

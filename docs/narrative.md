@@ -1,5 +1,10 @@
 # The story of this project
 
+> **Editorial update:** The primary protagonist is now a game-naive, pixels-only learner: first a
+> Monkey, then a Curious agent, then an Archivist. Planner and hybrid material below is retained as
+> a possible later comparison. The revised experimental premise and strict information boundary are
+> defined in [Blind curiosity](blind-curiosity.md).
+
 ## The question
 
 Can an AI learn to make meaningful progress through Pokémon Red—and can we explain what it is

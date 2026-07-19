@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import argparse
+import json
+import os
 import platform
 import sys
+from datetime import UTC, datetime
 from importlib.metadata import version
 from pathlib import Path
 
+from pokemon_red_ai.blind import BlindRunConfig, run_blind_experiment
 from pokemon_red_ai.bootstrap import run_bootstrap_test
 from pokemon_red_ai.emulator import PokemonRedEmulator
 from pokemon_red_ai.report import generate_run_report
@@ -41,6 +45,51 @@ def build_parser() -> argparse.ArgumentParser:
     )
     report.add_argument("source", type=Path, help="A trace.jsonl file or its run directory")
     report.add_argument("--output", type=Path, help="HTML destination; defaults beside the trace")
+
+    blind = subparsers.add_parser(
+        "blind-run",
+        help="Run a bounded game-naive pixels-only exploration from power-on.",
+    )
+    blind.add_argument("--rom", type=Path, help="Private path to Pokemon Red.gb")
+    blind.add_argument(
+        "--output",
+        type=Path,
+        help="New run directory, or an existing one to resume",
+    )
+    blind.add_argument(
+        "--mode",
+        choices=("monkey", "archivist"),
+        default="archivist",
+        help="Random baseline or visual-novelty archive search",
+    )
+    blind.add_argument("--hours", type=float, default=8, help="Hard wall-clock limit")
+    blind.add_argument("--max-actions", type=int, default=5_000_000)
+    blind.add_argument("--seed", type=int, default=20_260_719)
+    blind.add_argument("--branch-actions", type=int, default=32)
+    blind.add_argument("--max-archive-cells", type=int, default=10_000)
+    blind.add_argument("--seen-filter-mib", type=int, default=8)
+    blind.add_argument("--screenshot-limit", type=int, default=96)
+    blind.add_argument("--status-seconds", type=float, default=30)
+    blind.add_argument("--checkpoint-seconds", type=float, default=300)
+    blind.add_argument("--max-output-mib", type=int, default=512)
+    blind.add_argument("--min-free-gib", type=float, default=10)
+    blind.add_argument(
+        "--resume",
+        action="store_true",
+        help="Resume from the checkpoint in --output using exactly the same configuration",
+    )
+
+    blind_status = subparsers.add_parser(
+        "blind-status",
+        help="Show the latest status for a pixels-only run.",
+    )
+    blind_status.add_argument("run_directory", type=Path)
+
+    blind_stop = subparsers.add_parser(
+        "blind-stop",
+        help="Request a graceful checkpoint and stop for a pixels-only run.",
+    )
+    blind_stop.add_argument("run_directory", type=Path)
 
     return parser
 
@@ -109,6 +158,90 @@ def run_report(args: argparse.Namespace) -> int:
     return 0
 
 
+def run_blind(args: argparse.Namespace) -> int:
+    if args.resume and args.output is None:
+        raise ValueError("--resume requires --output")
+    rom_path = resolve_rom_path(args.rom)
+    fingerprint = verify_rom(rom_path)
+    config = BlindRunConfig(
+        mode=args.mode,
+        duration_seconds=args.hours * 3_600,
+        max_actions=args.max_actions,
+        seed=args.seed,
+        branch_actions=args.branch_actions,
+        max_archive_cells=args.max_archive_cells,
+        seen_filter_bytes=args.seen_filter_mib * 1024 * 1024,
+        screenshot_limit=args.screenshot_limit,
+        status_interval_seconds=args.status_seconds,
+        checkpoint_interval_seconds=args.checkpoint_seconds,
+        max_output_bytes=args.max_output_mib * 1024 * 1024,
+        min_free_bytes=int(args.min_free_gib * 1024 * 1024 * 1024),
+    )
+    result = run_blind_experiment(
+        rom_path,
+        fingerprint,
+        config=config,
+        run_directory=args.output,
+        resume=args.resume,
+    )
+    print(f"Pixels-only run: {result.stop_reason}")
+    print(f"Actions: {result.counters.total_actions:,}")
+    print(f"Visual cells: {result.counters.unique_visual_cells:,}")
+    print(f"Archive cells: {result.archive_cells:,}")
+    print(f"Dashboard: {(result.run_directory / 'index.html').resolve()}")
+    healthy_stops = {
+        "action_limit",
+        "duration_limit",
+        "low_disk_space",
+        "output_limit",
+        "sigint",
+        "sigterm",
+        "stop_requested",
+    }
+    return 0 if result.stop_reason in healthy_stops else 1
+
+
+def show_blind_status(run_directory: Path) -> int:
+    status_path = run_directory.expanduser() / "status.json"
+    if not status_path.is_file():
+        raise ValueError("Run status.json does not exist")
+    status = json.loads(status_path.read_text(encoding="utf-8"))
+    updated_at = datetime.fromisoformat(status["updated_at"])
+    heartbeat_age = max(0.0, (datetime.now(UTC) - updated_at).total_seconds())
+    process_id = int(status.get("process_id", 0))
+    process_alive = False
+    if process_id > 0:
+        try:
+            os.kill(process_id, 0)
+            process_alive = True
+        except OSError:
+            process_alive = False
+    heartbeat_limit = max(90.0, float(status.get("heartbeat_interval_seconds", 30)) * 3)
+    heartbeat_state = "fresh" if heartbeat_age <= heartbeat_limit else "stale"
+    print(f"State: {status['state']}")
+    print(f"Mode: {status['mode']}")
+    print(f"Elapsed seconds: {status['elapsed_seconds']:,.1f}")
+    print(f"Actions: {status['total_actions']:,}")
+    print(f"Visual cells: {status['unique_visual_cells']:,}")
+    print(f"Archive cells: {status['archive_cells']:,}")
+    print(f"Actions/second: {status['actions_per_second']:,.2f}")
+    print(f"Heartbeat: {heartbeat_state} ({heartbeat_age:,.1f} seconds old)")
+    print(f"Process alive: {process_alive}")
+    print(f"Stop reason: {status.get('stop_reason') or 'still running'}")
+    if status["state"] == "running" and (not process_alive or heartbeat_state == "stale"):
+        return 1
+    return 0 if status["state"] != "failed" else 1
+
+
+def request_blind_stop(run_directory: Path) -> int:
+    resolved = run_directory.expanduser()
+    if not (resolved / "status.json").is_file():
+        raise ValueError("Run status.json does not exist")
+    (resolved / "STOP").touch(exist_ok=True)
+    print("Graceful stop requested; the runner will checkpoint before exiting.")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -121,6 +254,12 @@ def main(argv: list[str] | None = None) -> int:
             return run_bootstrap(args)
         if args.command == "report":
             return run_report(args)
+        if args.command == "blind-run":
+            return run_blind(args)
+        if args.command == "blind-status":
+            return show_blind_status(args.run_directory)
+        if args.command == "blind-stop":
+            return request_blind_stop(args.run_directory)
     except (OSError, RomValidationError, ValueError, RuntimeError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 2

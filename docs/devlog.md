@@ -1,5 +1,36 @@
 # Development log
 
+## 2026-07-19 — Game-naive direction and first curiosity runner
+
+### Decisions
+
+- Made pixels-only curiosity the primary experimental track.
+- Defined Monkey, Curious, and Archivist arms so random luck, learned novelty seeking, and
+  snapshot-assisted archive search can be compared instead of conflated.
+- Started every strict run at clean power-on; the scripted bedroom bootstrap remains calibration.
+- Prohibited RAM, tile data, OCR, semantic rewards, walkthroughs, demonstrations, and language-model
+  calls from the action/reward loop.
+- Chose a non-neural visual archive as the first learner because it can produce millions of local
+  decisions overnight without additional downloads or model usage.
+
+### Implemented and calibrated
+
+- Added a narrow pixels-and-buttons runner capability with no public privileged emulator methods;
+  the current button sampler itself receives only a seeded pseudorandom-number generator.
+- Added a frozen 20×18 quantized pixel-cell representation and bounded first-visit reward.
+- Added compressed snapshot lineage, under-visited archive selection, deterministic seeds,
+  recoverable checkpoints, and time/action/disk limits.
+- Added a self-contained live dashboard showing the information contract, discovery curve, action
+  histogram, latest screen, and discovery reel.
+- A 5,000-action calibration completed in about 19 seconds, found 591 coarse visual cells, retained
+  a 591-cell archive in 4.4 MiB, and reached the name-entry interface without any game-state reward.
+
+### Next
+
+1. Run matched overnight Monkey and Archivist development arms.
+2. Inspect whether visual novelty represents progress, text variation, or animation farming.
+3. Freeze the next visual-cell version only after the failure evidence is understood.
+
 ## 2026-07-18 — Project start
 
 ### Decisions

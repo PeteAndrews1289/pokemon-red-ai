@@ -31,9 +31,14 @@ Every experiment must list:
 3. what was available only during development; and
 4. what persisted in memory between decisions, attempts, and runs.
 
-The initial track is **instrumented**, not screen-only. A future screen-only track must exclude map
-identifiers, coordinates, RAM-derived text, party fields, referee values, and any equivalent signal
-from the policy input and reward-facing features.
+The primary track is **game-naive, pixels-only curiosity**. It excludes map identifiers,
+coordinates, RAM-derived text, party/battle fields, PyBoy tile data, OCR, referee values,
+walkthroughs, demonstrations, and pretrained game-aware encoders from both policy input and
+reward-facing features.
+
+The exclusion applies to every causal channel: reward, termination, resets, action masks, archive
+selection, curriculum, checkpoint selection, and persistent policy memory. Data is not “hidden from
+the policy” if it still changes which experience the policy receives.
 
 The observation schema and action schema must carry versions. Adding one field, changing sampling
 cadence, changing frame repeat, or altering invalid-action handling creates a new version.
@@ -63,13 +68,16 @@ Evaluation start states fall into three categories:
 
 | Start | Appropriate claim |
 | --- | --- |
-| Clean boot | End-to-end progress from a new game |
+| Clean power-on | End-to-end discovery from emulator start; required for the strictest claim |
+| Scripted prologue / bedroom | Assisted-start exploration after a hand-authored sequence |
+| Archive restore | Training-only branching from a pixel-selected discovery cell |
 | Declared fixed snapshot | Skill performance from one exact state |
 | Held-out snapshot distribution | Generalization across declared local starts |
 
-A snapshot-start evaluation cannot support a clean-start claim. A state used for training cannot
-be described as held out. Development snapshots remain private and are identified by hashes or
-anonymous IDs, never committed payloads or local paths.
+A scripted or snapshot-start evaluation cannot support a power-on claim. An archive-restore run is
+not a continuous playthrough. A state used for training cannot be described as held out.
+Development snapshots remain private and are identified by hashes or anonymous IDs, never
+committed payloads or local paths.
 
 ## Training and evaluation separation
 
@@ -92,9 +100,11 @@ Task success must be a machine-checkable event independent of the training rewar
 crossing a declared doorway, changing to a named map class, delivering an item event, or satisfying
 a battle outcome.
 
-Reward is an optimization signal. It may include shaping terms for distance, exploration, survival,
-or intermediate milestones. A high return can reveal useful behavior or a reward exploit; it cannot
-replace the task-success rule.
+Reward is an optimization signal. In the strict blind track it must be derived only from the same
+rendered pixels and action history available to the actor. Map distance, items, badges, party state,
+named milestones, and other semantic progress may be reported by a sealed referee later, but cannot
+shape the blind agent. A high novelty return can reveal useful behavior or an animation exploit; it
+cannot replace a task-success rule.
 
 Ordered milestones may describe partial progress, but they must be declared before evaluation. The
 project may report the furthest milestone reached alongside success rate, not instead of it.

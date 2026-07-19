@@ -1,5 +1,24 @@
 # Roadmap
 
+> **Direction update:** The immediate primary track is now game-naive, pixels-only curiosity. The
+> hybrid Oak's Parcel plan below is retained as a later informed comparison. It no longer defines
+> what the first agent sees or how it is rewarded.
+
+## Immediate blind-discovery arc
+
+1. ✅ Freeze a pixels-and-buttons-only actor capability.
+2. ✅ Implement a bounded random Monkey and visual-novelty Archivist.
+3. ✅ Add resumable checkpoints, disk/time/action limits, and a live visual dashboard.
+4. 🟨 Run matched overnight Monkey and Archivist development arms from power-on.
+5. ⬜ Diagnose novelty farming and revise the frozen visual-cell representation if necessary.
+6. ⬜ Train a compact pixels-only curiosity policy without demonstrations or semantic rewards.
+7. ⬜ Freeze clean power-on evaluation with learning and archive restores disabled.
+
+Outcome milestones such as reaching the bedroom, receiving a starter, or delivering Oak's Parcel
+remain useful for post-hoc storytelling. They are not blind-track rewards.
+
+## Later informed-agent roadmap
+
 The destination is a transparent hybrid agent that can plan, learn reusable skills, remember what
 it discovers, and recover from loops. The route there is a series of bounded experiments. Each
 milestone must produce evidence that can be understood without trusting a highlight reel.
@@ -159,7 +178,8 @@ knowledge, and tool access must be reported rather than compressed into a single
 
 ## Near-term work queue
 
-The next tasks are ordered to maximize clarity of the first learning result.
+The tasks below now apply to the later informed comparison. The immediate blind-discovery tasks are
+listed at the top of this document.
 
 1. **Human action recorder** — capture a transparent upper reference, not a target the agent is
    expected to match immediately.
@@ -175,9 +195,8 @@ The next tasks are ordered to maximize clarity of the first learning result.
 
 - A completion date: training and integration difficulty are unknown.
 - A full-game run: the first useful questions end much earlier.
-- Screen-only learning: the initial track is explicitly instrumented.
-- Learning “from scratch”: emulator state, chosen rewards, architecture, and developer knowledge are
-  forms of prior structure.
+- Absolute learning “from scratch”: even the pixels-only track receives an emulator, controller,
+  action cadence, novelty calculation, archive algorithm, and computation as prior structure.
 - Zero intervention: interventions will be counted, not edited out of the story.
 - A single magic score: success, reliability, resources, and behavior need separate measures.
 

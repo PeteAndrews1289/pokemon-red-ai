@@ -1,5 +1,32 @@
 # Architecture
 
+> **Primary-track update:** The game-naive, pixels-only track now comes first. The planner/RL hybrid
+> described later in this document remains a possible informed comparison, not the source of
+> actions or rewards in the blind experiment. See [Blind curiosity](blind-curiosity.md).
+
+## Pixels-only authority boundary
+
+```mermaid
+flowchart LR
+    Runtime["Private game runtime"] --> ActorView["PixelsOnlyActor<br/>RGB + buttons"]
+    ActorView --> Policy["Random or learned policy"]
+    Policy --> ActorView
+
+    Runtime --> Trainer["Trainer-only snapshots"]
+    ActorView --> Novelty["Pixel-derived novelty"]
+    Novelty --> Trainer
+
+    Runtime --> Referee["Privileged referee<br/>not used tonight"]
+    Referee --> Recorder["Post-hoc interpretation"]
+```
+
+The `PixelsOnlyActor` object deliberately exposes no raw PyBoy object, RAM reader, tile map,
+snapshot method, OCR, or referee call. Snapshot branching belongs to the Archivist trainer. Its
+selection uses only pixel cells and visit/selection counts. The current runner does not read RAM at
+all. Tests verify the narrow facade and deterministic pixel-cell transformation.
+
+## Later informed-comparison design
+
 ## Design goal
 
 Build one reproducible harness that can compare a language-model controller, a trained RL policy,

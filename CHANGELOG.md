@@ -7,6 +7,12 @@ only when its behavior and evidence can be reproduced from the corresponding Git
 
 ### Added
 
+- Game-naive pixels-only Monkey and visual-novelty Archivist runners from clean power-on
+- Narrow actor capability exposing pixels and buttons but no RAM, tiles, snapshots, or raw emulator
+- Bounded visual novelty, compressed discovery archive, action lineage, and deterministic seeds
+- Atomic checkpoints plus wall-clock, action, archive, output-size, and free-disk safeguards
+- Live visual dashboard with discovery curve, action distribution, latest screen, and discovery reel
+- Blind-curiosity protocol covering leakage, honest claims, expected failures, and run controls
 - Standalone visual HTML reports generated from sanitized smoke/bootstrap traces
 - Reviewed public Phase 0 calibration evidence with a sanitized trace and generated report
 - Documentation hub, narrative, evidence board, detailed roadmap, and visual storytelling guide
@@ -19,10 +25,10 @@ only when its behavior and evidence can be reproduced from the corresponding Git
 
 ### Planned
 
-- Human Oak's Parcel baseline and action recorder
-- Gymnasium-compatible environment boundary
-- Random-action stability test and loop detector
-- First deliberately weak navigation baseline
+- Matched overnight Monkey and Archivist development runs
+- Pixel-only learned curiosity policy without demonstrations or semantic rewards
+- Sealed post-hoc referee for interpretation, visibly separate from training inputs
+- Frozen restore-free power-on evaluations
 
 ## 0.1.0 — 2026-07-19
 

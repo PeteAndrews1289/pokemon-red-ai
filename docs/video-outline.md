@@ -1,5 +1,10 @@
 # Video and series outline
 
+> **Series-direction update:** The opening question is now “What happens if I give an agent the
+> Pokémon Red screen and buttons, but never tell it what the game is?” Episode 1 compares the
+> Monkey and Archivist discovery curves. The detailed Phase 0 material below remains the prologue
+> explaining why the measurements can be trusted. See [Blind curiosity](blind-curiosity.md).
+
 This document is a production guide for telling the project's story without getting ahead of the
 evidence. It assumes the first public video is made at the end of Phase 0, before model training.
 
