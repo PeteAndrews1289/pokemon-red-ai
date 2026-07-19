@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pokemon-red-ai"
+version = "0.1.0"
+description = "A transparent hybrid-agent experiment for Pokemon Red"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "pillow>=11",
+  "pyboy==2.7.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8",
+  "ruff>=0.11",
+]
+rl = [
+  "gymnasium==1.3.0",
+  "stable-baselines3==2.9.0",
+  "tensorboard>=2.18",
+]
+
+[project.scripts]
+pokemon-red-ai = "pokemon_red_ai.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+testpaths = ["tests"]
+markers = [
+  "integration: requires a private Pokemon Red ROM",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
