@@ -77,6 +77,11 @@ def build_parser() -> argparse.ArgumentParser:
     blind.add_argument("--max-archive-cells", type=int, default=10_000)
     blind.add_argument("--seen-filter-mib", type=int, default=8)
     blind.add_argument("--q-policy-buckets", type=int, default=16_384)
+    blind.add_argument("--q-n-step", type=int, default=128)
+    blind.add_argument("--replay-capacity", type=int, default=100_000)
+    blind.add_argument("--replay-batch-size", type=int, default=16)
+    blind.add_argument("--replay-interval", type=int, default=4)
+    blind.add_argument("--important-replay-capacity", type=int, default=10_000)
     blind.add_argument("--screenshot-limit", type=int, default=96)
     blind.add_argument("--timelapse-minutes", type=float, default=15)
     blind.add_argument("--timelapse-limit", type=int, default=256)
@@ -116,6 +121,11 @@ def build_parser() -> argparse.ArgumentParser:
     arena.add_argument("--checkpoint-seconds", type=float, default=300)
     arena.add_argument("--seen-filter-mib", type=int, default=64)
     arena.add_argument("--q-policy-buckets", type=int, default=FINAL_ARENA_Q_POLICY_BUCKETS)
+    arena.add_argument("--q-n-step", type=int, default=128)
+    arena.add_argument("--replay-capacity", type=int, default=100_000)
+    arena.add_argument("--replay-batch-size", type=int, default=16)
+    arena.add_argument("--replay-interval", type=int, default=4)
+    arena.add_argument("--important-replay-capacity", type=int, default=10_000)
     arena.add_argument("--timelapse-minutes", type=float, default=10)
     arena.add_argument("--max-output-mib-per-agent", type=int, default=2_048)
     arena.add_argument("--min-free-gib", type=float, default=50)
@@ -206,6 +216,11 @@ def run_blind(args: argparse.Namespace) -> int:
         max_archive_cells=args.max_archive_cells,
         seen_filter_bytes=args.seen_filter_mib * 1024 * 1024,
         q_policy_buckets=args.q_policy_buckets,
+        q_n_step=args.q_n_step,
+        replay_capacity=args.replay_capacity,
+        replay_batch_size=args.replay_batch_size,
+        replay_interval=args.replay_interval,
+        important_replay_capacity=args.important_replay_capacity,
         screenshot_limit=args.screenshot_limit,
         timelapse_interval_seconds=args.timelapse_minutes * 60,
         timelapse_limit=args.timelapse_limit,
@@ -254,6 +269,11 @@ def run_agent_arena(args: argparse.Namespace) -> int:
         min_free_gib=args.min_free_gib,
         seen_filter_mib=args.seen_filter_mib,
         q_policy_buckets=args.q_policy_buckets,
+        q_n_step=args.q_n_step,
+        replay_capacity=args.replay_capacity,
+        replay_batch_size=args.replay_batch_size,
+        replay_interval=args.replay_interval,
+        important_replay_capacity=args.important_replay_capacity,
         timelapse_minutes=args.timelapse_minutes,
     )
     return run_arena(

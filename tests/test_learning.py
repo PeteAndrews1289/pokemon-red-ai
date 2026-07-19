@@ -37,6 +37,8 @@ def test_outcome_reward_is_semantic_but_policy_key_can_remain_pixels_only() -> N
     assert progressed_reward > first_reward
     assert parts["party_increase"] == 25
     assert parts["new_badge"] == 100
+    assert "visual_novelty" not in parts
+    assert tracker.visual_reward == 0
     assert tracker.badge_bits.bit_count() == 1
 
 
@@ -49,3 +51,36 @@ def test_curious_reward_uses_only_visual_novelty() -> None:
     assert components == {"visual_novelty": 1.0}
     assert repeat == 0
     assert repeat_components == {}
+
+
+def test_n_step_replay_propagates_a_delayed_reward_and_round_trips() -> None:
+    policy = HashedQPolicy(
+        action_count=3,
+        bucket_count=1_024,
+        n_step=3,
+        replay_capacity=16,
+        replay_batch_size=2,
+        replay_interval=1,
+    )
+    rng = random.Random(11)
+    keys = [value.to_bytes(16, "big") for value in range(1, 5)]
+    buckets = [policy.bucket(key) for key in keys]
+
+    policy.observe_transition(buckets[0], 0, 0.0, keys[1], rng)
+    policy.observe_transition(buckets[1], 1, 0.0, keys[2], rng)
+    assert policy.updates == 0
+    assert policy.replay_size == 0
+
+    policy.observe_transition(buckets[2], 2, 10.0, keys[3], rng)
+
+    assert policy.replay_size == 1
+    assert policy.updates == 1
+    assert policy.q_values[buckets[0], 0] > 0
+    assert len(policy.pending) == 2
+
+    restored = HashedQPolicy.from_checkpoint_dict(policy.checkpoint_dict())
+    assert restored.n_step == 3
+    assert restored.replay_size == 1
+    assert list(restored.pending) == list(policy.pending)
+    assert restored.important == policy.important
+    np.testing.assert_array_equal(restored.replay_rewards, policy.replay_rewards)

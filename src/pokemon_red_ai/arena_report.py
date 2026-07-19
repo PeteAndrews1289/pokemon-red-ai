@@ -97,6 +97,9 @@ def _agent_card(
         <div><dt>Maps rewarded</dt><dd>{int(status.get("maps_seen", 0)):,}</dd></div>
         <div><dt>Party / badges</dt><dd>{int(status.get("max_party_count", 0)):,} /
           {int(status.get("badge_count", 0)):,}</dd></div>
+        <div><dt>Learning updates</dt><dd>{int(status.get("learning_updates", 0)):,}</dd></div>
+        <div><dt>Replay / important</dt><dd>{int(status.get("replay_transitions", 0)):,} /
+          {int(status.get("important_replay_transitions", 0)):,}</dd></div>
       </dl>
       <div class="chart-label">Visual discovery</div>
       {_sparkline(history, "unique_visual_cells", color)}

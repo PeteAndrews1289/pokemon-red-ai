@@ -30,11 +30,16 @@ flowchart LR
 
 ## What “learning” means here
 
-The three guided arms use a small, local, online Q learner. A rendered frame is reduced to a coarse
-pixels-only situation key; a fixed-size hash table keeps nine action values per situation. This is
-deliberately lightweight enough for four concurrent processes on an 8 GB M1 iMac. It is not a
-pretrained vision model and receives no demonstrations, OCR, walkthrough, extracted map, or
-internet access.
+The three guided arms use the same bounded n-step replay Q learner. A rendered frame is reduced to
+a coarse pixels-only situation key; a fixed-size hash table keeps nine action values per situation.
+Each transition is trained with a 128-action return, then retained in a 100,000-transition replay
+buffer. A separate 10,000-transition important buffer keeps non-zero returns from being erased by
+long stretches of unrewarded play. Half of replay samples come from that important buffer.
+
+This is deliberately lightweight enough for four concurrent processes on an 8 GB M1 iMac. It is
+not a pretrained vision model and receives no demonstrations, OCR, walkthrough, extracted map, or
+internet access. Replay changes how often recorded experience is learned from; it does not grant a
+new observation channel.
 
 The Visually Curious arm receives `1.0` only for a definite first visit to the frozen visual-cell
 representation. Repeated visual cells receive zero.
@@ -43,7 +48,6 @@ The two outcome-guided arms receive:
 
 | Event | Reward |
 | --- | ---: |
-| Definite new visual cell | 0.05 |
 | Game begins | 3 |
 | New map | 5 |
 | New coordinate on a map | 0.20 |
@@ -53,6 +57,11 @@ The two outcome-guided arms receive:
 
 These values are frozen in the run manifest. They are engineering choices, not claims about the
 true value of Pokémon progress.
+
+Outcome-Rewarded and Conventional receive **no visual novelty reward**. The first trial showed that
+the former `0.05` visual reward still contributed about 97% of their cumulative score, making them
+behaviorally too similar to Visually Curious. Removing it makes the intended comparison real:
+pixels-only novelty versus pixels with semantic teaching versus pixels and semantic state.
 
 ### The crucial Outcome-Rewarded boundary
 
@@ -78,6 +87,11 @@ every five seconds and shows:
 - maps and positions rewarded, largest party, and badges;
 - a discovery sparkline and a link to each complete per-agent dashboard;
 - process health, stop reasons, and automatic restart count in `status.json`.
+
+The runner also captures an exact frame at every new map, party increase, battle type, and badge.
+The trace record links the screenshot to the action, reward components, elapsed time, and complete
+declared referee state. New-coordinate rewards remain in the trace without generating thousands of
+nearly identical screenshots.
 
 The dashboard server binds to `127.0.0.1`, so it is visible from this Mac but not exposed to the
 local network or internet. No ROM bytes or emulator save states are served.
@@ -116,6 +130,11 @@ pokemon-red-ai arena-run \
   --hours 48 \
   --max-actions 150000000 \
   --q-policy-buckets 1048576 \
+  --q-n-step 128 \
+  --replay-capacity 100000 \
+  --replay-batch-size 16 \
+  --replay-interval 4 \
+  --important-replay-capacity 10000 \
   --seen-filter-mib 64 \
   --timelapse-minutes 10 \
   --max-output-mib-per-agent 2048 \
@@ -147,6 +166,22 @@ The per-agent output cap is 2 GiB, so the four agents cannot consume more than 8
 controlled stop. The narrative recorder sits outside those caps, but 23,040 Game Boy-sized interval
 frames over 48 hours should remain well below 1 GiB. Keep 10 GiB free for the experiment itself and
 20–30 GiB if the same SSD will also hold video-editor caches, proxy media, and final exports.
+
+## Qualification before 48 hours
+
+Every protocol change starts with a fresh two-hour pre-trial: no policy, novelty filter, replay
+transition, checkpoint, or save state may be inherited. The final 48-hour run should not launch
+until the upgraded learner passes these engineering gates:
+
+1. all four agents remain healthy and checkpoint-resumable;
+2. replay transitions and updates increase continuously;
+3. exact semantic-event screenshots agree with their trace records;
+4. Outcome-Rewarded and Conventional report zero visual reward;
+5. at least one rewarded arm records semantic progress after the initial opening burst;
+6. policy-table occupancy, checkpoint duration, disk use, and action throughput remain bounded.
+
+Passing these gates proves that the mechanism is operating as designed. It still does not guarantee
+that an agent will solve Pokémon Red.
 
 ## How results must be compared
 

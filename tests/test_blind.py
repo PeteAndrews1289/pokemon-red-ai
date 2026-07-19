@@ -202,6 +202,10 @@ def test_declared_four_agent_modes_enforce_information_boundaries(
             max_actions=60,
             seen_filter_bytes=1_024,
             q_policy_buckets=1_024,
+            q_n_step=8,
+            replay_capacity=32,
+            replay_batch_size=4,
+            replay_interval=2,
             screenshot_limit=4,
             timelapse_interval_seconds=60,
             timelapse_limit=2,
@@ -222,6 +226,18 @@ def test_declared_four_agent_modes_enforce_information_boundaries(
     assert manifest["ram_used_by_reward"] is reward_ram
     if mode in {"curious", "outcome", "conventional"}:
         assert status["learning_updates"] > 0
+        assert status["n_step_horizon"] == 8
+    if mode in {"outcome", "conventional"}:
+        assert "visual_novelty" not in manifest["trainer_inputs"]
+    if mode == "conventional":
+        semantic_events = [
+            json.loads(line)
+            for line in (output / "trace.jsonl").read_text(encoding="utf-8").splitlines()
+            if json.loads(line)["kind"] == "reward_event"
+        ]
+        exact_events = [event for event in semantic_events if event["exact_event_visual"]]
+        assert exact_events
+        assert (output / exact_events[0]["exact_event_visual"]).is_file()
 
 
 @pytest.mark.integration

@@ -35,6 +35,11 @@ class ArenaConfig:
     min_free_gib: float = 50
     seen_filter_mib: int = 64
     q_policy_buckets: int = FINAL_ARENA_Q_POLICY_BUCKETS
+    q_n_step: int = 128
+    replay_capacity: int = 100_000
+    replay_batch_size: int = 16
+    replay_interval: int = 4
+    important_replay_capacity: int = 10_000
     timelapse_minutes: float = 10
 
     def __post_init__(self) -> None:
@@ -48,6 +53,14 @@ class ArenaConfig:
             raise ValueError("Arena disk limits are invalid")
         if self.seen_filter_mib < 1 or self.q_policy_buckets < 1_024:
             raise ValueError("Arena learner memory settings are invalid")
+        if self.q_n_step < 1 or self.replay_capacity < 1:
+            raise ValueError("Arena replay settings are invalid")
+        if not 1 <= self.replay_batch_size <= self.replay_capacity:
+            raise ValueError("Arena replay batch must fit inside replay capacity")
+        if self.replay_interval < 1:
+            raise ValueError("Arena replay interval must be positive")
+        if self.important_replay_capacity < 1:
+            raise ValueError("Arena important replay capacity must be positive")
         if self.timelapse_minutes <= 0:
             raise ValueError("Arena timelapse interval must be positive")
 
@@ -63,6 +76,11 @@ class ArenaConfig:
             "min_free_gib": self.min_free_gib,
             "seen_filter_mib": self.seen_filter_mib,
             "q_policy_buckets": self.q_policy_buckets,
+            "q_n_step": self.q_n_step,
+            "replay_capacity": self.replay_capacity,
+            "replay_batch_size": self.replay_batch_size,
+            "replay_interval": self.replay_interval,
+            "important_replay_capacity": self.important_replay_capacity,
             "timelapse_minutes": self.timelapse_minutes,
         }
 
@@ -149,6 +167,16 @@ def _agent_command(mode: str, output: Path, config: ArenaConfig, *, resume: bool
         str(config.seen_filter_mib),
         "--q-policy-buckets",
         str(config.q_policy_buckets),
+        "--q-n-step",
+        str(config.q_n_step),
+        "--replay-capacity",
+        str(config.replay_capacity),
+        "--replay-batch-size",
+        str(config.replay_batch_size),
+        "--replay-interval",
+        str(config.replay_interval),
+        "--important-replay-capacity",
+        str(config.important_replay_capacity),
         "--screenshot-limit",
         "128",
         "--timelapse-minutes",

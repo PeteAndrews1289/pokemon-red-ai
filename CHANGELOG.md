@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Scale the final arena to 1,048,576 policy buckets and a 150-million-action safety ceiling.
+- Add 128-step returns, bounded uniform replay, and protected important-transition replay.
+- Remove visual novelty from Outcome-Rewarded and Conventional reward channels.
+- Capture exact screenshots and referee telemetry for semantic milestones.
+
 This project records milestones, not just software releases. A version is considered meaningful
 only when its behavior and evidence can be reproduced from the corresponding Git commit.
 

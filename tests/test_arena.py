@@ -25,6 +25,8 @@ def test_arena_commands_declare_each_mode_without_a_private_rom_path() -> None:
         assert command[command.index("--q-policy-buckets") + 1] == str(
             FINAL_ARENA_Q_POLICY_BUCKETS
         )
+        assert command[command.index("--q-n-step") + 1] == "128"
+        assert command[command.index("--replay-capacity") + 1] == "100000"
         assert "--rom" not in command
 
 

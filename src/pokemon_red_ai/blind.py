@@ -63,27 +63,26 @@ def mode_metadata(mode: str) -> dict[str, Any]:
         },
         "curious": {
             "run_name": "Visually Curious — online pixels-only novelty learner",
-            "actor": "hashed_q_pixel_policy",
+            "actor": "n_step_replay_q_pixel_policy",
             "policy_inputs": ["coarse_quantized_rendered_rgb", "seeded_prng"],
             "reward_inputs": ["coarse_quantized_rendered_rgb", "visual_visit_filter"],
-            "trainer": "online_q_learning_visual_novelty",
+            "trainer": "n_step_replay_q_learning_visual_novelty",
         },
         "outcome": {
             "run_name": "Outcome-Rewarded — pixels-only policy with semantic rewards",
-            "actor": "hashed_q_pixel_policy",
+            "actor": "n_step_replay_q_pixel_policy",
             "policy_inputs": ["coarse_quantized_rendered_rgb", "seeded_prng"],
             "reward_inputs": [
-                "visual_novelty",
                 "map_and_position",
                 "party_count",
                 "battle_state",
                 "badge_bits",
             ],
-            "trainer": "online_q_learning_outcome_reward",
+            "trainer": "n_step_replay_q_learning_outcome_reward",
         },
         "conventional": {
             "run_name": "Conventional Agent — pixels, RAM, and explicit objectives",
-            "actor": "scripted_bootstrap_then_hashed_q_pixel_ram_policy",
+            "actor": "scripted_bootstrap_then_n_step_replay_q_pixel_ram_policy",
             "policy_inputs": [
                 "coarse_quantized_rendered_rgb",
                 "map_and_position",
@@ -93,13 +92,12 @@ def mode_metadata(mode: str) -> dict[str, Any]:
                 "seeded_prng",
             ],
             "reward_inputs": [
-                "visual_novelty",
                 "map_and_position",
                 "party_count",
                 "battle_state",
                 "badge_bits",
             ],
-            "trainer": "online_q_learning_explicit_objectives",
+            "trainer": "n_step_replay_q_learning_explicit_objectives",
         },
         "archivist": {
             "run_name": "Snapshot-assisted pixels-only Archivist from power-on",
@@ -426,6 +424,11 @@ class BlindRunConfig:
     max_archive_cells: int = 10_000
     seen_filter_bytes: int = 8 * 1024 * 1024
     q_policy_buckets: int = 16_384
+    q_n_step: int = 128
+    replay_capacity: int = 100_000
+    replay_batch_size: int = 16
+    replay_interval: int = 4
+    important_replay_capacity: int = 10_000
     screenshot_limit: int = 96
     timelapse_interval_seconds: float = 900
     timelapse_limit: int = 256
@@ -449,6 +452,16 @@ class BlindRunConfig:
             raise ValueError("seen_filter_bytes must be at least 1 KiB")
         if self.q_policy_buckets < 1_024:
             raise ValueError("q_policy_buckets must be at least 1,024")
+        if self.q_n_step < 1:
+            raise ValueError("q_n_step must be positive")
+        if self.replay_capacity < 1:
+            raise ValueError("replay_capacity must be positive")
+        if not 1 <= self.replay_batch_size <= self.replay_capacity:
+            raise ValueError("replay_batch_size must fit inside replay_capacity")
+        if self.replay_interval < 1:
+            raise ValueError("replay_interval must be positive")
+        if self.important_replay_capacity < 1:
+            raise ValueError("important_replay_capacity must be positive")
         if self.screenshot_limit < 1:
             raise ValueError("screenshot_limit must be positive")
         if self.timelapse_interval_seconds <= 0 or self.timelapse_limit < 1:
@@ -805,6 +818,11 @@ def _status_payload(
         "learning_updates": 0 if policy is None else policy.updates,
         "policy_buckets_visited": 0 if policy is None else policy.occupied_buckets,
         "exploratory_actions": 0 if policy is None else policy.exploratory_actions,
+        "replay_transitions": 0 if policy is None else policy.replay_size,
+        "replay_updates": 0 if policy is None else policy.replay_updates,
+        "important_replay_transitions": 0 if policy is None else len(policy.important),
+        "pending_n_step_transitions": 0 if policy is None else len(policy.pending),
+        "n_step_horizon": 0 if policy is None else policy.n_step,
         "reward_total": 0.0 if reward_tracker is None else round(reward_tracker.total_reward, 3),
         "visual_reward": 0.0 if reward_tracker is None else round(reward_tracker.visual_reward, 3),
         "outcome_reward": (
@@ -1037,7 +1055,15 @@ def run_blind_experiment(
                 status_history = []
                 screenshots = []
                 policy = (
-                    HashedQPolicy(len(BLIND_ACTIONS), bucket_count=config.q_policy_buckets)
+                    HashedQPolicy(
+                        len(BLIND_ACTIONS),
+                        bucket_count=config.q_policy_buckets,
+                        n_step=config.q_n_step,
+                        replay_capacity=config.replay_capacity,
+                        replay_batch_size=config.replay_batch_size,
+                        replay_interval=config.replay_interval,
+                        important_capacity=config.important_replay_capacity,
+                    )
                     if config.mode in LEARNING_MODES
                     else None
                 )
@@ -1221,7 +1247,7 @@ def run_blind_experiment(
                             next_policy_state = (
                                 referee_state if config.mode == "conventional" else None
                             )
-                            policy.update(
+                            policy.observe_transition(
                                 selected_bucket,
                                 selected_action_index,
                                 reward,
@@ -1229,6 +1255,7 @@ def run_blind_experiment(
                                     policy_visual_key(pixels),
                                     next_policy_state,
                                 ),
+                                rng,
                             )
                         semantic_components = {
                             name: value
@@ -1236,12 +1263,42 @@ def run_blind_experiment(
                             if name != "visual_novelty"
                         }
                         if semantic_components:
+                            significant_components = {
+                                name: value
+                                for name, value in semantic_components.items()
+                                if name != "new_position"
+                            }
+                            event_capture: dict[str, Any] | None = None
+                            if significant_components:
+                                event_slug = "-".join(sorted(significant_components))
+                                event_filename = (
+                                    f"screenshots/event-{counters.total_actions:010d}-{event_slug}.png"
+                                )
+                                _save_png(pixels, output / event_filename)
+                                event_capture = {
+                                    "file": event_filename,
+                                    "label": "Milestone: "
+                                    + ", ".join(sorted(significant_components)),
+                                    "action": counters.total_actions,
+                                    "unique_visual_cells": counters.unique_visual_cells,
+                                    "capture_type": "reward_event",
+                                    "elapsed_seconds": round(counters.elapsed_seconds, 3),
+                                }
+                                screenshots.append(event_capture)
                             trace.write(
                                 "reward_event",
                                 action=counters.total_actions,
                                 elapsed_seconds=round(counters.elapsed_seconds, 3),
                                 components=semantic_components,
                                 cumulative_reward=round(reward_tracker.total_reward, 3),
+                                referee_state=(
+                                    None
+                                    if referee_state is None
+                                    else referee_state.public_dict()
+                                ),
+                                exact_event_visual=(
+                                    None if event_capture is None else event_capture["file"]
+                                ),
                             )
                     current_pixels = pixels
 
@@ -1347,8 +1404,11 @@ def run_blind_experiment(
                             reward_total=status["reward_total"],
                             outcome_reward=status["outcome_reward"],
                             maps_seen=status["maps_seen"],
+                            positions_seen=status["positions_seen"],
                             max_party_count=status["max_party_count"],
                             badge_count=status["badge_count"],
+                            replay_transitions=status["replay_transitions"],
+                            replay_updates=status["replay_updates"],
                         )
                         last_status = now
                         if run_bytes >= config.max_output_bytes:

@@ -12,6 +12,8 @@ walkthrough, demonstrations, semantic game state, OCR, or Pokémon-specific goal
 > **Current status: the first blind comparison is complete and the four-agent arena is built.**
 > The trustworthy Phase 0 harness remains underneath it. Pure Monkey, Visually Curious,
 > Outcome-Rewarded, and Conventional arms form an explicit ladder from chance to guided play.
+> The second pre-trial adds 128-step credit assignment, bounded replay, protected rare-event
+> replay, million-bucket policies, separated reward channels, and exact milestone evidence.
 
 In the current Archivist, individual buttons remain uniformly random. Pixels teach the separate
 trainer which screens are novel and which saved discovery to branch from next. A later Curious
