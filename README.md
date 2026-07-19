@@ -212,9 +212,10 @@ Run all four declared information levels with one living local dashboard:
 
 ```bash
 pokemon-red-ai arena-run \
-  --output "/Volumes/T7/PokemonRedAI/arenas/supervised-run" \
-  --hours 8 \
-  --max-actions 50000000
+  --output "/Volumes/T7 Developer/PokemonRedAI/arenas/four-agent-48h-YYYYMMDD" \
+  --hours 48 \
+  --max-actions 150000000 \
+  --q-policy-buckets 1048576
 ```
 
 While active, open `http://127.0.0.1:8765/index.html`. The arena is designed for an external SSD,

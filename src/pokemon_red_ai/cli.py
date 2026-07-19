@@ -10,6 +10,8 @@ from importlib.metadata import version
 from pathlib import Path
 
 from pokemon_red_ai.arena import (
+    FINAL_ARENA_MAX_ACTIONS,
+    FINAL_ARENA_Q_POLICY_BUCKETS,
     ArenaConfig,
     request_arena_stop,
     run_arena,
@@ -107,13 +109,13 @@ def build_parser() -> argparse.ArgumentParser:
     arena.add_argument("--rom", type=Path, help="Private path to Pokemon Red.gb")
     arena.add_argument("--output", type=Path, required=True, help="New arena directory")
     arena.add_argument("--hours", type=float, default=8)
-    arena.add_argument("--max-actions", type=int, default=50_000_000)
+    arena.add_argument("--max-actions", type=int, default=FINAL_ARENA_MAX_ACTIONS)
     arena.add_argument("--seed", type=int, default=20_260_719)
     arena.add_argument("--port", type=int, default=8_765)
     arena.add_argument("--status-seconds", type=float, default=10)
     arena.add_argument("--checkpoint-seconds", type=float, default=300)
     arena.add_argument("--seen-filter-mib", type=int, default=64)
-    arena.add_argument("--q-policy-buckets", type=int, default=16_384)
+    arena.add_argument("--q-policy-buckets", type=int, default=FINAL_ARENA_Q_POLICY_BUCKETS)
     arena.add_argument("--timelapse-minutes", type=float, default=10)
     arena.add_argument("--max-output-mib-per-agent", type=int, default=2_048)
     arena.add_argument("--min-free-gib", type=float, default=50)

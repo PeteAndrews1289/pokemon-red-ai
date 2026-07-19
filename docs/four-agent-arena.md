@@ -87,10 +87,10 @@ local network or internet. No ROM bytes or emulator save states are served.
 The internal disk is too full for a multi-day experiment. Use the external T7 volume:
 
 ```bash
-screen -L -Logfile "/Volumes/T7/PokemonRedAI/arena.console.log" \
+screen -L -Logfile "/Volumes/T7 Developer/PokemonRedAI/arena.console.log" \
   -dmS pokemon-arena \
   .venv/bin/pokemon-red-ai arena-run \
-  --output "/Volumes/T7/PokemonRedAI/arenas/supervised-YYYYMMDD" \
+  --output "/Volumes/T7 Developer/PokemonRedAI/arenas/supervised-YYYYMMDD" \
   --hours 8 \
   --max-actions 50000000
 ```
@@ -98,8 +98,8 @@ screen -L -Logfile "/Volumes/T7/PokemonRedAI/arena.console.log" \
 Open `http://127.0.0.1:8765/index.html` while it is active.
 
 ```bash
-pokemon-red-ai arena-status "/Volumes/T7/PokemonRedAI/arenas/supervised-YYYYMMDD"
-pokemon-red-ai arena-stop "/Volumes/T7/PokemonRedAI/arenas/supervised-YYYYMMDD"
+pokemon-red-ai arena-status "/Volumes/T7 Developer/PokemonRedAI/arenas/supervised-YYYYMMDD"
+pokemon-red-ai arena-stop "/Volumes/T7 Developer/PokemonRedAI/arenas/supervised-YYYYMMDD"
 ```
 
 Stopping is graceful. Every agent receives a stop marker and writes a final checkpoint before the
@@ -112,9 +112,10 @@ time—not the former five-million-action cap—ends the experiment:
 
 ```bash
 pokemon-red-ai arena-run \
-  --output "/Volumes/T7/PokemonRedAI/arenas/four-agent-48h-YYYYMMDD" \
+  --output "/Volumes/T7 Developer/PokemonRedAI/arenas/four-agent-48h-YYYYMMDD" \
   --hours 48 \
-  --max-actions 200000000 \
+  --max-actions 150000000 \
+  --q-policy-buckets 1048576 \
   --seen-filter-mib 64 \
   --timelapse-minutes 10 \
   --max-output-mib-per-agent 2048 \
@@ -124,6 +125,28 @@ pokemon-red-ai arena-run \
 The supervisor checkpoints each process every five minutes and retries a failed nonterminal runner
 up to three times from its last valid checkpoint. A power outage still stops the iMac; the latest
 checkpoint remains recoverable, but the machine cannot resume until it boots again.
+
+The 1,048,576-bucket table is 64 times the trial table. Each learning arm allocates about 36 MiB
+for nine float32 action values plus 4 MiB for visit counts, or roughly 120 MiB of Q-table memory
+across the three learning agents. At the measured trial rates, each arm should execute about
+98–113 million actions in 48 hours, so the 150-million ceiling leaves wall time in control.
+
+## Storage budget
+
+The one-hour trial grew to about 35 MiB, including two rotating checkpoints per arm. Scaling that
+measurement and allowing for the much larger Q tables gives this planning range:
+
+| Artifact | Expected | Conservative allowance |
+| --- | ---: | ---: |
+| Four agent directories | 1.5–4 GiB | 8 GiB hard cap |
+| 30-second narrative frames and hourly journals | 0.1–0.3 GiB | 1 GiB |
+| Repository, reports, charts, and contact sheets | under 0.5 GiB | 1 GiB |
+| Experimental archive total | 2–5 GiB | 10 GiB reserved |
+
+The per-agent output cap is 2 GiB, so the four agents cannot consume more than 8 GiB before a
+controlled stop. The narrative recorder sits outside those caps, but 23,040 Game Boy-sized interval
+frames over 48 hours should remain well below 1 GiB. Keep 10 GiB free for the experiment itself and
+20–30 GiB if the same SSD will also hold video-editor caches, proxy media, and final exports.
 
 ## How results must be compared
 
@@ -143,4 +166,3 @@ The arena supplies a natural video structure: **what must we tell a machine befo
 learning?** Introduce each contestant as one new concession. Let the audience see live screens
 before showing the charts. The ending is not merely a leaderboard; it is an accounting of which
 piece of knowledge bought each piece of progress.
-

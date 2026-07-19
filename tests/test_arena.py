@@ -6,8 +6,15 @@ from urllib.request import urlopen
 
 import pytest
 
-from pokemon_red_ai.arena import ArenaConfig, _agent_command, _start_http_server
+from pokemon_red_ai.arena import (
+    FINAL_ARENA_MAX_ACTIONS,
+    FINAL_ARENA_Q_POLICY_BUCKETS,
+    ArenaConfig,
+    _agent_command,
+    _start_http_server,
+)
 from pokemon_red_ai.arena_report import MODE_ORDER, render_arena_dashboard
+from pokemon_red_ai.cli import build_parser
 
 
 def test_arena_commands_declare_each_mode_without_a_private_rom_path() -> None:
@@ -15,7 +22,17 @@ def test_arena_commands_declare_each_mode_without_a_private_rom_path() -> None:
     for mode in MODE_ORDER:
         command = _agent_command(mode, Path("/safe/output") / mode, config, resume=False)
         assert command[command.index("--mode") + 1] == mode
+        assert command[command.index("--q-policy-buckets") + 1] == str(
+            FINAL_ARENA_Q_POLICY_BUCKETS
+        )
         assert "--rom" not in command
+
+
+def test_final_arena_defaults_leave_wall_clock_in_control() -> None:
+    args = build_parser().parse_args(["arena-run", "--output", "/safe/output"])
+
+    assert args.max_actions == FINAL_ARENA_MAX_ACTIONS == 150_000_000
+    assert args.q_policy_buckets == FINAL_ARENA_Q_POLICY_BUCKETS == 1_048_576
 
 
 def test_arena_dashboard_is_local_static_html() -> None:

@@ -19,6 +19,9 @@ from urllib.parse import unquote, urlsplit
 from pokemon_red_ai.arena_report import MODE_ORDER, render_arena_dashboard
 from pokemon_red_ai.rom import ROM_ENVIRONMENT_VARIABLE, RomFingerprint
 
+FINAL_ARENA_MAX_ACTIONS = 150_000_000
+FINAL_ARENA_Q_POLICY_BUCKETS = 1_048_576
+
 
 @dataclass(frozen=True, slots=True)
 class ArenaConfig:
@@ -31,7 +34,7 @@ class ArenaConfig:
     max_output_mib_per_agent: int = 2_048
     min_free_gib: float = 50
     seen_filter_mib: int = 64
-    q_policy_buckets: int = 16_384
+    q_policy_buckets: int = FINAL_ARENA_Q_POLICY_BUCKETS
     timelapse_minutes: float = 10
 
     def __post_init__(self) -> None:
