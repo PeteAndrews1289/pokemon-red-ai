@@ -21,12 +21,17 @@ def test_arena_commands_declare_each_mode_without_a_private_rom_path() -> None:
     config = ArenaConfig(duration_seconds=60, max_actions=100, seed=7)
     for mode in MODE_ORDER:
         command = _agent_command(mode, Path("/safe/output") / mode, config, resume=False)
-        assert command[command.index("--mode") + 1] == mode
-        assert command[command.index("--q-policy-buckets") + 1] == str(
-            FINAL_ARENA_Q_POLICY_BUCKETS
-        )
-        assert command[command.index("--q-n-step") + 1] == "128"
-        assert command[command.index("--replay-capacity") + 1] == "100000"
+        if mode == "evolution":
+            assert "evolution-run" in command
+            assert command[command.index("--population-size") + 1] == "16"
+            assert command[command.index("--candidate-actions") + 1] == "12000"
+        else:
+            assert command[command.index("--mode") + 1] == mode
+            assert command[command.index("--q-policy-buckets") + 1] == str(
+                FINAL_ARENA_Q_POLICY_BUCKETS
+            )
+            assert command[command.index("--q-n-step") + 1] == "128"
+            assert command[command.index("--replay-capacity") + 1] == "100000"
         assert "--rom" not in command
 
 
@@ -66,9 +71,10 @@ def test_arena_dashboard_is_local_static_html() -> None:
         },
     )
 
-    assert "Four ways to play Pokémon Red" in rendered
+    assert "Can useful accidents become ancestors" in rendered
     assert all(
-        label in rendered for label in ("Pure Monkey", "Visually Curious", "Outcome-Rewarded")
+        label in rendered
+        for label in ("Evolutionary Explorer", "Visually Curious", "Outcome-Rewarded")
     )
     assert "http://" not in rendered and "https://" not in rendered
     assert "<script" not in rendered.lower()
@@ -83,7 +89,7 @@ def test_arena_config_rejects_unsafe_budgets() -> None:
 
 def test_arena_http_server_refuses_checkpoints_and_traces(tmp_path: Path) -> None:
     (tmp_path / "index.html").write_text("public", encoding="utf-8")
-    agent = tmp_path / "monkey"
+    agent = tmp_path / "evolution"
     agent.mkdir()
     (agent / "checkpoint.json.gz").write_bytes(b"private snapshot")
     (agent / "trace.jsonl").write_text("private trace", encoding="utf-8")
@@ -94,7 +100,7 @@ def test_arena_http_server_refuses_checkpoints_and_traces(tmp_path: Path) -> Non
             assert response.read() == b"public"
         for private_name in ("checkpoint.json.gz", "trace.jsonl"):
             with pytest.raises(HTTPError) as error:
-                urlopen(f"http://127.0.0.1:{port}/monkey/{private_name}")
+                urlopen(f"http://127.0.0.1:{port}/evolution/{private_name}")
             assert error.value.code == 404
     finally:
         server.shutdown()

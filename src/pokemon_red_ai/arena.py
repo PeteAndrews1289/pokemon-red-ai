@@ -41,6 +41,9 @@ class ArenaConfig:
     replay_interval: int = 4
     important_replay_capacity: int = 10_000
     timelapse_minutes: float = 10
+    evolution_population_size: int = 16
+    evolution_candidate_actions: int = 12_000
+    evolution_archive_capacity: int = 512
 
     def __post_init__(self) -> None:
         if self.duration_seconds <= 0 or self.max_actions < 1:
@@ -63,6 +66,10 @@ class ArenaConfig:
             raise ValueError("Arena important replay capacity must be positive")
         if self.timelapse_minutes <= 0:
             raise ValueError("Arena timelapse interval must be positive")
+        if self.evolution_population_size < 2 or self.evolution_candidate_actions < 1:
+            raise ValueError("Arena evolution population and lifetime must be positive")
+        if self.evolution_archive_capacity < 1:
+            raise ValueError("Arena evolution archive capacity must be positive")
 
     def public_dict(self) -> dict[str, int | float]:
         return {
@@ -82,6 +89,9 @@ class ArenaConfig:
             "replay_interval": self.replay_interval,
             "important_replay_capacity": self.important_replay_capacity,
             "timelapse_minutes": self.timelapse_minutes,
+            "evolution_population_size": self.evolution_population_size,
+            "evolution_candidate_actions": self.evolution_candidate_actions,
+            "evolution_archive_capacity": self.evolution_archive_capacity,
         }
 
 
@@ -148,6 +158,42 @@ def _read_status(path: Path) -> dict[str, Any] | None:
 
 
 def _agent_command(mode: str, output: Path, config: ArenaConfig, *, resume: bool) -> list[str]:
+    if mode == "evolution":
+        command = [
+            sys.executable,
+            "-m",
+            "pokemon_red_ai",
+            "evolution-run",
+            "--output",
+            str(output),
+            "--hours",
+            str(config.duration_seconds / 3_600),
+            "--max-actions",
+            str(config.max_actions),
+            "--seed",
+            str(config.seed),
+            "--population-size",
+            str(config.evolution_population_size),
+            "--candidate-actions",
+            str(config.evolution_candidate_actions),
+            "--archive-capacity",
+            str(config.evolution_archive_capacity),
+            "--seen-filter-mib",
+            str(config.seen_filter_mib),
+            "--screenshot-limit",
+            "128",
+            "--status-seconds",
+            str(config.status_interval_seconds),
+            "--checkpoint-seconds",
+            str(config.checkpoint_interval_seconds),
+            "--max-output-mib",
+            str(config.max_output_mib_per_agent),
+            "--min-free-gib",
+            str(config.min_free_gib),
+        ]
+        if resume:
+            command.append("--resume")
+        return command
     command = [
         sys.executable,
         "-m",
@@ -240,7 +286,7 @@ def run_arena(
     started_at = datetime.now(UTC).isoformat()
     manifest = {
         "schema_version": 1,
-        "kind": "four_agent_arena",
+        "kind": "four_agent_successor_arena",
         "created_at": started_at,
         "modes": list(MODE_ORDER),
         "rom": rom.public_dict(),
@@ -299,6 +345,9 @@ def run_arena(
                             "pokedex_owned": status.get("pokedex_owned", 0),
                             "max_party_level": status.get("max_party_level", 0),
                             "badge_count": status.get("badge_count", 0),
+                            "fitness_tier": status.get("fitness_tier", 0),
+                            "evaluations": status.get("evaluations", 0),
+                            "archive_cells": status.get("archive_cells", 0),
                         }
                     )
                     histories[mode] = history[-20_000:]

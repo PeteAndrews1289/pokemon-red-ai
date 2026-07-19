@@ -3,21 +3,21 @@ from __future__ import annotations
 import html
 from typing import Any
 
-MODE_ORDER = ("monkey", "curious", "outcome", "conventional")
+MODE_ORDER = ("evolution", "curious", "outcome", "conventional")
 MODE_LABELS = {
-    "monkey": "Pure Monkey",
+    "evolution": "Evolutionary Explorer",
     "curious": "Visually Curious",
     "outcome": "Outcome-Rewarded",
     "conventional": "Conventional Agent",
 }
 MODE_SUBTITLES = {
-    "monkey": "Pixels observed · no reward",
+    "evolution": "Pixels observed · selection between lifetimes",
     "curious": "Pixels observed · visual novelty reward",
     "outcome": "Pixels observed · semantic outcome reward",
     "conventional": "Pixels + RAM observed · explicit objectives",
 }
 MODE_COLORS = {
-    "monkey": "#f2c14e",
+    "evolution": "#c9ff61",
     "curious": "#55c1ff",
     "outcome": "#80e27e",
     "conventional": "#ff7f9f",
@@ -78,6 +78,26 @@ def _agent_card(
     duration = max(float(status.get("duration_seconds", 1)), 1)
     progress = min(100, 100 * elapsed / duration)
     reward = float(status.get("reward_total", 0))
+    score_label = "Fitness tier" if mode == "evolution" else "Reward"
+    score_value = (
+        f"{int(status.get('fitness_tier', 0))}"
+        if mode == "evolution"
+        else f"{reward:,.2f}"
+    )
+    discovery_label = "Archive cells" if mode == "evolution" else "Visual cells"
+    discovery_value = (
+        int(status.get("archive_cells", 0))
+        if mode == "evolution"
+        else int(status.get("unique_visual_cells", 0))
+    )
+    learning_label = "Children evaluated" if mode == "evolution" else "Learning updates"
+    learning_value = (
+        int(status.get("evaluations", 0))
+        if mode == "evolution"
+        else int(status.get("learning_updates", 0))
+    )
+    chart_field = "fitness_tier" if mode == "evolution" else "unique_visual_cells"
+    chart_label = "Population fitness tier" if mode == "evolution" else "Visual discovery"
     image = f"{mode}/latest.png?v={html.escape(cache_token, quote=True)}"
     return f"""
     <article class="agent" style="--agent:{color}">
@@ -91,8 +111,8 @@ def _agent_card(
       <div class="progress"><i style="width:{progress:.2f}%"></i></div>
       <dl>
         <div><dt>Actions</dt><dd>{int(status.get("total_actions", 0)):,}</dd></div>
-        <div><dt>Visual cells</dt><dd>{int(status.get("unique_visual_cells", 0)):,}</dd></div>
-        <div><dt>Reward</dt><dd>{reward:,.2f}</dd></div>
+        <div><dt>{discovery_label}</dt><dd>{discovery_value:,}</dd></div>
+        <div><dt>{score_label}</dt><dd>{score_value}</dd></div>
         <div><dt>Speed</dt><dd>{float(status.get("actions_per_second", 0)):,.1f}/s</dd></div>
         <div><dt>Maps / positions</dt><dd>{int(status.get("maps_seen", 0)):,} /
           {int(status.get("positions_seen", 0)):,}</dd></div>
@@ -102,12 +122,12 @@ def _agent_card(
           {int(status.get("max_party_level", 0)):,}</dd></div>
         <div><dt>Badges / blackouts</dt><dd>{int(status.get("badge_count", 0)):,} /
           {int(status.get("blackouts", 0)):,}</dd></div>
-        <div><dt>Learning updates</dt><dd>{int(status.get("learning_updates", 0)):,}</dd></div>
+        <div><dt>{learning_label}</dt><dd>{learning_value:,}</dd></div>
         <div><dt>Replay / important</dt><dd>{int(status.get("replay_transitions", 0)):,} /
           {int(status.get("important_replay_transitions", 0)):,}</dd></div>
       </dl>
-      <div class="chart-label">Visual discovery</div>
-      {_sparkline(history, "unique_visual_cells", color)}
+      <div class="chart-label">{chart_label}</div>
+      {_sparkline(history, chart_field, color)}
       <a class="details" href="{mode}/index.html">Open this agent’s full dashboard →</a>
     </article>
     """
@@ -185,10 +205,11 @@ def render_arena_dashboard(
   </style>
 </head>
 <body><main>
-  <div class="eyebrow">LIVE LOCAL EXPERIMENT · FOUR INFORMATION BOUNDARIES</div>
-  <h1>Four ways to play Pokémon Red.</h1>
-  <p class="lede">Every lane begins from power-on. Moving left to right adds guidance: chance,
-    visual curiosity, outcome rewards, then privileged observations and explicit objectives.</p>
+  <div class="eyebrow">LIVE LOCAL EXPERIMENT · FOUR LEARNING MECHANISMS</div>
+  <h1>Can useful accidents become ancestors?</h1>
+  <p class="lede">Every lane begins fresh. Moving left to right compares evolution between neural
+    lifetimes, visual curiosity within one lifetime, semantic outcome teaching, then privileged
+    observations and explicit objectives.</p>
   <div class="summary">
     <span class="pill">Arena:
       {html.escape(str(arena_status.get("state", "starting")).upper())}</span>
@@ -199,7 +220,8 @@ def render_arena_dashboard(
   <section class="arena">{cards}</section>
   <section class="contract"><strong>How to read this:</strong> reward totals are meaningful only
     within an agent’s declared reward scheme. Compare game progress through the sealed referee and
-    compare discovery both by equal wall time and equal action count. Click a live frame for that
+    compare progress both by equal wall time and equal action count. Evolution reports descendants
+    rather than Q updates. Click a live frame for that
     agent’s complete trace dashboard.</section>
   <footer>No ROM bytes or save states are served. This server binds only to this Mac.</footer>
 </main></body></html>"""

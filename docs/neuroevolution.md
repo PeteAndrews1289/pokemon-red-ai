@@ -1,8 +1,9 @@
 # Evolutionary Explorer: learning by inheritance
 
-> **Status: designed, not implemented.** This page records the decision that replaces Pure Monkey
-> in the next arena. The old random runner and its artifacts remain available as a reproducible
-> baseline, but it is retired from long-horizon headline experiments.
+> **Status: implemented, entering Pokémon pretrials.** The deterministic recurrent policy,
+> mutation-only population engine, quality-diversity archive, clean-start evaluation, genealogy,
+> checkpoints, and live dashboard now exist. This is E1/E2 engineering evidence—not evidence that
+> the population has learned to play Pokémon successfully.
 
 ## The idea in one sentence
 
@@ -51,7 +52,7 @@ MAP-Elites and Go-Explore are layers around a policy representation, not alterna
 networks. Our version combines a fixed recurrent neural genome with a MAP-Elites archive; the
 checkpoint-assisted track additionally borrows Go-Explore's return-then-explore principle.
 
-The first version will be **quality-diversity neuroevolution with mutation-only reproduction**. It
+The first version is **quality-diversity neuroevolution with mutation-only reproduction**. It
 borrows two ideas:
 
 1. **MAP-Elites:** preserve strong but behaviorally different descendants instead of keeping only
@@ -69,7 +70,7 @@ It will also not use crossover initially. A child will have one parent plus a re
 This produces an unambiguous family tree: every behavioral change has one ancestral policy and one
 mutation seed. Crossover can be tested later without silently changing the first question.
 
-## The four lanes after implementation
+## The four lanes in the successor pretrial
 
 | Lane | Learns through | Actor observes | Selection or reward sees |
 | --- | --- | --- | --- |
@@ -87,7 +88,7 @@ These are not four equal competitors. They ask four different questions:
 
 ## The policy: deliberately small and visible
 
-The proposed version-1 genome is the floating-point weights and biases of a fixed recurrent neural
+The version-1 genome is the floating-point weights and biases of a fixed recurrent neural
 network.
 
 ### Inputs
@@ -108,11 +109,27 @@ fitness, archive cell, milestone name, or parent score. Those belong to selectio
 
 This is roughly thirteen thousand trainable numbers: small enough for hundreds of genomes, large
 enough to associate visual patterns and recent context with buttons, and simple enough to draw.
-The exact count must be generated from the implementation rather than copied into result reports.
+The implementation contains **13,096 parameters**; result reports still generate this value from
+the running implementation rather than trusting copied prose.
 
 The initial policy is deterministic. Exploration comes from population diversity and mutation, not
 from hidden random button sampling during evaluation. Given the same genome, start snapshot, and
 software version, the action trace should be identical.
+
+### Pretrial lifetime and early diversity
+
+Each child receives exactly **12,000 actions** from a clean power-on state. Action count—not wall
+time—is the scientific lifetime. A two-child ROM-backed qualification completed 24,000 actions in
+26.2 seconds when run alone (about 917 actions/second), so the four-lane arena is expected to take
+roughly 20–40 seconds per child under shared load. The first generation contains 16 unrelated
+random genomes; later children are mutated descendants selected from the archive.
+
+The first two full lifetimes exposed an important pretrial defect: before meaningful game progress,
+both policies landed in the same archive cell even though their button habits differed. The
+behavior descriptor now includes a bounded action-profile bin alongside milestone tier, maps,
+collection, and battle experience. Repeating the qualification preserved both children in two
+separate cells. This is a mechanism check, not gameplay progress: neither child had started the
+game yet.
 
 ## A generation, step by step
 
@@ -293,21 +310,23 @@ without forcing every lineage to imitate the most immediately profitable behavio
 
 ### E1 — deterministic genome and policy
 
-- Implement the fixed recurrent network with no machine-learning framework dependency.
-- Round-trip genomes through checkpoints and reproduce identical action logits.
-- Prove that policy inputs contain only the declared pixels and previous action.
+- ✅ Implement the fixed recurrent network with no machine-learning framework dependency.
+- ✅ Round-trip genomes through checkpoints and reproduce identical action selection.
+- ✅ Keep policy inputs restricted to declared pixels and previous action.
 
 ### E2 — population engine
 
-- Implement parent selection, mutation, evaluation queues, and immutable genealogy.
-- Unit-test elitism, tie-breaking, archive replacement, corrupt-genome rejection, and resume.
-- Run tiny synthetic environments before spending emulator time.
+- ✅ Implement parent selection, mutation, sequential evaluation, immutable genealogy, and resume
+  checkpoints.
+- ✅ Unit-test deterministic genomes, mutation, elitism, bounded archive replacement, and the
+  clean-start runner.
+- 🟨 Continue failure-injection and longer resume qualification during pretrials.
 
 ### E3 — Pokémon pretrial
 
-- Run 16 then 128 candidates under small budgets.
-- Confirm four-worker stability, bounded storage, deterministic lineage replay, and visible diversity.
-- Check that selection does not collapse into position farming or menu animation.
+- 🟨 Run 16 then 128 candidates under small budgets.
+- 🟨 Confirm four-emulator stability, bounded storage, deterministic lineage replay, and visible diversity.
+- 🟨 Check that selection does not collapse into position farming or menu animation.
 
 ### E4 — clean-start early-game evaluation
 

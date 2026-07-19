@@ -1,5 +1,32 @@
 # Development log
 
+## 2026-07-19 — Evolutionary Explorer implemented; pretrial begins
+
+### Mechanism built
+
+- Implemented a deterministic 13,096-parameter recurrent neural policy that receives only the
+  frozen coarse pixel grid and its previous action.
+- Implemented clean-start 12,000-action child evaluations, a 16-genome founding population,
+  mutation-only descendants, a bounded quality-diversity archive, genealogy, recovery checkpoints,
+  storage guards, and a living family-tree dashboard.
+- Replaced the retired Monkey lane with Evolutionary Explorer while retaining Monkey's command and
+  artifacts as the historical baseline.
+
+### Qualification changed the design
+
+- Two full child lifetimes completed 24,000 actions in 26.2 seconds when run alone.
+- The first version placed both non-progressing founders in one archive cell. That would have erased
+  behavioral variety before useful milestones became reachable.
+- Added a bounded action-profile component to the behavior descriptor. Repeating the exact
+  qualification preserved both founders in separate cells.
+- Kept every child at a clean power-on start for this pretrial. Checkpoint-assisted expeditions are
+  explicitly deferred until the clean-start evidence is trustworthy.
+
+### Current question
+
+Can any lineage turn an initially meaningless pixel-to-button habit into a useful inherited
+accident while three online learners run beside it under the same machine conditions?
+
 ## 2026-07-19 — Random baseline retired; Evolutionary Explorer designed
 
 ### Evidence changed the plan

@@ -2,8 +2,8 @@
 
 > **Decision update, 2026-07-19:** Pure Monkey has completed its role as the true-random control and
 > is retired from future headline arenas. The existing command and artifacts remain reproducible.
-> The next arena will replace it with Evolutionary Explorer after the population runner passes the
-> gates in [the neuroevolution design](neuroevolution.md).
+> The successor pretrial now replaces it with Evolutionary Explorer while the population runner
+> works through the gates in [the neuroevolution design](neuroevolution.md).
 
 ## The completed baseline design
 
@@ -34,7 +34,7 @@ flowchart LR
     Game -. "map, position, party, battle, badges" .-> V
 ```
 
-## The planned successor arena
+## The successor pretrial arena
 
 | Agent | Learns through | Central question |
 | --- | --- | --- |
@@ -43,7 +43,7 @@ flowchart LR
 | **Outcome-Rewarded** | Online Q learning from semantic consequences | Can pixels-only choices benefit from game-aware teaching? |
 | **Conventional** | Online Q learning with coarse RAM and explicit milestones | What does practical game-specific guidance buy? |
 
-Evolutionary Explorer will observe pixels and its own previous action. The sealed referee may use
+Evolutionary Explorer observes pixels and its own previous action. The sealed referee may use
 RAM to select parents, but those values do not become neural inputs. The evolutionary lane learns
 **between** child evaluations; the other three learn **during** their individual lifetimes.
 
@@ -60,8 +60,9 @@ flowchart LR
     Game -. "declared coarse state" .-> V
 ```
 
-This successor is currently an E0 design, not working software. Until it reaches E2, the local
-dashboard continues to represent the legacy arena and must be labeled accordingly.
+This successor has reached the E1/E2 mechanism stage. The local dashboard now represents the
+successor pretrial and must not be presented as evidence of learned Pokémon competence. E3 tests
+four-emulator stability and whether diverse useful lineages actually appear.
 
 ## What learning meant in the baseline arena
 

@@ -16,13 +16,13 @@
 
 ## Immediate evolutionary arc
 
-1. 🟨 Freeze the version-1 genome, observation boundary, archive descriptors, and claims.
-2. ⬜ Implement deterministic recurrent inference and genome serialization.
-3. ⬜ Implement mutation-only reproduction, MAP-Elites, genealogy, and resume.
-4. ⬜ Qualify 16-candidate and 128-candidate populations on Pokémon.
+1. ✅ Freeze the version-1 genome, observation boundary, archive descriptors, and claims.
+2. ✅ Implement deterministic recurrent inference and genome serialization.
+3. ✅ Implement mutation-only reproduction, MAP-Elites, genealogy, and resume checkpoints.
+4. 🟨 Qualify 16-candidate and 128-candidate populations on Pokémon.
 5. ⬜ Freeze a clean-start early-game comparison against the preserved random baseline.
 6. ⬜ Add checkpoint-assisted expedition mode with required power-on lineage replay.
-7. ⬜ Replace Monkey in the next four-lane living dashboard.
+7. ✅ Replace Monkey in the four-lane pretrial dashboard.
 
 ## Later informed-agent roadmap
 
@@ -37,9 +37,9 @@ designs should change when evidence points somewhere better.
 
 ```mermaid
 flowchart TD
-    P0["✅ Harness + random baseline"] --> EV0["🟨 CURRENT<br/>Evolution design"]
-    EV0 --> EV1["⬜ Genome + population engine"]
-    EV1 --> PRE["⬜ Population pretrials"]
+    P0["✅ Harness + random baseline"] --> EV0["✅ Evolution design"]
+    EV0 --> EV1["✅ Genome + population engine"]
+    EV1 --> PRE["🟨 CURRENT<br/>Population pretrials"]
     PRE --> REF["⬜ Frozen clean-start comparison"]
     REF --> P1["⬜ Checkpoint-assisted expedition"]
     P1 --> SK["⬜ Reusable navigation and battle behavior"]

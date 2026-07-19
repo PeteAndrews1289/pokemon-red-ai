@@ -11,8 +11,9 @@ walkthrough, demonstrations, semantic game state, OCR, or Pokémon-specific goal
 
 > **Current status: the first blind comparisons and reward pretrials are complete.** Pure Monkey
 > established the true-random baseline and is now retired from future headline arenas because it
-> cannot learn from success. Its replacement, Evolutionary Explorer, is fully specified but not yet
-> implemented. Visually Curious, Outcome-Rewarded, and Conventional remain the online learners.
+> cannot learn from success. Its replacement, Evolutionary Explorer, now has a deterministic neural
+> policy, mutation, selection, genealogy, checkpoints, and a live dashboard. Its first four-lane
+> pretrial is the current qualification step.
 
 The current code still preserves every historical runner, including Monkey and Archivist, so old
 results remain reproducible. The next research step is a population of small recurrent pixel
@@ -38,7 +39,7 @@ direction lives in [The project narrative](docs/narrative.md), and evidence leve
 
 | Question | Current answer |
 | --- | --- |
-| Is there a trained neural Pokémon-playing model yet? | No; the first neural population is designed, not implemented |
+| Is there a trained neural Pokémon-playing model yet? | There is an evolving neural population, but no trained or successful final policy yet |
 | Can a game-naive agent explore from power-on? | Yes: random, archive, and online pixels-only runners have been exercised |
 | Why retire Pure Monkey? | Its action distribution never changes; lucky outcomes cannot become future behavior |
 | What will replace it? | A quality-diversity neuroevolution population with visible ancestry |
@@ -49,7 +50,7 @@ direction lives in [The project narrative](docs/narrative.md), and evidence leve
 | Can the harness identify map, position, party size, and battle state? | Yes, read-only |
 | Are ROMs, saves, snapshots, and gameplay captures committed? | No |
 | Preserved random comparison | Monkey vs. pixels-only Archivist under matched budgets |
-| Next four-agent arena | Evolutionary Explorer, Visually Curious, Outcome-Rewarded, and Conventional |
+| Current four-agent pretrial | Evolutionary Explorer, Visually Curious, Outcome-Rewarded, and Conventional |
 | First neural experiment | Evolve a recurrent pixels-only policy through selection and mutation |
 | Later outcome milestones | Bedroom, Oak's Parcel, and Brock—referee-only, never rewards |
 
@@ -59,8 +60,8 @@ direction lives in [The project narrative](docs/narrative.md), and evidence leve
 flowchart LR
     P0["✅ Harness<br/>trust the stage"] --> B0["✅ Monkey<br/>baseline concluded"]
     B0 --> B2["✅ Online learners<br/>pretrials"]
-    B2 --> B1["🟨 Evolution design<br/>inherit useful accidents"]
-    B1 --> EV["⬜ Population runner<br/>then frozen evaluation"]
+    B2 --> B1["✅ Evolution engine<br/>inherit useful accidents"]
+    B1 --> EV["🟨 Population pretrial<br/>then frozen evaluation"]
 ```
 
 GitHub issues and experiment records will attach evidence to this roadmap. A checked engineering
@@ -212,11 +213,11 @@ Each run writes a live `index.html`, bounded screenshots, status, trace, and rec
 under ignored `runs/`. No OpenAI API key or reinforcement-learning download is required. See the
 [blind curiosity protocol](docs/blind-curiosity.md) before interpreting or publishing a result.
 
-The current `arena-run` command reproduces the **legacy** four-lane arena, including Pure Monkey.
-It remains available for audit, but should not be used as the next headline experiment. The future
-command will replace that lane only after the evolutionary runner passes its qualification gates.
+The current `arena-run` command launches the **successor pretrial**: Evolutionary Explorer plus the
+three online learners. Historical Monkey runs remain reproducible through `blind-run --mode monkey`
+and their preserved artifacts.
 
-Run the legacy arena with one living local dashboard:
+Run the successor arena with one living local dashboard:
 
 ```bash
 pokemon-red-ai arena-run \
@@ -229,8 +230,8 @@ pokemon-red-ai arena-run \
 While active, open `http://127.0.0.1:8765/index.html`. The arena is designed for an external SSD,
 five-minute recovery checkpoints, long-spaced visual evidence, and graceful group stopping. See
 [The four-agent arena](docs/four-agent-arena.md) records both the historical protocol and the
-replacement decision. [Evolutionary Explorer](docs/neuroevolution.md) defines the planned next
-lane; its implementation and launch command do not exist yet.
+replacement decision. [Evolutionary Explorer](docs/neuroevolution.md) defines the new lane and the
+evidence still required before it can be called successful.
 
 ## Supported ROM
 

@@ -2,6 +2,14 @@
 
 ## Unreleased — evolutionary successor decision
 
+- Implemented the 13,096-parameter recurrent pixel policy, deterministic genome serialization,
+  mutation-only reproduction, bounded quality-diversity archive, immutable genealogy, and resume
+  checkpoints.
+- Added a clean-start evolutionary runner and living family-tree dashboard; replaced Monkey with
+  Evolutionary Explorer in the successor arena pretrial.
+- Set the pretrial lifetime to 12,000 actions and the founding population to 16 genomes.
+- Added an early action-profile diversity bin after a two-child qualification revealed archive
+  collapse before either child reached a semantic milestone.
 - Retired Pure Monkey from future headline arenas after it completed its role as a non-learning
   random baseline; retained its runner and artifacts for reproducibility.
 - Specified Evolutionary Explorer as its planned replacement: a small recurrent pixels-only policy

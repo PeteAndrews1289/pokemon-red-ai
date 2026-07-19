@@ -20,6 +20,7 @@ from pokemon_red_ai.arena import (
 from pokemon_red_ai.blind import RUN_MODES, BlindRunConfig, run_blind_experiment
 from pokemon_red_ai.bootstrap import run_bootstrap_test
 from pokemon_red_ai.emulator import PokemonRedEmulator
+from pokemon_red_ai.evolution import EvolutionConfig, run_evolution_experiment
 from pokemon_red_ai.report import generate_run_report
 from pokemon_red_ai.rom import RomValidationError, resolve_rom_path, verify_rom
 from pokemon_red_ai.smoke import run_smoke_test
@@ -107,6 +108,30 @@ def build_parser() -> argparse.ArgumentParser:
     )
     blind_stop.add_argument("run_directory", type=Path)
 
+    evolution = subparsers.add_parser(
+        "evolution-run",
+        help="Run clean-start recurrent policy neuroevolution with a live dashboard.",
+    )
+    evolution.add_argument("--rom", type=Path, help="Private path to Pokemon Red.gb")
+    evolution.add_argument("--output", type=Path, required=True)
+    evolution.add_argument("--hours", type=float, default=2)
+    evolution.add_argument("--max-actions", type=int, default=20_000_000)
+    evolution.add_argument("--seed", type=int, default=20_260_723)
+    evolution.add_argument("--population-size", type=int, default=16)
+    evolution.add_argument("--candidate-actions", type=int, default=12_000)
+    evolution.add_argument("--archive-capacity", type=int, default=512)
+    evolution.add_argument("--mutation-probability", type=float, default=0.10)
+    evolution.add_argument("--mutation-sigma", type=float, default=0.05)
+    evolution.add_argument("--large-mutation-probability", type=float, default=0.05)
+    evolution.add_argument("--large-mutation-sigma", type=float, default=0.20)
+    evolution.add_argument("--seen-filter-mib", type=int, default=8)
+    evolution.add_argument("--screenshot-limit", type=int, default=128)
+    evolution.add_argument("--status-seconds", type=float, default=10)
+    evolution.add_argument("--checkpoint-seconds", type=float, default=300)
+    evolution.add_argument("--max-output-mib", type=int, default=2_048)
+    evolution.add_argument("--min-free-gib", type=float, default=50)
+    evolution.add_argument("--resume", action="store_true")
+
     arena = subparsers.add_parser(
         "arena-run",
         help="Run the four declared agents together with a live local dashboard.",
@@ -129,6 +154,9 @@ def build_parser() -> argparse.ArgumentParser:
     arena.add_argument("--timelapse-minutes", type=float, default=10)
     arena.add_argument("--max-output-mib-per-agent", type=int, default=2_048)
     arena.add_argument("--min-free-gib", type=float, default=50)
+    arena.add_argument("--evolution-population-size", type=int, default=16)
+    arena.add_argument("--evolution-candidate-actions", type=int, default=12_000)
+    arena.add_argument("--evolution-archive-capacity", type=int, default=512)
 
     arena_status = subparsers.add_parser("arena-status", help="Show four-agent arena status.")
     arena_status.add_argument("arena_directory", type=Path)
@@ -275,6 +303,9 @@ def run_agent_arena(args: argparse.Namespace) -> int:
         replay_interval=args.replay_interval,
         important_replay_capacity=args.important_replay_capacity,
         timelapse_minutes=args.timelapse_minutes,
+        evolution_population_size=args.evolution_population_size,
+        evolution_candidate_actions=args.evolution_candidate_actions,
+        evolution_archive_capacity=args.evolution_archive_capacity,
     )
     return run_arena(
         rom_path,
@@ -282,6 +313,50 @@ def run_agent_arena(args: argparse.Namespace) -> int:
         output=args.output.expanduser().resolve(),
         config=config,
     )
+
+
+def run_evolution(args: argparse.Namespace) -> int:
+    rom_path = resolve_rom_path(args.rom)
+    fingerprint = verify_rom(rom_path)
+    config = EvolutionConfig(
+        duration_seconds=args.hours * 3_600,
+        max_actions=args.max_actions,
+        seed=args.seed,
+        population_size=args.population_size,
+        candidate_actions=args.candidate_actions,
+        archive_capacity=args.archive_capacity,
+        mutation_probability=args.mutation_probability,
+        mutation_sigma=args.mutation_sigma,
+        large_mutation_probability=args.large_mutation_probability,
+        large_mutation_sigma=args.large_mutation_sigma,
+        seen_filter_bytes=args.seen_filter_mib * 1024 * 1024,
+        screenshot_limit=args.screenshot_limit,
+        status_interval_seconds=args.status_seconds,
+        checkpoint_interval_seconds=args.checkpoint_seconds,
+        max_output_bytes=args.max_output_mib * 1024 * 1024,
+        min_free_bytes=int(args.min_free_gib * 1024 * 1024 * 1024),
+    )
+    result = run_evolution_experiment(
+        rom_path,
+        fingerprint,
+        config=config,
+        run_directory=args.output.expanduser().resolve(),
+        resume=args.resume,
+    )
+    print(f"Evolution run: {result.stop_reason}")
+    print(f"Actions: {result.total_actions:,}")
+    print(f"Evaluated children: {result.evaluations:,}")
+    print(f"Archive cells: {result.archive_cells:,}")
+    healthy = {
+        "action_limit",
+        "duration_limit",
+        "low_disk_space",
+        "output_limit",
+        "sigint",
+        "sigterm",
+        "stop_requested",
+    }
+    return 0 if result.stop_reason in healthy else 1
 
 
 def show_blind_status(run_directory: Path) -> int:
@@ -343,6 +418,8 @@ def main(argv: list[str] | None = None) -> int:
             return show_blind_status(args.run_directory)
         if args.command == "blind-stop":
             return request_blind_stop(args.run_directory)
+        if args.command == "evolution-run":
+            return run_evolution(args)
         if args.command == "arena-run":
             return run_agent_arena(args)
         if args.command == "arena-status":
