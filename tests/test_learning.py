@@ -36,10 +36,90 @@ def test_outcome_reward_is_semantic_but_policy_key_can_remain_pixels_only() -> N
     assert first_reward > 0
     assert progressed_reward > first_reward
     assert parts["party_increase"] == 25
-    assert parts["new_badge"] == 100
+    assert parts["new_badge"] == 200
     assert "visual_novelty" not in parts
     assert tracker.visual_reward == 0
     assert tracker.badge_bits.bit_count() == 1
+
+
+def test_conventional_reward_adds_explicit_collection_milestones() -> None:
+    tracker = RewardTracker("conventional")
+    baseline = PokemonRedState(
+        True,
+        0,
+        1,
+        1,
+        1,
+        0,
+        0,
+        party_levels=(5,),
+        pokedex_owned=bytes(19),
+        pokedex_seen=bytes(19),
+        event_flags=bytes(319),
+        bag_item_ids=(),
+        got_pokedex=False,
+    )
+    progressed = PokemonRedState(
+        True,
+        1,
+        2,
+        2,
+        1,
+        0,
+        0,
+        party_levels=(6,),
+        pokedex_owned=bytes([1]) + bytes(18),
+        pokedex_seen=bytes([3]) + bytes(18),
+        event_flags=bytes([1]) + bytes(318),
+        bag_item_ids=(0x04, 0x46, 0xC4),
+        got_pokedex=True,
+    )
+
+    tracker.score(visually_novel=False, state=baseline, action_button="up")
+    reward, parts = tracker.score(
+        visually_novel=False,
+        state=progressed,
+        action_button="up",
+    )
+
+    assert reward > 150
+    assert parts["new_species_seen"] == 6
+    assert parts["new_species_owned"] == 25
+    assert parts["oaks_parcel_obtained"] == 30
+    assert parts["pokedex_obtained"] == 50
+    assert parts["pokeballs_obtained"] == 15
+    assert parts["required_item_obtained"] == 50
+
+
+def test_observer_tracks_progress_without_returning_reward() -> None:
+    tracker = RewardTracker("observer")
+    state = PokemonRedState(True, 2, 3, 4, 1, 0, 1, party_levels=(7,))
+
+    reward, parts = tracker.score(visually_novel=True, state=state)
+
+    assert reward == 0
+    assert parts == {}
+    assert tracker.seen_maps == {2}
+    assert tracker.max_party_count == 1
+    assert tracker.max_party_level == 7
+
+
+def test_blackouts_are_all_counted_but_only_the_first_is_penalized() -> None:
+    tracker = RewardTracker("outcome")
+    playing = PokemonRedState(True, 2, 3, 4, 1, 0, 0)
+    lost = PokemonRedState(True, 2, 3, 4, 1, 0xFF, 0)
+
+    tracker.score(visually_novel=False, state=playing)
+    first_reward, first_parts = tracker.score(visually_novel=False, state=lost)
+    tracker.score(visually_novel=False, state=lost)
+    tracker.score(visually_novel=False, state=playing)
+    second_reward, second_parts = tracker.score(visually_novel=False, state=lost)
+
+    assert first_parts["blackout"] == -2
+    assert first_reward == -2
+    assert "blackout" not in second_parts
+    assert second_reward == 0
+    assert tracker.blackouts == 2
 
 
 def test_curious_reward_uses_only_visual_novelty() -> None:

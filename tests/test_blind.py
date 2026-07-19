@@ -18,6 +18,7 @@ from pokemon_red_ai.blind import (
     PixelsOnlyActor,
     SeenVisualFilter,
     _read_checkpoint,
+    action_for_button,
     policy_visual_key,
     run_blind_experiment,
     visual_key,
@@ -79,6 +80,15 @@ def test_visual_signature_is_deterministic_and_uses_only_pixels() -> None:
     assert visual_key(black) != visual_key(split)
     assert policy_visual_key(black) == policy_visual_key(black.copy())
     assert policy_visual_key(black) != policy_visual_key(split)
+
+
+def test_learning_actions_have_deterministic_timing() -> None:
+    first = action_for_button("up", random.Random(1))
+    second = action_for_button("up", random.Random(999))
+
+    assert first == second == BlindAction("up", 8, 12)
+    with pytest.raises(ValueError, match="Unsupported blind action"):
+        BlindAction("select", 8, 12)
 
 
 def test_seen_visual_filter_has_bounded_round_trip_state() -> None:
@@ -224,6 +234,8 @@ def test_declared_four_agent_modes_enforce_information_boundaries(
     assert status["ram_used_by_reward"] is reward_ram
     assert manifest["ram_used_by_actor"] is actor_ram
     assert manifest["ram_used_by_reward"] is reward_ram
+    assert status["ram_used_by_referee"] is True
+    assert manifest["ram_used_by_referee"] is True
     if mode in {"curious", "outcome", "conventional"}:
         assert status["learning_updates"] > 0
         assert status["n_step_horizon"] == 8

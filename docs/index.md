@@ -17,6 +17,7 @@ is an honest pixels-only discovery archive whose limitations are part of the sto
 | Audit the primary experiment | [Blind curiosity protocol](blind-curiosity.md) | What the agent sees, how novelty works, and what counts as leakage |
 | Watch the four agents together | [Four-agent arena](four-agent-arena.md) | Exact information ladder, rewards, dashboard, and 48-hour procedure |
 | Follow the central story | [Project narrative](narrative.md) | Why the failures and evidence are part of the project |
+| Understand the reward ladder | [Reward architecture](reward-architecture.md) | Actions, milestones, loop controls, and reporting boundaries |
 | See what is genuinely complete today | [Progress](progress.md) | What is verified, what is merely implemented, and what is still planned |
 | Follow the journey ahead | [Roadmap](roadmap.md) | Milestones, gates, dependencies, and definitions of done |
 | Understand the system | [Architecture](architecture.md) | How the emulator, agent, memory, watchdog, and referee fit together |

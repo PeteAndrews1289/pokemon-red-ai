@@ -69,6 +69,24 @@ def _action_bars(action_counts: dict[str, int]) -> str:
     return "".join(rows) or '<p class="muted">No actions recorded yet.</p>'
 
 
+def _reward_ledger(components: dict[str, int | float]) -> str:
+    rows = []
+    ordered = sorted(
+        components.items(), key=lambda item: abs(float(item[1])), reverse=True
+    )
+    for name, value in ordered:
+        rows.append(
+            f"<tr><td>{html.escape(name.replace('_', ' ').title())}</td>"
+            f"<td>{float(value):+,.2f}</td></tr>"
+        )
+    return (
+        '<table class="ledger"><thead><tr><th>Reward source</th><th>Total</th></tr></thead>'
+        f'<tbody>{"".join(rows)}</tbody></table>'
+        if rows
+        else '<p class="muted">This lane has not received a reward event yet.</p>'
+    )
+
+
 def _gallery(screenshots: list[dict[str, Any]]) -> str:
     cards = []
     for shot in screenshots[-12:]:
@@ -115,8 +133,8 @@ def render_blind_dashboard(
         "monkey": "No reward and no learning",
         "archivist": "Visual novelty archive",
         "curious": "Visual novelty only",
-        "outcome": "Maps, party, battles, and badges",
-        "conventional": "Explicit objectives with privileged state",
+        "outcome": "Generic discovery, collection, events, and badges",
+        "conventional": "Required milestones plus privileged progress state",
     }.get(mode, "Declared in the manifest")
     fourth_label = "Discovery archive" if mode == "archivist" else "Cumulative reward"
     fourth_value = (
@@ -175,6 +193,10 @@ def render_blind_dashboard(
     figcaption small {{ color:var(--muted); display:block; }}
     .latest {{ width:min(480px,100%); image-rendering:pixelated; border:1px solid var(--line);
       border-radius:12px; }} code {{ color:var(--accent2); }} .muted {{ color:var(--muted); }}
+    .ledger {{ width:100%; border-collapse:collapse; margin-top:12px }}
+    .ledger th,.ledger td {{ padding:9px 10px; border-bottom:1px solid var(--line);
+      text-align:left }}
+    .ledger th:last-child,.ledger td:last-child {{ text-align:right }}
     footer {{ color:var(--muted); margin-top:28px; font-size:.82rem; }}
     @media (max-width:800px) {{ .grid,.gallery {{ grid-template-columns:repeat(2,1fr); }}
       .two,.truth {{ grid-template-columns:1fr; }} }}
@@ -206,7 +228,8 @@ def render_blind_dashboard(
       <div><small>Guidance</small><b>{html.escape(guidance)}</b></div>
       <div><small>Semantic RAM used</small><b>
         Actor: {"yes" if status.get("ram_used_by_actor") else "no"}
-        · Reward: {"yes" if status.get("ram_used_by_reward") else "no"}</b></div>
+        · Reward: {"yes" if status.get("ram_used_by_reward") else "no"}
+        · Sealed referee: {"yes" if status.get("ram_used_by_referee") else "no"}</b></div>
     </div>
     <p class="muted">Start: clean power-on · Pretrained components: none ·
       Human demonstrations: none</p>
@@ -219,13 +242,28 @@ def render_blind_dashboard(
   <section class="grid" aria-label="Learning and outcome summary">
     <div class="card"><span>Learning updates</span>
       <strong>{_number(int(status.get("learning_updates", 0)))}</strong></div>
-    <div class="card"><span>Maps / positions rewarded</span>
+    <div class="card"><span>Maps / positions observed</span>
       <strong>{int(status.get("maps_seen", 0)):,} /
         {int(status.get("positions_seen", 0)):,}</strong></div>
-    <div class="card"><span>Largest party observed</span>
-      <strong>{int(status.get("max_party_count", 0)):,}</strong></div>
-    <div class="card"><span>Badges observed</span>
-      <strong>{int(status.get("badge_count", 0)):,}</strong></div>
+    <div class="card"><span>Pokédex seen / owned</span>
+      <strong>{int(status.get("pokedex_seen", 0)):,} /
+        {int(status.get("pokedex_owned", 0)):,}</strong></div>
+    <div class="card"><span>Party / highest level</span>
+      <strong>{int(status.get("max_party_count", 0)):,} /
+        {int(status.get("max_party_level", 0)):,}</strong></div>
+  </section>
+
+  <section class="grid" aria-label="World progress summary">
+    <div class="card"><span>Unique warps</span>
+      <strong>{int(status.get("warps_seen", 0)):,}</strong></div>
+    <div class="card"><span>Event flags encountered</span>
+      <strong>{int(status.get("event_flags_seen", 0)):,}</strong></div>
+    <div class="card"><span>Moves / bag items observed</span>
+      <strong>{int(status.get("moves_seen", 0)):,} /
+        {int(status.get("bag_items_seen", 0)):,}</strong></div>
+    <div class="card"><span>Badges / blackouts</span>
+      <strong>{int(status.get("badge_count", 0)):,} /
+        {int(status.get("blackouts", 0)):,}</strong></div>
   </section>
 
   <div class="two">
@@ -240,6 +278,13 @@ def render_blind_dashboard(
       {_action_bars(status["action_counts"])}
     </section>
   </div>
+
+  <section class="panel">
+    <h2>Explainable reward ledger</h2>
+    <p class="muted">Every positive nudge and loop penalty is accumulated by source. Referee-only
+      measurements do not enter this table for blind lanes.</p>
+    {_reward_ledger(status.get("reward_components", {}))}
+  </section>
 
   <section class="panel">
     <h2>Latest view</h2>

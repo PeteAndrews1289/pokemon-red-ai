@@ -23,22 +23,23 @@ from typing import Any, Protocol
 import numpy as np
 from PIL import Image
 
-from pokemon_red_ai.constants import SUPPORTED_BUTTONS
 from pokemon_red_ai.emulator import EmulatorSnapshot, PokemonRedEmulator
 from pokemon_red_ai.learning import HashedQPolicy, RewardTracker, policy_state_key
 from pokemon_red_ai.provenance import detect_source_provenance
 from pokemon_red_ai.rom import RomFingerprint
 from pokemon_red_ai.state import PokemonRedState, PokemonRedStateReader
 
-BLIND_PROTOCOL_VERSION = "game-naive-pixels-v1"
-OUTCOME_PROTOCOL_VERSION = "pixels-observation-outcome-reward-v1"
-CONVENTIONAL_PROTOCOL_VERSION = "pixels-ram-explicit-objectives-v1"
-CHECKPOINT_SCHEMA_VERSION = 2
+BLIND_PROTOCOL_VERSION = "game-naive-pixels-v2"
+OUTCOME_PROTOCOL_VERSION = "pixels-observation-outcome-reward-v2"
+CONVENTIONAL_PROTOCOL_VERSION = "pixels-ram-explicit-objectives-v2"
+CHECKPOINT_SCHEMA_VERSION = 3
 EXPECTED_SCREEN_SHAPE = (144, 160, 3)
 VISUAL_GRID_SHAPE = (18, 20)
 VISUAL_QUANTIZATION_LEVELS = 8
 NOOP_ACTION = "noop"
-BLIND_ACTIONS = tuple(sorted(SUPPORTED_BUTTONS)) + (NOOP_ACTION,)
+BLIND_ACTIONS = ("up", "down", "left", "right", "a", "b", "start", NOOP_ACTION)
+ACTION_HOLD_FRAMES = 8
+ACTION_RELEASE_FRAMES = 12
 LEARNING_MODES = {"curious", "outcome", "conventional"}
 ARCHIVE_MODES = {"archivist"}
 RUN_MODES = {"monkey", "curious", "outcome", "conventional", "archivist"}
@@ -77,6 +78,9 @@ def mode_metadata(mode: str) -> dict[str, Any]:
                 "party_count",
                 "battle_state",
                 "badge_bits",
+                "pokedex_seen_and_owned",
+                "event_flags",
+                "bag_items",
             ],
             "trainer": "n_step_replay_q_learning_outcome_reward",
         },
@@ -89,6 +93,7 @@ def mode_metadata(mode: str) -> dict[str, Any]:
                 "party_count",
                 "battle_state",
                 "badge_bits",
+                "coarse_progress_state",
                 "seeded_prng",
             ],
             "reward_inputs": [
@@ -96,6 +101,9 @@ def mode_metadata(mode: str) -> dict[str, Any]:
                 "party_count",
                 "battle_state",
                 "badge_bits",
+                "pokedex_seen_and_owned",
+                "required_event_flags",
+                "required_items",
             ],
             "trainer": "n_step_replay_q_learning_explicit_objectives",
         },
@@ -565,16 +573,17 @@ class _SignalStop:
 def sample_blind_action(rng: random.Random) -> BlindAction:
     return BlindAction(
         button=rng.choice(BLIND_ACTIONS),
-        hold_frames=rng.choice((4, 8, 12)),
-        release_frames=rng.choice((8, 12, 16)),
+        hold_frames=ACTION_HOLD_FRAMES,
+        release_frames=ACTION_RELEASE_FRAMES,
     )
 
 
 def action_for_button(button: str, rng: random.Random) -> BlindAction:
+    del rng
     return BlindAction(
         button=button,
-        hold_frames=rng.choice((4, 8, 12)),
-        release_frames=rng.choice((8, 12, 16)),
+        hold_frames=ACTION_HOLD_FRAMES,
+        release_frames=ACTION_RELEASE_FRAMES,
     )
 
 
@@ -666,6 +675,7 @@ def _checkpoint_payload(
     screenshots: list[dict[str, Any]],
     policy: HashedQPolicy | None,
     reward_tracker: RewardTracker | None,
+    referee_tracker: RewardTracker,
     conventional_bootstrap_index: int,
     source_identity: dict[str, str | bool],
     implementation_sha256: str,
@@ -695,6 +705,7 @@ def _checkpoint_payload(
         "screenshots": screenshots,
         "policy": None if policy is None else policy.checkpoint_dict(),
         "reward_tracker": (None if reward_tracker is None else reward_tracker.checkpoint_dict()),
+        "referee_tracker": referee_tracker.checkpoint_dict(),
         "conventional_bootstrap_index": conventional_bootstrap_index,
     }
 
@@ -768,6 +779,7 @@ def _status_payload(
     run_bytes: int,
     policy: HashedQPolicy | None,
     reward_tracker: RewardTracker | None,
+    referee_tracker: RewardTracker,
     referee_state: PokemonRedState | None,
 ) -> dict[str, Any]:
     novelty_actions = max(counters.unique_visual_cells - 1, 0)
@@ -813,6 +825,7 @@ def _status_payload(
         "ram_used_by_actor": mode == "conventional",
         "ram_used_by_reward": mode in {"outcome", "conventional"},
         "ram_used_by_actor_or_reward": mode in {"outcome", "conventional"},
+        "ram_used_by_referee": True,
         "pretrained_components": [],
         "human_demonstrations": [],
         "learning_updates": 0 if policy is None else policy.updates,
@@ -828,10 +841,21 @@ def _status_payload(
         "outcome_reward": (
             0.0 if reward_tracker is None else round(reward_tracker.outcome_reward, 3)
         ),
-        "maps_seen": 0 if reward_tracker is None else len(reward_tracker.seen_maps),
-        "positions_seen": 0 if reward_tracker is None else len(reward_tracker.seen_positions),
-        "max_party_count": 0 if reward_tracker is None else reward_tracker.max_party_count,
-        "badge_count": 0 if reward_tracker is None else reward_tracker.badge_bits.bit_count(),
+        "maps_seen": len(referee_tracker.seen_maps),
+        "positions_seen": len(referee_tracker.seen_positions),
+        "warps_seen": len(referee_tracker.seen_warps),
+        "max_party_count": referee_tracker.max_party_count,
+        "max_party_level": referee_tracker.max_party_level,
+        "pokedex_seen": len(referee_tracker.seen_pokedex_species),
+        "pokedex_owned": len(referee_tracker.owned_pokedex_species),
+        "event_flags_seen": len(referee_tracker.seen_event_flags),
+        "bag_items_seen": len(referee_tracker.seen_bag_items),
+        "moves_seen": len(referee_tracker.seen_moves),
+        "blackouts": referee_tracker.blackouts,
+        "badge_count": referee_tracker.badge_bits.bit_count(),
+        "reward_components": (
+            {} if reward_tracker is None else dict(sorted(reward_tracker.component_totals.items()))
+        ),
         "referee_state": None if referee_state is None else referee_state.public_dict(),
     }
 
@@ -879,6 +903,7 @@ def _load_run_state(
     list[dict[str, Any]],
     HashedQPolicy | None,
     RewardTracker | None,
+    RewardTracker,
     int,
 ]:
     if checkpoint["rom_sha256"] != rom.sha256:
@@ -929,6 +954,7 @@ def _load_run_state(
             if checkpoint.get("reward_tracker") is None
             else RewardTracker.from_checkpoint_dict(checkpoint["reward_tracker"])
         ),
+        RewardTracker.from_checkpoint_dict(checkpoint["referee_tracker"]),
         int(checkpoint.get("conventional_bootstrap_index", 0)),
     )
 
@@ -989,17 +1015,14 @@ def run_blind_experiment(
     branch_remaining = 0
     policy: HashedQPolicy | None = None
     reward_tracker: RewardTracker | None = None
+    referee_tracker = RewardTracker("observer")
     conventional_bootstrap_index = 0
     referee_state: PokemonRedState | None = None
 
     try:
         with PokemonRedEmulator(rom_path) as emulator:
             actor = PixelsOnlyActor(emulator)
-            referee_reader = (
-                PokemonRedStateReader(emulator)
-                if config.mode in {"outcome", "conventional"}
-                else None
-            )
+            referee_reader = PokemonRedStateReader(emulator)
             if resume:
                 if resume_checkpoint is None:
                     raise RuntimeError("Resume checkpoint was not loaded")
@@ -1016,6 +1039,7 @@ def run_blind_experiment(
                     screenshots,
                     policy,
                     reward_tracker,
+                    referee_tracker,
                     conventional_bootstrap_index,
                 ) = _load_run_state(
                     resume_checkpoint,
@@ -1070,6 +1094,7 @@ def run_blind_experiment(
                 reward_tracker = (
                     RewardTracker(config.mode) if config.mode in LEARNING_MODES else None
                 )
+                referee_tracker = RewardTracker("observer")
                 conventional_bootstrap_index = 0
                 if config.mode in ARCHIVE_MODES:
                     root = archive.add(
@@ -1127,6 +1152,10 @@ def run_blind_experiment(
                     ram_used_by_actor=config.mode == "conventional",
                     ram_used_by_reward=config.mode in {"outcome", "conventional"},
                     ram_used_by_actor_or_reward=config.mode in {"outcome", "conventional"},
+                    ram_used_by_referee=True,
+                    referee_outputs_never_enter_policy_or_reward=(
+                        config.mode in {"monkey", "curious"}
+                    ),
                     archive_selection_inputs=(
                         ["pixel_cell", "selection_count", "visit_count"]
                         if config.mode in ARCHIVE_MODES
@@ -1232,12 +1261,16 @@ def run_blind_experiment(
                     else:
                         counters.not_definitely_new_observations += 1
 
-                    if referee_reader is not None:
-                        referee_state = referee_reader.read()
+                    referee_state = referee_reader.read()
+                    referee_tracker.score(
+                        visually_novel=definitely_new,
+                        state=referee_state,
+                    )
                     if reward_tracker is not None:
                         reward, reward_components = reward_tracker.score(
                             visually_novel=definitely_new,
                             state=referee_state,
+                            action_button=action.button,
                         )
                         if (
                             policy is not None
@@ -1266,7 +1299,13 @@ def run_blind_experiment(
                             significant_components = {
                                 name: value
                                 for name, value in semantic_components.items()
-                                if name != "new_position"
+                                if name
+                                not in {
+                                    "new_position",
+                                    "repeated_action",
+                                    "revisited_position",
+                                    "stationary_loop",
+                                }
                             }
                             event_capture: dict[str, Any] | None = None
                             if significant_components:
@@ -1374,6 +1413,14 @@ def run_blind_experiment(
                                 "total_actions": counters.total_actions,
                                 "unique_visual_cells": counters.unique_visual_cells,
                                 "archive_cells": len(archive),
+                                "maps_seen": len(referee_tracker.seen_maps),
+                                "positions_seen": len(referee_tracker.seen_positions),
+                                "pokedex_seen": len(referee_tracker.seen_pokedex_species),
+                                "pokedex_owned": len(referee_tracker.owned_pokedex_species),
+                                "max_party_level": referee_tracker.max_party_level,
+                                "reward_total": (
+                                    0.0 if reward_tracker is None else reward_tracker.total_reward
+                                ),
                             }
                         )
                         status_history = status_history[-20_000:]
@@ -1388,6 +1435,7 @@ def run_blind_experiment(
                             run_bytes=run_bytes,
                             policy=policy,
                             reward_tracker=reward_tracker,
+                            referee_tracker=referee_tracker,
                             referee_state=referee_state,
                         )
                         _atomic_json(output / "status.json", status)
@@ -1405,7 +1453,13 @@ def run_blind_experiment(
                             outcome_reward=status["outcome_reward"],
                             maps_seen=status["maps_seen"],
                             positions_seen=status["positions_seen"],
+                            warps_seen=status["warps_seen"],
                             max_party_count=status["max_party_count"],
+                            max_party_level=status["max_party_level"],
+                            pokedex_seen=status["pokedex_seen"],
+                            pokedex_owned=status["pokedex_owned"],
+                            event_flags_seen=status["event_flags_seen"],
+                            blackouts=status["blackouts"],
                             badge_count=status["badge_count"],
                             replay_transitions=status["replay_transitions"],
                             replay_updates=status["replay_updates"],
@@ -1435,6 +1489,7 @@ def run_blind_experiment(
                             screenshots=screenshots,
                             policy=policy,
                             reward_tracker=reward_tracker,
+                            referee_tracker=referee_tracker,
                             conventional_bootstrap_index=conventional_bootstrap_index,
                             source_identity=source_identity,
                             implementation_sha256=implementation_sha256,
@@ -1475,6 +1530,7 @@ def run_blind_experiment(
                     screenshots=screenshots,
                     policy=policy,
                     reward_tracker=reward_tracker,
+                    referee_tracker=referee_tracker,
                     conventional_bootstrap_index=conventional_bootstrap_index,
                     source_identity=source_identity,
                     implementation_sha256=implementation_sha256,
@@ -1495,6 +1551,7 @@ def run_blind_experiment(
                     run_bytes=run_bytes,
                     policy=policy,
                     reward_tracker=reward_tracker,
+                    referee_tracker=referee_tracker,
                     referee_state=referee_state,
                 )
                 _atomic_json(output / "status.json", final_status)
@@ -1537,6 +1594,7 @@ def run_blind_experiment(
                 run_bytes=run_bytes,
                 policy=policy,
                 reward_tracker=reward_tracker,
+                referee_tracker=referee_tracker,
                 referee_state=referee_state,
             )
             _atomic_json(output / "status.json", failure_status)

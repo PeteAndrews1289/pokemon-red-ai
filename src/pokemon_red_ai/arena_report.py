@@ -94,9 +94,14 @@ def _agent_card(
         <div><dt>Visual cells</dt><dd>{int(status.get("unique_visual_cells", 0)):,}</dd></div>
         <div><dt>Reward</dt><dd>{reward:,.2f}</dd></div>
         <div><dt>Speed</dt><dd>{float(status.get("actions_per_second", 0)):,.1f}/s</dd></div>
-        <div><dt>Maps rewarded</dt><dd>{int(status.get("maps_seen", 0)):,}</dd></div>
-        <div><dt>Party / badges</dt><dd>{int(status.get("max_party_count", 0)):,} /
-          {int(status.get("badge_count", 0)):,}</dd></div>
+        <div><dt>Maps / positions</dt><dd>{int(status.get("maps_seen", 0)):,} /
+          {int(status.get("positions_seen", 0)):,}</dd></div>
+        <div><dt>Pokédex seen / owned</dt><dd>{int(status.get("pokedex_seen", 0)):,} /
+          {int(status.get("pokedex_owned", 0)):,}</dd></div>
+        <div><dt>Party / highest level</dt><dd>{int(status.get("max_party_count", 0)):,} /
+          {int(status.get("max_party_level", 0)):,}</dd></div>
+        <div><dt>Badges / blackouts</dt><dd>{int(status.get("badge_count", 0)):,} /
+          {int(status.get("blackouts", 0)):,}</dd></div>
         <div><dt>Learning updates</dt><dd>{int(status.get("learning_updates", 0)):,}</dd></div>
         <div><dt>Replay / important</dt><dd>{int(status.get("replay_transitions", 0)):,} /
           {int(status.get("important_replay_transitions", 0)):,}</dd></div>

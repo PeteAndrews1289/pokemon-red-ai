@@ -4,7 +4,7 @@ import base64
 import hashlib
 import random
 import zlib
-from collections import deque
+from collections import Counter, deque
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -26,11 +26,16 @@ def policy_state_key(pixel_key: bytes, semantic_state: PokemonRedState | None = 
         values = (
             int(semantic_state.game_started),
             semantic_state.map_id or 0,
-            semantic_state.player_x or 0,
-            semantic_state.player_y or 0,
+            (semantic_state.player_x or 0) // 4,
+            (semantic_state.player_y or 0) // 4,
             semantic_state.party_count or 0,
             semantic_state.battle_state or 0,
             semantic_state.badge_bits or 0,
+            min(semantic_state.pokedex_seen_count, 255),
+            min(semantic_state.pokedex_owned_count, 255),
+            min(semantic_state.max_party_level, 255),
+            min(len(semantic_state.bag_item_ids or ()), 255),
+            int(bool(semantic_state.got_pokedex)),
         )
         digest.update(bytes(values))
     return digest.digest()
@@ -346,50 +351,121 @@ class RewardTracker:
     outcome_reward: float = 0.0
     seen_maps: set[int] = field(default_factory=set)
     seen_positions: set[tuple[int, int, int]] = field(default_factory=set)
+    seen_warps: set[tuple[int, int]] = field(default_factory=set)
     seen_battles: set[int] = field(default_factory=set)
+    seen_pokedex_species: set[int] = field(default_factory=set)
+    owned_pokedex_species: set[int] = field(default_factory=set)
+    seen_event_flags: set[int] = field(default_factory=set)
+    seen_bag_items: set[int] = field(default_factory=set)
+    seen_moves: set[int] = field(default_factory=set)
     max_party_count: int = 0
+    max_party_level: int = 0
     badge_bits: int = 0
     game_started_seen: bool = False
     reward_events: int = 0
+    blackouts: int = 0
+    last_battle_state: int = 0
+    last_map_id: int | None = None
+    last_position: tuple[int, int, int] | None = None
+    last_action: str | None = None
+    action_streak: int = 0
+    stationary_steps: int = 0
+    position_visits: Counter[tuple[int, int, int]] = field(default_factory=Counter)
+    pokedex_initialized: bool = False
+    event_flags_initialized: bool = False
+    bag_initialized: bool = False
+    got_pokedex_rewarded: bool = False
+    had_oaks_parcel: bool = False
+    parcel_delivered: bool = False
+    got_pokeballs_rewarded: bool = False
+    required_items_rewarded: set[int] = field(default_factory=set)
+    component_totals: Counter[str] = field(default_factory=Counter)
+
+    OAKS_PARCEL = 0x46
+    POKE_BALL = 0x04
+    REQUIRED_ITEM_IDS = frozenset(
+        {
+            0x06,  # Bicycle
+            0x2B,  # Secret Key
+            0x30,  # Card Key
+            0x3F,  # S.S. Ticket
+            0x40,  # Gold Teeth
+            0x48,  # Silph Scope
+            0x49,  # Poke Flute
+            0x4A,  # Lift Key
+            0xC4,  # HM01 Cut
+            0xC5,  # HM02 Fly
+            0xC6,  # HM03 Surf
+            0xC7,  # HM04 Strength
+            0xC8,  # HM05 Flash
+        }
+    )
+
+    @staticmethod
+    def _set_bits(value: bytes | None) -> set[int]:
+        if value is None:
+            return set()
+        return {
+            byte_index * 8 + bit
+            for byte_index, byte in enumerate(value)
+            for bit in range(8)
+            if byte & (1 << bit)
+        }
+
+    def _track_action_and_loops(
+        self,
+        components: dict[str, float],
+        *,
+        action_button: str | None,
+        position: tuple[int, int, int] | None,
+    ) -> None:
+        if action_button is not None:
+            if action_button == self.last_action:
+                self.action_streak += 1
+            else:
+                self.last_action = action_button
+                self.action_streak = 1
+            if self.action_streak == 4:
+                components["repeated_action"] = -0.02
+            elif self.action_streak >= 6:
+                components["repeated_action"] = -0.05
+
+        if position is None:
+            return
+        self.position_visits[position] += 1
+        visits = self.position_visits[position]
+        if visits == 4:
+            components["revisited_position"] = -0.02
+        elif visits in {8, 16, 32}:
+            components["revisited_position"] = -0.05
+        if position == self.last_position:
+            self.stationary_steps += 1
+            if self.stationary_steps >= 64 and self.stationary_steps % 64 == 0:
+                components["stationary_loop"] = -0.05
+        else:
+            self.stationary_steps = 0
+            self.last_position = position
 
     def score(
         self,
         *,
         visually_novel: bool,
         state: PokemonRedState | None,
+        action_button: str | None = None,
     ) -> tuple[float, dict[str, float]]:
         components: dict[str, float] = {}
         if self.mode == "curious":
             if visually_novel:
                 components["visual_novelty"] = 1.0
+        elif self.mode == "observer":
+            if state is None:
+                raise ValueError("observer requires a referee state")
+            self._score_semantic(state, action_button=None, components={})
+            return 0.0, {}
         else:
             if state is None:
                 raise ValueError(f"{self.mode} reward requires a referee state")
-            if state.game_started and not self.game_started_seen:
-                self.game_started_seen = True
-                components["game_started"] = 3.0
-            if state.game_started and state.map_id is not None:
-                if state.map_id not in self.seen_maps:
-                    self.seen_maps.add(state.map_id)
-                    components["new_map"] = 5.0
-                if state.player_x is not None and state.player_y is not None:
-                    position = (state.map_id, state.player_x, state.player_y)
-                    if position not in self.seen_positions:
-                        self.seen_positions.add(position)
-                        components["new_position"] = 0.20
-            party_count = state.party_count or 0
-            if party_count > self.max_party_count:
-                components["party_increase"] = 25.0 * (party_count - self.max_party_count)
-                self.max_party_count = party_count
-            battle_state = state.battle_state or 0
-            if battle_state and battle_state not in self.seen_battles:
-                self.seen_battles.add(battle_state)
-                components["new_battle_kind"] = 10.0
-            badges = state.badge_bits or 0
-            new_badges = (badges & ~self.badge_bits).bit_count()
-            if new_badges:
-                components["new_badge"] = 100.0 * new_badges
-                self.badge_bits |= badges
+            self._score_semantic(state, action_button=action_button, components=components)
 
         reward = sum(components.values())
         self.total_reward += reward
@@ -397,7 +473,137 @@ class RewardTracker:
         self.outcome_reward += reward - components.get("visual_novelty", 0.0)
         if components:
             self.reward_events += 1
+            self.component_totals.update(components)
         return reward, components
+
+    def _score_semantic(
+        self,
+        state: PokemonRedState,
+        *,
+        action_button: str | None,
+        components: dict[str, float],
+    ) -> None:
+        rewards_enabled = self.mode in {"outcome", "conventional"}
+        if state.game_started and not self.game_started_seen:
+            self.game_started_seen = True
+            if rewards_enabled:
+                components["game_started"] = 3.0
+
+        position: tuple[int, int, int] | None = None
+        if state.game_started and state.map_id is not None:
+            if state.map_id not in self.seen_maps:
+                self.seen_maps.add(state.map_id)
+                if rewards_enabled:
+                    components["new_map"] = 20.0
+            if self.last_map_id is not None and state.map_id != self.last_map_id:
+                warp = (self.last_map_id, state.map_id)
+                if warp not in self.seen_warps:
+                    self.seen_warps.add(warp)
+                    if rewards_enabled:
+                        components["new_warp"] = 5.0
+            self.last_map_id = state.map_id
+            if state.player_x is not None and state.player_y is not None:
+                position = (state.map_id, state.player_x, state.player_y)
+                if position not in self.seen_positions:
+                    self.seen_positions.add(position)
+                    if rewards_enabled:
+                        components["new_position"] = 0.03
+
+        party_count = state.party_count or 0
+        if party_count > self.max_party_count:
+            if rewards_enabled:
+                components["party_increase"] = 25.0 * (party_count - self.max_party_count)
+            self.max_party_count = party_count
+        self.max_party_level = max(self.max_party_level, state.max_party_level)
+
+        current_moves = set(state.party_moves or ())
+        new_moves = current_moves - self.seen_moves
+        if new_moves and self.seen_moves and rewards_enabled:
+            components["new_move"] = 2.0 * len(new_moves)
+        self.seen_moves |= current_moves
+
+        battle_state = state.battle_state or 0
+        if battle_state == 0xFF:
+            if self.last_battle_state != 0xFF:
+                self.blackouts += 1
+                if rewards_enabled and self.blackouts == 1:
+                    components["blackout"] = -2.0
+            self.seen_battles.add(0xFF)
+        elif battle_state in {1, 2} and battle_state not in self.seen_battles:
+            self.seen_battles.add(battle_state)
+            if rewards_enabled:
+                components["new_battle_kind"] = 5.0
+        self.last_battle_state = battle_state
+
+        badges = state.badge_bits or 0
+        new_badges = (badges & ~self.badge_bits).bit_count()
+        if new_badges and rewards_enabled:
+            components["new_badge"] = 200.0 * new_badges
+        self.badge_bits |= badges
+
+        seen_species = self._set_bits(state.pokedex_seen)
+        owned_species = self._set_bits(state.pokedex_owned)
+        if not self.pokedex_initialized:
+            self.seen_pokedex_species = set(seen_species)
+            self.owned_pokedex_species = set(owned_species)
+            self.pokedex_initialized = True
+        else:
+            newly_seen = seen_species - self.seen_pokedex_species
+            newly_owned = owned_species - self.owned_pokedex_species
+            if newly_seen and rewards_enabled:
+                components["new_species_seen"] = 3.0 * len(newly_seen)
+            if newly_owned and rewards_enabled:
+                components["new_species_owned"] = 25.0 * len(newly_owned)
+            self.seen_pokedex_species |= newly_seen
+            self.owned_pokedex_species |= newly_owned
+
+        event_flags = self._set_bits(state.event_flags)
+        if not self.event_flags_initialized:
+            self.seen_event_flags = set(event_flags)
+            self.event_flags_initialized = True
+        else:
+            new_events = event_flags - self.seen_event_flags
+            if new_events and rewards_enabled:
+                components["new_event_flag"] = 8.0 * len(new_events)
+            self.seen_event_flags |= new_events
+
+        bag_items = set(state.bag_item_ids or ())
+        if not self.bag_initialized:
+            self.seen_bag_items = set(bag_items)
+            self.bag_initialized = True
+        else:
+            self.seen_bag_items |= bag_items
+
+        if self.mode == "conventional":
+            if self.OAKS_PARCEL in bag_items and not self.had_oaks_parcel:
+                self.had_oaks_parcel = True
+                components["oaks_parcel_obtained"] = 30.0
+            if (
+                self.had_oaks_parcel
+                and self.OAKS_PARCEL not in bag_items
+                and not self.parcel_delivered
+            ):
+                self.parcel_delivered = True
+                components["oaks_parcel_delivered"] = 40.0
+            if state.got_pokedex and not self.got_pokedex_rewarded:
+                self.got_pokedex_rewarded = True
+                components["pokedex_obtained"] = 50.0
+            if self.POKE_BALL in bag_items and not self.got_pokeballs_rewarded:
+                self.got_pokeballs_rewarded = True
+                components["pokeballs_obtained"] = 15.0
+            new_required_items = (
+                bag_items & self.REQUIRED_ITEM_IDS
+            ) - self.required_items_rewarded
+            if new_required_items:
+                components["required_item_obtained"] = 50.0 * len(new_required_items)
+                self.required_items_rewarded |= new_required_items
+
+        if rewards_enabled:
+            self._track_action_and_loops(
+                components,
+                action_button=action_button,
+                position=position,
+            )
 
     def checkpoint_dict(self) -> dict[str, Any]:
         return {
@@ -408,11 +614,37 @@ class RewardTracker:
             "outcome_reward": self.outcome_reward,
             "seen_maps": sorted(self.seen_maps),
             "seen_positions": [list(value) for value in sorted(self.seen_positions)],
+            "seen_warps": [list(value) for value in sorted(self.seen_warps)],
             "seen_battles": sorted(self.seen_battles),
+            "seen_pokedex_species": sorted(self.seen_pokedex_species),
+            "owned_pokedex_species": sorted(self.owned_pokedex_species),
+            "seen_event_flags": sorted(self.seen_event_flags),
+            "seen_bag_items": sorted(self.seen_bag_items),
+            "seen_moves": sorted(self.seen_moves),
             "max_party_count": self.max_party_count,
+            "max_party_level": self.max_party_level,
             "badge_bits": self.badge_bits,
             "game_started_seen": self.game_started_seen,
             "reward_events": self.reward_events,
+            "blackouts": self.blackouts,
+            "last_battle_state": self.last_battle_state,
+            "last_map_id": self.last_map_id,
+            "last_position": None if self.last_position is None else list(self.last_position),
+            "last_action": self.last_action,
+            "action_streak": self.action_streak,
+            "stationary_steps": self.stationary_steps,
+            "position_visits": [
+                [*position, visits] for position, visits in sorted(self.position_visits.items())
+            ],
+            "pokedex_initialized": self.pokedex_initialized,
+            "event_flags_initialized": self.event_flags_initialized,
+            "bag_initialized": self.bag_initialized,
+            "got_pokedex_rewarded": self.got_pokedex_rewarded,
+            "had_oaks_parcel": self.had_oaks_parcel,
+            "parcel_delivered": self.parcel_delivered,
+            "got_pokeballs_rewarded": self.got_pokeballs_rewarded,
+            "required_items_rewarded": sorted(self.required_items_rewarded),
+            "component_totals": dict(self.component_totals),
         }
 
     @classmethod
@@ -424,9 +656,54 @@ class RewardTracker:
             outcome_reward=float(value["outcome_reward"]),
             seen_maps={int(item) for item in value["seen_maps"]},
             seen_positions={tuple(int(part) for part in item) for item in value["seen_positions"]},
+            seen_warps={
+                tuple(int(part) for part in item) for item in value.get("seen_warps", [])
+            },
             seen_battles={int(item) for item in value["seen_battles"]},
+            seen_pokedex_species={
+                int(item) for item in value.get("seen_pokedex_species", [])
+            },
+            owned_pokedex_species={
+                int(item) for item in value.get("owned_pokedex_species", [])
+            },
+            seen_event_flags={int(item) for item in value.get("seen_event_flags", [])},
+            seen_bag_items={int(item) for item in value.get("seen_bag_items", [])},
+            seen_moves={int(item) for item in value.get("seen_moves", [])},
             max_party_count=int(value["max_party_count"]),
+            max_party_level=int(value.get("max_party_level", 0)),
             badge_bits=int(value["badge_bits"]),
             game_started_seen=bool(value["game_started_seen"]),
             reward_events=int(value["reward_events"]),
+            blackouts=int(value.get("blackouts", 0)),
+            last_battle_state=int(value.get("last_battle_state", 0)),
+            last_map_id=(
+                None if value.get("last_map_id") is None else int(value["last_map_id"])
+            ),
+            last_position=(
+                None
+                if value.get("last_position") is None
+                else tuple(int(part) for part in value["last_position"])
+            ),
+            last_action=value.get("last_action"),
+            action_streak=int(value.get("action_streak", 0)),
+            stationary_steps=int(value.get("stationary_steps", 0)),
+            position_visits=Counter(
+                {
+                    tuple(int(part) for part in item[:3]): int(item[3])
+                    for item in value.get("position_visits", [])
+                }
+            ),
+            pokedex_initialized=bool(value.get("pokedex_initialized", False)),
+            event_flags_initialized=bool(value.get("event_flags_initialized", False)),
+            bag_initialized=bool(value.get("bag_initialized", False)),
+            got_pokedex_rewarded=bool(value.get("got_pokedex_rewarded", False)),
+            had_oaks_parcel=bool(value.get("had_oaks_parcel", False)),
+            parcel_delivered=bool(value.get("parcel_delivered", False)),
+            got_pokeballs_rewarded=bool(value.get("got_pokeballs_rewarded", False)),
+            required_items_rewarded={
+                int(item) for item in value.get("required_items_rewarded", [])
+            },
+            component_totals=Counter(
+                {str(key): float(item) for key, item in value.get("component_totals", {}).items()}
+            ),
         )

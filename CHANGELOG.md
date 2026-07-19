@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased — discovery reward protocol
+
+- Standardized all continuous agents on eight deterministic actions and removed Select.
+- Added a sealed RAM referee for every lane without leaking its measurements into blind policies.
+- Added Pokédex, event-flag, warp, party-level, move, item, and blackout measurements.
+- Rebalanced generic outcome rewards away from local-coordinate farming.
+- Added explicit Oak's Parcel, Pokédex, Poké Ball, key-item, and HM milestones for Conventional.
+- Added mild repeated-action, revisitation, and stationary-loop penalties.
+- Added per-component reward ledgers and richer live dashboard fields.
+
 ## Unreleased
 
 - Scale the final arena to 1,048,576 policy buckets and a 150-million-action safety ceiling.

@@ -293,6 +293,12 @@ def run_arena(
                             "total_actions": status.get("total_actions", 0),
                             "unique_visual_cells": status.get("unique_visual_cells", 0),
                             "reward_total": status.get("reward_total", 0),
+                            "maps_seen": status.get("maps_seen", 0),
+                            "positions_seen": status.get("positions_seen", 0),
+                            "pokedex_seen": status.get("pokedex_seen", 0),
+                            "pokedex_owned": status.get("pokedex_owned", 0),
+                            "max_party_level": status.get("max_party_level", 0),
+                            "badge_count": status.get("badge_count", 0),
                         }
                     )
                     histories[mode] = history[-20_000:]
