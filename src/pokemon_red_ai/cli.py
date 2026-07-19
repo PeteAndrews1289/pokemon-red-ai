@@ -9,7 +9,13 @@ from datetime import UTC, datetime
 from importlib.metadata import version
 from pathlib import Path
 
-from pokemon_red_ai.blind import BlindRunConfig, run_blind_experiment
+from pokemon_red_ai.arena import (
+    ArenaConfig,
+    request_arena_stop,
+    run_arena,
+    show_arena_status,
+)
+from pokemon_red_ai.blind import RUN_MODES, BlindRunConfig, run_blind_experiment
 from pokemon_red_ai.bootstrap import run_bootstrap_test
 from pokemon_red_ai.emulator import PokemonRedEmulator
 from pokemon_red_ai.report import generate_run_report
@@ -58,9 +64,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     blind.add_argument(
         "--mode",
-        choices=("monkey", "archivist"),
-        default="archivist",
-        help="Random baseline or visual-novelty archive search",
+        choices=tuple(sorted(RUN_MODES)),
+        default="curious",
+        help="Declared agent and information-boundary configuration",
     )
     blind.add_argument("--hours", type=float, default=8, help="Hard wall-clock limit")
     blind.add_argument("--max-actions", type=int, default=5_000_000)
@@ -68,7 +74,10 @@ def build_parser() -> argparse.ArgumentParser:
     blind.add_argument("--branch-actions", type=int, default=32)
     blind.add_argument("--max-archive-cells", type=int, default=10_000)
     blind.add_argument("--seen-filter-mib", type=int, default=8)
+    blind.add_argument("--q-policy-buckets", type=int, default=16_384)
     blind.add_argument("--screenshot-limit", type=int, default=96)
+    blind.add_argument("--timelapse-minutes", type=float, default=15)
+    blind.add_argument("--timelapse-limit", type=int, default=256)
     blind.add_argument("--status-seconds", type=float, default=30)
     blind.add_argument("--checkpoint-seconds", type=float, default=300)
     blind.add_argument("--max-output-mib", type=int, default=512)
@@ -90,6 +99,29 @@ def build_parser() -> argparse.ArgumentParser:
         help="Request a graceful checkpoint and stop for a pixels-only run.",
     )
     blind_stop.add_argument("run_directory", type=Path)
+
+    arena = subparsers.add_parser(
+        "arena-run",
+        help="Run the four declared agents together with a live local dashboard.",
+    )
+    arena.add_argument("--rom", type=Path, help="Private path to Pokemon Red.gb")
+    arena.add_argument("--output", type=Path, required=True, help="New arena directory")
+    arena.add_argument("--hours", type=float, default=8)
+    arena.add_argument("--max-actions", type=int, default=50_000_000)
+    arena.add_argument("--seed", type=int, default=20_260_719)
+    arena.add_argument("--port", type=int, default=8_765)
+    arena.add_argument("--status-seconds", type=float, default=10)
+    arena.add_argument("--checkpoint-seconds", type=float, default=300)
+    arena.add_argument("--seen-filter-mib", type=int, default=64)
+    arena.add_argument("--q-policy-buckets", type=int, default=16_384)
+    arena.add_argument("--timelapse-minutes", type=float, default=10)
+    arena.add_argument("--max-output-mib-per-agent", type=int, default=2_048)
+    arena.add_argument("--min-free-gib", type=float, default=50)
+
+    arena_status = subparsers.add_parser("arena-status", help="Show four-agent arena status.")
+    arena_status.add_argument("arena_directory", type=Path)
+    arena_stop = subparsers.add_parser("arena-stop", help="Gracefully stop a four-agent arena.")
+    arena_stop.add_argument("arena_directory", type=Path)
 
     return parser
 
@@ -171,7 +203,10 @@ def run_blind(args: argparse.Namespace) -> int:
         branch_actions=args.branch_actions,
         max_archive_cells=args.max_archive_cells,
         seen_filter_bytes=args.seen_filter_mib * 1024 * 1024,
+        q_policy_buckets=args.q_policy_buckets,
         screenshot_limit=args.screenshot_limit,
+        timelapse_interval_seconds=args.timelapse_minutes * 60,
+        timelapse_limit=args.timelapse_limit,
         status_interval_seconds=args.status_seconds,
         checkpoint_interval_seconds=args.checkpoint_seconds,
         max_output_bytes=args.max_output_mib * 1024 * 1024,
@@ -199,6 +234,32 @@ def run_blind(args: argparse.Namespace) -> int:
         "stop_requested",
     }
     return 0 if result.stop_reason in healthy_stops else 1
+
+
+def run_agent_arena(args: argparse.Namespace) -> int:
+    if not 1 <= args.port <= 65_535:
+        raise ValueError("--port must be between 1 and 65535")
+    rom_path = resolve_rom_path(args.rom)
+    fingerprint = verify_rom(rom_path)
+    config = ArenaConfig(
+        duration_seconds=args.hours * 3_600,
+        max_actions=args.max_actions,
+        seed=args.seed,
+        port=args.port,
+        status_interval_seconds=args.status_seconds,
+        checkpoint_interval_seconds=args.checkpoint_seconds,
+        max_output_mib_per_agent=args.max_output_mib_per_agent,
+        min_free_gib=args.min_free_gib,
+        seen_filter_mib=args.seen_filter_mib,
+        q_policy_buckets=args.q_policy_buckets,
+        timelapse_minutes=args.timelapse_minutes,
+    )
+    return run_arena(
+        rom_path,
+        fingerprint,
+        output=args.output.expanduser().resolve(),
+        config=config,
+    )
 
 
 def show_blind_status(run_directory: Path) -> int:
@@ -260,6 +321,12 @@ def main(argv: list[str] | None = None) -> int:
             return show_blind_status(args.run_directory)
         if args.command == "blind-stop":
             return request_blind_stop(args.run_directory)
+        if args.command == "arena-run":
+            return run_agent_arena(args)
+        if args.command == "arena-status":
+            return show_arena_status(args.arena_directory.expanduser().resolve())
+        if args.command == "arena-stop":
+            return request_arena_stop(args.arena_directory.expanduser().resolve())
     except (OSError, RomValidationError, ValueError, RuntimeError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 2

@@ -25,16 +25,90 @@ from PIL import Image
 
 from pokemon_red_ai.constants import SUPPORTED_BUTTONS
 from pokemon_red_ai.emulator import EmulatorSnapshot, PokemonRedEmulator
+from pokemon_red_ai.learning import HashedQPolicy, RewardTracker, policy_state_key
 from pokemon_red_ai.provenance import detect_source_provenance
 from pokemon_red_ai.rom import RomFingerprint
+from pokemon_red_ai.state import PokemonRedState, PokemonRedStateReader
 
 BLIND_PROTOCOL_VERSION = "game-naive-pixels-v1"
-CHECKPOINT_SCHEMA_VERSION = 1
+OUTCOME_PROTOCOL_VERSION = "pixels-observation-outcome-reward-v1"
+CONVENTIONAL_PROTOCOL_VERSION = "pixels-ram-explicit-objectives-v1"
+CHECKPOINT_SCHEMA_VERSION = 2
 EXPECTED_SCREEN_SHAPE = (144, 160, 3)
 VISUAL_GRID_SHAPE = (18, 20)
 VISUAL_QUANTIZATION_LEVELS = 8
 NOOP_ACTION = "noop"
 BLIND_ACTIONS = tuple(sorted(SUPPORTED_BUTTONS)) + (NOOP_ACTION,)
+LEARNING_MODES = {"curious", "outcome", "conventional"}
+ARCHIVE_MODES = {"archivist"}
+RUN_MODES = {"monkey", "curious", "outcome", "conventional", "archivist"}
+
+
+def protocol_version(mode: str) -> str:
+    if mode == "outcome":
+        return OUTCOME_PROTOCOL_VERSION
+    if mode == "conventional":
+        return CONVENTIONAL_PROTOCOL_VERSION
+    return BLIND_PROTOCOL_VERSION
+
+
+def mode_metadata(mode: str) -> dict[str, Any]:
+    return {
+        "monkey": {
+            "run_name": "Pure Monkey — continuous uniform random from power-on",
+            "actor": "uniform_random_controller",
+            "policy_inputs": ["seeded_prng"],
+            "reward_inputs": [],
+            "trainer": "none",
+        },
+        "curious": {
+            "run_name": "Visually Curious — online pixels-only novelty learner",
+            "actor": "hashed_q_pixel_policy",
+            "policy_inputs": ["coarse_quantized_rendered_rgb", "seeded_prng"],
+            "reward_inputs": ["coarse_quantized_rendered_rgb", "visual_visit_filter"],
+            "trainer": "online_q_learning_visual_novelty",
+        },
+        "outcome": {
+            "run_name": "Outcome-Rewarded — pixels-only policy with semantic rewards",
+            "actor": "hashed_q_pixel_policy",
+            "policy_inputs": ["coarse_quantized_rendered_rgb", "seeded_prng"],
+            "reward_inputs": [
+                "visual_novelty",
+                "map_and_position",
+                "party_count",
+                "battle_state",
+                "badge_bits",
+            ],
+            "trainer": "online_q_learning_outcome_reward",
+        },
+        "conventional": {
+            "run_name": "Conventional Agent — pixels, RAM, and explicit objectives",
+            "actor": "scripted_bootstrap_then_hashed_q_pixel_ram_policy",
+            "policy_inputs": [
+                "coarse_quantized_rendered_rgb",
+                "map_and_position",
+                "party_count",
+                "battle_state",
+                "badge_bits",
+                "seeded_prng",
+            ],
+            "reward_inputs": [
+                "visual_novelty",
+                "map_and_position",
+                "party_count",
+                "battle_state",
+                "badge_bits",
+            ],
+            "trainer": "online_q_learning_explicit_objectives",
+        },
+        "archivist": {
+            "run_name": "Snapshot-assisted pixels-only Archivist from power-on",
+            "actor": "uniform_random_controller",
+            "policy_inputs": ["seeded_prng"],
+            "reward_inputs": ["coarse_quantized_rendered_rgb", "visual_visit_filter"],
+            "trainer": "pixel_novelty_archive",
+        },
+    }[mode]
 
 
 class PixelController(Protocol):
@@ -125,6 +199,22 @@ def visual_key(pixels: np.ndarray) -> bytes:
         signature,
         digest_size=16,
         person=b"pkmn-pixels-v1",
+    ).digest()
+
+
+def policy_visual_key(pixels: np.ndarray) -> bytes:
+    """A coarser pixels-only state used by online policies to revisit learnable situations."""
+
+    if pixels.shape != EXPECTED_SCREEN_SHAPE:
+        raise ValueError(f"Expected pixels with shape {EXPECTED_SCREEN_SHAPE}")
+    rgb = pixels.astype(np.uint16, copy=False)
+    gray = (rgb[:, :, 0] + rgb[:, :, 1] + rgb[:, :, 2]) // 3
+    pooled = gray.reshape(9, 16, 10, 16).mean(axis=(1, 3))
+    quantized = np.minimum(pooled.astype(np.uint16) * 4 // 256, 3).astype(np.uint8)
+    return hashlib.blake2b(
+        quantized.tobytes(),
+        digest_size=16,
+        person=b"pkmn-policy-px1",
     ).digest()
 
 
@@ -335,15 +425,18 @@ class BlindRunConfig:
     branch_actions: int = 32
     max_archive_cells: int = 10_000
     seen_filter_bytes: int = 8 * 1024 * 1024
+    q_policy_buckets: int = 16_384
     screenshot_limit: int = 96
+    timelapse_interval_seconds: float = 900
+    timelapse_limit: int = 256
     status_interval_seconds: float = 30
     checkpoint_interval_seconds: float = 300
     max_output_bytes: int = 512 * 1024 * 1024
     min_free_bytes: int = 10 * 1024 * 1024 * 1024
 
     def __post_init__(self) -> None:
-        if self.mode not in {"monkey", "archivist"}:
-            raise ValueError("mode must be 'monkey' or 'archivist'")
+        if self.mode not in RUN_MODES:
+            raise ValueError(f"mode must be one of: {', '.join(sorted(RUN_MODES))}")
         if self.duration_seconds <= 0:
             raise ValueError("duration_seconds must be positive")
         if self.max_actions < 1:
@@ -354,8 +447,12 @@ class BlindRunConfig:
             raise ValueError("max_archive_cells must be positive")
         if self.seen_filter_bytes < 1_024:
             raise ValueError("seen_filter_bytes must be at least 1 KiB")
+        if self.q_policy_buckets < 1_024:
+            raise ValueError("q_policy_buckets must be at least 1,024")
         if self.screenshot_limit < 1:
             raise ValueError("screenshot_limit must be positive")
+        if self.timelapse_interval_seconds <= 0 or self.timelapse_limit < 1:
+            raise ValueError("timelapse interval and limit must be positive")
         if self.status_interval_seconds <= 0 or self.checkpoint_interval_seconds <= 0:
             raise ValueError("status and checkpoint intervals must be positive")
         if self.max_output_bytes < 1_048_576:
@@ -460,6 +557,37 @@ def sample_blind_action(rng: random.Random) -> BlindAction:
     )
 
 
+def action_for_button(button: str, rng: random.Random) -> BlindAction:
+    return BlindAction(
+        button=button,
+        hold_frames=rng.choice((4, 8, 12)),
+        release_frames=rng.choice((8, 12, 16)),
+    )
+
+
+def conventional_bootstrap_actions() -> tuple[BlindAction, ...]:
+    """The disclosed conventional-agent macro that reaches Red's bedroom.
+
+    It is intentionally unavailable to the other arms. The timings reproduce the separately
+    calibrated bootstrap while keeping every controller decision and emulated frame in the run's
+    counters and trace.
+    """
+
+    def press(button: str, wait_frames: int) -> BlindAction:
+        return BlindAction(button=button, hold_frames=8, release_frames=16 + wait_frames)
+
+    normal = 240
+    menu = 120
+    actions = [BlindAction(NOOP_ACTION, 900, 900), press("start", normal)]
+    actions.extend(press("a", normal) for _ in range(14))
+    actions.extend((press("down", menu), press("a", normal)))
+    actions.extend(press("a", normal) for _ in range(5))
+    actions.extend((press("down", menu), press("a", normal)))
+    actions.extend(press("a", normal) for _ in range(6))
+    actions.append(press("a", 300))
+    return tuple(actions)
+
+
 def default_blind_run_directory(mode: str, base: Path = Path("runs")) -> Path:
     timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     candidate = base / f"blind-{mode}-{timestamp}"
@@ -495,7 +623,15 @@ def _save_png(pixels: np.ndarray, path: Path) -> None:
 def _implementation_sha256() -> str:
     package = Path(__file__).resolve().parent
     digest = hashlib.sha256()
-    for name in ("blind.py", "blind_report.py", "cli.py", "constants.py", "emulator.py"):
+    for name in (
+        "blind.py",
+        "blind_report.py",
+        "cli.py",
+        "constants.py",
+        "emulator.py",
+        "learning.py",
+        "state.py",
+    ):
         digest.update(name.encode("utf-8"))
         digest.update((package / name).read_bytes())
     return digest.hexdigest()
@@ -515,13 +651,16 @@ def _checkpoint_payload(
     branch_remaining: int,
     history: list[dict[str, int | float]],
     screenshots: list[dict[str, Any]],
+    policy: HashedQPolicy | None,
+    reward_tracker: RewardTracker | None,
+    conventional_bootstrap_index: int,
     source_identity: dict[str, str | bool],
     implementation_sha256: str,
     trace_offset: int,
 ) -> dict[str, Any]:
     return {
         "schema_version": CHECKPOINT_SCHEMA_VERSION,
-        "protocol_version": BLIND_PROTOCOL_VERSION,
+        "protocol_version": protocol_version(config.mode),
         "rom_sha256": rom.sha256,
         "source": source_identity,
         "implementation_sha256": implementation_sha256,
@@ -541,6 +680,9 @@ def _checkpoint_payload(
         "branch_remaining": branch_remaining,
         "history": history,
         "screenshots": screenshots,
+        "policy": None if policy is None else policy.checkpoint_dict(),
+        "reward_tracker": (None if reward_tracker is None else reward_tracker.checkpoint_dict()),
+        "conventional_bootstrap_index": conventional_bootstrap_index,
     }
 
 
@@ -569,7 +711,8 @@ def _read_checkpoint(path: Path) -> dict[str, Any]:
         value = json.load(source)
     if int(value.get("schema_version", -1)) != CHECKPOINT_SCHEMA_VERSION:
         raise ValueError("Unsupported blind-run checkpoint schema")
-    if value.get("protocol_version") != BLIND_PROTOCOL_VERSION:
+    mode = str(value.get("config", {}).get("mode", ""))
+    if mode not in RUN_MODES or value.get("protocol_version") != protocol_version(mode):
         raise ValueError("Checkpoint uses a different blindness protocol")
     return value
 
@@ -610,18 +753,17 @@ def _status_payload(
     config: BlindRunConfig,
     started_at: str,
     run_bytes: int,
+    policy: HashedQPolicy | None,
+    reward_tracker: RewardTracker | None,
+    referee_state: PokemonRedState | None,
 ) -> dict[str, Any]:
     novelty_actions = max(counters.unique_visual_cells - 1, 0)
     novelty_rate = novelty_actions / counters.total_actions if counters.total_actions else 0.0
-    run_name = (
-        "Snapshot-assisted pixels-only Archivist from power-on"
-        if mode == "archivist"
-        else "Uniform-random Monkey from power-on"
-    )
+    metadata = mode_metadata(mode)
     return {
         "schema_version": 1,
-        "protocol_version": BLIND_PROTOCOL_VERSION,
-        "run_name": run_name,
+        "protocol_version": protocol_version(mode),
+        "run_name": metadata["run_name"],
         "run_class": "development",
         "mode": mode,
         "state": state,
@@ -639,10 +781,10 @@ def _status_payload(
         "not_definitely_new_observations": counters.not_definitely_new_observations,
         "novelty_rate": round(novelty_rate, 6),
         "archive_cells": len(archive),
-        "archive_capacity": config.max_archive_cells if mode == "archivist" else 0,
-        "archive_saturated": mode == "archivist" and len(archive) >= config.max_archive_cells,
+        "archive_capacity": config.max_archive_cells if mode in ARCHIVE_MODES else 0,
+        "archive_saturated": mode in ARCHIVE_MODES and len(archive) >= config.max_archive_cells,
         "archive_restores": counters.archive_restores,
-        "max_action_depth": archive.max_depth if mode == "archivist" else counters.total_actions,
+        "max_action_depth": archive.max_depth if mode in ARCHIVE_MODES else counters.total_actions,
         "actions_per_second": round(
             counters.total_actions / counters.elapsed_seconds if counters.elapsed_seconds else 0,
             2,
@@ -650,18 +792,29 @@ def _status_payload(
         "action_counts": dict(sorted(counters.action_counts.items())),
         "run_bytes": run_bytes,
         "max_output_bytes": config.max_output_bytes,
-        "button_policy_inputs": "seeded pseudorandom-number generator only",
-        "trainer_inputs": (
-            "coarse rendered pixels, novelty membership, and archive visit/selection counts"
-            if mode == "archivist"
-            else "none"
-        ),
+        "button_policy_inputs": metadata["policy_inputs"],
+        "trainer_inputs": metadata["reward_inputs"],
         "intrinsic_score": "definite first visit to a coarse visual pixel cell",
-        "snapshot_assisted": mode == "archivist",
-        "continuous_playthrough": mode != "archivist",
-        "ram_used_by_actor_or_reward": False,
+        "snapshot_assisted": mode in ARCHIVE_MODES,
+        "continuous_playthrough": mode not in ARCHIVE_MODES,
+        "ram_used_by_actor": mode == "conventional",
+        "ram_used_by_reward": mode in {"outcome", "conventional"},
+        "ram_used_by_actor_or_reward": mode in {"outcome", "conventional"},
         "pretrained_components": [],
         "human_demonstrations": [],
+        "learning_updates": 0 if policy is None else policy.updates,
+        "policy_buckets_visited": 0 if policy is None else policy.occupied_buckets,
+        "exploratory_actions": 0 if policy is None else policy.exploratory_actions,
+        "reward_total": 0.0 if reward_tracker is None else round(reward_tracker.total_reward, 3),
+        "visual_reward": 0.0 if reward_tracker is None else round(reward_tracker.visual_reward, 3),
+        "outcome_reward": (
+            0.0 if reward_tracker is None else round(reward_tracker.outcome_reward, 3)
+        ),
+        "maps_seen": 0 if reward_tracker is None else len(reward_tracker.seen_maps),
+        "positions_seen": 0 if reward_tracker is None else len(reward_tracker.seen_positions),
+        "max_party_count": 0 if reward_tracker is None else reward_tracker.max_party_count,
+        "badge_count": 0 if reward_tracker is None else reward_tracker.badge_bits.bit_count(),
+        "referee_state": None if referee_state is None else referee_state.public_dict(),
     }
 
 
@@ -706,6 +859,9 @@ def _load_run_state(
     int,
     list[dict[str, int | float]],
     list[dict[str, Any]],
+    HashedQPolicy | None,
+    RewardTracker | None,
+    int,
 ]:
     if checkpoint["rom_sha256"] != rom.sha256:
         raise ValueError("Checkpoint belongs to a different ROM revision")
@@ -745,6 +901,17 @@ def _load_run_state(
         int(checkpoint["branch_remaining"]),
         list(checkpoint["history"]),
         list(checkpoint["screenshots"]),
+        (
+            None
+            if checkpoint.get("policy") is None
+            else HashedQPolicy.from_checkpoint_dict(checkpoint["policy"])
+        ),
+        (
+            None
+            if checkpoint.get("reward_tracker") is None
+            else RewardTracker.from_checkpoint_dict(checkpoint["reward_tracker"])
+        ),
+        int(checkpoint.get("conventional_bootstrap_index", 0)),
     )
 
 
@@ -802,10 +969,19 @@ def run_blind_experiment(
     current_parent_id: int | None = None
     pending_actions: list[BlindAction] = []
     branch_remaining = 0
+    policy: HashedQPolicy | None = None
+    reward_tracker: RewardTracker | None = None
+    conventional_bootstrap_index = 0
+    referee_state: PokemonRedState | None = None
 
     try:
         with PokemonRedEmulator(rom_path) as emulator:
             actor = PixelsOnlyActor(emulator)
+            referee_reader = (
+                PokemonRedStateReader(emulator)
+                if config.mode in {"outcome", "conventional"}
+                else None
+            )
             if resume:
                 if resume_checkpoint is None:
                     raise RuntimeError("Resume checkpoint was not loaded")
@@ -820,6 +996,9 @@ def run_blind_experiment(
                     branch_remaining,
                     status_history,
                     screenshots,
+                    policy,
+                    reward_tracker,
+                    conventional_bootstrap_index,
                 ) = _load_run_state(
                     resume_checkpoint,
                     config=config,
@@ -828,6 +1007,7 @@ def run_blind_experiment(
                     implementation_sha256=implementation_sha256,
                 )
                 emulator.load_state(current_snapshot.thaw())
+                current_pixels = actor.observe()
                 started_at = str(
                     json.loads((output / "status.json").read_text(encoding="utf-8"))["started_at"]
                 )
@@ -856,7 +1036,16 @@ def run_blind_experiment(
                 pending_actions = []
                 status_history = []
                 screenshots = []
-                if config.mode == "archivist":
+                policy = (
+                    HashedQPolicy(len(BLIND_ACTIONS), bucket_count=config.q_policy_buckets)
+                    if config.mode in LEARNING_MODES
+                    else None
+                )
+                reward_tracker = (
+                    RewardTracker(config.mode) if config.mode in LEARNING_MODES else None
+                )
+                conventional_bootstrap_index = 0
+                if config.mode in ARCHIVE_MODES:
                     root = archive.add(
                         key=root_key,
                         snapshot=current_snapshot,
@@ -865,6 +1054,7 @@ def run_blind_experiment(
                         discovered_action=0,
                     )
                     current_parent_id = root.cell_id
+                current_pixels = root_pixels
                 root_name = "screenshots/cell-000000.png"
                 _save_png(root_pixels, output / root_name)
                 screenshots.append(
@@ -873,55 +1063,56 @@ def run_blind_experiment(
                         "label": "Power-on cell",
                         "action": 0,
                         "unique_visual_cells": 1,
+                        "capture_type": "power_on",
+                        "elapsed_seconds": 0.0,
                     }
                 )
+                metadata = mode_metadata(config.mode)
                 trace.write(
                     "manifest",
                     created_at=started_at,
                     run_type="development",
-                    run_name=(
-                        "Snapshot-assisted pixels-only Archivist from power-on"
-                        if config.mode == "archivist"
-                        else "Uniform-random Monkey from power-on"
-                    ),
-                    actor="uniform_random_controller",
-                    trainer=(
-                        "pixel_novelty_archive" if config.mode == "archivist" else "none"
-                    ),
+                    run_name=metadata["run_name"],
+                    actor=metadata["actor"],
+                    trainer=metadata["trainer"],
                     start_condition="clean_power_on",
-                    blindness_protocol=BLIND_PROTOCOL_VERSION,
-                    button_policy_inputs=["seeded_prng"],
-                    trainer_inputs=(
+                    blindness_protocol=protocol_version(config.mode),
+                    button_policy_inputs=metadata["policy_inputs"],
+                    trainer_inputs=metadata["reward_inputs"],
+                    intrinsic_score_inputs=metadata["reward_inputs"],
+                    forbidden_policy_sources=(
                         [
-                            "coarse_quantized_rendered_rgb",
-                            "visual_visit_filter",
-                            "archive_visit_and_selection_counts",
+                            "ram",
+                            "tile_ids",
+                            "game_area",
+                            "ocr",
+                            "walkthroughs",
+                            "demonstrations",
+                            "pretrained_visual_encoder",
                         ]
-                        if config.mode == "archivist"
-                        else []
+                        if config.mode != "conventional"
+                        else [
+                            "memory_writes",
+                            "walkthroughs_beyond_disclosed_bootstrap",
+                            "demonstrations",
+                            "pretrained_visual_encoder",
+                        ]
                     ),
-                    intrinsic_score_inputs=(
-                        ["coarse_quantized_rendered_rgb", "visual_visit_filter"]
-                        if config.mode == "archivist"
-                        else []
-                    ),
-                    forbidden_policy_sources=[
-                        "ram",
-                        "tile_ids",
-                        "game_area",
-                        "ocr",
-                        "walkthroughs",
-                        "demonstrations",
-                        "pretrained_visual_encoder",
-                    ],
-                    ram_used_by_actor_or_reward=False,
+                    ram_used_by_actor=config.mode == "conventional",
+                    ram_used_by_reward=config.mode in {"outcome", "conventional"},
+                    ram_used_by_actor_or_reward=config.mode in {"outcome", "conventional"},
                     archive_selection_inputs=(
                         ["pixel_cell", "selection_count", "visit_count"]
-                        if config.mode == "archivist"
+                        if config.mode in ARCHIVE_MODES
                         else []
                     ),
-                    snapshot_assisted=config.mode == "archivist",
-                    continuous_playthrough=config.mode != "archivist",
+                    snapshot_assisted=config.mode in ARCHIVE_MODES,
+                    continuous_playthrough=config.mode not in ARCHIVE_MODES,
+                    scripted_bootstrap_actions=(
+                        len(conventional_bootstrap_actions())
+                        if config.mode == "conventional"
+                        else 0
+                    ),
                     config=config.public_dict(),
                     rom=rom.public_dict(),
                     source=source.public_dict(),
@@ -937,6 +1128,17 @@ def run_blind_experiment(
             last_status = segment_start - config.status_interval_seconds
             last_checkpoint = segment_start - config.checkpoint_interval_seconds
             base_elapsed = counters.elapsed_seconds
+            timelapse_captures = sum(
+                shot.get("capture_type") == "timelapse" for shot in screenshots
+            )
+            last_timelapse_elapsed = max(
+                (
+                    float(shot.get("elapsed_seconds", 0))
+                    for shot in screenshots
+                    if shot.get("capture_type") == "timelapse"
+                ),
+                default=base_elapsed,
+            )
             with _SignalStop() as signal_stop:
                 while True:
                     now = monotonic()
@@ -953,20 +1155,43 @@ def run_blind_experiment(
                     if counters.total_actions >= config.max_actions:
                         stop_reason = "action_limit"
                         break
-                    if config.mode == "archivist" and branch_remaining <= 0:
+                    if config.mode in ARCHIVE_MODES and branch_remaining <= 0:
                         selected = archive.select(rng)
                         emulator.load_state(selected.snapshot.thaw())
+                        current_pixels = actor.observe()
                         counters.archive_restores += 1
                         current_parent_id = selected.cell_id
                         pending_actions = []
                         branch_remaining = config.branch_actions
 
-                    action = sample_blind_action(rng)
+                    selected_bucket: int | None = None
+                    selected_action_index: int | None = None
+                    if config.mode == "conventional" and conventional_bootstrap_index < len(
+                        conventional_bootstrap_actions()
+                    ):
+                        action = conventional_bootstrap_actions()[conventional_bootstrap_index]
+                        conventional_bootstrap_index += 1
+                    elif policy is not None:
+                        policy_observation = (
+                            referee_reader.read()
+                            if config.mode == "conventional" and referee_reader is not None
+                            else None
+                        )
+                        choice_key = policy_state_key(
+                            policy_visual_key(current_pixels),
+                            policy_observation,
+                        )
+                        selected_action_index, selected_bucket, _epsilon = policy.select(
+                            choice_key, rng
+                        )
+                        action = action_for_button(BLIND_ACTIONS[selected_action_index], rng)
+                    else:
+                        action = sample_blind_action(rng)
                     alive = actor.act(action)
                     counters.total_actions += 1
                     counters.total_frames += action.total_frames
                     counters.action_counts[action.button] += 1
-                    if config.mode == "archivist":
+                    if config.mode in ARCHIVE_MODES:
                         pending_actions.append(action)
                         branch_remaining -= 1
                     if not alive:
@@ -981,11 +1206,50 @@ def run_blind_experiment(
                     else:
                         counters.not_definitely_new_observations += 1
 
-                    existing = archive.find(key) if config.mode == "archivist" else None
+                    if referee_reader is not None:
+                        referee_state = referee_reader.read()
+                    if reward_tracker is not None:
+                        reward, reward_components = reward_tracker.score(
+                            visually_novel=definitely_new,
+                            state=referee_state,
+                        )
+                        if (
+                            policy is not None
+                            and selected_bucket is not None
+                            and selected_action_index is not None
+                        ):
+                            next_policy_state = (
+                                referee_state if config.mode == "conventional" else None
+                            )
+                            policy.update(
+                                selected_bucket,
+                                selected_action_index,
+                                reward,
+                                policy_state_key(
+                                    policy_visual_key(pixels),
+                                    next_policy_state,
+                                ),
+                            )
+                        semantic_components = {
+                            name: value
+                            for name, value in reward_components.items()
+                            if name != "visual_novelty"
+                        }
+                        if semantic_components:
+                            trace.write(
+                                "reward_event",
+                                action=counters.total_actions,
+                                elapsed_seconds=round(counters.elapsed_seconds, 3),
+                                components=semantic_components,
+                                cumulative_reward=round(reward_tracker.total_reward, 3),
+                            )
+                    current_pixels = pixels
+
+                    existing = archive.find(key) if config.mode in ARCHIVE_MODES else None
                     if existing is not None:
                         existing.visits += 1
                     elif (
-                        config.mode == "archivist"
+                        config.mode in ARCHIVE_MODES
                         and definitely_new
                         and len(archive) < config.max_archive_cells
                     ):
@@ -1003,7 +1267,10 @@ def run_blind_experiment(
 
                     if definitely_new and _should_capture(
                         counters.unique_visual_cells,
-                        len(screenshots),
+                        sum(
+                            shot.get("capture_type") in {None, "power_on", "discovery"}
+                            for shot in screenshots
+                        ),
                         config.screenshot_limit,
                     ):
                         filename = f"screenshots/discovery-{counters.unique_visual_cells:08d}.png"
@@ -1013,12 +1280,33 @@ def run_blind_experiment(
                             "label": f"Visual cell {counters.unique_visual_cells:,}",
                             "action": counters.total_actions,
                             "unique_visual_cells": counters.unique_visual_cells,
+                            "capture_type": "discovery",
+                            "elapsed_seconds": round(counters.elapsed_seconds, 3),
                         }
                         screenshots.append(capture)
                         trace.write("visual_milestone", **capture)
 
                     now = monotonic()
                     counters.elapsed_seconds = base_elapsed + (now - segment_start)
+                    if (
+                        timelapse_captures < config.timelapse_limit
+                        and counters.elapsed_seconds - last_timelapse_elapsed
+                        >= config.timelapse_interval_seconds
+                    ):
+                        filename = f"screenshots/timelapse-{int(counters.elapsed_seconds):09d}.png"
+                        _save_png(pixels, output / filename)
+                        capture = {
+                            "file": filename,
+                            "label": f"Time-lapse at {int(counters.elapsed_seconds // 60):,} min",
+                            "action": counters.total_actions,
+                            "unique_visual_cells": counters.unique_visual_cells,
+                            "capture_type": "timelapse",
+                            "elapsed_seconds": round(counters.elapsed_seconds, 3),
+                        }
+                        screenshots.append(capture)
+                        trace.write("timelapse", **capture)
+                        timelapse_captures += 1
+                        last_timelapse_elapsed = counters.elapsed_seconds
                     if now - last_status >= config.status_interval_seconds:
                         _save_png(pixels, output / "latest.png")
                         run_bytes = _directory_size(output)
@@ -1031,7 +1319,7 @@ def run_blind_experiment(
                                 "archive_cells": len(archive),
                             }
                         )
-                        status_history = status_history[-2_000:]
+                        status_history = status_history[-20_000:]
                         status = _status_payload(
                             mode=config.mode,
                             state="running",
@@ -1041,6 +1329,9 @@ def run_blind_experiment(
                             config=config,
                             started_at=started_at,
                             run_bytes=run_bytes,
+                            policy=policy,
+                            reward_tracker=reward_tracker,
+                            referee_state=referee_state,
                         )
                         _atomic_json(output / "status.json", status)
                         _write_dashboard(output, status, status_history, screenshots)
@@ -1053,6 +1344,11 @@ def run_blind_experiment(
                             novelty_rate=status["novelty_rate"],
                             run_bytes=run_bytes,
                             free_bytes=free_bytes,
+                            reward_total=status["reward_total"],
+                            outcome_reward=status["outcome_reward"],
+                            maps_seen=status["maps_seen"],
+                            max_party_count=status["max_party_count"],
+                            badge_count=status["badge_count"],
                         )
                         last_status = now
                         if run_bytes >= config.max_output_bytes:
@@ -1077,6 +1373,9 @@ def run_blind_experiment(
                             branch_remaining=branch_remaining,
                             history=status_history,
                             screenshots=screenshots,
+                            policy=policy,
+                            reward_tracker=reward_tracker,
+                            conventional_bootstrap_index=conventional_bootstrap_index,
                             source_identity=source_identity,
                             implementation_sha256=implementation_sha256,
                             trace_offset=trace.position(),
@@ -1099,7 +1398,7 @@ def run_blind_experiment(
                         "archive_cells": len(archive),
                     }
                 )
-                status_history = status_history[-2_000:]
+                status_history = status_history[-20_000:]
                 current_snapshot = FrozenSnapshot.freeze(emulator.save_state())
                 final_checkpoint = _checkpoint_payload(
                     config=config,
@@ -1114,6 +1413,9 @@ def run_blind_experiment(
                     branch_remaining=branch_remaining,
                     history=status_history,
                     screenshots=screenshots,
+                    policy=policy,
+                    reward_tracker=reward_tracker,
+                    conventional_bootstrap_index=conventional_bootstrap_index,
                     source_identity=source_identity,
                     implementation_sha256=implementation_sha256,
                     trace_offset=trace.position(),
@@ -1131,6 +1433,9 @@ def run_blind_experiment(
                     config=config,
                     started_at=started_at,
                     run_bytes=run_bytes,
+                    policy=policy,
+                    reward_tracker=reward_tracker,
+                    referee_state=referee_state,
                 )
                 _atomic_json(output / "status.json", final_status)
                 _write_dashboard(output, final_status, status_history, screenshots)
@@ -1143,6 +1448,9 @@ def run_blind_experiment(
                     archive_cells=len(archive),
                     archive_restores=counters.archive_restores,
                     max_action_depth=archive.max_depth if config.mode == "archivist" else 0,
+                    reward_total=(
+                        0.0 if reward_tracker is None else round(reward_tracker.total_reward, 3)
+                    ),
                 )
                 return BlindRunResult(output, stop_reason, counters, len(archive))
     except Exception as error:
@@ -1167,6 +1475,9 @@ def run_blind_experiment(
                 config=config,
                 started_at=started_at,
                 run_bytes=run_bytes,
+                policy=policy,
+                reward_tracker=reward_tracker,
+                referee_state=referee_state,
             )
             _atomic_json(output / "status.json", failure_status)
             if (output / "latest.png").is_file():

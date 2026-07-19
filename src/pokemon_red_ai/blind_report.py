@@ -20,15 +20,20 @@ def _duration(seconds: float) -> str:
 def _line_chart(history: list[dict[str, int | float]]) -> str:
     if len(history) < 2:
         return '<div class="chart-empty">The first progress points are being collected.</div>'
+    if len(history) > 1_000:
+        stride = (len(history) + 999) // 1_000
+        history = history[::stride]
     width, height, padding = 720, 220, 24
     maximum_x = max(float(point["elapsed_seconds"]) for point in history) or 1
     maximum_y = max(int(point["unique_visual_cells"]) for point in history) or 1
     points = []
     for point in history:
         x = padding + (float(point["elapsed_seconds"]) / maximum_x) * (width - padding * 2)
-        y = height - padding - (
-            int(point["unique_visual_cells"]) / maximum_y
-        ) * (height - padding * 2)
+        y = (
+            height
+            - padding
+            - (int(point["unique_visual_cells"]) / maximum_y) * (height - padding * 2)
+        )
         points.append(f"{x:.1f},{y:.1f}")
     return f"""
     <svg class="chart" viewBox="0 0 {width} {height}" role="img"
@@ -37,7 +42,7 @@ def _line_chart(history: list[dict[str, int | float]]) -> str:
             y2="{height - padding}" class="axis" />
       <line x1="{padding}" y1="{padding}" x2="{padding}" y2="{height - padding}"
             class="axis" />
-      <polyline points="{' '.join(points)}" class="curve" />
+      <polyline points="{" ".join(points)}" class="curve" />
       <text x="{padding}" y="{height - 5}" class="tick">start</text>
       <text x="{width - padding}" y="{height - 5}" text-anchor="end" class="tick">
         {_duration(maximum_x)}
@@ -73,7 +78,7 @@ def _gallery(screenshots: list[dict[str, Any]]) -> str:
             f"""
             <figure>
               <img src="{source}" alt="{label}" width="320" height="288" loading="lazy" />
-              <figcaption>{label}<small>after {int(shot['action']):,} actions</small></figcaption>
+              <figcaption>{label}<small>after {int(shot["action"]):,} actions</small></figcaption>
             </figure>
             """
         )
@@ -91,9 +96,31 @@ def render_blind_dashboard(
     snapshot_assisted = "yes" if status["snapshot_assisted"] else "no"
     continuous = "yes" if status["continuous_playthrough"] else "no"
     archive_value = (
-        _number(int(status["archive_cells"]))
-        if status["mode"] == "archivist"
-        else "not used"
+        _number(int(status["archive_cells"])) if status["mode"] == "archivist" else "not used"
+    )
+    mode = str(status["mode"])
+    policy_inputs_value = status.get("button_policy_inputs", ["seeded_prng"])
+    if isinstance(policy_inputs_value, str):
+        policy_inputs = policy_inputs_value
+    else:
+        policy_inputs = ", ".join(str(value) for value in policy_inputs_value)
+    actor_label = {
+        "monkey": "Seeded uniform random",
+        "archivist": "Seeded uniform random",
+        "curious": "Online pixels-only Q learner",
+        "outcome": "Pixels-only outcome learner",
+        "conventional": "Script + pixels/RAM learner",
+    }.get(mode, mode)
+    guidance = {
+        "monkey": "No reward and no learning",
+        "archivist": "Visual novelty archive",
+        "curious": "Visual novelty only",
+        "outcome": "Maps, party, battles, and badges",
+        "conventional": "Explicit objectives with privileged state",
+    }.get(mode, "Declared in the manifest")
+    fourth_label = "Discovery archive" if mode == "archivist" else "Cumulative reward"
+    fourth_value = (
+        archive_value if mode == "archivist" else _number(float(status.get("reward_total", 0)))
     )
     stop_reason = status.get("stop_reason") or "bounded run is active"
     return f"""<!doctype html>
@@ -101,7 +128,8 @@ def render_blind_dashboard(
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>{html.escape(str(status['run_name']))}</title>
+  <meta http-equiv="refresh" content="10" />
+  <title>{html.escape(str(status["run_name"]))}</title>
   <style>
     :root {{ color-scheme: dark; --ink:#eef4ef; --muted:#9cafaa; --panel:#151e1d;
       --line:#2a3b38; --accent:#74e0aa; --accent2:#f7d774; --bg:#09100f; }}
@@ -154,35 +182,50 @@ def render_blind_dashboard(
 </head>
 <body><main>
   <div class="eyebrow">Pokémon Red · game-naive experiment</div>
-  <h1>{html.escape(str(status['run_name']))}</h1>
-  <p class="lede">The button chooser is uniformly random. In Archivist mode, a separate trainer
-    uses coarse rendered pixels, novelty membership, and archive visit counts to preserve and
-    revisit screens—without a map, objective, walkthrough, labels, or Pokémon knowledge.</p>
+  <h1>{html.escape(str(status["run_name"]))}</h1>
+  <p class="lede">One lane in a four-agent information ladder. Its observation and reward
+    boundaries are written into the run manifest so apparent progress can be interpreted without
+    pretending every contestant received the same help.</p>
   <span class="badge">DEVELOPMENT</span>
   <span class="badge {state_class}">{state_label}</span>
 
   <section class="grid" aria-label="Run summary">
     <div class="card"><span>Elapsed</span>
-      <strong>{_duration(float(status['elapsed_seconds']))}</strong></div>
+      <strong>{_duration(float(status["elapsed_seconds"]))}</strong></div>
     <div class="card"><span>Controller actions</span>
-      <strong>{_number(int(status['total_actions']))}</strong></div>
+      <strong>{_number(int(status["total_actions"]))}</strong></div>
     <div class="card"><span>Visual cells found</span>
-      <strong>{_number(int(status['unique_visual_cells']))}</strong></div>
-    <div class="card"><span>Discovery archive</span><strong>{archive_value}</strong></div>
+      <strong>{_number(int(status["unique_visual_cells"]))}</strong></div>
+    <div class="card"><span>{fourth_label}</span><strong>{fourth_value}</strong></div>
   </section>
 
   <section class="panel">
     <h2>The experimental contract</h2>
     <div class="truth">
-      <div><small>Button chooser</small><b>Seeded uniform random</b></div>
-      <div><small>Trainer input</small><b>Coarse rendered pixels</b></div>
-      <div><small>Semantic RAM used</small><b>No</b></div>
+      <div><small>Button chooser</small><b>{html.escape(actor_label)}</b></div>
+      <div><small>Guidance</small><b>{html.escape(guidance)}</b></div>
+      <div><small>Semantic RAM used</small><b>
+        Actor: {"yes" if status.get("ram_used_by_actor") else "no"}
+        · Reward: {"yes" if status.get("ram_used_by_reward") else "no"}</b></div>
     </div>
     <p class="muted">Start: clean power-on · Pretrained components: none ·
       Human demonstrations: none</p>
     <p class="muted">Snapshot-assisted: <strong>{snapshot_assisted}</strong>
-      · Archive restores: <strong>{int(status['archive_restores']):,}</strong> ·
+      · Archive restores: <strong>{int(status["archive_restores"]):,}</strong> ·
       Continuous playthrough: <strong>{continuous}</strong></p>
+    <p class="muted">Policy inputs: <code>{html.escape(policy_inputs)}</code></p>
+  </section>
+
+  <section class="grid" aria-label="Learning and outcome summary">
+    <div class="card"><span>Learning updates</span>
+      <strong>{_number(int(status.get("learning_updates", 0)))}</strong></div>
+    <div class="card"><span>Maps / positions rewarded</span>
+      <strong>{int(status.get("maps_seen", 0)):,} /
+        {int(status.get("positions_seen", 0)):,}</strong></div>
+    <div class="card"><span>Largest party observed</span>
+      <strong>{int(status.get("max_party_count", 0)):,}</strong></div>
+    <div class="card"><span>Badges observed</span>
+      <strong>{int(status.get("badge_count", 0)):,}</strong></div>
   </section>
 
   <div class="two">
@@ -194,15 +237,15 @@ def render_blind_dashboard(
     </section>
     <section class="panel">
       <h2>Button distribution</h2>
-      {_action_bars(status['action_counts'])}
+      {_action_bars(status["action_counts"])}
     </section>
   </div>
 
   <section class="panel">
     <h2>Latest view</h2>
     <img class="latest" src="latest.png" alt="The agent's latest rendered Game Boy screen" />
-    <p class="muted">Speed: {_number(float(status['actions_per_second']))} actions/s ·
-      Novelty rate: {100 * float(status['novelty_rate']):.2f}% ·
+    <p class="muted">Speed: {_number(float(status["actions_per_second"]))} actions/s ·
+      Novelty rate: {100 * float(status["novelty_rate"]):.2f}% ·
       Stop state: {html.escape(str(stop_reason))}</p>
   </section>
 

@@ -21,6 +21,7 @@ class RamAddress(IntEnum):
 
     IS_IN_BATTLE = 0xD057
     PARTY_COUNT = 0xD163
+    OBTAINED_BADGES = 0xD356
     CURRENT_MAP = 0xD35E
     PLAYER_Y = 0xD361
     PLAYER_X = 0xD362
@@ -40,6 +41,11 @@ class PokemonRedState:
     player_x: int | None
     party_count: int | None
     battle_state: int | None
+    badge_bits: int | None = None
+
+    @property
+    def badge_count(self) -> int:
+        return 0 if self.badge_bits is None else self.badge_bits.bit_count()
 
     @property
     def battle_kind(self) -> str:
@@ -63,6 +69,8 @@ class PokemonRedState:
             "party_count": self.party_count,
             "battle_state": self.battle_state,
             "battle_kind": self.battle_kind,
+            "badge_bits": self.badge_bits,
+            "badge_count": self.badge_count,
         }
 
 
@@ -83,6 +91,7 @@ class PokemonRedStateReader:
                 player_x=None,
                 party_count=None,
                 battle_state=None,
+                badge_bits=None,
             )
         return PokemonRedState(
             game_started=True,
@@ -91,4 +100,5 @@ class PokemonRedStateReader:
             player_x=self._memory.read_u8(RamAddress.PLAYER_X),
             party_count=self._memory.read_u8(RamAddress.PARTY_COUNT),
             battle_state=self._memory.read_u8(RamAddress.IS_IN_BATTLE),
+            badge_bits=self._memory.read_u8(RamAddress.OBTAINED_BADGES),
         )

@@ -18,6 +18,7 @@ from pokemon_red_ai.blind import (
     PixelsOnlyActor,
     SeenVisualFilter,
     _read_checkpoint,
+    policy_visual_key,
     run_blind_experiment,
     visual_key,
     visual_signature,
@@ -76,6 +77,8 @@ def test_visual_signature_is_deterministic_and_uses_only_pixels() -> None:
     assert len(visual_signature(black)) == 18 * 20
     assert visual_key(black) == visual_key(black.copy())
     assert visual_key(black) != visual_key(split)
+    assert policy_visual_key(black) == policy_visual_key(black.copy())
+    assert policy_visual_key(black) != policy_visual_key(split)
 
 
 def test_seen_visual_filter_has_bounded_round_trip_state() -> None:
@@ -166,6 +169,59 @@ def test_blind_config_rejects_unbounded_or_invalid_values() -> None:
         BlindRunConfig(max_actions=0)
     with pytest.raises(ValueError, match="mode"):
         BlindRunConfig(mode="guided")
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    ("mode", "actor_ram", "reward_ram"),
+    [
+        ("monkey", False, False),
+        ("curious", False, False),
+        ("outcome", False, True),
+        ("conventional", True, True),
+    ],
+)
+def test_declared_four_agent_modes_enforce_information_boundaries(
+    tmp_path: Path,
+    mode: str,
+    actor_ram: bool,
+    reward_ram: bool,
+) -> None:
+    raw_path = os.environ.get(ROM_ENVIRONMENT_VARIABLE)
+    if not raw_path:
+        pytest.skip(f"Set {ROM_ENVIRONMENT_VARIABLE} to run ROM integration tests")
+    rom_path = Path(raw_path).expanduser().resolve()
+    fingerprint = verify_rom(rom_path)
+    output = tmp_path / mode
+    result = run_blind_experiment(
+        rom_path,
+        fingerprint,
+        config=BlindRunConfig(
+            mode=mode,
+            duration_seconds=30,
+            max_actions=60,
+            seen_filter_bytes=1_024,
+            q_policy_buckets=1_024,
+            screenshot_limit=4,
+            timelapse_interval_seconds=60,
+            timelapse_limit=2,
+            status_interval_seconds=0.01,
+            checkpoint_interval_seconds=0.01,
+            max_output_bytes=32 * 1024 * 1024,
+            min_free_bytes=0,
+        ),
+        run_directory=output,
+    )
+
+    status = json.loads((output / "status.json").read_text(encoding="utf-8"))
+    manifest = json.loads((output / "trace.jsonl").read_text().splitlines()[0])
+    assert result.stop_reason == "action_limit"
+    assert status["ram_used_by_actor"] is actor_ram
+    assert status["ram_used_by_reward"] is reward_ram
+    assert manifest["ram_used_by_actor"] is actor_ram
+    assert manifest["ram_used_by_reward"] is reward_ram
+    if mode in {"curious", "outcome", "conventional"}:
+        assert status["learning_updates"] > 0
 
 
 @pytest.mark.integration

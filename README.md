@@ -9,10 +9,9 @@ This is a transparent, reproducible **game-naive, pixels-only curiosity** experi
 agent begins at power-on with the rendered Game Boy screen and controller buttons—but no map,
 walkthrough, demonstrations, semantic game state, OCR, or Pokémon-specific goal.
 
-> **Current status: the first blind exploration runner is implemented and calibrated.** The
-> trustworthy Phase 0 harness remains underneath it. A random Monkey and a pixel-novelty Archivist
-> can now start from a clean power-on state under fixed time, action, disk, and checkpoint limits.
-> This is adaptive archive search—not yet a trained neural Pokémon model.
+> **Current status: the first blind comparison is complete and the four-agent arena is built.**
+> The trustworthy Phase 0 harness remains underneath it. Pure Monkey, Visually Curious,
+> Outcome-Rewarded, and Conventional arms form an explicit ladder from chance to guided play.
 
 In the current Archivist, individual buttons remain uniformly random. Pixels teach the separate
 trainer which screens are novel and which saved discovery to branch from next. A later Curious
@@ -38,15 +37,16 @@ direction lives in [The project narrative](docs/narrative.md), and evidence leve
 | Question | Current answer |
 | --- | --- |
 | Is there a trained neural Pokémon-playing model yet? | No |
-| Can a game-naive agent explore from power-on? | Yes: random and archive-search runners |
-| What chooses the current buttons? | A seeded uniform pseudorandom generator |
+| Can a game-naive agent explore from power-on? | Yes: random, archive, and online pixels-only runners |
+| What chooses the arena buttons? | One random policy and three explicitly declared online/scripted policies |
 | What guides the Archivist trainer? | Coarse pixels, novelty membership, and archive visit counts |
-| Does RAM, OCR, a walkthrough, or human play guide it? | No |
+| Does RAM guide every arm? | No: only declared outcome rewards and the Conventional policy use it |
 | Does the supplied game boot and accept controlled input? | Yes |
 | Can a clean run reach the first playable bedroom state? | Yes, deterministically |
 | Can the harness identify map, position, party size, and battle state? | Yes, read-only |
 | Are ROMs, saves, snapshots, and gameplay captures committed? | No |
 | First comparison | Monkey vs. pixels-only Archivist under matched budgets |
+| Four-agent arena | Live local comparison from chance through explicit objectives |
 | First neural experiment | Learn a curiosity policy from pixels without game labels |
 | Later outcome milestones | Bedroom, Oak's Parcel, and Brock—referee-only, never rewards |
 
@@ -207,6 +207,20 @@ pokemon-red-ai blind-run --mode archivist --hours 8 --max-actions 5000000
 Each run writes a live `index.html`, bounded screenshots, status, trace, and recoverable checkpoint
 under ignored `runs/`. No OpenAI API key or reinforcement-learning download is required. See the
 [blind curiosity protocol](docs/blind-curiosity.md) before interpreting or publishing a result.
+
+Run all four declared information levels with one living local dashboard:
+
+```bash
+pokemon-red-ai arena-run \
+  --output "/Volumes/T7/PokemonRedAI/arenas/supervised-run" \
+  --hours 8 \
+  --max-actions 50000000
+```
+
+While active, open `http://127.0.0.1:8765/index.html`. The arena is designed for an external SSD,
+five-minute recovery checkpoints, long-spaced visual evidence, and graceful group stopping. See
+[The four-agent arena](docs/four-agent-arena.md) for the precise observations, rewards, fairness
+rules, live controls, and 48-hour configuration.
 
 ## Supported ROM
 

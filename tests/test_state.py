@@ -22,13 +22,15 @@ def test_state_reader_exposes_named_read_only_fields() -> None:
             RamAddress.PLAYER_X: 3,
             RamAddress.PARTY_COUNT: 0,
             RamAddress.IS_IN_BATTLE: 0,
+            RamAddress.OBTAINED_BADGES: 0b00000101,
         }
     )
 
     state = PokemonRedStateReader(memory).read()
 
-    assert state == PokemonRedState(True, 0x26, 6, 3, 0, 0)
+    assert state == PokemonRedState(True, 0x26, 6, 3, 0, 0, 0b00000101)
     assert state.battle_kind == "none"
+    assert state.badge_count == 2
     assert state.public_dict()["coordinates"] == {"x": 3, "y": 6}
     assert memory.reads == [
         RamAddress.STATUS_FLAGS_6,
@@ -37,6 +39,7 @@ def test_state_reader_exposes_named_read_only_fields() -> None:
         RamAddress.PLAYER_X,
         RamAddress.PARTY_COUNT,
         RamAddress.IS_IN_BATTLE,
+        RamAddress.OBTAINED_BADGES,
     ]
 
 

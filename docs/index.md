@@ -15,6 +15,7 @@ is an honest pixels-only discovery archive whose limitations are part of the sto
 | --- | --- | --- |
 | Understand the project in a few minutes | [Project README](../README.md) | What is being built and how to run it |
 | Audit the primary experiment | [Blind curiosity protocol](blind-curiosity.md) | What the agent sees, how novelty works, and what counts as leakage |
+| Watch the four agents together | [Four-agent arena](four-agent-arena.md) | Exact information ladder, rewards, dashboard, and 48-hour procedure |
 | Follow the central story | [Project narrative](narrative.md) | Why the failures and evidence are part of the project |
 | See what is genuinely complete today | [Progress](progress.md) | What is verified, what is merely implemented, and what is still planned |
 | Follow the journey ahead | [Roadmap](roadmap.md) | Milestones, gates, dependencies, and definitions of done |
