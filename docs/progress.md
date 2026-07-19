@@ -54,6 +54,7 @@ flowchart LR
 | Named state instrumentation is read-only | ✅ Verified | E2 | Schema 1 exposes six harness/referee fields for the exact supported ROM; no policy consumes them yet |
 | Current smoke/bootstrap traces avoid ROM paths and bytes | ✅ Verified | E2 | Current writers and guards cover known private artifact forms; every future trace still requires review |
 | A trace becomes a readable local run report | ✅ Verified | E2 | Standalone HTML escapes trace data, redacts absolute paths, and embeds no gameplay assets |
+| Clean bootstrap has reviewed public evidence | ✅ Verified | E3 | Sanitized trace, two-attempt ledger, exact fingerprints, limitations, and generated report are committed |
 | Long random action sequences remain stable | ⬜ Planned | E0 | Extended stability run has not been reported |
 | A human Oak's Parcel baseline exists | ⬜ Planned | E0 | No baseline action count or completion time is available yet |
 | A Gymnasium training environment exists | ⬜ Planned | E0 | Observation/action spaces and reward are not implemented |

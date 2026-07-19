@@ -50,3 +50,13 @@
 - Generate local run reports from sanitized traces while keeping gameplay captures outside Git.
 - Preserve failed attempts and interventions so a future video can show the real learning process,
   not only a successful montage.
+
+### Verified on the documentation branch
+
+- The expanded suite contains 25 passing unit and private-ROM integration tests.
+- Trace manifests now identify the source commit, worktree state, run class, actor, start condition,
+  schemas, and intervention count without recording a checkout path.
+- The report generator keeps training and evaluation evidence separate, bounds large traces, escapes
+  content, redacts common sensitive forms, and refuses to overwrite its source trace.
+- A reviewed public Phase 0 trace and standalone report make the repeated calibration claim
+  inspectable without publishing gameplay images or snapshot payloads.

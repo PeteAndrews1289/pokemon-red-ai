@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Clean-game bootstrap calibration · Pokémon Red AI</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f5f2e9;
+      --surface: #fffdf7;
+      --text: #1c2530;
+      --muted: #58636f;
+      --line: #d2c9b6;
+      --accent: #c62828;
+      --accent-soft: #f5dada;
+      --success: #176b3a;
+      --success-soft: #dcefe3;
+      --warning: #865a00;
+      --warning-soft: #f8ebc7;
+      --failure: #9d1c1c;
+      --failure-soft: #f8dede;
+      --code: #eee8da;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #111820;
+        --surface: #18232e;
+        --text: #f5f1e7;
+        --muted: #bec7d0;
+        --line: #43515f;
+        --accent: #ff6868;
+        --accent-soft: #4b282b;
+        --success: #82d9a2;
+        --success-soft: #193b2a;
+        --warning: #f4cc69;
+        --warning-soft: #43371c;
+        --failure: #ff8a8a;
+        --failure-soft: #4b2626;
+        --code: #24323e;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family:
+        ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.55;
+    }
+    main { width: min(72rem, calc(100% - 2rem)); margin: 0 auto; padding: 3rem 0 5rem; }
+    header { border-top: .5rem solid var(--accent); padding: 2rem; background: var(--surface); }
+    h1, h2, h3 { line-height: 1.15; }
+    h1 { margin: .2rem 0 .7rem; font-size: clamp(2rem, 6vw, 4.25rem); letter-spacing: -.04em; }
+    h2 { margin: 0 0 1rem; font-size: 1.45rem; }
+    h3 { margin: 0; font-size: 1.05rem; }
+    .eyebrow {
+      color: var(--accent);
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    .lede { color: var(--muted); max-width: 66ch; margin: 0; }
+    .status {
+      display: inline-flex;
+      gap: .55rem;
+      align-items: center;
+      margin: 1.4rem 0 .6rem;
+      padding: .45rem .75rem;
+      border: 1px solid currentColor;
+      border-radius: 999px;
+      font-weight: 800;
+    }
+    .status::before {
+      content: "";
+      width: .7rem;
+      height: .7rem;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    .status.passed { color: var(--success); background: var(--success-soft); }
+    .status.failed { color: var(--failure); background: var(--failure-soft); }
+    .status.recorded { color: var(--warning); background: var(--warning-soft); }
+    section {
+      margin-top: 1rem;
+      padding: 1.5rem;
+      background: var(--surface);
+      border: 1px solid var(--line);
+    }
+    .section-note { color: var(--muted); margin: -.45rem 0 1rem; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    caption { text-align: left; font-weight: 800; margin-bottom: .6rem; }
+    th, td {
+      padding: .65rem .7rem;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+    th { width: 34%; color: var(--muted); font-weight: 700; }
+    code {
+      overflow-wrap: anywhere;
+      padding: .1rem .3rem;
+      background: var(--code);
+      border-radius: .2rem;
+    }
+    .attempts {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+      gap: .8rem;
+    }
+    .attempt {
+      padding: 1rem;
+      border: 1px solid var(--line);
+      border-left: .35rem solid var(--accent);
+    }
+    .attempt dl {
+      display: grid;
+      grid-template-columns: minmax(7rem, auto) 1fr;
+      gap: .35rem .8rem;
+      margin: .75rem 0 0;
+    }
+    dt { color: var(--muted); }
+    dd { margin: 0; overflow-wrap: anywhere; }
+    .empty {
+      padding: 1rem;
+      border-left: .35rem solid var(--warning);
+      background: var(--warning-soft);
+    }
+    .timeline { list-style: none; margin: 0; padding: 0; }
+    .timeline li {
+      position: relative;
+      margin-left: .6rem;
+      padding: 0 0 1.2rem 1.7rem;
+      border-left: 2px solid var(--line);
+    }
+    .timeline li::before {
+      content: "";
+      position: absolute;
+      left: -.42rem;
+      top: .25rem;
+      width: .7rem;
+      height: .7rem;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+    .timeline li:last-child { border-left-color: transparent; padding-bottom: 0; }
+    .event-meta { color: var(--muted); font-size: .9rem; }
+    details { margin-top: .4rem; }
+    summary { cursor: pointer; color: var(--muted); }
+    footer { color: var(--muted); margin-top: 1.5rem; font-size: .9rem; }
+    @media print {
+      :root { color-scheme: light; }
+      body { background: white; }
+      main { width: 100%; padding: 0; }
+      section, header { break-inside: avoid; box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="eyebrow">Pokémon Red AI · Run report</div>
+      <h1>Clean-game bootstrap calibration</h1>
+      <p class="lede">
+        A human-readable account of what this experiment ran, observed, and proved.
+      </p>
+      <div class="status passed" role="status">Passed</div>
+      <p class="lede">Every recorded pass condition was satisfied.</p>
+    </header>
+    <section aria-labelledby="run-manifest"><h2 id="run-manifest">Run manifest</h2><div class="table-wrap"><table><caption>Run manifest details</caption><tbody><tr><th scope="row">Action Schema</th><td><span>controller-v1</span></td></tr><tr><th scope="row">Actor</th><td><span>scripted_harness</span></td></tr><tr><th scope="row">Config · Boot Frames</th><td><span>1800</span></td></tr><tr><th scope="row">Config · Final Wait Frames</th><td><span>300</span></td></tr><tr><th scope="row">Config · Hold Frames</th><td><span>8</span></td></tr><tr><th scope="row">Config · Menu Move Wait Frames</th><td><span>120</span></td></tr><tr><th scope="row">Config · Normal Wait Frames</th><td><span>240</span></td></tr><tr><th scope="row">Config · Release Frames</th><td><span>16</span></td></tr><tr><th scope="row">Config · Sequence</th><td><span>clean_boot_to_bedroom_red_blue</span></td></tr><tr><th scope="row">Created At</th><td><span>2026-07-19T04:32:01.227726+00:00</span></td></tr><tr><th scope="row">Instrumentation Schema</th><td><span>state-instrumentation-v1</span></td></tr><tr><th scope="row">Intervention Count</th><td><span>0</span></td></tr><tr><th scope="row">Rom · Sha1</th><td><code>ea9bcae617fd…</code></td></tr><tr><th scope="row">Rom · Sha256</th><td><code>5ca7ba01642a…</code></td></tr><tr><th scope="row">Rom · Size Bytes</th><td><span>1048576</span></td></tr><tr><th scope="row">Rom · Title</th><td><span>POKEMON RED</span></td></tr><tr><th scope="row">Run Name</th><td><span>Clean-game bootstrap calibration</span></td></tr><tr><th scope="row">Run Type</th><td><span>calibration</span></td></tr><tr><th scope="row">Schema Version</th><td><span>1</span></td></tr><tr><th scope="row">Software · Project</th><td><span>0.1.0</span></td></tr><tr><th scope="row">Software · Pyboy</th><td><span>2.7.0</span></td></tr><tr><th scope="row">Software · Python</th><td><span>3.14.3</span></td></tr><tr><th scope="row">Source · Git Commit</th><td><code>f7c03f8eda8d…</code></td></tr><tr><th scope="row">Source · Worktree Dirty</th><td><span>No</span></td></tr><tr><th scope="row">Start Condition</th><td><span>clean_boot</span></td></tr></tbody></table></div></section>
+    <section aria-labelledby="outcomes"><h2 id="outcomes">Outcomes</h2><div class="table-wrap"><table><caption>Outcomes details</caption><tbody><tr><th scope="row">Both Reached Bedroom</th><td><span>Yes</span></td></tr><tr><th scope="row">Deterministic</th><td><span>Yes</span></td></tr><tr><th scope="row">One Tile Down Verified</th><td><span>Yes</span></td></tr><tr><th scope="row">Passed</th><td><span>Yes</span></td></tr><tr><th scope="row">Schema Version</th><td><span>1</span></td></tr></tbody></table></div></section>
+    <section aria-labelledby="attempts"><h2 id="attempts">Attempts</h2><p class="section-note">Repeated attempts make determinism visible instead of assumed.</p><div class="attempts"><article class="attempt"><h3>Attempt a</h3><dl><dt>Frame</dt><dd><span>9804</span></dd><dt>Game Area Sha256</dt><dd><code>d4b02f9a211c…</code></dd><dt>Input Ready</dt><dd><span>Yes</span></dd><dt>One Tile Down Verified</dt><dd><span>Yes</span></dd><dt>Reached Bedroom</dt><dd><span>Yes</span></dd><dt>Screen Sha256</dt><dd><code>174ac317fe0e…</code></dd><dt>Snapshot Sha256</dt><dd><code>5b8e3d3656e2…</code></dd><dt>State · Battle Kind</dt><dd><span>none</span></dd><dt>State · Battle State</dt><dd><span>0</span></dd><dt>State · Coordinates · X</dt><dd><span>3</span></dd><dt>State · Coordinates · Y</dt><dd><span>6</span></dd><dt>State · Game Started</dt><dd><span>Yes</span></dd><dt>State · Map Id</dt><dd><span>38</span></dd><dt>State · Party Count</dt><dd><span>0</span></dd><dt>State · Schema Version</dt><dd><span>1</span></dd></dl></article><article class="attempt"><h3>Attempt b</h3><dl><dt>Frame</dt><dd><span>9804</span></dd><dt>Game Area Sha256</dt><dd><code>d4b02f9a211c…</code></dd><dt>Input Ready</dt><dd><span>Yes</span></dd><dt>One Tile Down Verified</dt><dd><span>Yes</span></dd><dt>Reached Bedroom</dt><dd><span>Yes</span></dd><dt>Screen Sha256</dt><dd><code>174ac317fe0e…</code></dd><dt>Snapshot Sha256</dt><dd><code>5b8e3d3656e2…</code></dd><dt>State · Battle Kind</dt><dd><span>none</span></dd><dt>State · Battle State</dt><dd><span>0</span></dd><dt>State · Coordinates · X</dt><dd><span>3</span></dd><dt>State · Coordinates · Y</dt><dd><span>6</span></dd><dt>State · Game Started</dt><dd><span>Yes</span></dd><dt>State · Map Id</dt><dd><span>38</span></dd><dt>State · Party Count</dt><dd><span>0</span></dd><dt>State · Schema Version</dt><dd><span>1</span></dd></dl></article></div></section>
+    <section aria-labelledby="training"><h2 id="training">Training progress</h2><p class="empty"><strong>No model training metrics yet.</strong> This run validates the emulator and experiment harness; it does not claim that a model learned or improved.</p></section>
+    <section aria-labelledby="evaluation"><h2 id="evaluation">Evaluation evidence</h2><p class="empty"><strong>No model evaluation metrics yet.</strong> This trace does not record a held-out or checkpoint evaluation.</p></section>
+    <section aria-labelledby="timeline"><h2 id="timeline">Run timeline</h2><p class="section-note">Events appear in the exact order written to the trace.</p><ol class="timeline"><li><h3>Run configuration recorded</h3><div class="event-meta">Event 1 · manifest</div><details><summary>Show recorded fields</summary><div class="table-wrap"><table><tbody><tr><th scope="row">Action Schema</th><td><span>controller-v1</span></td></tr><tr><th scope="row">Actor</th><td><span>scripted_harness</span></td></tr><tr><th scope="row">Config · Boot Frames</th><td><span>1800</span></td></tr><tr><th scope="row">Config · Final Wait Frames</th><td><span>300</span></td></tr><tr><th scope="row">Config · Hold Frames</th><td><span>8</span></td></tr><tr><th scope="row">Config · Menu Move Wait Frames</th><td><span>120</span></td></tr><tr><th scope="row">Config · Normal Wait Frames</th><td><span>240</span></td></tr><tr><th scope="row">Config · Release Frames</th><td><span>16</span></td></tr><tr><th scope="row">Config · Sequence</th><td><span>clean_boot_to_bedroom_red_blue</span></td></tr><tr><th scope="row">Created At</th><td><span>2026-07-19T04:32:01.227726+00:00</span></td></tr><tr><th scope="row">Instrumentation Schema</th><td><span>state-instrumentation-v1</span></td></tr><tr><th scope="row">Intervention Count</th><td><span>0</span></td></tr><tr><th scope="row">Rom · Sha1</th><td><code>ea9bcae617fd…</code></td></tr><tr><th scope="row">Rom · Sha256</th><td><code>5ca7ba01642a…</code></td></tr><tr><th scope="row">Rom · Size Bytes</th><td><span>1048576</span></td></tr><tr><th scope="row">Rom · Title</th><td><span>POKEMON RED</span></td></tr><tr><th scope="row">Run Name</th><td><span>Clean-game bootstrap calibration</span></td></tr><tr><th scope="row">Run Type</th><td><span>calibration</span></td></tr><tr><th scope="row">Software · Project</th><td><span>0.1.0</span></td></tr><tr><th scope="row">Software · Pyboy</th><td><span>2.7.0</span></td></tr><tr><th scope="row">Software · Python</th><td><span>3.14.3</span></td></tr><tr><th scope="row">Source · Git Commit</th><td><code>f7c03f8eda8d…</code></td></tr><tr><th scope="row">Source · Worktree Dirty</th><td><span>No</span></td></tr><tr><th scope="row">Start Condition</th><td><span>clean_boot</span></td></tr></tbody></table></div></details></li><li><h3>Attempt a started</h3><div class="event-meta">Event 2 · bootstrap_attempt_started</div><details><summary>Show recorded fields</summary><div class="table-wrap"><table><tbody><tr><th scope="row">Label</th><td><span>a</span></td></tr></tbody></table></div></details></li><li><h3>Attempt a finished</h3><div class="event-meta">Event 3 · bootstrap_attempt_finished · frame 9804</div><details><summary>Show recorded fields</summary><div class="table-wrap"><table><tbody><tr><th scope="row">Game Area Sha256</th><td><code>d4b02f9a211c…</code></td></tr><tr><th scope="row">Input Ready</th><td><span>Yes</span></td></tr><tr><th scope="row">Label</th><td><span>a</span></td></tr><tr><th scope="row">One Tile Down Verified</th><td><span>Yes</span></td></tr><tr><th scope="row">Reached Bedroom</th><td><span>Yes</span></td></tr><tr><th scope="row">Screen Sha256</th><td><code>174ac317fe0e…</code></td></tr><tr><th scope="row">Snapshot Sha256</th><td><code>5b8e3d3656e2…</code></td></tr><tr><th scope="row">State · Battle Kind</th><td><span>none</span></td></tr><tr><th scope="row">State · Battle State</th><td><span>0</span></td></tr><tr><th scope="row">State · Coordinates · X</th><td><span>3</span></td></tr><tr><th scope="row">State · Coordinates · Y</th><td><span>6</span></td></tr><tr><th scope="row">State · Game Started</th><td><span>Yes</span></td></tr><tr><th scope="row">State · Map Id</th><td><span>38</span></td></tr><tr><th scope="row">State · Party Count</th><td><span>0</span></td></tr><tr><th scope="row">State · Schema Version</th><td><span>1</span></td></tr></tbody></table></div></details></li><li><h3>Attempt b started</h3><div class="event-meta">Event 4 · bootstrap_attempt_started</div><details><summary>Show recorded fields</summary><div class="table-wrap"><table><tbody><tr><th scope="row">Label</th><td><span>b</span></td></tr></tbody></table></div></details></li><li><h3>Attempt b finished</h3><div class="event-meta">Event 5 · bootstrap_attempt_finished · frame 9804</div><details><summary>Show recorded fields</summary><div class="table-wrap"><table><tbody><tr><th scope="row">Game Area Sha256</th><td><code>d4b02f9a211c…</code></td></tr><tr><th scope="row">Input Ready</th><td><span>Yes</span></td></tr><tr><th scope="row">Label</th><td><span>b</span></td></tr><tr><th scope="row">One Tile Down Verified</th><td><span>Yes</span></td></tr><tr><th scope="row">Reached Bedroom</th><td><span>Yes</span></td></tr><tr><th scope="row">Screen Sha256</th><td><code>174ac317fe0e…</code></td></tr><tr><th scope="row">Snapshot Sha256</th><td><code>5b8e3d3656e2…</code></td></tr><tr><th scope="row">State · Battle Kind</th><td><span>none</span></td></tr><tr><th scope="row">State · Battle State</th><td><span>0</span></td></tr><tr><th scope="row">State · Coordinates · X</th><td><span>3</span></td></tr><tr><th scope="row">State · Coordinates · Y</th><td><span>6</span></td></tr><tr><th scope="row">State · Game Started</th><td><span>Yes</span></td></tr><tr><th scope="row">State · Map Id</th><td><span>38</span></td></tr><tr><th scope="row">State · Party Count</th><td><span>0</span></td></tr><tr><th scope="row">State · Schema Version</th><td><span>1</span></td></tr></tbody></table></div></details></li><li><h3>Final outcome recorded</h3><div class="event-meta">Event 6 · result</div><details><summary>Show recorded fields</summary><div class="table-wrap"><table><tbody><tr><th scope="row">Both Reached Bedroom</th><td><span>Yes</span></td></tr><tr><th scope="row">Deterministic</th><td><span>Yes</span></td></tr><tr><th scope="row">One Tile Down Verified</th><td><span>Yes</span></td></tr><tr><th scope="row">Passed</th><td><span>Yes</span></td></tr></tbody></table></div></details></li></ol></section>
+    <footer>
+      Generated locally. The generator adds no screenshots, ROM data, JavaScript, or remote
+      assets. Review and sanitize the source trace before sharing this report.
+    </footer>
+  </main>
+</body>
+</html>

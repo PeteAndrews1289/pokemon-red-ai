@@ -22,6 +22,7 @@ document in this repository.
 | Judge future experimental claims | [Experiment protocol](experiment-protocol.md) | Training/evaluation separation, required metrics, and comparison rules |
 | Turn experiments into clear visuals | [Visual storytelling](visual-storytelling.md) | Charts, timelines, run summaries, and a possible video structure |
 | Generate a local result page | [Run reports](run-reports.md) | How a JSONL trace becomes a readable standalone report |
+| Audit the current repeated run | [Phase 0 evidence](../experiments/phase-0-bootstrap/README.md) | Public metadata, attempt ledger, exact hashes, and limitations |
 | Plan a video | [Video outline](video-outline.md) | Episode 0, series arc, shots, and claims checklist |
 | Translate technical terms | [Glossary](glossary.md) | Plain-language definitions used throughout the project |
 | Follow decisions chronologically | [Development log](devlog.md) | Dated implementation decisions and verified milestones |

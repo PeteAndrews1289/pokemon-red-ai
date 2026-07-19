@@ -8,11 +8,14 @@ only when its behavior and evidence can be reproduced from the corresponding Git
 ### Added
 
 - Standalone visual HTML reports generated from sanitized smoke/bootstrap traces
+- Reviewed public Phase 0 calibration evidence with a sanitized trace and generated report
 - Documentation hub, narrative, evidence board, detailed roadmap, and visual storytelling guide
 - Episode 0 YouTube production outline and plain-language glossary
 - Experiment-record and agent-card templates
 - GitHub experiment issue form and reproducibility-focused pull request template
 - Automated local-document link and placeholder checks
+- Git commit, dirty-worktree, actor, run-class, schema, start, and intervention provenance in traces
+- Private home-path and common credential-pattern checks in the repository safety guard
 
 ### Planned
 

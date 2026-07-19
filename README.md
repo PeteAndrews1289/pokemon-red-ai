@@ -183,6 +183,10 @@ important fact that these harness runs contain no model-training metrics. The ge
 add screenshots, ROM assets, JavaScript, or remote dependencies; it redacts common sensitive
 values, but reports still require review before publication. See [Run reports](docs/run-reports.md).
 
+The reviewed, metadata-only evidence for the repeated Phase 0 run is published in
+[experiments/phase-0-bootstrap](experiments/phase-0-bootstrap/README.md). It contains no gameplay
+image or save state.
+
 Use `--rom "/absolute/path/to/Pokemon Red.gb"` instead of the environment variable if preferred.
 No OpenAI API key is needed for Phase 0.
 
