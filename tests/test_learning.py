@@ -91,6 +91,42 @@ def test_conventional_reward_adds_explicit_collection_milestones() -> None:
     assert parts["required_item_obtained"] == 50
 
 
+def test_starter_preview_pokedex_bits_are_ignored_until_pokedex_is_obtained() -> None:
+    tracker = RewardTracker("outcome")
+    preview = PokemonRedState(
+        True,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0,
+        pokedex_owned=bytes([0b01001011]) + bytes(18),
+        pokedex_seen=bytes([0b01001011]) + bytes(18),
+        got_pokedex=False,
+    )
+    obtained = PokemonRedState(
+        True,
+        0,
+        1,
+        1,
+        1,
+        0,
+        0,
+        pokedex_owned=bytes([1]) + bytes(18),
+        pokedex_seen=bytes([1]) + bytes(18),
+        got_pokedex=True,
+    )
+
+    tracker.score(visually_novel=False, state=preview)
+    reward, parts = tracker.score(visually_novel=False, state=obtained)
+
+    assert tracker.owned_pokedex_species == {0}
+    assert parts["new_species_seen"] == 3
+    assert parts["new_species_owned"] == 25
+    assert reward >= 28
+
+
 def test_observer_tracks_progress_without_returning_reward() -> None:
     tracker = RewardTracker("observer")
     state = PokemonRedState(True, 2, 3, 4, 1, 0, 1, party_levels=(7,))

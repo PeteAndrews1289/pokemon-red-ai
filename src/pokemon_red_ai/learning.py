@@ -541,13 +541,12 @@ class RewardTracker:
             components["new_badge"] = 200.0 * new_badges
         self.badge_bits |= badges
 
-        seen_species = self._set_bits(state.pokedex_seen)
-        owned_species = self._set_bits(state.pokedex_owned)
-        if not self.pokedex_initialized:
-            self.seen_pokedex_species = set(seen_species)
-            self.owned_pokedex_species = set(owned_species)
-            self.pokedex_initialized = True
-        else:
+        # StarterDex temporarily writes preview flags into wPokedexOwned while the player chooses a
+        # starter. Those bits are a rendering trick, not captures, so the sealed referee ignores
+        # both Pokédex bitfields until the actual Pokédex has been obtained.
+        if state.got_pokedex:
+            seen_species = self._set_bits(state.pokedex_seen)
+            owned_species = self._set_bits(state.pokedex_owned)
             newly_seen = seen_species - self.seen_pokedex_species
             newly_owned = owned_species - self.owned_pokedex_species
             if newly_seen and rewards_enabled:
@@ -556,6 +555,7 @@ class RewardTracker:
                 components["new_species_owned"] = 25.0 * len(newly_owned)
             self.seen_pokedex_species |= newly_seen
             self.owned_pokedex_species |= newly_owned
+            self.pokedex_initialized = True
 
         event_flags = self._set_bits(state.event_flags)
         if not self.event_flags_initialized:

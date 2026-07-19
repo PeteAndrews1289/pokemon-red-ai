@@ -58,6 +58,10 @@ The referee records:
 - persistent game event flags;
 - badges, blackouts, and whether the Pokédex was obtained.
 
+Pokédex bitfields are ignored until the Pokédex itself is obtained. During starter selection,
+Pokémon Red temporarily writes preview bits into the owned-species field to draw the choice screen;
+counting those bits would manufacture captures that never happened.
+
 The implementation uses symbols documented by the
 [PRET Pokémon Red disassembly](https://github.com/pret/pokered) and the supported US revision is
 validated by ROM hash before a run starts. Raw ROM bytes, save states, and full RAM dumps are not

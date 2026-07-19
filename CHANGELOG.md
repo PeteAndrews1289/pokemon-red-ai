@@ -9,6 +9,7 @@
 - Added explicit Oak's Parcel, Pokédex, Poké Ball, key-item, and HM milestones for Conventional.
 - Added mild repeated-action, revisitation, and stationary-loop penalties.
 - Added per-component reward ledgers and richer live dashboard fields.
+- Ignore temporary starter-preview Pokédex bits until the in-game Pokédex is obtained.
 
 ## Unreleased
 
