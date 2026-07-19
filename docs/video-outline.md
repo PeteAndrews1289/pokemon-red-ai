@@ -3,10 +3,12 @@
 > **Series-direction update:** Pure Monkey supplied the opening experiment and the conclusion: luck
 > cannot accumulate when success never changes later behavior. The next episode asks, “What if a
 > useful accident could have children?” Evolutionary Explorer supplies a family tree, mutation
-> history, and visible extinctions. See [the neuroevolution design](neuroevolution.md).
+> history, and visible extinctions. The first answer is now recorded, and the current
+> [selection × mutation lab](selection-mutation-lab.md) supplies the episode's experimental fork.
 
 This document is a production guide for telling the project's story without getting ahead of the
-evidence. It assumes the first public video is made at the end of Phase 0, before model training.
+evidence. The detailed Episode 0 section preserves the original before-training production plan;
+the evolutionary sections above it should follow the current evidence.
 
 ## The editorial premise
 
@@ -47,14 +49,31 @@ milestone close enough to be credible.
 - **Do not claim:** that one network learned during its lifetime, that checkpoint-assisted search
   equals one clean-start policy, or that a rising archive score means the game is solved.
 
+### Current evidence turn: “It remembered Start—and then stalled”
+
+The 90-minute pretrial supplies the middle of the episode, not its triumphant ending. The population
+found an inheritable title-sequence behavior: children of game-starting parents repeated it far more
+often than children of non-starting parents. Then progress stopped. Reveal the two suspects only
+after showing the family tree: useful parents rarely reproduced under uniform selection, and broad
+mutations often destroyed their fragile behavior.
+
+Turn those suspects into a full-screen 2 × 3 board. Rows are uniform versus frontier selection;
+columns are broad, gentle, and multiscale mutation. Give every lane a visible action “fuel tank” of
+1,536,000 actions. This transforms parameter tuning into an audience-readable question: **should
+evolution choose better parents, make smaller changes, or do both?**
+
+The end card must say `INHERITED ARCHIVE — ENGINEERING FORK`. Even if one lane reaches a new map, it
+has selected a mechanism, not proved learning from scratch. The next honest step is a fresh random-
+founder replication.
+
 ### Suggested beats
 
 1. **The retirement:** replay Pure Monkey's best moments, then reveal that every next action still
    had exactly the same random distribution.
 2. **The inheritance rule:** draw one small neural genome, copy it, mutate a visible subset, and
    give the child one fixed lifetime.
-3. **The first generation:** show 128 candidates as a queue feeding four emulator workers, not 128
-   or 1,000 simultaneous windows.
+3. **The first generation:** show policies as queues feeding emulator workers, not hundreds or
+   thousands of simultaneous windows.
 4. **Why one winner is dangerous:** show a Route 1 grinding dynasty taking over a naive
    winner-takes-all population.
 5. **The ecosystem:** replace the leaderboard with the MAP-Elites grid and keep several behavioral
@@ -70,7 +89,7 @@ milestone close enough to be credible.
 
 - an animated family tree whose branches brighten, reproduce, or become extinct;
 - a 2D MAP-Elites grid filling with colored champions;
-- four active-worker windows beside a queue of unevaluated genome cards;
+- the six-cell selection × mutation dashboard, each cell with the same action-budget gauge;
 - a parent/child weight-difference heat map;
 - two side-by-side labels: `ONE FIXED LIFETIME` and `LEARNING BETWEEN GENERATIONS`;
 - a continuous ancestral action ribbon replaying from power-on;

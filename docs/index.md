@@ -5,9 +5,11 @@ This project has two stories running in parallel:
 1. the engineering story — building a trustworthy way to run and measure Pokémon Red; and
 2. the learning story — what an agent eventually tries, learns, forgets, and masters.
 
-The emulator foundation, blind runners, and first online-learning arena are working. There is still
-**no trained neural Pokémon model or evaluated whole-game result**. Pure Monkey has completed its
-role as the random baseline; the next neural population is specified but not yet implemented.
+The emulator foundation, blind runners, online learners, and first neuroevolution population are
+working. There is still **no evaluated successful Pokémon-playing policy or whole-game result**.
+Pure Monkey completed its role as the random baseline. A 90-minute evolutionary pretrial inherited
+a narrow game-start behavior; a ROM-qualified six-lane mechanism lab now tests why that behavior
+did not extend further.
 
 ## Start here
 
@@ -17,6 +19,7 @@ role as the random baseline; the next neural population is specified but not yet
 | Audit the primary experiment | [Blind curiosity protocol](blind-curiosity.md) | What the agent sees, how novelty works, and what counts as leakage |
 | Watch the four agents together | [Four-agent arena](four-agent-arena.md) | Exact information ladder, rewards, dashboard, and 48-hour procedure |
 | Learn how evolutionary training will work | [Evolutionary Explorer](neuroevolution.md) | Genomes, mutation, MAP-Elites, lineage replay, compute, and claim boundaries |
+| Inspect the current experiment branch | [Selection × mutation lab](selection-mutation-lab.md) | The 90-minute result, six-lane matrix, measurements, narrative, and claim limits |
 | Follow the central story | [Project narrative](narrative.md) | Why the failures and evidence are part of the project |
 | Understand the reward ladder | [Reward architecture](reward-architecture.md) | Actions, milestones, loop controls, and reporting boundaries |
 | See what is genuinely complete today | [Progress](progress.md) | What is verified, what is merely implemented, and what is still planned |
@@ -40,13 +43,15 @@ role as the random baseline; the next neural population is specified but not yet
 flowchart LR
     A["✅ Harness"] --> B["✅ Random baseline"]
     B --> C["✅ Online-learning pretrials"]
-    C --> D["🟨 Evolutionary design"]
-    D --> E["⬜ Population implementation"]
-    E --> F["⬜ Frozen evaluation"]
+    C --> D["✅ Evolution engine"]
+    D --> E["✅ First inherited behavior"]
+    E --> L["🟨 2 × 3 mechanism lab"]
+    L --> F["⬜ Fresh-seed confirmation"]
+    F --> G["⬜ Frozen evaluation"]
 ```
 
-The diagram shows project position, not game progress. The evolutionary population is an E0 design,
-not running code, and a development expedition will not be a frozen evaluation.
+The diagram shows project position, not game progress. Reaching the game-start state is a narrow
+inherited behavior, and the current inherited-archive engineering fork is not a frozen evaluation.
 
 ## Three reading paths
 

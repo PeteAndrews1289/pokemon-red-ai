@@ -21,6 +21,13 @@ from pokemon_red_ai.blind import RUN_MODES, BlindRunConfig, run_blind_experiment
 from pokemon_red_ai.bootstrap import run_bootstrap_test
 from pokemon_red_ai.emulator import PokemonRedEmulator
 from pokemon_red_ai.evolution import EvolutionConfig, run_evolution_experiment
+from pokemon_red_ai.evolution_lab import (
+    DEFAULT_EVOLUTION_LAB_ACTIONS,
+    EvolutionLabConfig,
+    request_evolution_lab_stop,
+    run_evolution_lab,
+    show_evolution_lab_status,
+)
 from pokemon_red_ai.report import generate_run_report
 from pokemon_red_ai.rom import RomValidationError, resolve_rom_path, verify_rom
 from pokemon_red_ai.smoke import run_smoke_test
@@ -124,6 +131,26 @@ def build_parser() -> argparse.ArgumentParser:
     evolution.add_argument("--mutation-sigma", type=float, default=0.05)
     evolution.add_argument("--large-mutation-probability", type=float, default=0.05)
     evolution.add_argument("--large-mutation-sigma", type=float, default=0.20)
+    evolution.add_argument(
+        "--selection-strategy",
+        choices=("uniform", "frontier"),
+        default="uniform",
+    )
+    evolution.add_argument("--frontier-probability", type=float, default=0.80)
+    evolution.add_argument("--frontier-tournament-size", type=int, default=3)
+    evolution.add_argument(
+        "--mutation-profile",
+        choices=("broad", "gentle", "multiscale"),
+        default="broad",
+    )
+    evolution.add_argument(
+        "--seed-archive",
+        type=Path,
+        help=(
+            "Completed evolution run or checkpoint whose neural archive starts this run; "
+            "pass the same archive again with --resume"
+        ),
+    )
     evolution.add_argument("--seen-filter-mib", type=int, default=8)
     evolution.add_argument("--screenshot-limit", type=int, default=128)
     evolution.add_argument("--status-seconds", type=float, default=10)
@@ -131,6 +158,58 @@ def build_parser() -> argparse.ArgumentParser:
     evolution.add_argument("--max-output-mib", type=int, default=2_048)
     evolution.add_argument("--min-free-gib", type=float, default=50)
     evolution.add_argument("--resume", action="store_true")
+
+    evolution_lab = subparsers.add_parser(
+        "evolution-lab-run",
+        help="Run the paired 2x3 selection-by-mutation experiment and live dashboard.",
+    )
+    evolution_lab.add_argument("--rom", type=Path, help="Private path to Pokemon Red.gb")
+    evolution_lab.add_argument("--output", type=Path, required=True)
+    evolution_lab.add_argument(
+        "--seed-archive",
+        type=Path,
+        required=True,
+        help="Completed evolution run or checkpoint containing the sealed starting archive",
+    )
+    evolution_lab.add_argument("--hours", type=float, default=4)
+    evolution_lab.add_argument(
+        "--max-actions-per-lane",
+        type=int,
+        default=DEFAULT_EVOLUTION_LAB_ACTIONS,
+    )
+    evolution_lab.add_argument("--seed", type=int, default=20_260_725)
+    evolution_lab.add_argument("--unpaired-seeds", action="store_true")
+    evolution_lab.add_argument("--port", type=int, default=8_765)
+    evolution_lab.add_argument("--population-size", type=int, default=16)
+    evolution_lab.add_argument("--candidate-actions", type=int, default=12_000)
+    evolution_lab.add_argument("--archive-capacity", type=int, default=512)
+    evolution_lab.add_argument("--frontier-probability", type=float, default=0.80)
+    evolution_lab.add_argument("--frontier-tournament-size", type=int, default=3)
+    evolution_lab.add_argument("--seen-filter-mib", type=int, default=64)
+    evolution_lab.add_argument("--screenshot-limit", type=int, default=128)
+    evolution_lab.add_argument("--status-seconds", type=float, default=10)
+    evolution_lab.add_argument("--checkpoint-seconds", type=float, default=300)
+    evolution_lab.add_argument("--narrative-minutes", type=float, default=60)
+    evolution_lab.add_argument("--visual-minutes", type=float, default=10)
+    evolution_lab.add_argument("--poll-seconds", type=float, default=2)
+    evolution_lab.add_argument("--max-output-mib-per-lane", type=int, default=2_048)
+    evolution_lab.add_argument("--min-free-gib", type=float, default=50)
+    evolution_lab.add_argument(
+        "--resume",
+        action="store_true",
+        help="Recover all six lanes from an existing lab with the identical configuration",
+    )
+
+    evolution_lab_status = subparsers.add_parser(
+        "evolution-lab-status",
+        help="Show the latest six-lane evolution lab status.",
+    )
+    evolution_lab_status.add_argument("lab_directory", type=Path)
+    evolution_lab_stop = subparsers.add_parser(
+        "evolution-lab-stop",
+        help="Gracefully checkpoint and stop every evolution lab lane.",
+    )
+    evolution_lab_stop.add_argument("lab_directory", type=Path)
 
     arena = subparsers.add_parser(
         "arena-run",
@@ -329,6 +408,11 @@ def run_evolution(args: argparse.Namespace) -> int:
         mutation_sigma=args.mutation_sigma,
         large_mutation_probability=args.large_mutation_probability,
         large_mutation_sigma=args.large_mutation_sigma,
+        selection_strategy=args.selection_strategy,
+        frontier_probability=args.frontier_probability,
+        tournament_size=args.frontier_tournament_size,
+        mutation_profile=args.mutation_profile,
+        seed_archive=args.seed_archive,
         seen_filter_bytes=args.seen_filter_mib * 1024 * 1024,
         screenshot_limit=args.screenshot_limit,
         status_interval_seconds=args.status_seconds,
@@ -357,6 +441,40 @@ def run_evolution(args: argparse.Namespace) -> int:
         "stop_requested",
     }
     return 0 if result.stop_reason in healthy else 1
+
+
+def run_evolution_lab_command(args: argparse.Namespace) -> int:
+    rom_path = resolve_rom_path(args.rom)
+    fingerprint = verify_rom(rom_path)
+    config = EvolutionLabConfig(
+        duration_seconds=args.hours * 3_600,
+        max_actions_per_lane=args.max_actions_per_lane,
+        seed=args.seed,
+        paired_seed=not args.unpaired_seeds,
+        port=args.port,
+        population_size=args.population_size,
+        candidate_actions=args.candidate_actions,
+        archive_capacity=args.archive_capacity,
+        frontier_probability=args.frontier_probability,
+        frontier_tournament_size=args.frontier_tournament_size,
+        seen_filter_mib=args.seen_filter_mib,
+        screenshot_limit=args.screenshot_limit,
+        status_interval_seconds=args.status_seconds,
+        checkpoint_interval_seconds=args.checkpoint_seconds,
+        narrative_interval_seconds=args.narrative_minutes * 60,
+        visual_interval_seconds=args.visual_minutes * 60,
+        poll_interval_seconds=args.poll_seconds,
+        max_output_mib_per_lane=args.max_output_mib_per_lane,
+        min_free_gib=args.min_free_gib,
+    )
+    return run_evolution_lab(
+        rom_path,
+        fingerprint,
+        output=args.output.expanduser().resolve(),
+        seed_archive=args.seed_archive.expanduser().resolve(),
+        config=config,
+        resume=args.resume,
+    )
 
 
 def show_blind_status(run_directory: Path) -> int:
@@ -420,6 +538,12 @@ def main(argv: list[str] | None = None) -> int:
             return request_blind_stop(args.run_directory)
         if args.command == "evolution-run":
             return run_evolution(args)
+        if args.command == "evolution-lab-run":
+            return run_evolution_lab_command(args)
+        if args.command == "evolution-lab-status":
+            return show_evolution_lab_status(args.lab_directory.expanduser().resolve())
+        if args.command == "evolution-lab-stop":
+            return request_evolution_lab_stop(args.lab_directory.expanduser().resolve())
         if args.command == "arena-run":
             return run_agent_arena(args)
         if args.command == "arena-status":

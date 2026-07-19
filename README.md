@@ -9,16 +9,17 @@ This is a transparent, reproducible **game-naive, pixels-only curiosity** experi
 agent begins at power-on with the rendered Game Boy screen and controller buttons—but no map,
 walkthrough, demonstrations, semantic game state, OCR, or Pokémon-specific goal.
 
-> **Current status: the first blind comparisons and reward pretrials are complete.** Pure Monkey
-> established the true-random baseline and is now retired from future headline arenas because it
-> cannot learn from success. Its replacement, Evolutionary Explorer, now has a deterministic neural
-> policy, mutation, selection, genealogy, checkpoints, and a live dashboard. Its first four-lane
-> pretrial is the current qualification step.
+> **Current status: a 90-minute successor pretrial is complete, and its six-lane follow-up is
+> ROM-qualified.** Pure Monkey established the true-random baseline and is retired from future headline
+> arenas because it cannot learn from success. Evolutionary Explorer inherited a reproducible
+> game-start behavior, but uniform parent selection and broad mutation limited further progress.
+> The next 2 × 3 engineering fork tests those two suspected bottlenecks directly.
 
 The current code still preserves every historical runner, including Monkey and Archivist, so old
-results remain reproducible. The next research step is a population of small recurrent pixel
-policies whose successful mutations become parents. See
-[Evolutionary Explorer](docs/neuroevolution.md) for the learning design and its claim boundaries.
+results remain reproducible. The immediate research step gives six copies of the same frozen neural
+archive equal action budgets while varying selection and mutation. Every child still begins the
+game from power-on. See [the selection × mutation lab](docs/selection-mutation-lab.md) for the exact
+matrix, hypotheses, evidence anchors, and claim boundaries.
 
 ## The story so far
 
@@ -39,7 +40,7 @@ direction lives in [The project narrative](docs/narrative.md), and evidence leve
 
 | Question | Current answer |
 | --- | --- |
-| Is there a trained neural Pokémon-playing model yet? | There is an evolving neural population, but no trained or successful final policy yet |
+| Is there a trained neural Pokémon-playing model yet? | A neural population inherited game-start behavior, but there is no evaluated successful Pokémon-playing policy yet |
 | Can a game-naive agent explore from power-on? | Yes: random, archive, and online pixels-only runners have been exercised |
 | Why retire Pure Monkey? | Its action distribution never changes; lucky outcomes cannot become future behavior |
 | What will replace it? | A quality-diversity neuroevolution population with visible ancestry |
@@ -50,8 +51,8 @@ direction lives in [The project narrative](docs/narrative.md), and evidence leve
 | Can the harness identify map, position, party size, and battle state? | Yes, read-only |
 | Are ROMs, saves, snapshots, and gameplay captures committed? | No |
 | Preserved random comparison | Monkey vs. pixels-only Archivist under matched budgets |
-| Current four-agent pretrial | Evolutionary Explorer, Visually Curious, Outcome-Rewarded, and Conventional |
-| First neural experiment | Evolve a recurrent pixels-only policy through selection and mutation |
+| Completed 90-minute pretrial | Evolution reached tier 1; online learners plateaued around Pallet Town and Route 1 |
+| Current neural experiment | Six inherited-archive lanes test uniform/frontier selection × broad/gentle/multiscale mutation |
 | Later outcome milestones | Bedroom, Oak's Parcel, and Brock—referee-only, never rewards |
 
 ## The journey
@@ -60,8 +61,9 @@ direction lives in [The project narrative](docs/narrative.md), and evidence leve
 flowchart LR
     P0["✅ Harness<br/>trust the stage"] --> B0["✅ Monkey<br/>baseline concluded"]
     B0 --> B2["✅ Online learners<br/>pretrials"]
-    B2 --> B1["✅ Evolution engine<br/>inherit useful accidents"]
-    B1 --> EV["🟨 Population pretrial<br/>then frozen evaluation"]
+    B2 --> B1["✅ First inheritance<br/>repeat game start"]
+    B1 --> EV["🟨 2 × 3 mechanism lab<br/>selection × mutation"]
+    EV --> FR["⬜ Fresh-seed confirmation<br/>then frozen evaluation"]
 ```
 
 GitHub issues and experiment records will attach evidence to this roadmap. A checked engineering
@@ -129,6 +131,7 @@ Start with [the documentation hub](docs/index.md), or jump directly to:
 - [Project narrative](docs/narrative.md) — the central question and story arc
 - [Blind curiosity protocol](docs/blind-curiosity.md) — pixels-only rules, novelty, archive, and run guide
 - [Evolutionary Explorer](docs/neuroevolution.md) — how genomes, mutation, selection, lineage, and checkpoint-assisted search will work
+- [Selection × mutation lab](docs/selection-mutation-lab.md) — the concluded 90-minute evidence and current six-lane engineering fork
 - [Progress](docs/progress.md) — current evidence, status, and reporting rules
 - [Roadmap](docs/roadmap.md) — engineering, learning, and storytelling milestones
 - [Architecture](docs/architecture.md) — components, data flow, and authority boundaries
@@ -213,9 +216,31 @@ Each run writes a live `index.html`, bounded screenshots, status, trace, and rec
 under ignored `runs/`. No OpenAI API key or reinforcement-learning download is required. See the
 [blind curiosity protocol](docs/blind-curiosity.md) before interpreting or publishing a result.
 
-The current `arena-run` command launches the **successor pretrial**: Evolutionary Explorer plus the
-three online learners. Historical Monkey runs remain reproducible through `blind-run --mode monkey`
-and their preserved artifacts.
+The current `arena-run` command reproduces the concluded **successor pretrial** configuration:
+Evolutionary Explorer plus the three online learners. Historical Monkey runs remain reproducible
+through `blind-run --mode monkey` and their preserved artifacts. The ROM-backed six-lane mechanism
+runner has passed a one-child-per-lane qualification: all six lanes imported the same 33-elite
+archive, completed exactly 12,000 actions, wrote one genealogy record, and exited cleanly.
+
+Run the paired 2 × 3 selection-by-mutation lab with one combined dashboard:
+
+```bash
+pokemon-red-ai evolution-lab-run \
+  --output "/Volumes/External/PokemonRedAI/evolution-labs/selection-mutation-YYYYMMDD" \
+  --seed-archive "/path/to/completed-pretrial/evolution" \
+  --hours 4 \
+  --max-actions-per-lane 1536000 \
+  --seed 20260725 \
+  --port 8765
+```
+
+The default matrix runs uniform/frontier selection × broad/gentle/multiscale mutation. All lanes
+use the same archive, paired seed, 12,000-action child lifetime, and 1,536,000-action ceiling. Use
+`evolution-lab-status PATH` to inspect it or `evolution-lab-stop PATH` for a graceful group stop.
+The lab preserves a synchronized six-image frame set every ten minutes, exact first-milestone
+screenshots with hashes, hourly Markdown comparisons, and JSONL evidence. After a reboot or
+orchestrator interruption, repeat the identical command with `--resume`; configuration, source,
+ROM, lane matrix, and predecessor hashes must all still match.
 
 Run the successor arena with one living local dashboard:
 
@@ -227,11 +252,12 @@ pokemon-red-ai arena-run \
   --q-policy-buckets 1048576
 ```
 
-While active, open `http://127.0.0.1:8765/index.html`. The arena is designed for an external SSD,
-five-minute recovery checkpoints, long-spaced visual evidence, and graceful group stopping. See
+While either dashboard is active, open `http://127.0.0.1:8765/index.html`. The runners are designed
+for an external SSD, five-minute recovery checkpoints, long-spaced visual evidence, and graceful
+group stopping.
 [The four-agent arena](docs/four-agent-arena.md) records both the historical protocol and the
-replacement decision. [Evolutionary Explorer](docs/neuroevolution.md) defines the new lane and the
-evidence still required before it can be called successful.
+replacement decision. [Evolutionary Explorer](docs/neuroevolution.md) defines the neural lane, and
+[the selection × mutation lab](docs/selection-mutation-lab.md) defines the current branch.
 
 ## Supported ROM
 

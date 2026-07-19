@@ -3,7 +3,9 @@
 > **Direction update:** Pure Monkey is retired after establishing the random baseline. The immediate
 > primary track is now [Evolutionary Explorer](neuroevolution.md): a pixels-only recurrent policy
 > population with mutation, quality-diversity selection, and auditable ancestry. Online Q learning
-> and the later informed-agent plan remain comparisons.
+> and the later informed-agent plan remain comparisons. A concluded 90-minute run found inherited
+> game-start behavior plus two bottlenecks; the current 2 × 3 lab isolates parent selection and
+> mutation scale.
 
 ## Completed blind-discovery arc
 
@@ -19,10 +21,13 @@
 1. ✅ Freeze the version-1 genome, observation boundary, archive descriptors, and claims.
 2. ✅ Implement deterministic recurrent inference and genome serialization.
 3. ✅ Implement mutation-only reproduction, MAP-Elites, genealogy, and resume checkpoints.
-4. 🟨 Qualify 16-candidate and 128-candidate populations on Pokémon.
-5. ⬜ Freeze a clean-start early-game comparison against the preserved random baseline.
-6. ⬜ Add checkpoint-assisted expedition mode with required power-on lineage replay.
-7. ✅ Replace Monkey in the four-lane pretrial dashboard.
+4. ✅ Complete a bounded 90-minute population pretrial and freeze its archive and genealogy.
+5. ✅ Diagnose uniform parent selection and destructive broad mutation as candidate bottlenecks.
+6. 🟨 Run the six-lane selection × mutation fork with 1,536,000 actions per lane.
+7. ⬜ Confirm the selected mechanism from fresh random populations across multiple seeds.
+8. ⬜ Freeze a clean-start early-game comparison against the preserved random baseline.
+9. ⬜ Add checkpoint-assisted expedition mode with required power-on lineage replay.
+10. ✅ Replace Monkey in the four-lane pretrial dashboard.
 
 ## Later informed-agent roadmap
 
@@ -39,8 +44,10 @@ designs should change when evidence points somewhere better.
 flowchart TD
     P0["✅ Harness + random baseline"] --> EV0["✅ Evolution design"]
     EV0 --> EV1["✅ Genome + population engine"]
-    EV1 --> PRE["🟨 CURRENT<br/>Population pretrials"]
-    PRE --> REF["⬜ Frozen clean-start comparison"]
+    EV1 --> PRE["✅ First inheritance<br/>90-minute pretrial"]
+    PRE --> LAB["🟨 CURRENT<br/>Selection × mutation lab"]
+    LAB --> FRESH["⬜ Fresh-seed confirmation"]
+    FRESH --> REF["⬜ Frozen clean-start comparison"]
     REF --> P1["⬜ Checkpoint-assisted expedition"]
     P1 --> SK["⬜ Reusable navigation and battle behavior"]
     SK --> HY["⬜ PLANNED<br/>Planner + memory + watchdog"]
@@ -185,15 +192,21 @@ knowledge, and tool access must be reported rather than compressed into a single
 
 ## Near-term work queue
 
-The immediate build order follows the evolutionary evidence gates.
+The engine and first population pretrial are complete. The immediate queue now follows the evidence
+from that run.
 
-1. **Genome contract** — fixed recurrent topology, pixels-only inputs, deterministic outputs.
-2. **Mutation audit** — immutable parent, child seed, parameter delta, and finite-value checks.
-3. **Quality-diversity archive** — milestone-first cells and deterministic elite replacement.
-4. **Genealogy recorder** — every child, survivor, extinction, and code/configuration hash.
-5. **Synthetic tests** — prove evolution and resume behavior outside the emulator first.
-6. **Pokémon calibration** — 16 candidates, then 128, under bounded action and disk budgets.
-7. **Living dashboard** — family tree, archive map, workers, mutations, and champion replay.
+1. **Frozen branch point** — preserve the exact 33-elite archive, genealogy, and narrative hashes.
+2. **Selection treatments** — retain archive-wide uniform selection and add 80% frontier/20%
+   diversity selection with a three-candidate lexicographic tournament.
+3. **Mutation treatments** — compare the broad control with gentle and multiscale profiles.
+4. **Six-lane orchestration** — equal 128-child queues, action ceilings, health checks, graceful
+   stop, and one 2 × 3 dashboard.
+5. **Narrative telemetry** — record parent tier, mutation channel, retention, improvement, lineage
+   depth, first-milestone action, and infrastructure failures.
+6. **Fresh-seed confirmation** — rerun the selected mechanism from unrelated random founders and
+   more than one seed.
+7. **Frozen evaluation** — compare a declared frozen output against the preserved baseline without
+   using the development archive as the test set.
 
 ## What is deliberately not promised
 

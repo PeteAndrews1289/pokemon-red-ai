@@ -1,9 +1,10 @@
 # Evolutionary Explorer: learning by inheritance
 
-> **Status: implemented, entering Pokémon pretrials.** The deterministic recurrent policy,
-> mutation-only population engine, quality-diversity archive, clean-start evaluation, genealogy,
-> checkpoints, and live dashboard now exist. This is E1/E2 engineering evidence—not evidence that
-> the population has learned to play Pokémon successfully.
+> **Status: first 90-minute Pokémon pretrial concluded; six-lane mechanism lab ROM-qualified.** The
+> population inherited a reproducible game-start behavior, but uniform archive selection and broad
+> mutation did not carry it into further game progress. The next engineering fork varies selection
+> and mutation while keeping the source archive, power-on start, and action budget fixed. This is
+> pretrial evidence—not evidence that a policy has learned to play Pokémon successfully.
 
 ## The idea in one sentence
 
@@ -86,6 +87,28 @@ These are not four equal competitors. They ask four different questions:
 - How much do semantic consequences help a pixels-only policy?
 - What happens when both observation and objectives are game-aware?
 
+## What the first full pretrial taught us
+
+The successor arena ran for roughly 90 minutes before a deliberate graceful stop. Evolutionary
+Explorer evaluated 236 fixed policies over 2,838,873 controller actions. Its final archive held 33
+elites and reached milestone tier 1: 71 evaluations reached the game-start state, but the best
+behavior still covered only one map and four positions. Thirty-eight evaluated children entered or
+replaced an archive cell.
+
+That is a narrow example of inheritance, not broad Pokémon ability. Children of parents that had
+started the game repeated the behavior about 79% of the time in this run; children of non-starting
+parents did so about 4.7% of the time. Yet uniform archive selection gave roughly 64% of later
+evaluations to non-starting parents. Broad mutation also proved destructive: only one of 23 observed
+children of the best four-position parent retained all four positions.
+
+The three online learners executed roughly 2.2–2.56 million actions each, observed six maps, and
+reached maximum party levels 27–29. They remained in a Pallet Town/Route 1 loop. Levels and actions
+show activity; they do not establish story completion.
+
+The archive and genealogy were frozen rather than discarded. The next
+[selection × mutation lab](selection-mutation-lab.md) starts six evolutionary lanes from those same
+neural elites. It imports brains, not game position: every child starts Pokémon from power-on.
+
 ## The policy: deliberately small and visible
 
 The version-1 genome is the floating-point weights and biases of a fixed recurrent neural
@@ -116,15 +139,16 @@ The initial policy is deterministic. Exploration comes from population diversity
 from hidden random button sampling during evaluation. Given the same genome, start snapshot, and
 software version, the action trace should be identical.
 
-### Pretrial lifetime and early diversity
+### Lifetime and early diversity
 
 Each child receives exactly **12,000 actions** from a clean power-on state. Action count—not wall
 time—is the scientific lifetime. A two-child ROM-backed qualification completed 24,000 actions in
-26.2 seconds when run alone (about 917 actions/second), so the four-lane arena is expected to take
-roughly 20–40 seconds per child under shared load. The first generation contains 16 unrelated
-random genomes; later children are mutated descendants selected from the archive.
+26.2 seconds when run alone (about 917 actions/second); shared machine load lowers per-lane speed.
+Fresh runs begin with 16 unrelated random genomes. The current engineering fork instead imports the
+frozen 33-elite archive so selection and mutation can be isolated without waiting to rediscover the
+title sequence six separate times.
 
-The first two full lifetimes exposed an important pretrial defect: before meaningful game progress,
+The first two full lifetimes exposed an early descriptor defect: before meaningful game progress,
 both policies landed in the same archive cell even though their button habits differed. The
 behavior descriptor now includes a bounded action-profile bin alongside milestone tier, maps,
 collection, and battle experience. Repeating the qualification preserved both children in two
@@ -192,18 +216,28 @@ It also keeps the meaning of selection visible; a weighted scalar can hide such 
 
 ## Mutation and survival
 
-Version 1 should begin with conservative mutation:
+Version 1 preserves every elite unchanged and creates each child from one parent. The original
+control mutates each parameter with probability `0.10` and Gaussian sigma `0.05`, with a 5% chance
+to use sigma `0.20`. In a 13,096-parameter network, an ordinary child therefore changes about 1,310
+parameters. The first full pretrial showed that useful behavior could be inherited, but often did
+not survive this edit.
+
+The next lab compares the control against two alternatives:
+
+- **gentle:** `p=0.02`, sigma `0.01` on every birth;
+- **multiscale:** 80% micro (`p=0.01`, sigma `0.02`), 15% broad (`p=0.10`, sigma `0.05`), and 5%
+  macro (`p=0.10`, sigma `0.20`).
+
+All three profiles continue to:
 
 - retain every current archive elite unchanged;
 - produce one child from one parent;
-- perturb a random fraction of parameters with zero-mean Gaussian noise;
-- occasionally use a larger “exploration mutation” to escape a stable lineage;
+- perturb a declared random fraction of parameters with zero-mean Gaussian noise;
 - cap every parameter to a declared finite range;
 - reject non-finite genomes before an emulator starts.
 
-Mutation rate, standard deviation, large-mutation frequency, population size, and episode budget
-must live in the run manifest. We will calibrate them in short pretrials rather than presenting the
-first guesses as scientific constants.
+Mutation rate, standard deviation, mutation channel, population size, and episode budget live in
+the run manifest and genealogy. These values are experimental treatments, not scientific constants.
 
 ## The long-horizon problem and checkpoint inheritance
 
@@ -242,21 +276,22 @@ as one neural network mastering the entire route.
 “One thousand models” does not require one thousand simultaneous emulators. A model here is a small
 genome evaluated in a queue.
 
-The first proposed calibration is:
+The current six-lane calibration is:
 
 | Setting | Initial value | Reason |
 | --- | ---: | --- |
-| Concurrent emulator workers | 4 | Already demonstrated on the M1 iMac |
-| Candidate population | 128 | Enough variation without multi-hour generations |
+| Concurrent emulator workers | 6 | One independent runner for every 2 × 3 condition |
+| Candidate population | 128 per lane | Enough variation for a bounded mechanism comparison |
 | Elite carryover | Entire occupied archive | Never discard a cell's current champion |
-| Initial child budget | 12,000 actions | Short enough to iterate; long enough to expose early behavior |
+| Child budget | 12,000 actions | Long enough to test inherited title-sequence behavior |
+| Total budget | 1,536,000 actions per lane | Equal scientific fuel across all six conditions |
 | Major-milestone replay | From power-on | Verify the lineage rather than trust a snapshot |
 | Genome storage | Float32 plus hash | Compact and deterministic |
 
-At the observed four-emulator throughput, 128 short candidates should take tens of minutes rather
-than days. A thousand candidates can still be evaluated, but they would be a queue spread across
-many batches. The dashboard should therefore emphasize **candidates evaluated**, **generations**,
-and **surviving lineages**, not imply that every genome is alive simultaneously.
+The M1 iMac runs six emulator processes concurrently, not 768 simultaneous policies. Every lane is
+a queue of 128 child evaluations. A thousand candidates would likewise be a longer queue, not a
+thousand open emulator windows. The dashboard should therefore emphasize **candidates evaluated**,
+**actions consumed**, and **surviving lineages**, not imply that every genome is alive at once.
 
 Later-stage children need larger budgets. The runner should increase the suffix budget only when a
 milestone tier proves that a longer horizon is justified. Compute estimates must be recalculated
@@ -324,9 +359,13 @@ without forcing every lineage to imitate the most immediately profitable behavio
 
 ### E3 — Pokémon pretrial
 
-- 🟨 Run 16 then 128 candidates under small budgets.
-- 🟨 Confirm four-emulator stability, bounded storage, deterministic lineage replay, and visible diversity.
-- 🟨 Check that selection does not collapse into position farming or menu animation.
+- ✅ Complete the first 90-minute population run and preserve its archive and genealogy.
+- ✅ Identify reproducible title-sequence inheritance plus uniform-selection and mutation-retention
+  bottlenecks.
+- 🟨 Run the equal-budget 2 × 3 selection/mutation fork from the frozen neural archive.
+- 🟨 Confirm six-emulator stability, bounded storage, deterministic lineage replay, and visible
+  diversity.
+- ⬜ Repeat the selected mechanism from fresh random populations across multiple seeds.
 
 ### E4 — clean-start early-game evaluation
 
@@ -345,7 +384,8 @@ without forcing every lineage to imitate the most immediately profitable behavio
 | Failure | Why it happens | Planned defense |
 | --- | --- | --- |
 | One lineage dominates | Scalar fitness rewards a local optimum | MAP-Elites cells and novelty-biased parent selection |
-| Mutations erase skills | Too much parameter noise | Elitism, conservative mutation, and immutable parents |
+| Useful lineages rarely reproduce | Uniform selection over many weak diversity cells | Compare frontier-biased selection with a 20% diversity reserve |
+| Mutations erase skills | Too much parameter noise | Elitism, gentle and multiscale profiles, and immutable parents |
 | No behavioral change | Too little parameter noise | Scheduled large mutations and diversity tracking |
 | Snapshot corruption looks like progress | Invalid or incompatible state inheritance | ROM/version binding, hashes, and power-on lineage replay |
 | Fitness is farmed | Coordinates, menus, or battles repeat cheaply | Lexicographic milestones and capped local signals |
@@ -377,6 +417,12 @@ The project will use increasingly strong claims:
 - Lehman and Stanley's
   [work on novelty search](https://doi.org/10.1007/978-1-4614-1770-5_3) explains why an ambitious
   objective can lead search toward deceptive local optima.
+- Lehman and Stanley's
+  [Novelty Search with Local Competition](https://doi.org/10.1145/2001576.2001606) shows how
+  behavioral diversity and quality among similar behaviors can be optimized together.
+- Lehman and colleagues'
+  [Safe Mutations paper](https://arxiv.org/abs/1712.06563) motivates mutations that change behavior
+  without unnecessarily destroying a neural network's existing function.
 - Ecoffet and colleagues'
   [Go-Explore paper](https://www.nature.com/articles/s41586-020-03157-9) motivates remembering
   promising states, returning to them, and then exploring outward in hard-exploration problems.

@@ -2,8 +2,8 @@
 
 > **Decision update, 2026-07-19:** Pure Monkey has completed its role as the true-random control and
 > is retired from future headline arenas. The existing command and artifacts remain reproducible.
-> The successor pretrial now replaces it with Evolutionary Explorer while the population runner
-> works through the gates in [the neuroevolution design](neuroevolution.md).
+> A 90-minute successor pretrial replaced it with Evolutionary Explorer and is now concluded. Its
+> frozen neural archive seeds the next [six-lane selection × mutation lab](selection-mutation-lab.md).
 
 ## The completed baseline design
 
@@ -60,9 +60,50 @@ flowchart LR
     Game -. "declared coarse state" .-> V
 ```
 
-This successor has reached the E1/E2 mechanism stage. The local dashboard now represents the
-successor pretrial and must not be presented as evidence of learned Pokémon competence. E3 tests
-four-emulator stability and whether diverse useful lineages actually appear.
+This successor reached the E1/E2 mechanism stage and completed a bounded E3 development run. The
+local dashboard represented a mechanism pretrial and must not be presented as evidence of learned
+Pokémon competence.
+
+## The concluded 90-minute successor run
+
+The arena was stopped deliberately after roughly 90 minutes, once its central limitations were
+clear. All four runners stopped cleanly with zero supervisor restarts and wrote final checkpoints.
+
+| Lane | Actions | Best declared observations | Interpretation |
+| --- | ---: | --- | --- |
+| Evolutionary Explorer | 2,838,873 | 236 policies; nominal generation 14; archive 33; tier 1; one map; four positions; 71 game starts; 38 insertions | A title-sequence behavior became inheritable, but did not extend into navigation |
+| Visually Curious | 2,557,662 | Six maps; maximum party level 27 | Active local exploration, then a Pallet Town/Route 1 plateau |
+| Outcome-Rewarded | 2,262,634 | Six maps; maximum party level 29 | Semantic teaching did not break the local loop in this run |
+| Conventional | 2,223,674 | Six maps; maximum party level 28 | More information did not automatically produce further story progress |
+
+The row values are not a common score. The policies received different information and rewards, so
+“highest level” does not identify a winner. The online lanes also retained learning tables across
+their one continuous lifetime, while evolution evaluated many fixed children.
+
+The evolutionary result was both the most modest on screen and the most useful for designing the
+next mechanism. Children of game-starting parents started about 79% of the time in a retrospective
+analysis, versus about 4.7% for children of non-starting parents. However, uniform archive selection
+still spent about 64% of evaluations on non-starting parents, and broad mutation often erased the
+best parent's four-position behavior.
+
+That creates a clean branch in the story: the experiment finally made luck inheritable, then learned
+that **inheritance is not enough if useful parents rarely reproduce or their children change too
+much**.
+
+## From four agents to the 2 × 3 lab
+
+The next pretrial temporarily narrows the question from four kinds of learning to six variants of
+Evolutionary Explorer:
+
+| | Broad control | Gentle mutation | Multiscale mutation |
+| --- | --- | --- | --- |
+| Uniform archive selection | U-B | U-G | U-M |
+| 80/20 frontier selection | F-B | F-G | F-M |
+
+Each lane imports the same 33-elite neural archive, evaluates 128 children at 12,000 actions each,
+and therefore receives exactly 1,536,000 actions. Every child starts Pokémon from power-on; no
+emulator snapshot or in-game position is inherited. This is an engineering fork for choosing a
+mechanism, not six fresh training seeds and not a frozen-policy evaluation.
 
 ## What learning meant in the baseline arena
 
@@ -194,20 +235,23 @@ controlled stop. The narrative recorder sits outside those caps, but 23,040 Game
 frames over 48 hours should remain well below 1 GiB. Keep 10 GiB free for the experiment itself and
 20–30 GiB if the same SSD will also hold video-editor caches, proxy media, and final exports.
 
-## Qualification before the successor arena
+## Qualification after the successor arena
 
-Every protocol change starts with bounded calibration. The successor arena should not launch until
-the evolutionary runner passes its own synthetic tests, then 16-candidate and 128-candidate
-Pokémon pretrials. Existing online-learning policies must start fresh in the comparison.
+Every protocol change starts with bounded calibration. The successor arena passed its synthetic and
+short ROM-backed mechanism checks, then the 90-minute run exposed the selection and mutation
+bottlenecks. The six-lane lab has now passed archive-import, dashboard, exact-lifetime, visual-
+capture, and clean-exit checks across all six treatments, plus a deliberate whole-lab interruption
+and recovery. Existing online-learning policies must start fresh in any later comparison.
 
-1. all four lanes remain healthy and checkpoint-resumable;
-2. replay transitions and updates increase continuously;
-3. exact semantic-event screenshots agree with their trace records;
-4. Outcome-Rewarded and Conventional report zero visual reward;
-5. at least one rewarded arm records semantic progress after the initial opening burst;
-6. policy-table occupancy, checkpoint duration, disk use, and action throughput remain bounded.
-7. evolutionary genomes, ancestry, mutation seeds, and archive replacements are reproducible;
-8. promoted checkpoint-assisted milestones replay from power-on without intervention.
+1. all six evolutionary lanes remain healthy and checkpoint-resumable;
+2. every lane records the same source-archive content hash;
+3. no lane imports an emulator snapshot or hidden recurrent state;
+4. every lane records its selection rule, mutation profile, and deterministic seed;
+5. exact semantic-event screenshots agree with their trace records;
+6. checkpoint duration, disk use, and action throughput remain bounded;
+7. genomes, ancestry, mutation channels, and archive replacements are reproducible;
+8. each lane stops at 1,536,000 actions and the dashboard preserves a final comparison;
+9. any promoted milestone replays from power-on without intervention.
 
 Passing these gates proves that the mechanism is operating as designed. It still does not guarantee
 that an agent will solve Pokémon Red.
@@ -227,6 +271,8 @@ scientific step is to repeat the most informative arms across multiple seeds.
 ## Narrative spine
 
 The baseline supplied the first answer: **luck without inheritance remains luck**. The successor
-asks a stronger question: **what happens when a useful accident is allowed to have descendants?**
-Introduce each generation through its family tree, let the audience meet extinct and surviving
-lineages, and keep checkpoint-assisted population progress separate from a single frozen policy.
+showed that one useful accident could have descendants, then exposed a second problem: those
+descendants were either not chosen often enough or changed too much. The 2 × 3 lab turns those two
+suspects into the episode's visible grid. Introduce each lane with equal action fuel, let the
+audience see both retained and extinct branches, and end by stating that the selected mechanism
+must still restart from fresh random populations.

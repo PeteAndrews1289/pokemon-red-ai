@@ -1,16 +1,17 @@
 # Progress and evidence
 
 > **Current research direction:** Pure Monkey has completed its role as the random control and is
-> retired from future headline runs. Three online-learning lanes have completed pretrial work. A
-> quality-diversity neuroevolution replacement is now specified at E0; no evolutionary population
-> has been implemented or trained. See [Evolutionary Explorer](neuroevolution.md).
+> retired from future headline runs. Three online-learning lanes and one quality-diversity
+> neuroevolution lane completed a 90-minute development pretrial. The neural population inherited a
+> narrow game-start behavior; a [six-lane mechanism lab](selection-mutation-lab.md) is now qualified
+> to test selection and mutation before a fresh-seed confirmation.
 
-- **Current stage:** verified harness, online-learning pretrials, and evolutionary design
+- **Current stage:** verified harness, online/evolutionary pretrials, and 2 × 3 mechanism calibration
 - **Status date:** 2026-07-19
 
-**Most important caveat:** the successor neural population exists only as a design. The previous
-Q-table learners updated during development runs, but no frozen autonomous Oak's Parcel evaluation
-has been run.
+**Most important caveat:** the evolutionary result comes from one inherited population in a
+development run. It is not a frozen autonomous evaluation, a fresh-seed replication, or an Oak's
+Parcel result.
 
 The project can now launch the exact supported game revision, issue deterministic controller
 inputs, observe a small documented state, and reproduce the start of a clean game. That is useful
@@ -62,10 +63,12 @@ flowchart LR
 | A trace becomes a readable local run report | ✅ Verified | E2 | Standalone HTML escapes trace data, redacts absolute paths, and embeds no gameplay assets |
 | Clean bootstrap has reviewed public evidence | ✅ Verified | E3 | Sanitized trace, two-attempt ledger, exact fingerprints, limitations, and generated report are committed |
 | Pure Monkey is a non-learning random baseline | ✅ Verified | E2 | Its seeded uniform action distribution has no policy update or success-dependent state; it remains reproducible but is retired |
-| The evolutionary successor has a frozen design | 🟨 In progress | E0 | Genome, archive, selection, lineage, compute, and evidence rules are documented; runner code does not exist |
+| The evolutionary successor has a frozen design | ✅ Verified | E1 | Genome, archive, selection, lineage, compute, and evidence rules are documented and implemented |
+| A population neuroevolution runner exists | ✅ Verified | E2 | Deterministic genomes, mutation, archive replacement, genealogy, checkpointing, and a ROM-backed runner are tested |
+| The population inherited game-start behavior | 🟨 In progress | E2 | One 90-minute development run found strong parent/child retention; no held-out or fresh-seed evaluation exists |
+| The selection × mutation fork is ready | ✅ Verified | E2 | Six ROM-backed lanes recovered together after interruption, completed exact paired lifetimes, preserved synchronized and milestone visuals, and exited cleanly |
 | Long random action sequences remain stable | ⬜ Planned | E0 | Extended stability run has not been reported |
 | A human Oak's Parcel baseline exists | ⬜ Planned | E0 | No baseline action count or completion time is available yet |
-| A population neuroevolution runner exists | ⬜ Planned | E0 | No genome evaluator, mutation engine, genealogy, or MAP-Elites archive is implemented |
 | A trained policy leaves the bedroom | ⬜ Planned | E0 | Development learners have wandered beyond it, but no frozen task evaluation has been run |
 | An agent completes Oak's Parcel | ⬜ Planned | E0 | No autonomous evaluation attempts exist |
 | An agent defeats Brock | 🧭 Later | E0 | This is a future milestone, not a current result |
@@ -78,7 +81,7 @@ suggest precision that does not exist before the training design and difficulty 
 | Phase | Deliverable | Current state | Exit signal |
 | --- | --- | --- | --- |
 | 0 — Foundation | Reproducible, inspectable emulator harness | **Core verified; validation work remains** | Human baseline and long stability run recorded |
-| 1 — Oak's Parcel | First bounded navigation/battle learning problem | **Not started** | Frozen clean-start evaluation meets a declared success threshold |
+| 1 — Oak's Parcel | First bounded navigation/battle learning problem | **Development pretrials active** | Frozen clean-start evaluation meets a declared success threshold |
 | 2 — Brock | Reusable skills plus planner, memory, and watchdog | **Not started** | Frozen clean-start evaluation defeats Brock under budget |
 | Later — Comparisons | Language-model, RL, and hybrid ablations | **Not started** | Same referee and declared budgets used for all configurations |
 

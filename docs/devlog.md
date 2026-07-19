@@ -1,5 +1,72 @@
 # Development log
 
+## 2026-07-19 — Six-lane mechanism lab qualifies
+
+- Implemented the generic N-lane orchestrator and the paired 2 × 3 preset: uniform/frontier parent
+  selection crossed with broad/gentle/multiscale mutation.
+- Imported the sealed 33-elite predecessor archive without carrying over emulator state, recurrent
+  memory, the interrupted child, or any private filesystem path.
+- Ran all six treatments concurrently against the real ROM for one exact 12,000-action child each;
+  all six wrote genealogy, checkpoint, status, and dashboard artifacts and returned successfully.
+- Interrupted a separate archive-seeded lane after 2,040 actions, resumed it against the same
+  predecessor hash, and verified that it crossed the 12,000-action child boundary with one intact
+  genealogy record before a second graceful stop.
+- Repeated recovery at the orchestrator level: stopped all six lanes mid-child, relaunched against
+  the identical manifest, and required all six to finish at exactly 12,000 actions before setting
+  `comparison_complete`.
+- Confirmed the paired first births chose matching parents within each selection row. Broad changed
+  1,311 of 13,096 parameters while gentle changed 272, verifying the intended intervention.
+- Added a responsive combined dashboard, safe local-only serving boundary, synchronized JSONL
+  comparisons, and an append-only Markdown chronicle for later charts and video scripting.
+- Added ten-minute synchronized six-frame sets, dashboard hashes, and exact first-milestone images;
+  the accelerated recovery rehearsal preserved 19 complete frame sets and three game-start frames.
+- Held the full lab to 128 children and 1,536,000 actions per lane, with wall time serving only as a
+  safety ceiling. This qualification is engineering evidence, not a result for the six hypotheses.
+
+## 2026-07-19 — First inheritance found; six-lane branch begins
+
+### The 90-minute pretrial concluded
+
+- Stopped the four-lane successor run deliberately after roughly 90 minutes and preserved every
+  final checkpoint. All four runners returned cleanly with zero supervisor restarts.
+- Evolutionary Explorer completed 2,838,873 actions and 236 fixed-policy evaluations. The nominal
+  generation counter reached 14; the final archive contained 33 elites, 38 insertions, milestone
+  tier 1, one map, four positions, and 71 evaluations that reached the game-start state.
+- Visually Curious completed 2,557,662 actions, Outcome-Rewarded 2,262,634, and Conventional
+  2,223,674. All three observed six maps and reached maximum party levels 27–29, but plateaued in
+  the Pallet Town/Route 1 region.
+- Classified these as development observations, not official success rates or a common-agent
+  leaderboard. Different reward and information channels make raw score and level comparisons
+  misleading.
+
+### The evidence changed the mechanism
+
+- Found that children of game-starting parents repeated the behavior about 79% of the time in this
+  run, versus about 4.7% for children of non-starting parents. This is evidence that a narrow useful
+  accident became inheritable, not that one policy learned during its lifetime.
+- Found that archive-wide uniform selection still chose non-starting parents for roughly 64% of
+  child evaluations.
+- Found that broad mutation often erased fragile behavior: one of 23 observed children of the best
+  four-position parent retained all four positions.
+- Froze the 33-elite archive and its provenance rather than continuing a mechanism whose two main
+  bottlenecks were already visible.
+
+### The 2 × 3 decision
+
+- Chose a six-lane factorial engineering fork: uniform versus 80/20 frontier selection crossed with
+  broad-control, gentle, and multiscale mutation.
+- Fixed each lane to 128 children × 12,000 actions = 1,536,000 actions, all starting Pokémon from
+  power-on and all importing the same neural archive.
+- Defined frontier selection as 80% from the highest milestone tier through a three-candidate
+  lexicographic tournament and 20% from the whole archive for diversity.
+- Defined gentle mutation as `p=0.02`, sigma `0.01`; defined multiscale mutation as 80% micro
+  (`p=0.01`, sigma `0.02`), 15% broad (`p=0.10`, sigma `0.05`), and 5% macro (`p=0.10`, sigma
+  `0.20`). The broad lane preserves the existing mutation mechanism as a control.
+- Labeled the design an inherited-archive engineering fork. The selected mechanism must later
+  restart from unrelated random founders across multiple seeds before any general learning claim.
+- Made the 2 × 3 dashboard the central narrative visual: equal action fuel, visible family trees,
+  parent tiers, mutation channels, retention, improvements, failures, and infrastructure health.
+
 ## 2026-07-19 — Evolutionary Explorer implemented; pretrial begins
 
 ### Mechanism built

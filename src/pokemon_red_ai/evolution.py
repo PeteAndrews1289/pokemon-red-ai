@@ -10,7 +10,7 @@ import os
 import shutil
 import signal
 import zlib
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from time import monotonic
@@ -71,6 +71,11 @@ class EvolutionConfig:
     mutation_sigma: float = 0.05
     large_mutation_probability: float = 0.05
     large_mutation_sigma: float = 0.20
+    selection_strategy: str = "uniform"
+    frontier_probability: float = 0.80
+    tournament_size: int = 3
+    mutation_profile: str = "broad"
+    seed_archive: str | Path | None = field(default=None, repr=False, compare=False)
     seen_filter_bytes: int = 8 * 1024 * 1024
     screenshot_limit: int = 128
     status_interval_seconds: float = 10
@@ -93,6 +98,14 @@ class EvolutionConfig:
                 raise ValueError(f"{name} must be between zero and one")
         if self.mutation_sigma <= 0 or self.large_mutation_sigma <= 0:
             raise ValueError("Evolution mutation sigmas must be positive")
+        if self.selection_strategy not in {"uniform", "frontier"}:
+            raise ValueError("Evolution selection strategy must be uniform or frontier")
+        if not 0 <= self.frontier_probability <= 1:
+            raise ValueError("Evolution frontier probability must be between zero and one")
+        if self.tournament_size < 1:
+            raise ValueError("Evolution tournament size must be positive")
+        if self.mutation_profile not in {"broad", "gentle", "multiscale"}:
+            raise ValueError("Evolution mutation profile must be broad, gentle, or multiscale")
         if self.seen_filter_bytes < 1_024:
             raise ValueError("Evolution visual filter must be at least 1 KiB")
         if self.screenshot_limit < 1:
@@ -102,8 +115,13 @@ class EvolutionConfig:
         if self.max_output_bytes < 1_048_576 or self.min_free_bytes < 0:
             raise ValueError("Evolution disk limits are invalid")
 
-    def public_dict(self) -> dict[str, int | float]:
-        return asdict(self)
+    def public_dict(self) -> dict[str, Any]:
+        # A predecessor's local path is runtime-only. Persist the fact that the
+        # run was seeded, then record only checksums and safe metadata elsewhere.
+        value = asdict(self)
+        value.pop("seed_archive")
+        value["seed_archive_enabled"] = self.seed_archive is not None
+        return value
 
 
 @dataclass(frozen=True, slots=True)
@@ -235,6 +253,9 @@ class EvolutionElite:
     mutation_seed: int | None
     mutation_sigma: float
     mutated_parameters: int
+    lineage_depth: int = 0
+    selection_channel: str = "founder"
+    mutation_channel: str = "founder"
 
     def checkpoint_dict(self) -> dict[str, Any]:
         return {
@@ -247,6 +268,9 @@ class EvolutionElite:
             "mutation_seed": self.mutation_seed,
             "mutation_sigma": self.mutation_sigma,
             "mutated_parameters": self.mutated_parameters,
+            "lineage_depth": self.lineage_depth,
+            "selection_channel": self.selection_channel,
+            "mutation_channel": self.mutation_channel,
         }
 
     @classmethod
@@ -263,6 +287,9 @@ class EvolutionElite:
             ),
             mutation_sigma=float(value.get("mutation_sigma", 0)),
             mutated_parameters=int(value.get("mutated_parameters", 0)),
+            lineage_depth=int(value.get("lineage_depth", value.get("generation", 0))),
+            selection_channel=str(value.get("selection_channel", "legacy")),
+            mutation_channel=str(value.get("mutation_channel", "legacy")),
         )
 
 
@@ -294,11 +321,36 @@ class QualityDiversityArchive:
         self._elites[elite.descriptor] = elite
         return True, replaced
 
-    def select_parent(self, rng: np.random.Generator) -> EvolutionElite:
+    def select_parent(
+        self,
+        rng: np.random.Generator,
+        *,
+        strategy: str = "uniform",
+        frontier_probability: float = 0.80,
+        tournament_size: int = 3,
+    ) -> tuple[EvolutionElite, str]:
         values = self.elites
         if not values:
             raise RuntimeError("Cannot select a parent from an empty evolution archive")
-        return values[int(rng.integers(len(values)))]
+        if strategy == "uniform":
+            return values[int(rng.integers(len(values)))], "uniform"
+        if strategy != "frontier":
+            raise ValueError("Unknown evolution selection strategy")
+        if not 0 <= frontier_probability <= 1 or tournament_size < 1:
+            raise ValueError("Invalid frontier selection settings")
+        if rng.random() >= frontier_probability:
+            return values[int(rng.integers(len(values)))], "wildcard"
+
+        highest_tier = max((elite.fitness[0] if elite.fitness else 0) for elite in values)
+        frontier = [
+            elite for elite in values if (elite.fitness[0] if elite.fitness else 0) == highest_tier
+        ]
+        contestants = [
+            frontier[int(rng.integers(len(frontier)))] for _ in range(tournament_size)
+        ]
+        # Genome ID provides a stable final tie-break independent of insertion order.
+        winner = max(contestants, key=lambda elite: (elite.fitness, elite.genome.genome_id))
+        return winner, "frontier"
 
     def checkpoint_list(self) -> list[dict[str, Any]]:
         return [elite.checkpoint_dict() for elite in self.elites]
@@ -416,12 +468,86 @@ def fitness_vector(metrics: dict[str, int], actions: int) -> tuple[int, ...]:
     )
 
 
-def _best_metrics(archive: QualityDiversityArchive, current: dict[str, int]) -> dict[str, int]:
-    result = dict(current)
-    for elite in archive.elites:
-        for key, value in elite.metrics.items():
-            result[key] = max(result.get(key, 0), value)
-    return result
+def _best_metrics(
+    archive: QualityDiversityArchive,
+    current: dict[str, int],
+    current_actions: int,
+) -> dict[str, int]:
+    """Return one coherent trajectory, never maxima spliced from several elites."""
+
+    if not archive.elites:
+        return dict(current)
+    best = max(archive.elites, key=lambda elite: elite.fitness)
+    current_fitness = fitness_vector(current, current_actions)
+    # Candidate action count is only a tie-break, so an incomplete candidate
+    # must improve a substantive fitness component before replacing the headline.
+    if current_fitness[:-1] > best.fitness[:-1]:
+        return dict(current)
+    return dict(best.metrics)
+
+
+def _record_milestone_actions(
+    tracker: RewardTracker,
+    final_state: PokemonRedState | None,
+    *,
+    action_number: int,
+    button: str,
+    milestones: dict[str, dict[str, int | str]],
+) -> list[str]:
+    checks: dict[str, bool] = {
+        "game_started": tracker.game_started_seen,
+        "map_2": len(tracker.seen_maps) >= 2,
+        "map_3": len(tracker.seen_maps) >= 3,
+        "map_4": len(tracker.seen_maps) >= 4,
+        "first_warp": bool(tracker.seen_warps),
+        "starter": tracker.max_party_count >= 1,
+        "first_battle": bool(tracker.seen_battles & {1, 2}),
+        "got_pokedex": bool(final_state and final_state.got_pokedex),
+        "owned_species_1": len(tracker.owned_pokedex_species) >= 1,
+        "owned_species_2": len(tracker.owned_pokedex_species) >= 2,
+        "first_blackout": tracker.blackouts >= 1,
+    }
+    for badge in range(1, min(tracker.badge_bits.bit_count(), 8) + 1):
+        checks[f"badge_{badge}"] = True
+    newly_reached: list[str] = []
+    for name, reached in checks.items():
+        if reached and name not in milestones:
+            milestones[name] = {"action": action_number, "button": button}
+            newly_reached.append(name)
+    return newly_reached
+
+
+def _action_telemetry(
+    action_counts: dict[str, int],
+    transitions: dict[str, int],
+    *,
+    longest_repeat_streak: int,
+) -> dict[str, Any]:
+    return {
+        "counts": dict(action_counts),
+        "transitions": dict(sorted(transitions.items())),
+        "unique_actions": sum(value > 0 for value in action_counts.values()),
+        "longest_repeat_streak": longest_repeat_streak,
+    }
+
+
+def _candidate_fields(candidate: EvolutionCandidate) -> dict[str, Any]:
+    return {
+        "genome_id": candidate.genome.genome_id,
+        "parent_id": candidate.parent_id,
+        "parent_fitness": (
+            None if candidate.parent_fitness is None else list(candidate.parent_fitness)
+        ),
+        "parent_metrics": candidate.parent_metrics,
+        "lineage_depth": candidate.lineage_depth,
+        "selection_channel": candidate.selection_channel,
+        "selection_stratum": candidate.selection_channel,
+        "mutation_channel": candidate.mutation_channel,
+        "mutation_seed": candidate.mutation_seed,
+        "mutation_probability": candidate.mutation_probability,
+        "mutation_sigma": candidate.mutation_sigma,
+        "mutated_parameters": candidate.mutated_parameters,
+    }
 
 
 def _atomic_text(path: Path, value: str) -> None:
@@ -493,24 +619,216 @@ class _SignalStop:
         self.reason = "sigint" if event == signal.SIGINT else "sigterm"
 
 
+@dataclass(frozen=True, slots=True)
+class EvolutionCandidate:
+    genome: EvolutionGenome
+    parent_id: str | None
+    parent_fitness: tuple[int, ...] | None
+    parent_metrics: dict[str, int] | None
+    mutation_seed: int | None
+    mutation_probability: float
+    mutation_sigma: float
+    mutated_parameters: int
+    lineage_depth: int
+    selection_channel: str
+    mutation_channel: str
+
+
+@dataclass(frozen=True, slots=True)
+class SeedArchiveImport:
+    archive: QualityDiversityArchive
+    metadata: dict[str, Any]
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as source:
+        while chunk := source.read(1024 * 1024):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _lineage_depths(run_directory: Path) -> dict[str, int]:
+    genealogy_path = run_directory / "genealogy.jsonl"
+    if not genealogy_path.is_file():
+        return {}
+    parents: dict[str, str | None] = {}
+    with genealogy_path.open("r", encoding="utf-8") as source:
+        for line in source:
+            with contextlib.suppress(json.JSONDecodeError, TypeError):
+                record = json.loads(line)
+                if record.get("kind") == "candidate_completed" and record.get("genome_id"):
+                    parents[str(record["genome_id"])] = (
+                        None if record.get("parent_id") is None else str(record["parent_id"])
+                    )
+
+    depths: dict[str, int] = {}
+
+    def resolve(genome_id: str, active: set[str]) -> int:
+        if genome_id in depths:
+            return depths[genome_id]
+        if genome_id in active:
+            raise ValueError("Evolution seed genealogy contains a parent cycle")
+        parent_id = parents.get(genome_id)
+        if parent_id is None:
+            depth = 0
+        elif parent_id not in parents:
+            # Older checkpoints may have a truncated genealogy. The known child
+            # still has at least one inherited step.
+            depth = 1
+        else:
+            depth = resolve(parent_id, active | {genome_id}) + 1
+        depths[genome_id] = depth
+        return depth
+
+    for genome_id in parents:
+        resolve(genome_id, set())
+    return depths
+
+
+def load_seed_archive(
+    source: Path,
+    *,
+    rom_sha256: str,
+    capacity: int,
+) -> SeedArchiveImport:
+    """Load a completed predecessor archive without modifying its run directory."""
+
+    source = source.expanduser().resolve()
+    checkpoint_path = source / "checkpoint.json.gz" if source.is_dir() else source
+    run_directory = checkpoint_path.parent
+    if not checkpoint_path.is_file():
+        raise ValueError("Evolution seed archive requires a checkpoint file or run directory")
+    status_path = run_directory / "status.json"
+    if not status_path.is_file():
+        raise ValueError("Evolution seed archive is missing its final status")
+    status = json.loads(status_path.read_text(encoding="utf-8"))
+    if status.get("state") != "finished":
+        raise ValueError("Evolution seed archive must come from a completed run")
+
+    checkpoint = _read_checkpoint(checkpoint_path)
+    if checkpoint.get("rom_sha256") != rom_sha256:
+        raise ValueError("Evolution seed archive belongs to a different ROM")
+    raw_archive = checkpoint.get("archive")
+    if not isinstance(raw_archive, list) or not raw_archive:
+        raise ValueError("Evolution seed archive contains no elites")
+    if len(raw_archive) > capacity:
+        raise ValueError("Evolution seed archive exceeds the new archive capacity")
+
+    manifest_path = run_directory / "manifest.json"
+    manifest_sha256: str | None = None
+    if manifest_path.is_file():
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        if manifest.get("protocol_version") != EVOLUTION_PROTOCOL_VERSION:
+            raise ValueError("Evolution seed manifest uses a different protocol")
+        manifest_rom = manifest.get("rom", {})
+        if manifest_rom.get("sha256") != rom_sha256:
+            raise ValueError("Evolution seed manifest belongs to a different ROM")
+        if int(manifest.get("network", {}).get("parameter_count", -1)) != PARAMETER_COUNT:
+            raise ValueError("Evolution seed manifest uses a different genome shape")
+        manifest_sha256 = _sha256_file(manifest_path)
+
+    depths = _lineage_depths(run_directory)
+    elites: list[EvolutionElite] = []
+    for raw_elite in raw_archive:
+        if not isinstance(raw_elite, dict):
+            raise ValueError("Evolution seed archive has an invalid elite record")
+        elite = EvolutionElite.from_checkpoint_dict(raw_elite)
+        if elite.genome.genome_id in depths:
+            elite = replace(elite, lineage_depth=depths[elite.genome.genome_id])
+        elites.append(elite)
+    archive = QualityDiversityArchive(capacity, elites)
+
+    archive_payload = json.dumps(raw_archive, sort_keys=True, separators=(",", ":")).encode()
+    genome_ids = sorted(elite.genome.genome_id for elite in elites)
+    source_value = checkpoint.get("source", {})
+    source_commit = source_value.get("git_commit") if isinstance(source_value, dict) else None
+    if not isinstance(source_commit, str) or not source_commit or source_commit == "unknown":
+        source_commit = None
+    metadata: dict[str, Any] = {
+        "protocol_version": EVOLUTION_PROTOCOL_VERSION,
+        "rom_sha256": rom_sha256,
+        "checkpoint_sha256": _sha256_file(checkpoint_path),
+        "manifest_sha256": manifest_sha256,
+        "archive_sha256": hashlib.sha256(archive_payload).hexdigest(),
+        "genome_set_sha256": hashlib.sha256("\n".join(genome_ids).encode()).hexdigest(),
+        "archive_cells": len(elites),
+        "predecessor_evaluations": int(checkpoint.get("counters", {}).get("evaluations", 0)),
+        "predecessor_stop_reason": status.get("stop_reason"),
+        "predecessor_source_commit": source_commit,
+    }
+    return SeedArchiveImport(archive=archive, metadata=metadata)
+
+
+def _mutation_spec(
+    rng: np.random.Generator,
+    config: EvolutionConfig,
+) -> tuple[str, float, float]:
+    if config.mutation_profile == "gentle":
+        return "gentle", 0.02, 0.01
+    if config.mutation_profile == "multiscale":
+        draw = rng.random()
+        if draw < 0.80:
+            return "micro", 0.01, 0.02
+        if draw < 0.95:
+            return "broad", 0.10, 0.05
+        return "macro", 0.10, 0.20
+    if config.mutation_profile != "broad":
+        raise ValueError("Unknown evolution mutation profile")
+    large = bool(rng.random() < config.large_mutation_probability)
+    if large:
+        return "macro", config.mutation_probability, config.large_mutation_sigma
+    return "broad", config.mutation_probability, config.mutation_sigma
+
+
 def _new_candidate(
     counters: EvolutionCounters,
     archive: QualityDiversityArchive,
     rng: np.random.Generator,
     config: EvolutionConfig,
-) -> tuple[EvolutionGenome, str | None, int | None, float, int]:
+    *,
+    seeded: bool = False,
+) -> EvolutionCandidate:
     seed = int(rng.integers(0, np.iinfo(np.int64).max))
-    if counters.generation == 0:
-        return EvolutionGenome.random(seed), None, seed, 0.0, PARAMETER_COUNT
-    parent = archive.select_parent(rng)
-    large = bool(rng.random() < config.large_mutation_probability)
-    sigma = config.large_mutation_sigma if large else config.mutation_sigma
+    if counters.generation == 0 and not seeded:
+        return EvolutionCandidate(
+            genome=EvolutionGenome.random(seed),
+            parent_id=None,
+            parent_fitness=None,
+            parent_metrics=None,
+            mutation_seed=seed,
+            mutation_probability=0.0,
+            mutation_sigma=0.0,
+            mutated_parameters=PARAMETER_COUNT,
+            lineage_depth=0,
+            selection_channel="founder",
+            mutation_channel="founder",
+        )
+    parent, selection_channel = archive.select_parent(
+        rng,
+        strategy=config.selection_strategy,
+        frontier_probability=config.frontier_probability,
+        tournament_size=config.tournament_size,
+    )
+    mutation_channel, probability, sigma = _mutation_spec(rng, config)
     genome, changed = parent.genome.mutate(
         seed=seed,
-        probability=config.mutation_probability,
+        probability=probability,
         sigma=sigma,
     )
-    return genome, parent.genome.genome_id, seed, sigma, changed
+    return EvolutionCandidate(
+        genome=genome,
+        parent_id=parent.genome.genome_id,
+        parent_fitness=parent.fitness,
+        parent_metrics=dict(parent.metrics),
+        mutation_seed=seed,
+        mutation_probability=probability,
+        mutation_sigma=sigma,
+        mutated_parameters=changed,
+        lineage_depth=parent.lineage_depth + 1,
+        selection_channel=selection_channel,
+        mutation_channel=mutation_channel,
+    )
 
 
 def _status_payload(
@@ -521,18 +839,19 @@ def _status_payload(
     counters: EvolutionCounters,
     config: EvolutionConfig,
     archive: QualityDiversityArchive,
-    genome: EvolutionGenome,
-    parent_id: str | None,
-    mutation_seed: int | None,
-    mutation_sigma: float,
-    mutated_parameters: int,
+    candidate: EvolutionCandidate,
     tracker: RewardTracker,
     candidate_action_counts: dict[str, int],
+    candidate_action_transitions: dict[str, int],
+    candidate_longest_repeat_streak: int,
+    candidate_milestone_actions: dict[str, dict[str, int | str]],
+    milestone_screenshots: dict[str, dict[str, Any]],
+    seed_metadata: dict[str, Any] | None,
     referee_state: PokemonRedState | None,
     run_bytes: int,
 ) -> dict[str, Any]:
     current = _metrics(tracker, referee_state, candidate_action_counts)
-    progress = _best_metrics(archive, current)
+    progress = _best_metrics(archive, current, counters.candidate_actions)
     best_fitness = max((elite.fitness for elite in archive.elites), default=())
     return {
         "schema_version": 1,
@@ -566,11 +885,23 @@ def _status_payload(
         "archive_capacity": archive.capacity,
         "archive_insertions": counters.archive_insertions,
         "archive_replacements": counters.archive_replacements,
-        "current_genome_id": genome.genome_id,
-        "current_parent_id": parent_id,
-        "mutation_seed": mutation_seed,
-        "mutation_sigma": mutation_sigma,
-        "mutated_parameters": mutated_parameters,
+        "seed_archive": seed_metadata,
+        "current_genome_id": candidate.genome.genome_id,
+        "current_parent_id": candidate.parent_id,
+        "parent_fitness": (
+            None if candidate.parent_fitness is None else list(candidate.parent_fitness)
+        ),
+        "parent_metrics": candidate.parent_metrics,
+        "lineage_depth": candidate.lineage_depth,
+        "selection_strategy": config.selection_strategy,
+        "selection_channel": candidate.selection_channel,
+        "selection_stratum": candidate.selection_channel,
+        "mutation_profile": config.mutation_profile,
+        "mutation_channel": candidate.mutation_channel,
+        "mutation_seed": candidate.mutation_seed,
+        "mutation_probability": candidate.mutation_probability,
+        "mutation_sigma": candidate.mutation_sigma,
+        "mutated_parameters": candidate.mutated_parameters,
         "parameter_count": PARAMETER_COUNT,
         "best_fitness": list(best_fitness),
         "fitness_tier": 0 if not best_fitness else best_fitness[0],
@@ -601,6 +932,13 @@ def _status_payload(
         "max_output_bytes": config.max_output_bytes,
         "current_metrics": current,
         "candidate_action_counts": candidate_action_counts,
+        "candidate_action_telemetry": _action_telemetry(
+            candidate_action_counts,
+            candidate_action_transitions,
+            longest_repeat_streak=candidate_longest_repeat_streak,
+        ),
+        "candidate_milestone_actions": candidate_milestone_actions,
+        "milestone_screenshots": milestone_screenshots,
         "referee_state": None if referee_state is None else referee_state.public_dict(),
         "elites": [
             {
@@ -610,6 +948,9 @@ def _status_payload(
                 "descriptor": list(elite.descriptor),
                 "fitness": list(elite.fitness),
                 "metrics": elite.metrics,
+                "lineage_depth": elite.lineage_depth,
+                "selection_channel": elite.selection_channel,
+                "mutation_channel": elite.mutation_channel,
             }
             for elite in sorted(archive.elites, key=lambda item: item.fitness, reverse=True)[:64]
         ],
@@ -641,12 +982,22 @@ def run_evolution_experiment(
     source = detect_source_provenance().public_dict()
     implementation = _implementation_sha256()
     checkpoint: dict[str, Any] | None = None
+    seed_import: SeedArchiveImport | None = None
+    if config.seed_archive is not None:
+        seed_import = load_seed_archive(
+            Path(config.seed_archive),
+            rom_sha256=rom.sha256,
+            capacity=config.archive_capacity,
+        )
     if resume:
         if not checkpoint_path.is_file():
             raise ValueError("Evolution resume requires an existing checkpoint")
         checkpoint = _read_checkpoint(checkpoint_path)
         if checkpoint["config"] != config.public_dict():
             raise ValueError("Evolution resume configuration does not match")
+        expected_seed = None if seed_import is None else seed_import.metadata
+        if checkpoint.get("seed_archive") != expected_seed:
+            raise ValueError("Evolution resume seed archive does not match")
         if checkpoint["rom_sha256"] != rom.sha256:
             raise ValueError("Evolution checkpoint belongs to a different ROM")
         if checkpoint["source"] != source or checkpoint["implementation_sha256"] != implementation:
@@ -659,6 +1010,8 @@ def run_evolution_experiment(
     else:
         output.mkdir(parents=True, exist_ok=False)
         (output / "screenshots").mkdir()
+        (output / "milestones").mkdir()
+    (output / "milestones").mkdir(exist_ok=True)
 
     started_at = datetime.now(UTC).isoformat()
     trace_path = output / "trace.jsonl"
@@ -685,6 +1038,7 @@ def run_evolution_experiment(
             "snapshot_assisted": False,
             "source": source,
             "implementation_sha256": implementation,
+            "seed_archive": None if seed_import is None else seed_import.metadata,
             "private_rom_path_recorded": False,
         }
         _atomic_json(output / "manifest.json", manifest)
@@ -693,18 +1047,23 @@ def run_evolution_experiment(
 
     counters = EvolutionCounters()
     rng = np.random.default_rng(config.seed)
-    archive = QualityDiversityArchive(config.archive_capacity)
+    archive = (
+        QualityDiversityArchive(config.archive_capacity)
+        if seed_import is None
+        else seed_import.archive
+    )
     seen = SeenVisualFilter(config.seen_filter_bytes)
     history: list[dict[str, Any]] = []
     genealogy: list[dict[str, Any]] = []
     screenshots: list[dict[str, Any]] = []
     tracker = RewardTracker("observer")
     candidate_action_counts = {action: 0 for action in BLIND_ACTIONS}
-    genome: EvolutionGenome
-    parent_id: str | None
-    mutation_seed: int | None
-    mutation_sigma: float
-    mutated_parameters: int
+    candidate_action_transitions: dict[str, int] = {}
+    candidate_milestone_actions: dict[str, dict[str, int | str]] = {}
+    milestone_screenshots: dict[str, dict[str, Any]] = {}
+    candidate_longest_repeat_streak = 0
+    candidate_current_repeat_streak = 0
+    candidate: EvolutionCandidate
     policy: RecurrentPixelPolicy
     previous_action: int | None = None
     clean_snapshot: FrozenSnapshot
@@ -726,23 +1085,27 @@ def run_evolution_experiment(
             reader = PokemonRedStateReader(emulator)
             if checkpoint is None:
                 clean_snapshot = FrozenSnapshot.freeze(emulator.save_state())
-                (
-                    genome,
-                    parent_id,
-                    mutation_seed,
-                    mutation_sigma,
-                    mutated_parameters,
-                ) = _new_candidate(counters, archive, rng, config)
-                policy = RecurrentPixelPolicy(genome)
+                candidate = _new_candidate(
+                    counters, archive, rng, config, seeded=seed_import is not None
+                )
+                policy = RecurrentPixelPolicy(candidate.genome)
                 _append_json(
                     trace_path,
                     {
                         "kind": "candidate_started",
                         "generation": 0,
                         "candidate_index": 0,
-                        "genome_id": genome.genome_id,
-                        "parent_id": None,
-                        "mutation_seed": mutation_seed,
+                        "selection_strategy": config.selection_strategy,
+                        "mutation_profile": config.mutation_profile,
+                        "seed_archive_sha256": (
+                            None
+                            if seed_import is None
+                            else seed_import.metadata["archive_sha256"]
+                        ),
+                        "seed_archive_cells": (
+                            0 if seed_import is None else seed_import.metadata["archive_cells"]
+                        ),
+                        **_candidate_fields(candidate),
                     },
                 )
             else:
@@ -769,11 +1132,70 @@ def run_evolution_experiment(
                 }
                 for action in BLIND_ACTIONS:
                     candidate_action_counts.setdefault(action, 0)
+                candidate_action_transitions = {
+                    str(key): int(value)
+                    for key, value in checkpoint.get("candidate_action_transitions", {}).items()
+                }
+                candidate_milestone_actions = {
+                    str(key): (
+                        dict(value)
+                        if isinstance(value, dict)
+                        else {"action": int(value), "button": "unknown"}
+                    )
+                    for key, value in checkpoint.get("candidate_milestone_actions", {}).items()
+                }
+                milestone_screenshots = {
+                    str(key): dict(value)
+                    for key, value in checkpoint.get("milestone_screenshots", {}).items()
+                    if isinstance(value, dict)
+                }
+                candidate_longest_repeat_streak = int(
+                    checkpoint.get("candidate_longest_repeat_streak", 0)
+                )
+                candidate_current_repeat_streak = int(
+                    checkpoint.get("candidate_current_repeat_streak", 0)
+                )
                 genome = EvolutionGenome.from_checkpoint_dict(checkpoint["current_genome"])
                 parent_id = checkpoint.get("parent_id")
-                mutation_seed = checkpoint.get("mutation_seed")
-                mutation_sigma = float(checkpoint.get("mutation_sigma", 0))
-                mutated_parameters = int(checkpoint.get("mutated_parameters", 0))
+                parent = next(
+                    (
+                        elite
+                        for elite in archive.elites
+                        if elite.genome.genome_id == parent_id
+                    ),
+                    None,
+                )
+                parent_fitness_value = checkpoint.get("parent_fitness")
+                parent_metrics_value = checkpoint.get("parent_metrics")
+                candidate = EvolutionCandidate(
+                    genome=genome,
+                    parent_id=parent_id,
+                    parent_fitness=(
+                        tuple(int(item) for item in parent_fitness_value)
+                        if parent_fitness_value is not None
+                        else (None if parent is None else parent.fitness)
+                    ),
+                    parent_metrics=(
+                        {str(key): int(value) for key, value in parent_metrics_value.items()}
+                        if isinstance(parent_metrics_value, dict)
+                        else (None if parent is None else dict(parent.metrics))
+                    ),
+                    mutation_seed=(
+                        None
+                        if checkpoint.get("mutation_seed") is None
+                        else int(checkpoint["mutation_seed"])
+                    ),
+                    mutation_probability=float(checkpoint.get("mutation_probability", 0.0)),
+                    mutation_sigma=float(checkpoint.get("mutation_sigma", 0.0)),
+                    mutated_parameters=int(checkpoint.get("mutated_parameters", 0)),
+                    lineage_depth=int(
+                        checkpoint.get(
+                            "lineage_depth", 0 if parent is None else parent.lineage_depth + 1
+                        )
+                    ),
+                    selection_channel=str(checkpoint.get("selection_channel", "legacy")),
+                    mutation_channel=str(checkpoint.get("mutation_channel", "legacy")),
+                )
                 previous_action = checkpoint.get("previous_action")
                 clean_snapshot = FrozenSnapshot.from_checkpoint_dict(checkpoint["clean_snapshot"])
                 current_snapshot = FrozenSnapshot.from_checkpoint_dict(
@@ -781,7 +1203,7 @@ def run_evolution_experiment(
                 )
                 emulator.load_state(current_snapshot.thaw())
                 policy = RecurrentPixelPolicy(
-                    genome,
+                    candidate.genome,
                     np.asarray(checkpoint["policy_hidden"], dtype=np.float32),
                 )
 
@@ -806,6 +1228,7 @@ def run_evolution_experiment(
                 if seen.check_and_add(key):
                     counters.unique_visual_cells += 1
                 action_index = policy.select(visual_signature(pixels), previous_action)
+                prior_action = previous_action
                 action = BlindAction(
                     BLIND_ACTIONS[action_index], ACTION_HOLD_FRAMES, ACTION_RELEASE_FRAMES
                 )
@@ -815,8 +1238,45 @@ def run_evolution_experiment(
                 counters.candidate_actions += 1
                 counters.total_frames += action.total_frames
                 candidate_action_counts[action.button] += 1
+                if prior_action is None or prior_action != action_index:
+                    candidate_current_repeat_streak = 1
+                else:
+                    candidate_current_repeat_streak += 1
+                candidate_longest_repeat_streak = max(
+                    candidate_longest_repeat_streak, candidate_current_repeat_streak
+                )
+                if prior_action is not None:
+                    transition = f"{BLIND_ACTIONS[prior_action]}>{action.button}"
+                    candidate_action_transitions[transition] = (
+                        candidate_action_transitions.get(transition, 0) + 1
+                    )
                 referee_state = reader.read()
                 tracker.score(visually_novel=False, state=referee_state)
+                new_milestones = _record_milestone_actions(
+                    tracker,
+                    referee_state,
+                    action_number=counters.candidate_actions,
+                    button=action.button,
+                    milestones=candidate_milestone_actions,
+                )
+                for milestone in new_milestones:
+                    if milestone in milestone_screenshots:
+                        continue
+                    filename = (
+                        f"first-{milestone}-e{counters.evaluations:06d}-"
+                        f"{candidate.genome.genome_id}.png"
+                    )
+                    milestone_path = output / "milestones" / filename
+                    _save_png(actor.observe(), milestone_path)
+                    milestone_screenshots[milestone] = {
+                        "file": f"milestones/{filename}",
+                        "sha256": _sha256_file(milestone_path),
+                        "global_action": counters.total_actions,
+                        "candidate_action": counters.candidate_actions,
+                        "evaluation_index": counters.evaluations,
+                        "genome_id": candidate.genome.genome_id,
+                        "parent_id": candidate.parent_id,
+                    }
 
                 candidate_finished = counters.candidate_actions >= config.candidate_actions
                 if candidate_finished:
@@ -824,15 +1284,18 @@ def run_evolution_experiment(
                     descriptor = behavior_descriptor(metrics)
                     fitness = fitness_vector(metrics, counters.candidate_actions)
                     elite = EvolutionElite(
-                        genome=genome,
-                        parent_id=parent_id,
+                        genome=candidate.genome,
+                        parent_id=candidate.parent_id,
                         generation=counters.generation,
                         descriptor=descriptor,
                         fitness=fitness,
                         metrics=metrics,
-                        mutation_seed=mutation_seed,
-                        mutation_sigma=mutation_sigma,
-                        mutated_parameters=mutated_parameters,
+                        mutation_seed=candidate.mutation_seed,
+                        mutation_sigma=candidate.mutation_sigma,
+                        mutated_parameters=candidate.mutated_parameters,
+                        lineage_depth=candidate.lineage_depth,
+                        selection_channel=candidate.selection_channel,
+                        mutation_channel=candidate.mutation_channel,
                     )
                     inserted, replaced = archive.consider(elite)
                     counters.evaluations += 1
@@ -843,15 +1306,27 @@ def run_evolution_experiment(
                         "kind": "candidate_completed",
                         "generation": counters.generation,
                         "candidate_index": counters.candidate_index,
-                        "genome_id": genome.genome_id,
-                        "parent_id": parent_id,
-                        "mutation_seed": mutation_seed,
-                        "mutation_sigma": mutation_sigma,
-                        "mutated_parameters": mutated_parameters,
+                        "selection_strategy": config.selection_strategy,
+                        "mutation_profile": config.mutation_profile,
+                        "seed_archive_sha256": (
+                            None
+                            if seed_import is None
+                            else seed_import.metadata["archive_sha256"]
+                        ),
+                        "seed_archive_cells": (
+                            0 if seed_import is None else seed_import.metadata["archive_cells"]
+                        ),
+                        **_candidate_fields(candidate),
                         "descriptor": list(descriptor),
                         "fitness": list(fitness),
                         "metrics": metrics,
                         "actions": counters.candidate_actions,
+                        "action_telemetry": _action_telemetry(
+                            candidate_action_counts,
+                            candidate_action_transitions,
+                            longest_repeat_streak=candidate_longest_repeat_streak,
+                        ),
+                        "milestone_actions": candidate_milestone_actions,
                         "archive_inserted": inserted,
                         "replaced_genome_id": replaced,
                     }
@@ -860,12 +1335,14 @@ def run_evolution_experiment(
                     genealogy.append(record)
                     genealogy = genealogy[-256:]
                     if inserted and len(screenshots) < config.screenshot_limit:
-                        filename = f"elite-{counters.evaluations:06d}-{genome.genome_id}.png"
+                        filename = (
+                            f"elite-{counters.evaluations:06d}-{candidate.genome.genome_id}.png"
+                        )
                         _save_png(actor.observe(), output / "screenshots" / filename)
                         screenshots.append(
                             {
                                 "file": f"screenshots/{filename}",
-                                "genome_id": genome.genome_id,
+                                "genome_id": candidate.genome.genome_id,
                                 "generation": counters.generation,
                                 "descriptor": list(descriptor),
                             }
@@ -875,31 +1352,44 @@ def run_evolution_experiment(
                     if counters.candidate_index >= config.population_size:
                         counters.generation += 1
                         counters.candidate_index = 0
+                    if counters.total_actions >= config.max_actions:
+                        # The just-finished candidate is the final auditable
+                        # evaluation. Do not announce a child that will never act.
+                        stop_reason = "action_limit"
+                        break
                     counters.candidate_actions = 0
                     emulator.load_state(clean_snapshot.thaw())
                     tracker = RewardTracker("observer")
                     candidate_action_counts = {action: 0 for action in BLIND_ACTIONS}
+                    candidate_action_transitions = {}
+                    candidate_milestone_actions = {}
+                    candidate_longest_repeat_streak = 0
+                    candidate_current_repeat_streak = 0
                     referee_state = reader.read()
                     previous_action = None
-                    (
-                        genome,
-                        parent_id,
-                        mutation_seed,
-                        mutation_sigma,
-                        mutated_parameters,
-                    ) = _new_candidate(counters, archive, rng, config)
-                    policy = RecurrentPixelPolicy(genome)
+                    candidate = _new_candidate(
+                        counters, archive, rng, config, seeded=seed_import is not None
+                    )
+                    policy = RecurrentPixelPolicy(candidate.genome)
                     _append_json(
                         trace_path,
                         {
                             "kind": "candidate_started",
                             "generation": counters.generation,
                             "candidate_index": counters.candidate_index,
-                            "genome_id": genome.genome_id,
-                            "parent_id": parent_id,
-                            "mutation_seed": mutation_seed,
-                            "mutation_sigma": mutation_sigma,
-                            "mutated_parameters": mutated_parameters,
+                            "selection_strategy": config.selection_strategy,
+                            "mutation_profile": config.mutation_profile,
+                            "seed_archive_sha256": (
+                                None
+                                if seed_import is None
+                                else seed_import.metadata["archive_sha256"]
+                            ),
+                            "seed_archive_cells": (
+                                0
+                                if seed_import is None
+                                else seed_import.metadata["archive_cells"]
+                            ),
+                            **_candidate_fields(candidate),
                         },
                     )
 
@@ -921,13 +1411,14 @@ def run_evolution_experiment(
                         counters=counters,
                         config=config,
                         archive=archive,
-                        genome=genome,
-                        parent_id=parent_id,
-                        mutation_seed=mutation_seed,
-                        mutation_sigma=mutation_sigma,
-                        mutated_parameters=mutated_parameters,
+                        candidate=candidate,
                         tracker=tracker,
                         candidate_action_counts=candidate_action_counts,
+                        candidate_action_transitions=candidate_action_transitions,
+                        candidate_longest_repeat_streak=candidate_longest_repeat_streak,
+                        candidate_milestone_actions=candidate_milestone_actions,
+                        milestone_screenshots=milestone_screenshots,
+                        seed_metadata=None if seed_import is None else seed_import.metadata,
                         referee_state=referee_state,
                         run_bytes=run_bytes,
                     )
@@ -965,15 +1456,35 @@ def run_evolution_experiment(
                             },
                             "clean_snapshot": clean_snapshot.checkpoint_dict(),
                             "current_snapshot": current_snapshot.checkpoint_dict(),
-                            "current_genome": genome.checkpoint_dict(),
+                            "current_genome": candidate.genome.checkpoint_dict(),
                             "policy_hidden": policy.hidden.tolist(),
                             "previous_action": previous_action,
-                            "parent_id": parent_id,
-                            "mutation_seed": mutation_seed,
-                            "mutation_sigma": mutation_sigma,
-                            "mutated_parameters": mutated_parameters,
+                            "parent_id": candidate.parent_id,
+                            "parent_fitness": (
+                                None
+                                if candidate.parent_fitness is None
+                                else list(candidate.parent_fitness)
+                            ),
+                            "parent_metrics": candidate.parent_metrics,
+                            "lineage_depth": candidate.lineage_depth,
+                            "selection_channel": candidate.selection_channel,
+                            "mutation_channel": candidate.mutation_channel,
+                            "mutation_seed": candidate.mutation_seed,
+                            "mutation_probability": candidate.mutation_probability,
+                            "mutation_sigma": candidate.mutation_sigma,
+                            "mutated_parameters": candidate.mutated_parameters,
                             "tracker": tracker.checkpoint_dict(),
                             "candidate_action_counts": candidate_action_counts,
+                            "candidate_action_transitions": candidate_action_transitions,
+                            "candidate_longest_repeat_streak": (
+                                candidate_longest_repeat_streak
+                            ),
+                            "candidate_current_repeat_streak": candidate_current_repeat_streak,
+                            "candidate_milestone_actions": candidate_milestone_actions,
+                            "milestone_screenshots": milestone_screenshots,
+                            "seed_archive": (
+                                None if seed_import is None else seed_import.metadata
+                            ),
                             "history": history,
                             "genealogy": genealogy,
                             "screenshots": screenshots,
@@ -1004,15 +1515,29 @@ def run_evolution_experiment(
                 },
                 "clean_snapshot": clean_snapshot.checkpoint_dict(),
                 "current_snapshot": current_snapshot.checkpoint_dict(),
-                "current_genome": genome.checkpoint_dict(),
+                "current_genome": candidate.genome.checkpoint_dict(),
                 "policy_hidden": policy.hidden.tolist(),
                 "previous_action": previous_action,
-                "parent_id": parent_id,
-                "mutation_seed": mutation_seed,
-                "mutation_sigma": mutation_sigma,
-                "mutated_parameters": mutated_parameters,
+                "parent_id": candidate.parent_id,
+                "parent_fitness": (
+                    None if candidate.parent_fitness is None else list(candidate.parent_fitness)
+                ),
+                "parent_metrics": candidate.parent_metrics,
+                "lineage_depth": candidate.lineage_depth,
+                "selection_channel": candidate.selection_channel,
+                "mutation_channel": candidate.mutation_channel,
+                "mutation_seed": candidate.mutation_seed,
+                "mutation_probability": candidate.mutation_probability,
+                "mutation_sigma": candidate.mutation_sigma,
+                "mutated_parameters": candidate.mutated_parameters,
                 "tracker": tracker.checkpoint_dict(),
                 "candidate_action_counts": candidate_action_counts,
+                "candidate_action_transitions": candidate_action_transitions,
+                "candidate_longest_repeat_streak": candidate_longest_repeat_streak,
+                "candidate_current_repeat_streak": candidate_current_repeat_streak,
+                "candidate_milestone_actions": candidate_milestone_actions,
+                "milestone_screenshots": milestone_screenshots,
+                "seed_archive": None if seed_import is None else seed_import.metadata,
                 "history": history,
                 "genealogy": genealogy,
                 "screenshots": screenshots,
@@ -1029,13 +1554,14 @@ def run_evolution_experiment(
                 counters=counters,
                 config=config,
                 archive=archive,
-                genome=genome,
-                parent_id=parent_id,
-                mutation_seed=mutation_seed,
-                mutation_sigma=mutation_sigma,
-                mutated_parameters=mutated_parameters,
+                candidate=candidate,
                 tracker=tracker,
                 candidate_action_counts=candidate_action_counts,
+                candidate_action_transitions=candidate_action_transitions,
+                candidate_longest_repeat_streak=candidate_longest_repeat_streak,
+                candidate_milestone_actions=candidate_milestone_actions,
+                milestone_screenshots=milestone_screenshots,
+                seed_metadata=None if seed_import is None else seed_import.metadata,
                 referee_state=referee_state,
                 run_bytes=_directory_size(output),
             )

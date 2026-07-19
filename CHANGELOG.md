@@ -2,6 +2,28 @@
 
 ## Unreleased — evolutionary successor decision
 
+- Concluded the first 90-minute successor pretrial with clean final checkpoints: Evolutionary
+  Explorer evaluated 236 policies over 2,838,873 actions and preserved a 33-elite tier-1 archive;
+  the online learners completed roughly 2.2–2.56 million actions each and plateaued around Pallet
+  Town and Route 1.
+- Recorded a narrow inherited game-start behavior and diagnosed two candidate bottlenecks:
+  archive-wide uniform parent selection and destructive broad mutation.
+- Froze the development archive and specified a six-lane 2 × 3 engineering fork: uniform/frontier
+  selection crossed with broad/gentle/multiscale mutation, with 1,536,000 actions per lane and a
+  clean power-on Pokémon start for every child.
+- Added a public design record with evidence hashes, audience-friendly explanations, dashboard
+  measurements, a video narrative spine, and explicit fresh-run claim boundaries.
+- Implemented the generic N-lane evolution orchestrator, paired 2 × 3 preset, safe local dashboard,
+  hourly Markdown chronicle, synchronized JSONL evidence, and graceful group stopping.
+- Qualified all six treatments against the private ROM and frozen 33-elite archive: every lane
+  completed exactly one 12,000-action child, wrote one genealogy record, and exited successfully.
+- Qualified whole-lab recovery by interrupting all six children, resuming against the identical
+  manifest and archive hash, and refusing completion until every terminal status met the exact
+  action and evaluation ceilings.
+- Added synchronized ten-minute visual sets, dashboard and image hashes, and exact first-milestone
+  captures so the eventual video record does not depend on an overwritten latest frame.
+- Added explicit uniform/frontier selection, broad/gentle/multiscale mutation, sealed archive
+  import, parent/lineage provenance, mutation channels, milestone timing, and action telemetry.
 - Implemented the 13,096-parameter recurrent pixel policy, deterministic genome serialization,
   mutation-only reproduction, bounded quality-diversity archive, immutable genealogy, and resume
   checkpoints.
