@@ -52,6 +52,7 @@ from pokemon_red_ai.evolution_lab import (
 )
 from pokemon_red_ai.expedition_runner import (
     APPRENTICE_HYBRID_EMITTER,
+    FRONTIER_LEARNING_EMITTER,
     RANDOM_EXPEDITION_EMITTER,
     ExpeditionRunConfig,
     request_expedition_stop,
@@ -276,6 +277,20 @@ def build_parser() -> argparse.ArgumentParser:
     )
     expedition.add_argument("--apprentice-pre-frontier-epsilon", type=float, default=0.02)
     expedition.add_argument("--apprentice-post-frontier-epsilon", type=float, default=0.35)
+    expedition.add_argument(
+        "--frontier-learning",
+        action="store_true",
+        help=(
+            "Update the pixel policy only from replay-verified milestone suffixes and target "
+            "the complete milestone catalogue"
+        ),
+    )
+    expedition.add_argument("--frontier-learning-rate", type=float, default=0.0001)
+    expedition.add_argument("--frontier-training-epochs", type=int, default=2)
+    expedition.add_argument("--frontier-max-epsilon", type=float, default=1.0)
+    expedition.add_argument("--frontier-epsilon-ramp-actions", type=int, default=250_000)
+    expedition.add_argument("--frontier-loop-escape-actions", type=int, default=64)
+    expedition.add_argument("--frontier-loop-escape-attempts", type=int, default=2)
     expedition.add_argument("--resume", action="store_true")
 
     expedition_status = subparsers.add_parser(
@@ -667,6 +682,8 @@ def run_expedition_command(args: argparse.Namespace) -> int:
     apprentice_model = None
     apprentice_model_sha256 = ""
     emitter_kind = RANDOM_EXPEDITION_EMITTER
+    if args.frontier_learning and args.apprentice_model is None:
+        raise ValueError("--frontier-learning requires --apprentice-model")
     if args.apprentice_model is not None:
         apprentice_model = args.apprentice_model.expanduser().resolve()
         learner_metadata_path = apprentice_model / "learner.json"
@@ -674,7 +691,9 @@ def run_expedition_command(args: argparse.Namespace) -> int:
             raise ValueError("Apprentice model directory does not contain learner.json")
         learner_metadata = json.loads(learner_metadata_path.read_text(encoding="utf-8"))
         apprentice_model_sha256 = str(learner_metadata.get("file_sha256", ""))
-        emitter_kind = APPRENTICE_HYBRID_EMITTER
+        emitter_kind = (
+            FRONTIER_LEARNING_EMITTER if args.frontier_learning else APPRENTICE_HYBRID_EMITTER
+        )
     config = ExpeditionRunConfig(
         duration_seconds=args.hours * 3_600,
         max_actions=args.max_actions,
@@ -697,6 +716,12 @@ def run_expedition_command(args: argparse.Namespace) -> int:
         apprentice_model_sha256=apprentice_model_sha256,
         apprentice_pre_frontier_epsilon=args.apprentice_pre_frontier_epsilon,
         apprentice_post_frontier_epsilon=args.apprentice_post_frontier_epsilon,
+        frontier_learning_rate=args.frontier_learning_rate,
+        frontier_training_epochs=args.frontier_training_epochs,
+        frontier_max_epsilon=args.frontier_max_epsilon,
+        frontier_epsilon_ramp_actions=args.frontier_epsilon_ramp_actions,
+        frontier_loop_escape_actions=args.frontier_loop_escape_actions,
+        frontier_loop_escape_attempts=args.frontier_loop_escape_attempts,
     )
     if args.port:
         print(

@@ -1,5 +1,34 @@
 # Development log
 
+## 2026-07-20 — From a frozen handoff to a full-game learning ratchet
+
+- At the 6-hour-41-minute interruption observation, the apprentice-guided expedition had reached
+  the Pokédex after roughly 68 minutes, taken 3.24 million actions, retained 2,336 active archive
+  cells, and passed 12,442/12,442 replay checks. It had not promoted Viridian Forest during the
+  following five-plus hours. The app update interruption was resumed from the exact checkpoint.
+- Measured the plateau rather than guessing: 22,888 of 24,918 completed suffixes ended in visual
+  loops; post-Pokédex attempts averaged about 130 actions; and only about 7% of post-Pokédex starts
+  came from Route 2 while larger earlier maps absorbed much more scheduler attention.
+- Implemented the Frontier Apprentice foundation for the complete milestone catalogue: generic
+  non-repeatable trainer rewards, map-balanced frontier selection, adaptive exploration up to
+  100% during stagnation, bounded exploratory loop escapes, and pixel/action self-imitation only
+  after edge and power-on promotion replays pass.
+- Added atomic latest/previous learner files whose hashes, update counts, reward memory, and tensor
+  identities enter the runner checkpoint. A restart cannot silently load parameters from the wrong
+  side of a crash boundary.
+- Kept recurrent PPO as a controlled next ablation. Version 1 first tests the simpler causal claim
+  that a verified success can become a retained local policy skill without teaching from failures.
+- Passed the first real-ROM mechanism canary: 11,495 actions, five verified promotions through
+  choosing a starter, 763 successful actions learned, 38 optimizer updates, and 49/49 replay
+  checks. Stopped at action 8,467 and resumed with the exact learner file/tensor hashes, reward
+  memory, archive, and counters before advancing another 3,028 actions. This verifies the learning
+  and restart plumbing, not Viridian-Forest performance or game completion.
+- Preserved the less successful second seed too: it learned three promotions but ended its
+  12,000-action budget at `left_home` with 52/52 replay checks. A non-terminal twin on the final
+  build stopped at action 8,045, resumed with unchanged model and parameter hashes plus the same
+  19 updates, then reached action 11,858 with 55/55 replay checks. The canaries establish mechanism
+  reliability and seed variance; neither is a Forest qualification.
+
 ## 2026-07-20 — Leaving home becomes the beginning
 
 - Completed the full reverse-curriculum development gate in 233.9 seconds rather than eight hours:

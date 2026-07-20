@@ -53,6 +53,10 @@ from pokemon_red_ai.expedition import (
     replay_frontier_cell,
     replay_frontier_edge,
 )
+from pokemon_red_ai.frontier_learning import (
+    FRONTIER_LEARNER_POLICY_ID,
+    FrontierSelfImitationEmitter,
+)
 from pokemon_red_ai.milestones import HALL_OF_FAME_KEY, MILESTONES, MilestoneTracker
 from pokemon_red_ai.provenance import detect_source_provenance
 from pokemon_red_ai.rom import RomFingerprint
@@ -65,6 +69,7 @@ _CHECKPOINT_FRAME_SHAPE = (144, 160, 3)
 _CHECKPOINT_FRAME_ENCODING = "rgb24-base64-v1"
 RANDOM_EXPEDITION_EMITTER = "seeded_random"
 APPRENTICE_HYBRID_EMITTER = "visual_apprentice_hybrid"
+FRONTIER_LEARNING_EMITTER = "frontier_self_imitation"
 LEFT_HOME_MILESTONE_INDEX = next(
     index for index, milestone in enumerate(MILESTONES, start=1) if milestone.key == "left_home"
 )
@@ -98,6 +103,12 @@ class ExpeditionRunConfig:
     apprentice_model_sha256: str = ""
     apprentice_pre_frontier_epsilon: float = 0.02
     apprentice_post_frontier_epsilon: float = 0.35
+    frontier_learning_rate: float = 0.0001
+    frontier_training_epochs: int = 2
+    frontier_max_epsilon: float = 1.0
+    frontier_epsilon_ramp_actions: int = 250_000
+    frontier_loop_escape_actions: int = 64
+    frontier_loop_escape_attempts: int = 2
 
     def __post_init__(self) -> None:
         if self.duration_seconds <= 0 or self.max_actions < 1:
@@ -134,23 +145,32 @@ class ExpeditionRunConfig:
             raise ValueError("Expedition free-space check interval must be positive")
         if self.max_output_bytes < 1_048_576 or self.min_free_bytes < 0:
             raise ValueError("Expedition disk limits are invalid")
-        if self.emitter_kind not in {RANDOM_EXPEDITION_EMITTER, APPRENTICE_HYBRID_EMITTER}:
+        if self.emitter_kind not in {
+            RANDOM_EXPEDITION_EMITTER,
+            APPRENTICE_HYBRID_EMITTER,
+            FRONTIER_LEARNING_EMITTER,
+        }:
             raise ValueError("Expedition emitter kind is invalid")
         if not 0 <= self.apprentice_pre_frontier_epsilon <= 1:
             raise ValueError("Pre-frontier apprentice exploration must be a probability")
         if not 0 <= self.apprentice_post_frontier_epsilon <= 1:
             raise ValueError("Post-frontier apprentice exploration must be a probability")
-        if self.emitter_kind == APPRENTICE_HYBRID_EMITTER:
-            if (
-                len(self.apprentice_model_sha256) != 64
-                or any(
-                    character not in "0123456789abcdef"
-                    for character in self.apprentice_model_sha256
-                )
+        if self.emitter_kind in {APPRENTICE_HYBRID_EMITTER, FRONTIER_LEARNING_EMITTER}:
+            if len(self.apprentice_model_sha256) != 64 or any(
+                character not in "0123456789abcdef" for character in self.apprentice_model_sha256
             ):
-                raise ValueError("Hybrid expedition requires the frozen apprentice model SHA-256")
+                raise ValueError("Learned expeditions require the apprentice model SHA-256")
         elif self.apprentice_model_sha256:
             raise ValueError("Random expeditions cannot declare an apprentice model")
+        if (
+            self.frontier_learning_rate <= 0
+            or self.frontier_training_epochs < 1
+            or not self.apprentice_post_frontier_epsilon <= self.frontier_max_epsilon <= 1
+            or self.frontier_epsilon_ramp_actions < 1
+            or self.frontier_loop_escape_actions < 1
+            or self.frontier_loop_escape_attempts < 0
+        ):
+            raise ValueError("Frontier learner settings are invalid")
 
     def public_dict(self) -> dict[str, object]:
         return asdict(self)
@@ -177,6 +197,9 @@ class ExpeditionCounters:
     promotion_power_on_replay_attempts: int = 0
     promotion_power_on_replay_actions: int = 0
     promotion_power_on_replay_passes: int = 0
+    last_promotion_action: int = 0
+    loop_escape_bursts: int = 0
+    loop_escape_actions: int = 0
     elapsed_seconds: float = 0
     action_counts: Counter[str] = field(default_factory=Counter)
 
@@ -207,6 +230,9 @@ class ExpeditionCounters:
             "promotion_power_on_replay_attempts",
             "promotion_power_on_replay_actions",
             "promotion_power_on_replay_passes",
+            "last_promotion_action",
+            "loop_escape_bursts",
+            "loop_escape_actions",
         )
         integers = {name: int(value.get(name, 0)) for name in names}
         if any(item < 0 for item in integers.values()):
@@ -488,6 +514,10 @@ class VisualLoopDetector:
                 del self._counts[removed]
         return len(self._recent) >= self.repeat_limit and self._counts[key] >= self.repeat_limit
 
+    def reset(self) -> None:
+        self._recent.clear()
+        self._counts.clear()
+
 
 def adaptive_suffix_budget(
     selection_count: int,
@@ -600,6 +630,7 @@ def _implementation_sha256() -> str:
         "state.py",
         "apprentice_data.py",
         "apprentice_model.py",
+        "frontier_learning.py",
     ):
         digest.update(name.encode("utf-8"))
         digest.update((package / name).read_bytes())
@@ -903,6 +934,7 @@ def _status_payload(
     reached_milestones: set[str],
     completion_cell_id: str | None,
     emitter_identity: Mapping[str, object],
+    emitter_status: Mapping[str, Any],
 ) -> dict[str, Any]:
     active = sorted(
         archive.active_cells,
@@ -918,10 +950,13 @@ def _status_payload(
         "protocol_version": EXPEDITION_RUNNER_PROTOCOL_VERSION,
         "store_protocol_version": EXPEDITION_PROTOCOL_VERSION,
         "run_name": (
-            "Checkpoint Expedition — apprentice-guided full-game frontier"
-            if emitter_identity.get("policy_id")
-            == VisualApprenticeHybridEmitter.policy_id
-            else "Checkpoint Expedition — blind suffixes, privileged referee"
+            "Frontier Apprentice — verified full-game milestone ratchet"
+            if emitter_identity.get("policy_id") == FRONTIER_LEARNER_POLICY_ID
+            else (
+                "Checkpoint Expedition — apprentice-guided full-game frontier"
+                if emitter_identity.get("policy_id") == VisualApprenticeHybridEmitter.policy_id
+                else "Checkpoint Expedition — blind suffixes, privileged referee"
+            )
         ),
         "run_class": "development",
         "state": state,
@@ -954,6 +989,8 @@ def _status_payload(
         "cells_rejected": counters.cells_rejected,
         "ordinary_preflight_rejections": counters.ordinary_preflight_rejections,
         "loop_stops": counters.loop_stops,
+        "loop_escape_bursts": counters.loop_escape_bursts,
+        "loop_escape_actions": counters.loop_escape_actions,
         "emulator_stops": counters.emulator_stops,
         "replay_attempts": counters.replay_attempts,
         "replay_actions": counters.replay_actions,
@@ -975,6 +1012,7 @@ def _status_payload(
         "observed_milestones": sorted(reached_milestones),
         "completion_cell_id": completion_cell_id,
         "hall_of_fame_reached": completion_cell_id is not None,
+        "learner": dict(emitter_status),
         "current_attempt": None if current is None else dict(current),
         "latest_referee_state": (
             None if latest_referee_state is None else latest_referee_state.public_dict()
@@ -994,8 +1032,23 @@ def _status_payload(
             "human_demonstrations": [],
             "pretrained_components": list(emitter_identity["pretrained_components"]),
             "frozen_actor_weights": bool(emitter_identity["frozen_weights"]),
-            "trainer_routes_exploration": bool(
-                emitter_identity["trainer_routes_exploration"]
+            "trainer_routes_exploration": bool(emitter_identity["trainer_routes_exploration"]),
+            "trainer_reward_inputs": (
+                [
+                    "milestone_delta",
+                    "maps_and_warps",
+                    "coordinates",
+                    "events_items_party_pokedex_badges",
+                    "battle_transitions",
+                    "visual_loop_signal",
+                ]
+                if emitter_identity.get("policy_id") == FRONTIER_LEARNER_POLICY_ID
+                else []
+            ),
+            "weight_update_gate": (
+                "verified_named_promotion_only"
+                if emitter_identity.get("policy_id") == FRONTIER_LEARNER_POLICY_ID
+                else "disabled"
             ),
         },
         "active_frontier": [
@@ -1053,34 +1106,69 @@ def render_expedition_dashboard(status: Mapping[str, Any]) -> str:
         isinstance(boundary, Mapping)
         and boundary.get("action_emitter") == VisualApprenticeHybridEmitter.policy_id
     )
+    learning = bool(
+        isinstance(boundary, Mapping)
+        and boundary.get("action_emitter") == FRONTIER_LEARNER_POLICY_ID
+    )
     eyebrow = (
-        "FROZEN VISUAL APPRENTICE + SEEDED EXPLORATION · FULL-GAME DEVELOPMENT"
-        if hybrid
-        else "RANDOM DISCOVERY BASELINE · NOT A LEARNED MODEL"
+        "FRONTIER APPRENTICE · VERIFIED MILESTONE SELF-IMITATION"
+        if learning
+        else (
+            "FROZEN VISUAL APPRENTICE + SEEDED EXPLORATION · FULL-GAME DEVELOPMENT"
+            if hybrid
+            else "RANDOM DISCOVERY BASELINE · NOT A LEARNED MODEL"
+        )
     )
     headline = (
-        "Leaving home was<br/>only the beginning."
-        if hybrid
-        else "Evolution is allowed<br/>to remember."
+        "Every verified frontier<br/>becomes a lesson."
+        if learning
+        else (
+            "Leaving home was<br/>only the beginning."
+            if hybrid
+            else "Evolution is allowed<br/>to remember."
+        )
     )
     lede = (
-        "A frozen pixel policy supplies learned opening behavior. After the house frontier, "
-        "seeded exploratory actions increase while Archive v2 preserves and replay-verifies "
-        "later milestones toward the Hall of Fame."
-        if hybrid
-        else "A seeded-random actor emits buttons without RAM or milestone access. A sealed "
-        "referee may recognize progress and choose restorable stepping stones. Named promotions "
-        "must replay their complete input lineage from power-on."
+        "A pixel policy explores from verified checkpoints. Only a milestone suffix that passes "
+        "its edge proof and three complete power-on replays may update the model; the same rule "
+        "ratchets through the full catalogue to the Hall of Fame."
+        if learning
+        else (
+            "A frozen pixel policy supplies learned opening behavior. After the house frontier, "
+            "seeded exploratory actions increase while Archive v2 preserves and replay-verifies "
+            "later milestones toward the Hall of Fame."
+            if hybrid
+            else "A seeded-random actor emits buttons without RAM or milestone access. A sealed "
+            "referee may recognize progress and choose restorable stepping stones. Named "
+            "promotions must replay their complete input lineage from power-on."
+        )
     )
     contract = (
         "The actor receives pixels, previous action, recurrent state, and a seeded exploration "
-        "coin. A trainer uses the verified parent milestone only to raise exploration after "
-        "left_home. Neural weights are frozen; the archive and scheduler accumulate progress."
-        if hybrid
-        else "Buttons come only from a seeded PRNG. The loop detector sees rendered pixels. RAM "
-        "is read only by the referee, and checkpoints never enter the actor. This is "
-        "checkpoint-assisted discovery, not a continuous learned-policy completion."
+        "coin. Trainer-only RAM creates an explicit reward ledger and verifies milestones, but "
+        "never enters the policy. Model updates use only pixel/action suffixes that passed replay."
+        if learning
+        else (
+            "The actor receives pixels, previous action, recurrent state, and a seeded exploration "
+            "coin. A trainer uses the verified parent milestone only to raise exploration after "
+            "left_home. Neural weights are frozen; the archive and scheduler accumulate progress."
+            if hybrid
+            else "Buttons come only from a seeded PRNG. The loop detector sees rendered pixels. "
+            "RAM is read only by the referee, and checkpoints never enter the actor. This is "
+            "checkpoint-assisted discovery, not a continuous learned-policy completion."
+        )
     )
+    learner = status.get("learner", {})
+    learner_stats = ""
+    if learning and isinstance(learner, Mapping):
+        learning_updates = int(learner.get("updates", 0))
+        learned_milestones = int(learner.get("promotions_learned", 0))
+        trainer_reward = float(learner.get("reward_total", 0))
+        learner_stats = (
+            f"<div><span>Learning updates</span><strong>{learning_updates:,}</strong></div>"
+            f"<div><span>Milestones learned</span><strong>{learned_milestones:,}</strong></div>"
+            f"<div><span>Trainer reward</span><strong>{trainer_reward:,.1f}</strong></div>"
+        )
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -1126,7 +1214,7 @@ var(--line);border-radius:12px}}footer{{color:var(--muted);font-size:.7rem;margi
 <div><span>Promotion replay passes</span>
 <strong>{int(status.get("promotion_power_on_replay_passes", 0)):,} /
 {int(status.get("promotion_power_on_replay_attempts", 0)):,}</strong></div>
-<div><span>Stop reason</span><strong>{reason}</strong></div></div></article>
+<div><span>Stop reason</span><strong>{reason}</strong></div>{learner_stats}</div></article>
 <article class="card"><span>Best verified frontier</span>
 <div class="milestone">{html.escape(str(best.get("label", "Clean power-on")))}</div>
 <div class="attempt">{html.escape(current_label)}</div>
@@ -1699,6 +1787,7 @@ def _checkpoint_payload(
     started_at: str,
     trace_offset: int,
     latest_frame_pixels: np.ndarray,
+    emitter_state: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     if latest_frame_pixels.shape != _CHECKPOINT_FRAME_SHAPE:
         raise ValueError("Expedition checkpoint frame has an invalid shape")
@@ -1740,6 +1829,7 @@ def _checkpoint_payload(
         "completion_cell_id": completion_cell_id,
         "started_at": started_at,
         "trace_offset": trace_offset,
+        "emitter_state": None if emitter_state is None else dict(emitter_state),
     }
 
 
@@ -1839,21 +1929,48 @@ def _run_expedition_locked(
         _canonical_json(config.public_dict()).encode("utf-8")
     ).hexdigest()
     rng = random.Random(config.seed)
+    resume_emitter_state: Mapping[str, Any] | None = None
+    if resume and config.emitter_kind == FRONTIER_LEARNING_EMITTER:
+        _preview_path, preview_checkpoint = _read_checkpoint(checkpoint_path)
+        raw_emitter_state = preview_checkpoint.get("emitter_state")
+        if not isinstance(raw_emitter_state, Mapping):
+            raise ValueError("Frontier learner runner checkpoint is missing")
+        resume_emitter_state = raw_emitter_state
     if config.emitter_kind == APPRENTICE_HYBRID_EMITTER:
         if apprentice_model_directory is None:
             raise ValueError("Hybrid expedition requires --apprentice-model")
-        emitter: SeededRandomSequenceEmitter | VisualApprenticeHybridEmitter = (
-            VisualApprenticeHybridEmitter(
-                rng,
-                apprentice_model_directory,
-                expected_model_sha256=config.apprentice_model_sha256,
-            )
+        emitter: (
+            SeededRandomSequenceEmitter
+            | VisualApprenticeHybridEmitter
+            | FrontierSelfImitationEmitter
+        ) = VisualApprenticeHybridEmitter(
+            rng,
+            apprentice_model_directory,
+            expected_model_sha256=config.apprentice_model_sha256,
+        )
+    elif config.emitter_kind == FRONTIER_LEARNING_EMITTER:
+        if apprentice_model_directory is None:
+            raise ValueError("Frontier learning requires --apprentice-model")
+        emitter = FrontierSelfImitationEmitter(
+            rng,
+            apprentice_model_directory,
+            output,
+            expected_model_sha256=config.apprentice_model_sha256,
+            learning_rate=config.frontier_learning_rate,
+            training_epochs=config.frontier_training_epochs,
+            resume_state=resume_emitter_state,
         )
     else:
         if apprentice_model_directory is not None:
             raise ValueError("Random expedition cannot load an apprentice model")
         emitter = SeededRandomSequenceEmitter(rng)
     emitter_identity = emitter.public_identity()
+
+    def emitter_checkpoint_state() -> Mapping[str, Any] | None:
+        if isinstance(emitter, FrontierSelfImitationEmitter):
+            return emitter.checkpoint_state()
+        return None
+
     store_metadata = {
         "runner_protocol_version": EXPEDITION_RUNNER_PROTOCOL_VERSION,
         "verification_protocol": "edge-and-promotion-v2",
@@ -2132,6 +2249,7 @@ def _run_expedition_locked(
                     started_at=started_at,
                     trace_offset=recovery_trace_offset,
                     latest_frame_pixels=resume_pixels,
+                    emitter_state=emitter_checkpoint_state(),
                 ),
             )
 
@@ -2204,6 +2322,11 @@ def _run_expedition_locked(
                 reached_milestones=reached_milestones,
                 completion_cell_id=completion_cell_id,
                 emitter_identity=emitter_identity,
+                emitter_status=(
+                    emitter.public_status()
+                    if isinstance(emitter, FrontierSelfImitationEmitter)
+                    else {}
+                ),
             )
             reported_bytes = disk_monitor.run_bytes
             _write_live_artifacts(output, status, latest_pixels)
@@ -2322,11 +2445,28 @@ def _run_expedition_locked(
             return cell, False
 
         counters.cells_admitted += 1
-        if candidate.progress.index > best_progress.index:
+        new_global_milestone = candidate.progress.index > best_progress.index
+        if new_global_milestone:
             best_progress = candidate.progress
+            counters.last_promotion_action = counters.total_actions
             filename = f"{best_progress.index:03d}-{best_progress.key}.png"
             _save_png(candidate.pixels, output / "milestones" / filename)
             disk_monitor.observe_files(output / "milestones" / filename)
+            if isinstance(emitter, FrontierSelfImitationEmitter):
+                learning_result = emitter.learn_from_verified_promotion(best_progress)
+                _append_json(
+                    trace_path,
+                    {
+                        "kind": "frontier_learner_updated",
+                        "recorded_at": datetime.now(UTC).isoformat(),
+                        **learning_result,
+                    },
+                )
+                disk_monitor.observe_files(
+                    trace_path,
+                    output / "frontier-learner.pt",
+                    output / "frontier-learner.previous.pt",
+                )
         if candidate.progress.key == HALL_OF_FAME_KEY:
             completion_cell_id = cell.cell_id
         return cell, True
@@ -2421,6 +2561,7 @@ def _run_expedition_locked(
                         started_at=started_at,
                         trace_offset=trace_offset,
                         latest_frame_pixels=latest_pixels,
+                        emitter_state=emitter_checkpoint_state(),
                     ),
                 )
                 checkpoint_written()
@@ -2431,6 +2572,7 @@ def _run_expedition_locked(
                     rng,
                     frontier_probability=config.frontier_probability,
                     rehearsal_probability=config.rehearsal_probability,
+                    balance_frontier_maps=isinstance(emitter, FrontierSelfImitationEmitter),
                 )
                 attempts_by_parent[parent.cell_id] = attempts_by_parent.get(parent.cell_id, 0) + 1
                 selection_count = attempts_by_parent[parent.cell_id]
@@ -2450,20 +2592,35 @@ def _run_expedition_locked(
                     config.loop_repeat_limit,
                 )
                 verified_progress = _progress_for_cell(parent)
-                exploration_probability = (
-                    config.apprentice_post_frontier_epsilon
-                    if verified_progress.index >= LEFT_HOME_MILESTONE_INDEX
-                    else config.apprentice_pre_frontier_epsilon
-                )
+                if (
+                    isinstance(emitter, FrontierSelfImitationEmitter)
+                    and verified_progress.index >= LEFT_HOME_MILESTONE_INDEX
+                ):
+                    stale_actions = max(0, counters.total_actions - counters.last_promotion_action)
+                    ramp = min(1.0, stale_actions / config.frontier_epsilon_ramp_actions)
+                    exploration_probability = config.apprentice_post_frontier_epsilon + ramp * (
+                        config.frontier_max_epsilon - config.apprentice_post_frontier_epsilon
+                    )
+                else:
+                    exploration_probability = (
+                        config.apprentice_post_frontier_epsilon
+                        if verified_progress.index >= LEFT_HOME_MILESTONE_INDEX
+                        else config.apprentice_pre_frontier_epsilon
+                    )
                 emitter.reset(
                     actor,
                     exploration_probability=exploration_probability,
                 )
+                if isinstance(emitter, FrontierSelfImitationEmitter):
+                    emitter.reward_tracker.prime(reader.read(), verified_progress)
                 segment_actions: list[BlindAction] = []
                 candidate_buffer = SuffixCandidateBuffer()
                 committed_cell: FrontierCell | None = None
                 committed_admitted = False
                 attempt_reason = "suffix_budget"
+                attempt_reward = 0.0
+                attempt_reward_components: Counter[str] = Counter()
+                loop_escape_bursts = 0
                 current_attempt = {
                     "number": counters.attempts,
                     "parent_id": parent.cell_id,
@@ -2477,6 +2634,9 @@ def _run_expedition_locked(
                     "candidate_captures": 0,
                     "ordinary_candidates_persisted": 0,
                     "ordinary_candidate_preflight": None,
+                    "reward_total": 0.0,
+                    "reward_components": {},
+                    "loop_escape_bursts": 0,
                 }
                 _append_json(
                     trace_path,
@@ -2513,6 +2673,19 @@ def _run_expedition_locked(
                         visual_key=key,
                     )
                     loop_detected = loop_detector.observe(key)
+                    if isinstance(emitter, FrontierSelfImitationEmitter):
+                        reward_step = emitter.reward_tracker.score(
+                            latest_state,
+                            candidate_progress,
+                            action_button=action.button,
+                            loop_detected=loop_detected,
+                        )
+                        attempt_reward += reward_step.total
+                        attempt_reward_components.update(reward_step.components)
+                        current_attempt["reward_total"] = round(attempt_reward, 4)
+                        current_attempt["reward_components"] = dict(
+                            sorted(attempt_reward_components.items())
+                        )
                     capture_frontier = (
                         milestone_advanced
                         or suffix_action % config.frontier_capture_interval_actions == 0
@@ -2528,6 +2701,17 @@ def _run_expedition_locked(
                             tracker=tracker,
                         )
                         screen_sha256 = hashlib.sha256(latest_pixels.tobytes()).hexdigest()
+                        candidate_priority = archive.candidate_priority(
+                            descriptor,
+                            summary,
+                            parent.depth_actions + len(segment_actions),
+                        )
+                        if isinstance(emitter, FrontierSelfImitationEmitter):
+                            candidate_priority = (
+                                candidate_priority[0],
+                                int(round(attempt_reward * 1_000)),
+                                *candidate_priority[1:],
+                            )
                         candidate = BufferedSuffixCandidate(
                             snapshot=FrozenSnapshot.freeze(emulator.save_state()),
                             actions_from_parent=tuple(segment_actions),
@@ -2537,11 +2721,7 @@ def _run_expedition_locked(
                             referee_summary=summary,
                             progress=candidate_progress,
                             pixels=latest_pixels.copy(),
-                            priority=archive.candidate_priority(
-                                descriptor,
-                                summary,
-                                parent.depth_actions + len(segment_actions),
-                            ),
+                            priority=candidate_priority,
                         )
                         current_attempt["candidate_captures"] = (
                             candidate_buffer.captures_observed + 1
@@ -2560,6 +2740,18 @@ def _run_expedition_locked(
                             break
                         candidate_buffer.offer(candidate)
 
+                    if (
+                        loop_detected
+                        and isinstance(emitter, FrontierSelfImitationEmitter)
+                        and loop_escape_bursts < config.frontier_loop_escape_attempts
+                    ):
+                        loop_escape_bursts += 1
+                        counters.loop_escape_bursts += 1
+                        counters.loop_escape_actions += config.frontier_loop_escape_actions
+                        current_attempt["loop_escape_bursts"] = loop_escape_bursts
+                        emitter.force_exploration(config.frontier_loop_escape_actions)
+                        loop_detector.reset()
+                        continue
                     if loop_detected:
                         counters.loop_stops += 1
                         attempt_reason = "visual_loop"
@@ -2620,6 +2812,9 @@ def _run_expedition_locked(
                         "selection_channel": channel,
                         "suffix_budget": suffix_budget,
                         "actions_executed": int(current_attempt["actions"]),
+                        "reward_total": float(current_attempt["reward_total"]),
+                        "reward_components": dict(current_attempt["reward_components"]),
+                        "loop_escape_bursts": int(current_attempt["loop_escape_bursts"]),
                         "stop_reason": attempt_reason,
                         "best_milestone": best_progress.public_dict(),
                     },
@@ -2644,6 +2839,7 @@ def _run_expedition_locked(
                         started_at=started_at,
                         trace_offset=trace_offset,
                         latest_frame_pixels=latest_pixels,
+                        emitter_state=emitter_checkpoint_state(),
                     ),
                 )
                 checkpoint_written()
@@ -2686,6 +2882,7 @@ def _run_expedition_locked(
                 started_at=started_at,
                 trace_offset=resume_trace_offset,
                 latest_frame_pixels=latest_pixels,
+                emitter_state=emitter_checkpoint_state(),
             ),
         )
         checkpoint_written()

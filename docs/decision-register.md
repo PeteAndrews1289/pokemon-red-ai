@@ -938,6 +938,47 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
 - **Supersedes / superseded by:** Refines DR-0041's campaign configuration without changing its
   information boundary or Hall-of-Fame terminal condition.
 
+## DR-0043 — Make every verified milestone a learning boundary
+
+- **Date:** 2026-07-20
+- **Status:** Implemented; mechanism canary passed, Forest qualification pending
+- **Scope:** Full-game successor to the frozen apprentice handoff
+- **Information label:** `PIXEL-ACTOR / PRIVILEGED-TRAINING-REFEREE / ARCHIVE-RESTORE /
+  HYBRID-SYSTEM`; later frozen evaluations remain separate
+- **Decision:** Apply one generic ratchet to all 55 milestones. Begin with the completed apprentice
+  weights, increase exploration from 35% toward 100% during a plateau, balance frontier selection
+  across maps, allow two bounded random loop-escape bursts, and update the policy only from the
+  pixel/action suffix of a newly promoted milestone after its exact edge replay and three complete
+  power-on replays pass. Preserve bounded earlier-milestone exemplars and an anchor to the initial
+  parameters. Record dense trainer rewards now, but defer learning from failed/rewarded steps to a
+  matched recurrent-PPO ablation.
+- **Alternatives considered:** Increase archive capacity again; let the frozen house policy retain
+  65% control forever; train from every random failure; hard-code Viridian Forest or later routes;
+  implement late-game milestones as separate runners; adopt PPO before a verify-before-update
+  baseline exists; discard checkpoint provenance to make model resume easier.
+- **Observation/evidence:** The handoff reached the Pokédex in about 68 minutes and then went more
+  than five hours without the next promotion. Visual loops ended 91.9% of measured suffixes, while
+  the active archive was well below its 8,192-cell ceiling. The constraint was useful action and
+  compute allocation, not table capacity. Exact replay integrity remained perfect at the measured
+  interruption. The first learner canary then completed 11,495 actions around an intentional
+  stop/resume, promoted five milestones through choosing a starter, learned 763 verified-success
+  actions in 38 updates, and passed 49/49 replay checks. Resume matched the checkpointed learner
+  file and parameter hashes exactly before further action. A second seed stopped at `left_home`
+  after 12,000 actions with 52/52 replay checks; its non-terminal twin also resumed exactly at
+  action 8,045 and reached 11,858 actions with 55/55 checks. Both outcomes remain in the record.
+- **Interpretation:** Archive memory can retain location but cannot make a frozen local model learn
+  unseen navigation, dialogue, or battle behavior. A verified success is the strongest available
+  causal teaching event. Using the canonical catalogue makes the mechanism stage-independent while
+  preserving the distinction between assisted training and clean-policy evaluation.
+- **Consequence:** Frontier Apprentice owns the next Viridian-Forest qualification, but its code
+  must already target Hall of Fame. The dashboard and trace expose rewards, updates, exploration,
+  loop escapes, milestones, and parameter hashes. Only a separately frozen power-on attempt may
+  support H5 language.
+- **Revisit when:** The real-ROM canary completes, the Forest gate passes or fails, or recurrent PPO
+  is ready for a matched reward/archive comparison.
+- **Supersedes / superseded by:** Supersedes DR-0041's frozen post-house actor as the primary
+  learning direction; retains DR-0041 and DR-0042 as baseline evidence.
+
 ## Unresolved decisions
 
 These are questions, not hidden commitments. Each becomes a numbered entry when evidence supports

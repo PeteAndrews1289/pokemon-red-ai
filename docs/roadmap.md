@@ -36,9 +36,13 @@
     continue withholding H2 until a frozen policy passes held-out local starts.
 15. 🟨 Use the completed local model as a frozen visual prior in a full-game Archive v2 campaign;
     continue after `left_home` and stop only at Hall of Fame or declared resource boundaries.
-14. ⬜ Compare qualified optimized/learned emitters under a matched house-exit gate.
-15. ⬜ Distill useful self-generated lineages into a richer frozen visual policy.
-16. ✅ Replace Monkey in the four-lane pretrial dashboard.
+16. ✅ Implement [Frontier Apprentice](frontier-apprentice.md): adaptive exploration,
+    map-balanced scheduling, loop-escape bursts, full-game reward accounting, and self-imitation
+    only after verified named promotions; pass its real-ROM mechanism and exact-resume canary.
+17. ⬜ Qualify the learner on the Viridian-Forest gate against the frozen handoff baseline.
+18. ⬜ Compare verified self-imitation with recurrent PPO under the same reward and archive rules.
+19. ⬜ Distill useful self-generated lineages into a richer frozen visual policy.
+20. ✅ Replace Monkey in the four-lane pretrial dashboard.
 
 ## Later informed-agent roadmap
 

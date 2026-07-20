@@ -1553,6 +1553,7 @@ class FrontierArchive:
         *,
         frontier_probability: float = 0.70,
         rehearsal_probability: float = 0.10,
+        balance_frontier_maps: bool = False,
     ) -> tuple[FrontierCell, str]:
         if not self.active_by_key:
             raise RuntimeError("Cannot select from an empty frontier archive")
@@ -1586,11 +1587,35 @@ class FrontierArchive:
             else:
                 pool = cells
                 channel = "underexplored"
+        prefer_recent = False
+        if balance_frontier_maps and channel == "frontier" and len(pool) > 1:
+            map_groups: dict[int | None, list[FrontierCell]] = {}
+            for cell in pool:
+                map_groups.setdefault(cell.descriptor.map_id, []).append(cell)
+            if len(map_groups) > 1:
+                selected_map = min(
+                    map_groups,
+                    key=lambda map_id: (
+                        sum(
+                            self.selection_counts.get(cell.cell_id, 0)
+                            for cell in map_groups[map_id]
+                        ),
+                        -max(cell.discovered_global_action for cell in map_groups[map_id]),
+                        -1 if map_id is None else map_id,
+                    ),
+                )
+                pool = map_groups[selected_map]
+                channel = "frontier_map_balanced"
+                prefer_recent = True
         selected = min(
             pool,
             key=lambda cell: (
                 self.selection_counts.get(cell.cell_id, 0),
-                cell.discovered_global_action,
+                (
+                    -cell.discovered_global_action
+                    if prefer_recent
+                    else cell.discovered_global_action
+                ),
                 cell.cell_id,
             ),
         )
