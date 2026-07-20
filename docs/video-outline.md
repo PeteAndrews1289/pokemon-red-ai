@@ -171,6 +171,13 @@ passes, show the replay four times before celebrating it. If the archive-assiste
 reaches the Hall of Fame, end on the next harder question: can one frozen policy do it from power-on
 without checkpoint help?
 
+Use PPO versions 1–3 as a compact objective-design sequence. Version 1 repeatedly rediscovered
+familiar coordinates after resets. Version 2 remembered those coordinates, then made battle endings
+its dominant return while Route 1 remained the verified frontier. Freeze on the word **ENDED**, cross
+it out, and replace it with **DURABLE PROGRESS: EXPERIENCE OR CAPTURE**. The visual argument is that
+better bookkeeping exposed a second ambiguity; it is not a montage claiming the third design has
+already solved combat.
+
 ### Suggested beats
 
 1. **The retirement:** replay Pure Monkey's best moments, then reveal that every next action still

@@ -1,5 +1,29 @@
 # Development log
 
+## 2026-07-20 — Ending a battle was not the same as winning it
+
+- Version 2 initially improved global coverage after persistent novelty removed the first reset
+  loophole, surpassing version 1's final coverage with less than half as many actions.
+- The next interval revealed a new plateau: at 724,996 actions and 41 minutes it remained at Route
+  1, added only 24 global positions across 366,592 actions, and received 2,930 reward for 293 battle
+  endings. The optimizer remained active; the objective was cheaper than the story goal.
+- Removed the generic ten-point battle-ending payment. Version 3 gives two points only when a
+  battle ends after durable experience or capture progress. No-progress exits receive no reward and
+  are counted explicitly rather than disappearing from the narrative ledger.
+- Added read-only three-byte party experience from the verified Pokémon Red structure. Only a new
+  worker-lifetime total can pay experience reward, and at most 500 points are credited in one
+  observation, preventing checkpoint resets or a large party change from producing an unbounded
+  windfall.
+- Added battle-start, success, no-progress exit, and blackout telemetry to the live status,
+  dashboard, and hourly Markdown chronicle. Bumped the PPO protocol and made cross-version resume
+  fail with a direct error.
+- Passed a real-ROM battle canary: 8,192 actions, 64 PPO updates, one battle start, 24 experience,
+  one classified success, no generic battle-ending reward, and exact final model/novelty hashes.
+  Passed a separate graceful-resume canary from action 7,607 to the original 8,192-action ceiling
+  with the version-3 protocol and persistent experience memory intact.
+- Preserved the video beat: return rose while the verified-progress meter stayed flat. The lesson
+  is not “the AI was lazy”; it is that the machine optimized the exact transition we rewarded.
+
 ## 2026-07-20 — Episode novelty was the wrong lesson
 
 - Stopped the first long PPO run deliberately at 862,212 actions, 208 episodes, 469 globally unique

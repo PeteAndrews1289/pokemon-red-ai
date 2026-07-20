@@ -29,6 +29,7 @@ def state(**changes: object) -> PokemonRedState:
         "badge_bits": 0,
         "party_species": (1,),
         "party_levels": (5,),
+        "party_experience": (125,),
         "party_moves": (33,),
         "pokedex_owned": bytes(19),
         "pokedex_seen": bytes(19),
@@ -128,6 +129,109 @@ def test_reward_prime_absorbs_every_restored_parent_without_repaying_it() -> Non
     assert restored_parent.total == 0
     assert tracker.best_milestone_index == pokedex.index
     assert (0x01, 12, 20) in tracker.seen_positions
+
+
+def test_battle_reward_requires_durable_progress_and_records_outcomes() -> None:
+    tracker = FullGameRewardTracker()
+    route = MilestoneProgress("reached_route_1", 7, "Reached Route 1")
+    tracker.prime(state(party_experience=(125,)), route)
+
+    started = tracker.score(
+        state(battle_state=1, party_experience=(125,)),
+        route,
+        action_button="a",
+        loop_detected=False,
+    )
+    escaped = tracker.score(
+        state(battle_state=0, party_experience=(125,)),
+        route,
+        action_button="b",
+        loop_detected=False,
+    )
+
+    assert started.battle_event == "started"
+    assert escaped.battle_event == "ended_without_progress"
+    assert "battle_success" not in escaped.components
+
+    tracker.score(
+        state(battle_state=1, party_experience=(125,)),
+        route,
+        action_button="a",
+        loop_detected=False,
+    )
+    gained = tracker.score(
+        state(battle_state=1, party_experience=(175,)),
+        route,
+        action_button="a",
+        loop_detected=False,
+    )
+    won = tracker.score(
+        state(battle_state=0, party_experience=(175,)),
+        route,
+        action_button="b",
+        loop_detected=False,
+    )
+
+    assert gained.components["experience_gain"] == pytest.approx(1.0)
+    assert won.components["battle_success"] == 2
+    assert won.battle_event == "success"
+
+
+def test_experience_reward_is_lifetime_bounded_but_local_wins_still_count() -> None:
+    tracker = FullGameRewardTracker()
+    route = MilestoneProgress("reached_route_1", 7, "Reached Route 1")
+    tracker.prime(state(party_experience=(1_000,)), route)
+    tracker.prime(state(party_experience=(100,)), route)
+    tracker.score(
+        state(battle_state=1, party_experience=(100,)),
+        route,
+        action_button="a",
+        loop_detected=False,
+    )
+    below_record = tracker.score(
+        state(battle_state=1, party_experience=(150,)),
+        route,
+        action_button="a",
+        loop_detected=False,
+    )
+    won = tracker.score(
+        state(battle_state=0, party_experience=(150,)),
+        route,
+        action_button="b",
+        loop_detected=False,
+    )
+
+    assert "experience_gain" not in below_record.components
+    assert won.battle_event == "success"
+    assert won.components["battle_success"] == 2
+    assert tracker.max_party_experience == 1_000
+
+    restored = FullGameRewardTracker.from_checkpoint_dict(tracker.checkpoint_dict())
+    assert restored.max_party_experience == 1_000
+
+
+def test_single_observation_experience_windfall_is_capped() -> None:
+    tracker = FullGameRewardTracker()
+    route = MilestoneProgress("reached_route_1", 7, "Reached Route 1")
+    tracker.prime(state(party_experience=(100,)), route)
+
+    result = tracker.score(
+        state(party_experience=(10_100,)),
+        route,
+        action_button="a",
+        loop_detected=False,
+    )
+
+    assert result.components["experience_gain"] == 10
+    assert tracker.max_party_experience == 10_100
+
+
+def test_legacy_battle_ending_reward_memory_is_rejected() -> None:
+    checkpoint = FullGameRewardTracker().checkpoint_dict()
+    checkpoint["config"] = {"battle_ended": 10.0}
+
+    with pytest.raises(ValueError, match="Legacy battle-ending reward"):
+        FullGameRewardTracker.from_checkpoint_dict(checkpoint)
 
 
 class FakePixelsActor:

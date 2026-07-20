@@ -115,7 +115,8 @@ The reward ledger reuses the full-game shaping catalog:
 - named milestone advancement;
 - first visit to a map, coordinate, or warp during that worker's campaign;
 - newly observed event flags, badges, party members, levels, moves, species, and items;
-- battles ending;
+- worker-lifetime record experience, capped per observation;
+- battles ending only after durable experience or capture progress;
 - blackouts, repeated actions, and later loop signals as penalties.
 
 Each restored parent is primed before scoring, so PPO is not paid merely for loading a good
@@ -130,6 +131,21 @@ memory before the first scored action. Four workers may each discover the same f
 worker can farm it on every episode. Every worker's compressed novelty memory is immutable,
 content-hashed, and bound into each PPO checkpoint, so a graceful resume cannot reset the reward
 history. The complete component totals are written to status and hourly narrative records.
+
+Version 2 then exposed a second loophole. At 724,996 actions and 41 minutes it remained at Route 1:
+the preceding 366,592-action interval added only 24 global positions while paying 2,930 reward for
+293 more battle endings. An optimizer can learn to enter and leave frequent Route 1 encounters
+without learning to win them. Version 3 therefore removes unconditional `battle_ended` reward.
+A battle now earns a reduced `battle_success` value of 2 only if that same battle produced durable
+experience or a newly owned species. Leaving without either produces no reward and is counted as
+`ended_without_progress` on the dashboard. New party experience pays 0.02 per point only above the
+worker's lifetime record, with at most 500 points rewarded at one observation. A reset can therefore
+absorb an inherited experience total but cannot repay it. Blackouts retain their explicit penalty.
+
+This is not a claim that RAM tells the actor how to battle. The pixels-only policy still receives
+only two frames and its previous action. The trainer reads the documented three-byte experience
+field to decide whether an outcome deserves training credit. The protocol is bumped to
+`parallel-recurrent-ppo-v3`; version-2 PPO weights are not resumed under the new objective.
 
 Reward remains a training diagnostic. A high return does not mean the agent completed a quest,
 defeated a Gym Leader, or reached the Hall of Fame.
@@ -152,6 +168,19 @@ This keeps two ideas separate:
 
 - **PPO update:** the policy learned from a rollout batch; and
 - **verified promotion:** the experiment proved a new durable game outcome.
+
+### Version-3 battle-credit canaries
+
+The first real-ROM version-3 canary completed 8,192 actions, 64 optimizer updates, and eight
+episodes. It recorded one battle start, then 24 experience points, then one successful battle. Its
+reward ledger contained `experience_gain=0.48` and `battle_success=2.0`; `battle_ended` was absent.
+The final model archive and compressed worker memory matched their checkpoint hashes, and the worker
+memory retained total party experience 159.
+
+A separate canary requested a graceful stop at action 7,607. Version 3 restored the hash-checked
+model, optimizer, and worker reward memory, then reached the original 8,192-action ceiling and 64
+total updates. These checks establish wiring, classification, and restart behavior. One successful
+wild encounter does not establish robust battle skill or later-game advancement.
 
 ## Checkpoints and interruption semantics
 
@@ -199,7 +228,8 @@ The live page refreshes every five seconds and shows:
 - environment count and current run state;
 - best replay-verified milestone;
 - PPO update and verified-promotion counts;
-- episodes and unique map positions; and
+- episodes and unique map positions;
+- successful versus no-progress battle exits; and
 - the latest rendered frame from every emulator worker.
 
 TensorBoard receives optimizer metrics. `status.json` supplies machine-readable counters.

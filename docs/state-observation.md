@@ -2,13 +2,12 @@
 
 ## Purpose
 
-The Phase 0 instrumentation snapshot is intentionally small. It lets the harness validate maps,
-position, party size, and battles without exposing all of game memory or providing any way to alter
-it. No acting agent consumes these fields. The primary game-naive track permanently keeps all six
-fields out of policy input, reward, termination, resets, archive selection, and checkpoint
-selection. A future explicitly instrumented comparison would be a different protocol.
+The read-only state adapter began as a six-field Phase 0 instrument and now also supplies the sealed
+training referee with declared collection and party progress. It never provides a memory-writing
+method. Pixels-only policies consume none of these fields; the trainer may use the expanded fields
+for reward, curriculum, replay verification, and reporting under an explicitly labeled protocol.
 
-The observer reads only six named bytes:
+The original six public fields remain:
 
 | Public field | Pokémon Red symbol | Address | Meaning |
 | --- | --- | ---: | --- |
@@ -26,6 +25,13 @@ are already present in RAM behind Professor Oak's introduction and otherwise loo
 `battle_state` is interpreted as `0` for no battle, `1` for wild, `2` for trainer, and `255` for a
 loss/blackout transition. Unknown values are preserved and labeled `unknown` rather than guessed.
 
+The expanded referee additionally reads badges, party species/levels/moves, Pokédex bitfields,
+event flags, bag item identifiers, and the Pokédex story flag. Parallel PPO version 3 adds each
+party member's three-byte `MON_EXP` value at offset 14 of the 44-byte `wPartyMons` structure. Those
+bytes are decoded in big-endian order and exposed as `party_experience`; their sum is
+`total_party_experience`. Experience remains trainer-only in pixels mode. It is used to distinguish
+a battle with durable growth from merely fleeing or closing the battle interface.
+
 ## Boundaries and caveats
 
 - The adapter has a read-one-byte interface and no memory-writing method.
@@ -36,7 +42,7 @@ loss/blackout transition. Unknown values are preserved and labeled `unknown` rat
   value while the map changes.
 - A party count of zero is valid before the player chooses a starter.
 - Menu and text scratch variables are deliberately excluded because they can remain stale.
-- Map names, event flags, species, opponent data, text identifiers, and raw memory are not exposed.
+- Opponent data, text identifiers, arbitrary raw memory, and memory mutation remain excluded.
 
 Instrumentation fields should be sampled at controller action boundaries. A future policy
 observation schema may select carefully justified fields, but it receives its own version and must
@@ -52,5 +58,6 @@ The symbols were generated from
 A local build produced SHA-1 `ea9bcae617fdf159b045185467ae58b2e4a48b9a`, matching the
 supported ROM exactly. Primary references are
 [`ram/wram.asm`](https://github.com/pret/pokered/blob/1e96034092686d006e863cace09e87273051a3d8/ram/wram.asm),
+[`constants/pokemon_data_constants.asm`](https://github.com/pret/pokered/blob/1e96034092686d006e863cace09e87273051a3d8/constants/pokemon_data_constants.asm),
 [`constants/ram_constants.asm`](https://github.com/pret/pokered/blob/1e96034092686d006e863cace09e87273051a3d8/constants/ram_constants.asm),
 and [`roms.sha1`](https://github.com/pret/pokered/blob/1e96034092686d006e863cace09e87273051a3d8/roms.sha1).

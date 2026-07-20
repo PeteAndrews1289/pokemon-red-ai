@@ -135,6 +135,11 @@ trainer-owned and disclosed; they are disabled when evaluating one frozen model 
 [the experiment protocol](docs/experiment-protocol.md) and
 [the completion program](docs/completion-program.md).
 
+The current parallel-PPO reward protocol is version 3. It does not pay merely because a battle
+ended: trainer-only evidence must show experience or capture progress, while the pixels-only actor
+still sees only rendered frames and its previous button. The dashboard reports successful and
+no-progress battle exits separately so battle grinding cannot masquerade as story progress.
+
 ## What will count as progress?
 
 The project uses the canonical [Progress evidence ladder](docs/progress.md#evidence-ladder) so a

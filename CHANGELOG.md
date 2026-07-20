@@ -23,6 +23,10 @@
 - Persisted reward memory independently for every worker across episode resets and resumes, primed
   every restored parent without payment, hash-bound all worker memories into PPO checkpoints, and
   bumped the protocol before a fresh run.
+- Rejected version 2's unconditional battle-ending reward after it became the dominant return while
+  verified progress remained at Route 1. Version 3 pays a much smaller battle-success bonus only
+  after durable experience or capture progress, records no-progress exits separately, adds bounded
+  worker-lifetime experience rewards, and refuses cross-protocol resume.
 
 ## Unreleased — Visual Apprentice Stage 0
 

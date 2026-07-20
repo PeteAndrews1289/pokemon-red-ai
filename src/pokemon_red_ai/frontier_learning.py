@@ -68,7 +68,9 @@ class FullGameRewardConfig:
     species_seen: float = 5.0
     species_owned: float = 30.0
     new_item: float = 10.0
-    battle_ended: float = 10.0
+    experience_gain: float = 0.02
+    experience_gain_cap: float = 500.0
+    battle_success: float = 2.0
     blackout: float = -20.0
     visual_loop: float = -0.2
     repeated_action: float = -0.02
@@ -91,6 +93,7 @@ class FullGameRewardConfig:
 class RewardStep:
     total: float
     components: Mapping[str, float]
+    battle_event: str | None = None
 
 
 def _set_bits(value: bytes | None) -> set[int]:
@@ -125,6 +128,7 @@ class FullGameRewardTracker:
     badge_bits: int = 0
     max_party_count: int = 0
     max_party_level: int = 0
+    max_party_experience: int = 0
     best_milestone_index: int = 0
     total_reward: float = 0.0
     reward_events: int = 0
@@ -132,6 +136,8 @@ class FullGameRewardTracker:
     _initialized: bool = False
     _last_map: int | None = None
     _last_battle: int = 0
+    _last_party_experience: int | None = None
+    _battle_progressed: bool = False
     _last_action: str | None = None
     _action_streak: int = 0
 
@@ -149,10 +155,13 @@ class FullGameRewardTracker:
         self.badge_bits |= state.badge_bits or 0
         self.max_party_count = max(self.max_party_count, state.party_count or 0)
         self.max_party_level = max(self.max_party_level, state.max_party_level)
+        self.max_party_experience = max(self.max_party_experience, state.total_party_experience)
         self.best_milestone_index = max(self.best_milestone_index, progress.index)
         self._initialized = True
         self._last_map = state.map_id
         self._last_battle = state.battle_state or 0
+        self._last_party_experience = state.total_party_experience
+        self._battle_progressed = False
         self._last_action = None
         self._action_streak = 0
 
@@ -169,6 +178,13 @@ class FullGameRewardTracker:
             return RewardStep(0.0, {})
         c = self.config
         components: dict[str, float] = {}
+        battle = state.battle_state or 0
+        previous_battle = self._last_battle
+        active_battle = battle in {1, 2} or previous_battle in {1, 2}
+        battle_event: str | None = None
+        if previous_battle not in {1, 2} and battle in {1, 2}:
+            self._battle_progressed = False
+            battle_event = "started"
 
         if progress.index > self.best_milestone_index:
             delta = progress.index - self.best_milestone_index
@@ -213,6 +229,20 @@ class FullGameRewardTracker:
             )
             self.max_party_level = state.max_party_level
 
+        party_experience = state.total_party_experience
+        previous_experience = self._last_party_experience
+        if (
+            previous_experience is not None
+            and party_experience > previous_experience
+            and active_battle
+        ):
+            self._battle_progressed = True
+        if party_experience > self.max_party_experience:
+            gained = party_experience - self.max_party_experience
+            components["experience_gain"] = c.experience_gain * min(gained, c.experience_gain_cap)
+            self.max_party_experience = party_experience
+        self._last_party_experience = party_experience
+
         moves = set(state.party_moves or ())
         new_moves = moves - self.seen_moves
         if new_moves:
@@ -228,6 +258,8 @@ class FullGameRewardTracker:
                 components["species_seen"] = c.species_seen * len(newly_seen)
             if newly_owned:
                 components["species_owned"] = c.species_owned * len(newly_owned)
+                if active_battle:
+                    self._battle_progressed = True
             self.seen_species |= newly_seen
             self.owned_species |= newly_owned
 
@@ -237,11 +269,17 @@ class FullGameRewardTracker:
             components["new_item"] = c.new_item * len(new_items)
             self.seen_items |= new_items
 
-        battle = state.battle_state or 0
-        if self._last_battle in {1, 2} and battle == 0:
-            components["battle_ended"] = c.battle_ended
-        elif battle == 0xFF and self._last_battle != 0xFF:
+        if previous_battle in {1, 2} and battle == 0:
+            if self._battle_progressed:
+                components["battle_success"] = c.battle_success
+                battle_event = "success"
+            else:
+                battle_event = "ended_without_progress"
+            self._battle_progressed = False
+        elif battle == 0xFF and previous_battle != 0xFF:
             components["blackout"] = c.blackout
+            battle_event = "blackout"
+            self._battle_progressed = False
         self._last_battle = battle
 
         if action_button == self._last_action:
@@ -259,7 +297,7 @@ class FullGameRewardTracker:
         if components:
             self.reward_events += 1
             self.component_totals.update(components)
-        return RewardStep(total, components)
+        return RewardStep(total, components, battle_event)
 
     def checkpoint_dict(self) -> dict[str, Any]:
         return {
@@ -276,6 +314,7 @@ class FullGameRewardTracker:
             "badge_bits": self.badge_bits,
             "max_party_count": self.max_party_count,
             "max_party_level": self.max_party_level,
+            "max_party_experience": self.max_party_experience,
             "best_milestone_index": self.best_milestone_index,
             "total_reward": self.total_reward,
             "reward_events": self.reward_events,
@@ -287,7 +326,10 @@ class FullGameRewardTracker:
     def from_checkpoint_dict(cls, value: Mapping[str, Any]) -> FullGameRewardTracker:
         if int(value.get("schema_version", -1)) != 1:
             raise ValueError("Unsupported full-game reward checkpoint")
-        tracker = cls(config=FullGameRewardConfig(**dict(value.get("config", {}))))
+        config = dict(value.get("config", {}))
+        if "battle_ended" in config:
+            raise ValueError("Legacy battle-ending reward memory cannot enter the new protocol")
+        tracker = cls(config=FullGameRewardConfig(**config))
         tracker.seen_maps = {int(item) for item in value.get("seen_maps", [])}
         tracker.seen_positions = {
             (int(item[0]), int(item[1]), int(item[2])) for item in value.get("seen_positions", [])
@@ -298,6 +340,7 @@ class FullGameRewardTracker:
         tracker.badge_bits = int(value.get("badge_bits", 0))
         tracker.max_party_count = int(value.get("max_party_count", 0))
         tracker.max_party_level = int(value.get("max_party_level", 0))
+        tracker.max_party_experience = int(value.get("max_party_experience", 0))
         tracker.best_milestone_index = int(value.get("best_milestone_index", 0))
         tracker.total_reward = float(value.get("total_reward", 0))
         tracker.reward_events = int(value.get("reward_events", 0))

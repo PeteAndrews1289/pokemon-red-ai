@@ -39,6 +39,8 @@ GAME_TIMER_COUNTING_MASK = 0x01
 PARTY_LENGTH = 6
 PARTY_MON_STRUCT_LENGTH = 44
 PARTY_MON_MOVES_OFFSET = 8
+PARTY_MON_EXPERIENCE_OFFSET = 14
+PARTY_MON_EXPERIENCE_LENGTH = 3
 PARTY_MON_LEVEL_OFFSET = 33
 POKEDEX_BYTES = 19
 MAX_BAG_ITEMS = 20
@@ -66,6 +68,7 @@ class PokemonRedState:
     event_flags: bytes | None = None
     bag_item_ids: tuple[int, ...] | None = None
     got_pokedex: bool | None = None
+    party_experience: tuple[int, ...] | None = None
 
     @property
     def badge_count(self) -> int:
@@ -102,6 +105,10 @@ class PokemonRedState:
     def max_party_level(self) -> int:
         return max(self.party_levels or (), default=0)
 
+    @property
+    def total_party_experience(self) -> int:
+        return sum(self.party_experience or ())
+
     def public_dict(self) -> dict[str, object]:
         return {
             "schema_version": 1,
@@ -117,6 +124,8 @@ class PokemonRedState:
             "badge_count": self.badge_count,
             "party_species": list(self.party_species or ()),
             "party_levels": list(self.party_levels or ()),
+            "party_experience": list(self.party_experience or ()),
+            "total_party_experience": self.total_party_experience,
             "max_party_level": self.max_party_level,
             "pokedex_seen_count": self.pokedex_seen_count,
             "pokedex_owned_count": self.pokedex_owned_count,
@@ -155,6 +164,19 @@ class PokemonRedStateReader:
                 int(RamAddress.PARTY_MONS)
                 + index * PARTY_MON_STRUCT_LENGTH
                 + PARTY_MON_LEVEL_OFFSET
+            )
+            for index in range(party_count)
+        )
+        party_experience = tuple(
+            sum(
+                self._memory.read_u8(
+                    int(RamAddress.PARTY_MONS)
+                    + index * PARTY_MON_STRUCT_LENGTH
+                    + PARTY_MON_EXPERIENCE_OFFSET
+                    + offset
+                )
+                << (8 * (PARTY_MON_EXPERIENCE_LENGTH - offset - 1))
+                for offset in range(PARTY_MON_EXPERIENCE_LENGTH)
             )
             for index in range(party_count)
         )
@@ -198,6 +220,7 @@ class PokemonRedStateReader:
             badge_bits=self._memory.read_u8(RamAddress.OBTAINED_BADGES),
             party_species=party_species,
             party_levels=party_levels,
+            party_experience=party_experience,
             party_moves=party_moves,
             pokedex_owned=pokedex_owned,
             pokedex_seen=pokedex_seen,

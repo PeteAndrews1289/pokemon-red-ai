@@ -52,6 +52,9 @@ def test_state_reader_exposes_collection_and_party_progress() -> None:
             RamAddress.PARTY_SPECIES: 0xB0,
             RamAddress.PARTY_MONS + 8: 33,
             RamAddress.PARTY_MONS + 9: 45,
+            RamAddress.PARTY_MONS + 14: 0x01,
+            RamAddress.PARTY_MONS + 15: 0x02,
+            RamAddress.PARTY_MONS + 16: 0x03,
             RamAddress.PARTY_MONS + 33: 12,
             RamAddress.POKEDEX_OWNED: 0b00000001,
             RamAddress.POKEDEX_SEEN: 0b00000101,
@@ -66,6 +69,8 @@ def test_state_reader_exposes_collection_and_party_progress() -> None:
 
     assert state.party_species == (0xB0,)
     assert state.party_levels == (12,)
+    assert state.party_experience == (0x010203,)
+    assert state.total_party_experience == 0x010203
     assert state.party_moves == (33, 45)
     assert state.pokedex_seen_count == 2
     assert state.pokedex_owned_count == 1

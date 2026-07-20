@@ -44,7 +44,8 @@ from pokemon_red_ai.provenance import detect_source_provenance
 from pokemon_red_ai.rom import verify_rom
 from pokemon_red_ai.state import PokemonRedState, PokemonRedStateReader
 
-PPO_PROTOCOL = "parallel-recurrent-ppo-v2"
+PPO_PROTOCOL = "parallel-recurrent-ppo-v3"
+PPO_REWARD_PROTOCOL = "durable-battle-progress-v1"
 PPO_MODES = frozenset({"pixels", "privileged"})
 PRIVILEGED_STATE_SIZE = 24
 
@@ -482,6 +483,7 @@ class PokemonRedPpoEnvironment(gym.Env):
             "seen_maps": len(self.reward_tracker.seen_maps),
             "seen_positions": len(self.reward_tracker.seen_positions),
             "seen_warps": len(self.reward_tracker.seen_warps),
+            "max_party_experience": self.reward_tracker.max_party_experience,
             "best_milestone_index": self.reward_tracker.best_milestone_index,
         }
 
@@ -533,6 +535,8 @@ class PokemonRedPpoEnvironment(gym.Env):
             "y": state.player_y,
             "reward_components": dict(reward.components),
         }
+        if reward.battle_event is not None:
+            info["battle_event"] = reward.battle_event
         if progress.index > self.episode_best:
             self.episode_best = progress.index
             manifest = _load_curriculum_manifest(self.curriculum_directory)
@@ -780,6 +784,18 @@ def _render_dashboard(status: Mapping[str, Any]) -> str:
                 "Novelty memory",
                 html.escape(str(status.get("novelty_scope", "unknown"))),
             ),
+            (
+                "Reward protocol",
+                html.escape(str(status.get("reward_protocol", "unknown"))),
+            ),
+            (
+                "Battle successes",
+                f"{int(status.get('battle_events', {}).get('success', 0)):,}",
+            ),
+            (
+                "No-progress battle exits",
+                f"{int(status.get('battle_events', {}).get('ended_without_progress', 0)):,}",
+            ),
         )
     )
     return f"""<!doctype html><html><head><meta charset="utf-8"/>
@@ -827,6 +843,7 @@ class PpoRunCallback(BaseCallback):
         self.last_checkpoint_step = 0
         self.episodes = 0
         self.reward_components: Counter[str] = Counter()
+        self.battle_events: Counter[str] = Counter()
         self.positions: set[tuple[int, int, int]] = set()
         self.promotion_failures = 0
         self.stop_reason: str | None = None
@@ -852,6 +869,7 @@ class PpoRunCallback(BaseCallback):
             {
                 "schema_version": 1,
                 "protocol": PPO_PROTOCOL,
+                "reward_protocol": PPO_REWARD_PROTOCOL,
                 "model_file_sha256": _sha256_file(latest),
                 "total_actions": self.model.num_timesteps,
                 "elapsed_seconds": self.elapsed(),
@@ -902,6 +920,8 @@ class PpoRunCallback(BaseCallback):
             "promotion_failures": self.promotion_failures,
             "unique_positions": len(self.positions),
             "reward_components": dict(sorted(self.reward_components.items())),
+            "battle_events": dict(sorted(self.battle_events.items())),
+            "reward_protocol": PPO_REWARD_PROTOCOL,
             "novelty_scope": "persistent per worker across episodes and resumes",
             "information_boundary": (
                 "pixels + previous action; trainer-only RAM rewards"
@@ -938,6 +958,9 @@ class PpoRunCallback(BaseCallback):
                 f"- Verified promotions: {status['verified_promotions']:,}\n"
                 f"- Episodes: {status['episodes']:,}\n"
                 f"- Unique map positions: {status['unique_positions']:,}\n\n"
+                f"- Battle successes: {status['battle_events'].get('success', 0):,}\n"
+                "- Battle exits without durable progress: "
+                f"{status['battle_events'].get('ended_without_progress', 0):,}\n\n"
             )
 
     def _handle_candidate(self, candidate_path: Path) -> None:
@@ -990,6 +1013,9 @@ class PpoRunCallback(BaseCallback):
             if all(isinstance(value, int) for value in (map_id, x, y)):
                 self.positions.add((map_id, x, y))
             self.reward_components.update(info.get("reward_components", {}))
+            battle_event = info.get("battle_event")
+            if isinstance(battle_event, str):
+                self.battle_events[battle_event] += 1
             candidate = info.get("promotion_candidate")
             if isinstance(candidate, str):
                 self._handle_candidate(Path(candidate))
@@ -1056,6 +1082,8 @@ def run_parallel_ppo(
     novelty_by_rank: dict[int, str] = {}
     if resume:
         checkpoint = json.loads(checkpoint_path.read_text(encoding="utf-8"))
+        if checkpoint.get("protocol") != PPO_PROTOCOL:
+            raise ValueError("PPO checkpoint uses a different protocol")
         if checkpoint.get("config") != config.public_dict():
             raise ValueError("PPO resume configuration does not match")
         if _sha256_file(model_path) != checkpoint.get("model_file_sha256"):
@@ -1098,6 +1126,7 @@ def run_parallel_ppo(
                 "human_demonstrations": [],
                 "curriculum_source": curriculum_source.name,
                 "novelty_scope": "persistent per worker across episodes and resumes",
+                "reward_protocol": PPO_REWARD_PROTOCOL,
                 "rom_path_recorded": False,
                 "resume_semantics": "model_optimizer_exact_environment_rollout_restarts",
             },

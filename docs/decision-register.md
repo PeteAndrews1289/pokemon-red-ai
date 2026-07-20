@@ -1060,6 +1060,49 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
 - **Supersedes / superseded by:** Refines DR-0044's reward semantics without changing its actor
   boundary, replay gate, worker count, or Hall-of-Fame claim rule.
 
+## DR-0046 — Reward battle progress, not the closing transition
+
+- **Date:** 2026-07-20
+- **Status:** Implemented; unit, real-battle, and graceful-resume canaries passed
+- **Scope:** Parallel PPO battle shaping, outcome telemetry, and resume boundary
+- **Information label:** unchanged `PIXEL-ACTOR / PRIVILEGED-TRAINING-REFEREE / PPO /
+  ARCHIVE-RESTORE`; experience remains trainer-only
+- **Decision:** Remove the unconditional reward for any active-to-inactive battle transition. Count
+  battle starts, durable successes, no-progress exits, and blackouts separately. Pay a reduced
+  success reward only after experience or capture progress occurred in that battle. Pay bounded
+  experience shaping only when total party experience exceeds that worker's persistent lifetime
+  record. Start version 3 from the uncontaminated Frontier Apprentice seed and reject version-2
+  resume files explicitly.
+- **Alternatives considered:** Continue version 2 because early coverage improved; infer victory
+  from the battle-closing screen; penalize every escape; reward damage to opponent HP; resume the
+  version-2 policy under changed rewards; remove battle learning signals entirely.
+- **Observation/evidence:** At 724,996 actions and 41 minutes, version 2 remained at Route 1 with
+  zero verified promotions. Its preceding 366,592-action interval added only 24 global positions
+  while ending 293 more battles and adding 2,930 unconditional battle reward. Current frames showed
+  two workers in battle and two around Oak's lab. The PPO optimizer retained action entropy, so the
+  evidence fit objective exploitation better than a broken trainer or frozen policy.
+- **Interpretation:** `battle ended` confounded victory, capture, escape, and other exits. It made a
+  cheap transition ten times more valuable than the intended version-3 success signal. Experience
+  and ownership changes are durable consequences; using them as trainer evidence avoids guessing
+  from pixels without giving either value to the pixels-only actor.
+- **Consequence:** The live dashboard and hourly chronicle expose successful and no-progress battle
+  exits as separate denominators. Experience is decoded from the documented three-byte party
+  structure, capped at 500 newly record-setting points per observation, and retained in each
+  hash-bound novelty checkpoint. The protocol becomes `parallel-recurrent-ppo-v3`.
+- **Qualification evidence:** The first real-ROM canary completed 8,192 actions, 64 PPO updates,
+  and eight episodes. It observed one battle start, 24 experience points, and one corresponding
+  success; the ledger contained `experience_gain=0.48` and `battle_success=2` with no generic battle
+  ending reward. Its final model and novelty hashes matched. A second canary stopped gracefully at
+  action 7,607, restored the hash-validated version-3 model and experience memory, and completed its
+  original 8,192-action ceiling with 64 total updates.
+- **Narrative value:** This is the second clean act break for a future video: the model did not
+  disobey its objective; it found the easiest literal interpretation. Place the rising battle
+  reward beside a flat verified-milestone line, then reveal that “ending” never meant “winning.”
+- **Revisit when:** The version-3 canary classifies real battles, the fresh trial reaches one hour,
+  successful battles dominate return again, or sparse victory evidence prevents combat learning.
+- **Supersedes / superseded by:** Refines DR-0045 without changing its persistent novelty design,
+  four-worker shape, actor input, replay gate, or Hall-of-Fame completion rule.
+
 ## Unresolved decisions
 
 These are questions, not hidden commitments. Each becomes a numbered entry when evidence supports
