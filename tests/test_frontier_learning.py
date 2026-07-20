@@ -96,6 +96,40 @@ def test_full_game_reward_is_nonrepeatable_and_round_trips() -> None:
     assert restored.checkpoint_dict() == tracker.checkpoint_dict()
 
 
+def test_reward_prime_absorbs_every_restored_parent_without_repaying_it() -> None:
+    tracker = FullGameRewardTracker()
+    route = MilestoneProgress("reached_route_1", 7, "Reached Route 1")
+    pokedex = MilestoneProgress("obtained_pokedex", 11, "Received the Pokedex")
+    tracker.prime(state(map_id=0x0C, player_x=4, player_y=8), route)
+    tracker.prime(
+        state(
+            map_id=0x01,
+            player_x=12,
+            player_y=20,
+            party_levels=(8,),
+            bag_item_ids=(4,),
+        ),
+        pokedex,
+    )
+
+    restored_parent = tracker.score(
+        state(
+            map_id=0x01,
+            player_x=12,
+            player_y=20,
+            party_levels=(8,),
+            bag_item_ids=(4,),
+        ),
+        pokedex,
+        action_button="up",
+        loop_detected=False,
+    )
+
+    assert restored_parent.total == 0
+    assert tracker.best_milestone_index == pokedex.index
+    assert (0x01, 12, 20) in tracker.seen_positions
+
+
 class FakePixelsActor:
     def __init__(self) -> None:
         self.value = 0

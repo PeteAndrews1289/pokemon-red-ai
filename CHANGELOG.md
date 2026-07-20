@@ -18,6 +18,11 @@
 - Documented the influence of PWhiddy's Pokémon Red PPO experiments, the differences in observation
   and evidence rules, and a video narrative that keeps learning, behavior, and verified proof as
   separate meters.
+- Rejected version 1 after 862,212 actions exposed episode-reset novelty farming: 1,784 local
+  position rewards corresponded to only five new global positions in one measured slice.
+- Persisted reward memory independently for every worker across episode resets and resumes, primed
+  every restored parent without payment, hash-bound all worker memories into PPO checkpoints, and
+  bumped the protocol before a fresh run.
 
 ## Unreleased — Visual Apprentice Stage 0
 

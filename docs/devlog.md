@@ -1,5 +1,27 @@
 # Development log
 
+## 2026-07-20 — Episode novelty was the wrong lesson
+
+- Stopped the first long PPO run deliberately at 862,212 actions, 208 episodes, 469 globally unique
+  positions, and Route 1 after diagnosing a reward-reset loophole.
+- The decisive ten-minute slice contained 238,592 actions and 1,784 rewarded episode-local position
+  discoveries but only five genuinely new global positions. Policy entropy recovered during that
+  period, so continuing to add randomness would not address the familiar-route reward.
+- Changed the reward tracker to absorb every restored parent and retain novelty across every
+  episode in that worker's campaign. A familiar map, coordinate, warp, event, party change, item,
+  move, species, badge, level, or milestone can now pay once per worker rather than once per reset.
+- Added versioned compressed novelty files for every worker. Each file hash and coverage summary is
+  bound into the PPO checkpoint; resume refuses missing, duplicated, out-of-range, or modified
+  worker memory.
+- Bumped the PPO protocol rather than allowing a version-1 run to resume under different reward
+  semantics. The next run starts from uncontaminated Frontier Apprentice weights and the same
+  verified Archive-v2 curriculum.
+- Passed a real-ROM reset canary across four episode lifetimes and eight updates. Passed a
+  production-shaped four-worker canary across 2,048 actions, eight episodes, two updates, and four
+  exact novelty hashes at 375.69 actions/s.
+- Preserved version 1 as negative evidence: the optimizer worked, but it was learning a repeatable
+  shortcut in the objective rather than extending the game frontier.
+
 ## 2026-07-20 — Parallel PPO turns failures into training data
 
 - Reviewed Peter Whidden's Pokémon Red PPO project and video as an influence, then documented the

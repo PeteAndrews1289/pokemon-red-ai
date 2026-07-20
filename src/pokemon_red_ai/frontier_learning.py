@@ -138,24 +138,19 @@ class FullGameRewardTracker:
     def prime(self, state: PokemonRedState, progress: MilestoneProgress) -> None:
         """Observe a restored parent without paying rewards for its inherited state."""
 
-        if not self._initialized:
-            self.seen_maps |= {state.map_id} if state.map_id is not None else set()
-            if (
-                state.map_id is not None
-                and state.player_x is not None
-                and state.player_y is not None
-            ):
-                self.seen_positions.add((state.map_id, state.player_x, state.player_y))
-            self.seen_events |= _set_bits(state.event_flags)
-            self.seen_species |= _set_bits(state.pokedex_seen) if state.got_pokedex else set()
-            self.owned_species |= _set_bits(state.pokedex_owned) if state.got_pokedex else set()
-            self.seen_items |= set(state.bag_item_ids or ())
-            self.seen_moves |= set(state.party_moves or ())
-            self.badge_bits |= state.badge_bits or 0
-            self.max_party_count = max(self.max_party_count, state.party_count or 0)
-            self.max_party_level = max(self.max_party_level, state.max_party_level)
-            self.best_milestone_index = max(self.best_milestone_index, progress.index)
-            self._initialized = True
+        self.seen_maps |= {state.map_id} if state.map_id is not None else set()
+        if state.map_id is not None and state.player_x is not None and state.player_y is not None:
+            self.seen_positions.add((state.map_id, state.player_x, state.player_y))
+        self.seen_events |= _set_bits(state.event_flags)
+        self.seen_species |= _set_bits(state.pokedex_seen) if state.got_pokedex else set()
+        self.owned_species |= _set_bits(state.pokedex_owned) if state.got_pokedex else set()
+        self.seen_items |= set(state.bag_item_ids or ())
+        self.seen_moves |= set(state.party_moves or ())
+        self.badge_bits |= state.badge_bits or 0
+        self.max_party_count = max(self.max_party_count, state.party_count or 0)
+        self.max_party_level = max(self.max_party_level, state.max_party_level)
+        self.best_milestone_index = max(self.best_milestone_index, progress.index)
+        self._initialized = True
         self._last_map = state.map_id
         self._last_battle = state.battle_state or 0
         self._last_action = None

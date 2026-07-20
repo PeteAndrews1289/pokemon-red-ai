@@ -113,15 +113,23 @@ episode history all reset together. Hidden recurrent state is never smuggled acr
 The reward ledger reuses the full-game shaping catalog:
 
 - named milestone advancement;
-- first visit to a map, coordinate, or warp during the episode;
+- first visit to a map, coordinate, or warp during that worker's campaign;
 - newly observed event flags, badges, party members, levels, moves, species, and items;
 - battles ending;
 - blackouts, repeated actions, and later loop signals as penalties.
 
-Each restored parent is primed before scoring, so PPO is not repeatedly paid merely for loading a
-good checkpoint. Novelty is episodic: discovering a useful transition again from a sampled parent
-can reinforce the behavior again. The complete component totals are written to status and hourly
-narrative records.
+Each restored parent is primed before scoring, so PPO is not paid merely for loading a good
+checkpoint. Version 1 then reset its novelty memory at every episode. The first long run exposed
+why that was unsafe: during one 238,592-action slice it recorded 1,784 episode-local position
+rewards while adding only five globally unique positions. Familiar routes could therefore pay
+again after every reset.
+
+Version 2 keeps map, coordinate, warp, event, party, item, move, species, badge, level, and best
+milestone memory for each worker's complete campaign. A reset absorbs its restored parent into that
+memory before the first scored action. Four workers may each discover the same fact once, but no
+worker can farm it on every episode. Every worker's compressed novelty memory is immutable,
+content-hashed, and bound into each PPO checkpoint, so a graceful resume cannot reset the reward
+history. The complete component totals are written to status and hourly narrative records.
 
 Reward remains a training diagnostic. A high return does not mean the agent completed a quest,
 defeated a Gym Leader, or reached the Hall of Fame.
@@ -211,10 +219,18 @@ session that supported the earlier campaigns. It was not accepted as healthy mer
 dashboard opened: the launch gate required all four worker frames, several complete PPO rollouts,
 zero verification failures, and a model archive whose SHA-256 matched its checkpoint record.
 
-The managed run passed that gate at 21,508 observed actions with 21 PPO updates, 278 unique
-positions, and its first hash-matched checkpoint at action 16,384. The episode outcome remains
-unknown. This operational failure belongs in the narrative because a visible dashboard alone can
-outlive the process that was supposed to update it.
+The managed version-1 run passed that launch gate at 21,508 observed actions with 21 PPO updates,
+278 unique positions, and its first hash-matched checkpoint at action 16,384. It was deliberately
+stopped after 862,212 actions, 208 episodes, and 469 globally unique positions when the episodic
+novelty loophole became clear. It never promoted beyond Route 1. This operational and reward-design
+failure belongs in the narrative because a visible dashboard and active optimizer do not prove
+that the chosen reward drives new behavior.
+
+Version 2 passed a 512-action one-worker reset canary with four episode lifetimes, eight PPO
+updates, and a hash-matched novelty record. A production-shaped four-worker canary then completed
+2,048 actions, eight episode lifetimes, and two rollout updates at 375.69 actions/s. All four
+worker memories and the model matched their checkpoint hashes. These checks authorize a fresh
+version-2 run; they are not gameplay-progress evidence.
 
 The first campaign is a development trial, not a frozen policy evaluation. Its useful outcomes are:
 
@@ -258,7 +274,7 @@ directory without a separate review and sanitization step.
 
 ## Questions deliberately left open
 
-- Does episodic novelty pay common early transitions too often?
+- Is per-worker campaign novelty sufficient, or does later scale require a shared count model?
 - Will 4,096 actions let the recurrent policy learn sufficiently long local skills?
 - Does the current entropy setting preserve exploration after the warm-started action prior?
 - Should verified curriculum sampling become milestone-balanced after later maps accumulate?

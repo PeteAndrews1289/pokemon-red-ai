@@ -88,9 +88,11 @@ def test_dashboard_names_actor_boundary_and_finished_state() -> None:
             "episodes": 2,
             "best_milestone": {"label": "Reached Route 1"},
             "information_boundary": "pixels + previous action; trainer-only RAM rewards",
+            "novelty_scope": "persistent per worker across episodes and resumes",
         }
     )
     assert "Failures now" in page
     assert "pixels + previous action; trainer-only RAM rewards" in page
+    assert "persistent per worker across episodes and resumes" in page
     assert "finished" in page
     assert page.count("Environment ") == 8

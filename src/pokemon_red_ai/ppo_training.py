@@ -44,7 +44,7 @@ from pokemon_red_ai.provenance import detect_source_provenance
 from pokemon_red_ai.rom import verify_rom
 from pokemon_red_ai.state import PokemonRedState, PokemonRedStateReader
 
-PPO_PROTOCOL = "parallel-recurrent-ppo-v1"
+PPO_PROTOCOL = "parallel-recurrent-ppo-v2"
 PPO_MODES = frozenset({"pixels", "privileged"})
 PRIVILEGED_STATE_SIZE = 24
 
@@ -162,6 +162,7 @@ class PpoEnvironmentConfig:
     reward_scale: float
     seed: int
     rank: int
+    novelty_checkpoint_file: str | None = None
 
 
 def _checkpoint_view(run_directory: Path) -> tuple[ExpeditionStore, dict[str, Any]]:
@@ -399,7 +400,13 @@ class PokemonRedPpoEnvironment(gym.Env):
         self.observation_space = spaces.Dict(observation)
         self.emulator = PokemonRedEmulator(Path(config.rom_path)).start()
         self.reader = PokemonRedStateReader(self.emulator)
-        self.reward_tracker = FullGameRewardTracker()
+        self.reward_tracker = (
+            FullGameRewardTracker()
+            if config.novelty_checkpoint_file is None
+            else FullGameRewardTracker.from_checkpoint_dict(
+                _read_gzip_json(self.run_directory / config.novelty_checkpoint_file)
+            )
+        )
         self.previous_frame = np.zeros((72, 80), dtype=np.uint8)
         self.previous_action = -1
         self.steps = 0
@@ -443,7 +450,6 @@ class PokemonRedPpoEnvironment(gym.Env):
         self.emulator.load_state(snapshot.thaw())
         self.start_progress = _progress_from_value(self.start_entry["progress"])
         state = self.reader.read()
-        self.reward_tracker = FullGameRewardTracker()
         self.reward_tracker.prime(state, self.start_progress)
         current = preprocess_apprentice_frame(self.emulator.screen_rgb())
         self.previous_frame = current
@@ -462,6 +468,22 @@ class PokemonRedPpoEnvironment(gym.Env):
         temporary = path.with_suffix(".png.tmp")
         Image.fromarray(self.emulator.screen_rgb()).save(temporary, format="PNG")
         os.replace(temporary, path)
+
+    def save_novelty_checkpoint(self, generation: int) -> dict[str, Any]:
+        """Persist worker-lifetime novelty without sharing it with the actor."""
+
+        filename = f"novelty-env-{self.config.rank}-{generation:012d}.json.gz"
+        path = self.run_directory / filename
+        _atomic_gzip_json(path, self.reward_tracker.checkpoint_dict())
+        return {
+            "rank": self.config.rank,
+            "file": filename,
+            "file_sha256": _sha256_file(path),
+            "seen_maps": len(self.reward_tracker.seen_maps),
+            "seen_positions": len(self.reward_tracker.seen_positions),
+            "seen_warps": len(self.reward_tracker.seen_warps),
+            "best_milestone_index": self.reward_tracker.best_milestone_index,
+        }
 
     def _spool_candidate(self, progress: MilestoneProgress) -> str:
         if self.start_entry is None:
@@ -754,6 +776,10 @@ def _render_dashboard(status: Mapping[str, Any]) -> str:
                 f"{int(status.get('unique_positions', 0)):,}",
             ),
             ("Episodes", f"{int(status.get('episodes', 0)):,}"),
+            (
+                "Novelty memory",
+                html.escape(str(status.get("novelty_scope", "unknown"))),
+            ),
         )
     )
     return f"""<!doctype html><html><head><meta charset="utf-8"/>
@@ -814,6 +840,9 @@ class PpoRunCallback(BaseCallback):
         latest = self.run_directory / "ppo-latest.zip"
         previous = self.run_directory / "ppo-previous.zip"
         temporary = self.run_directory / "ppo-checkpoint.tmp.zip"
+        novelty_files = self.training_env.env_method(
+            "save_novelty_checkpoint", self.model.num_timesteps
+        )
         self.model.save(temporary)
         if latest.exists():
             os.replace(latest, previous)
@@ -830,6 +859,7 @@ class PpoRunCallback(BaseCallback):
                 "best_milestone": _load_curriculum_manifest(self.curriculum_directory)[
                     "best_milestone"
                 ],
+                "novelty_files": novelty_files,
                 "resume_semantics": "model_optimizer_exact_environment_rollout_restarts",
             },
         )
@@ -872,6 +902,7 @@ class PpoRunCallback(BaseCallback):
             "promotion_failures": self.promotion_failures,
             "unique_positions": len(self.positions),
             "reward_components": dict(sorted(self.reward_components.items())),
+            "novelty_scope": "persistent per worker across episodes and resumes",
             "information_boundary": (
                 "pixels + previous action; trainer-only RAM rewards"
                 if self.config.mode == "pixels"
@@ -1022,12 +1053,27 @@ def run_parallel_ppo(
     base_elapsed = 0.0
     checkpoint_path = run_directory / "checkpoint.json"
     model_path = run_directory / "ppo-latest.zip"
+    novelty_by_rank: dict[int, str] = {}
     if resume:
         checkpoint = json.loads(checkpoint_path.read_text(encoding="utf-8"))
         if checkpoint.get("config") != config.public_dict():
             raise ValueError("PPO resume configuration does not match")
         if _sha256_file(model_path) != checkpoint.get("model_file_sha256"):
             raise ValueError("PPO model does not match its checkpoint")
+        novelty_files = checkpoint.get("novelty_files")
+        if not isinstance(novelty_files, list):
+            raise ValueError("PPO checkpoint has no persistent novelty memory")
+        for metadata in novelty_files:
+            rank = int(metadata["rank"])
+            filename = str(metadata["file"])
+            if Path(filename).name != filename or rank in novelty_by_rank:
+                raise ValueError("PPO novelty checkpoint metadata is invalid")
+            path = run_directory / filename
+            if _sha256_file(path) != metadata.get("file_sha256"):
+                raise ValueError("PPO novelty memory does not match its checkpoint")
+            novelty_by_rank[rank] = filename
+        if set(novelty_by_rank) != set(range(config.environments)):
+            raise ValueError("PPO novelty checkpoint does not cover every environment")
         previous_status = json.loads((run_directory / "status.json").read_text(encoding="utf-8"))
         if previous_status.get("stop_reason") in {
             "duration_limit",
@@ -1051,6 +1097,7 @@ def run_parallel_ppo(
                 "actor_mode": config.mode,
                 "human_demonstrations": [],
                 "curriculum_source": curriculum_source.name,
+                "novelty_scope": "persistent per worker across episodes and resumes",
                 "rom_path_recorded": False,
                 "resume_semantics": "model_optimizer_exact_environment_rollout_restarts",
             },
@@ -1069,6 +1116,7 @@ def run_parallel_ppo(
                 reward_scale=config.reward_scale,
                 seed=config.seed,
                 rank=rank,
+                novelty_checkpoint_file=novelty_by_rank.get(rank),
             ),
         )
         for rank in range(config.environments)

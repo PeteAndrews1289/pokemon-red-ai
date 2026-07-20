@@ -1023,6 +1023,43 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
   into the primary long-run learning trial while preserving Frontier Apprentice as the verify-only
   baseline.
 
+## DR-0045 — Do not repay familiar territory after every PPO reset
+
+- **Date:** 2026-07-20
+- **Status:** Implemented; reset and production-shape canaries passed
+- **Scope:** Parallel PPO dense novelty and checkpoint semantics
+- **Information label:** unchanged `PIXEL-ACTOR / PRIVILEGED-TRAINING-REFEREE / PPO /
+  ARCHIVE-RESTORE`; novelty remains trainer-only
+- **Decision:** Persist full-game reward memory for each emulator worker across episode resets and
+  graceful resumes. Prime every restored parent into existing memory before scoring. Content-hash
+  each worker's versioned compressed memory and bind all worker files into the PPO checkpoint.
+  Restart the long trial from the original Frontier Apprentice weights rather than resume weights
+  already optimized against the flawed reward.
+- **Alternatives considered:** Let the 24-hour run continue because its optimizer was healthy;
+  reduce only the coordinate reward; share a lock-protected novelty set across subprocesses on
+  every action; retain contaminated PPO weights; hide the intervention; count episode-local
+  novelty as global coverage.
+- **Observation/evidence:** Version 1 completed 862,212 actions and 208 episodes without advancing
+  beyond Route 1. In a late 238,592-action slice it paid for 1,784 episode-local new positions but
+  added only five globally unique positions. Entropy recovered, so simple action collapse was not
+  the complete explanation. The one-worker version-2 canary crossed four episode lifetimes and
+  persisted 38 positions, four maps, and two warps with matching hashes. The four-worker
+  production-shape canary completed 2,048 actions, eight episodes, two rollout updates, four
+  distinct memories, and exact model/memory hash checks.
+- **Interpretation:** The agent was learning the supplied objective: repeat a familiar profitable
+  route after each reset. That is optimizer progress without task progress. Per-worker campaign
+  memory removes the cheap repeat while avoiding a synchronization call on every emulator action.
+  It still permits the same discovery to pay once per worker, a disclosed compromise for CPU
+  throughput.
+- **Consequence:** Preserve the full version-1 run as negative evidence, bump the PPO protocol, and
+  launch version 2 from the uncontaminated Frontier Apprentice seed. The dashboard must disclose
+  `persistent per worker across episodes and resumes`. Any future resume fails closed if a novelty
+  file is missing or its hash differs.
+- **Revisit when:** Version 2 reaches one hour, promotes a milestone, shows another coverage
+  plateau, or demonstrates that four independent novelty memories still overpay shared behavior.
+- **Supersedes / superseded by:** Refines DR-0044's reward semantics without changing its actor
+  boundary, replay gate, worker count, or Hall-of-Fame claim rule.
+
 ## Unresolved decisions
 
 These are questions, not hidden commitments. Each becomes a numbered entry when evidence supports

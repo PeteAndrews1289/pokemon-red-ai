@@ -21,8 +21,10 @@ trials compare learned or optimized emitters under the same checkpoint and repla
 > three complete power-on replays before admitting a named milestone. Pixels-only and separately
 > labeled privileged-input canaries pass; a four-worker production-shaped canary completed two
 > optimizer updates, wrote all live frames, and saved a hash-bound checkpoint. The first long
-> pixels-only development campaign is now the active evidence step—not yet a claim that the model
-> can complete Pokémon Red.
+> pixels-only run then exposed episode-reset novelty farming and was stopped at 862,212 actions
+> without advancing beyond Route 1. Version 2 persists hash-bound novelty memory across resets and
+> passed both reset and four-worker production canaries. Its fresh development campaign is now the
+> active evidence step—not yet a claim that the model can complete Pokémon Red.
 
 The current code preserves every historical runner, including Monkey, Archivist, online learners,
 and clean-start neuroevolution, so rejected approaches remain reproducible. See
