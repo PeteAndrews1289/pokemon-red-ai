@@ -21,6 +21,22 @@
   seeded exploration proposes unfamiliar actions, and the archive/scheduler accumulate progress.
   Neural weights do not update on unseen-game failures in this run.
 
+### Real-ROM handoff and overnight launch
+
+- Ran a 2,279-action real-ROM handoff canary. It promoted `game_started`, `left_bedroom`, and
+  `left_home`, retained 24 active frontier cells, and continued acting after the house exit. At the
+  live acceptance observation, all 23 attempted replays had passed; the canary was then stopped
+  intentionally rather than mistaken for the overnight experiment.
+- Rejected the first overnight launch after 11,767 actions. Its provisional 32-action minimum
+  produced 184 short restore cycles and reached the ground floor, but not the house exit. Because
+  the frozen LSTM starts with zero recurrent state after every restore, this was evidence that the
+  scheduler could fragment the learned opening more aggressively than the successful canary.
+- Restarted the eight-hour clock from a fresh power-on and seed with a 512-action minimum and
+  2,048-action maximum. That run passed `left_home`, followed Professor Oak into the lab, and kept
+  running toward `chose_starter`; the first live observation recorded 3,135 actions, 25 archive
+  cells, and 41/41 replay checks. These are development observations, not evidence that the frozen
+  policy can already complete the game.
+
 ## 2026-07-19 — From one lucky route toward a learned visual skill
 
 ### Restore the publication baseline

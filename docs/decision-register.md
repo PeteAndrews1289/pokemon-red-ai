@@ -911,6 +911,33 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
   frozen house policy prevents useful post-house exploration.
 - **Supersedes / superseded by:** Extends DR-0040 beyond its deliberately local terminal boundary.
 
+## DR-0042 — Preserve recurrent continuity with longer archive suffixes
+
+- **Date:** 2026-07-20
+- **Status:** Trialing in the eight-hour development campaign
+- **Scope:** Archive v2 suffix scheduling for the frozen Visual Apprentice handoff
+- **Decision:** Replace the provisional 32-action minimum with a 512-action minimum while retaining
+  a 2,048-action maximum and eight attempts per expansion. Restart the overnight clock from a fresh
+  power-on and seed after rejecting the first short-fragment launch.
+- **Alternatives considered:** Leave the weak launch running because it was technically active;
+  disable archive restores; carry hidden recurrent state across restored emulator checkpoints;
+  return to fixed 512-action suffixes; reseed repeatedly until one opening happened to look good.
+- **Observation/evidence:** The fixed-512 canary reached `left_home` and continued afterward. The
+  first overnight launch used a 32-action minimum, made 184 attempts in 11,767 actions, and reached
+  `left_bedroom` but not `left_home`. The fresh 512–2,048 launch reached `met_professor_oak` within
+  its first 3,135 actions and had 41/41 passing replay checks at that observation.
+- **Interpretation:** Resetting the frozen actor's LSTM at every archive restore is the honest state
+  boundary, but very short suffixes can deny it enough continuous visual history to reproduce its
+  learned opening. Longer suffixes spend more actions per attempt in exchange for coherent local
+  behavior. One successful launch is configuration evidence, not a general performance estimate.
+- **Consequence:** Keep the rejected launch as failure evidence. Treat the 512-action floor as a
+  development setting pending matched suffix-length trials; do not silently carry recurrent state
+  across checkpoints that did not save it.
+- **Revisit when:** The eight-hour campaign ends or enough milestone/action data exists to compare
+  progress efficiency across suffix lengths.
+- **Supersedes / superseded by:** Refines DR-0041's campaign configuration without changing its
+  information boundary or Hall-of-Fame terminal condition.
+
 ## Unresolved decisions
 
 These are questions, not hidden commitments. Each becomes a numbered entry when evidence supports
