@@ -147,6 +147,13 @@ only two frames and its previous action. The trainer reads the documented three-
 field to decide whether an outcome deserves training credit. The protocol is bumped to
 `parallel-recurrent-ppo-v3`; version-2 PPO weights are not resumed under the new objective.
 
+The version-2 run was preserved through its planned one-hour boundary rather than stopped at the
+first suspicious interval. It ended after 3,649.552 seconds with 1,064,964 actions, 1,040 PPO
+updates, 260 episodes, 515 global positions, Route 1, and no verified promotion or verification
+failure. Its ledger paid 10,030 for 1,003 battle endings. From action 358,404 to the final checkpoint,
+706,560 additional actions added only 26 global positions. The final model and every worker novelty
+file matched the hashes recorded in the terminal checkpoint.
+
 Reward remains a training diagnostic. A high return does not mean the agent completed a quest,
 defeated a Gym Leader, or reached the Hall of Fame.
 

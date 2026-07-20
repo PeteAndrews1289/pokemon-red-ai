@@ -1076,11 +1076,13 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
 - **Alternatives considered:** Continue version 2 because early coverage improved; infer victory
   from the battle-closing screen; penalize every escape; reward damage to opponent HP; resume the
   version-2 policy under changed rewards; remove battle learning signals entirely.
-- **Observation/evidence:** At 724,996 actions and 41 minutes, version 2 remained at Route 1 with
-  zero verified promotions. Its preceding 366,592-action interval added only 24 global positions
-  while ending 293 more battles and adding 2,930 unconditional battle reward. Current frames showed
-  two workers in battle and two around Oak's lab. The PPO optimizer retained action entropy, so the
-  evidence fit objective exploitation better than a broken trainer or frozen policy.
+- **Observation/evidence:** The preserved version-2 run stopped cleanly after 3,649.552 seconds at
+  1,064,964 actions, 1,040 updates, 260 episodes, 515 global positions, Route 1, and zero verified
+  promotions or verification failures. It paid 10,030 reward for 1,003 battle endings. From the
+  358,404-action observation to the final checkpoint, another 706,560 actions added only 26 global
+  positions. Current frames had repeatedly shown workers in battles and around Oak's lab. The PPO
+  optimizer retained action entropy, so the evidence fit objective exploitation better than a
+  broken trainer or frozen policy. The final model and all four novelty hashes matched.
 - **Interpretation:** `battle ended` confounded victory, capture, escape, and other exits. It made a
   cheap transition ten times more valuable than the intended version-3 success signal. Experience
   and ownership changes are durable consequences; using them as trainer evidence avoids guessing

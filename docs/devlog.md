@@ -23,6 +23,10 @@
   with the version-3 protocol and persistent experience memory intact.
 - Preserved the video beat: return rose while the verified-progress meter stayed flat. The lesson
   is not “the AI was lazy”; it is that the machine optimized the exact transition we rewarded.
+- Closed version 2 at its planned one-hour evidence boundary: 1,064,964 actions, 1,040 updates, 260
+  episodes, 515 positions, Route 1, zero promotions, and 1,003 rewarded battle endings worth 10,030.
+  The final model and all four worker-memory hashes matched. Its last 706,560 actions added only 26
+  global positions, making the plateau much stronger than a single screenshot or short interval.
 
 ## 2026-07-20 — Episode novelty was the wrong lesson
 
