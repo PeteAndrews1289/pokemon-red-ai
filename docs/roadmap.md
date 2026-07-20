@@ -27,9 +27,10 @@
 8. ✅ Implement the named completion referee and integrity-bound expedition evidence foundation.
 9. ✅ Integrate the single-writer checkpoint expedition, localhost dashboard, exact resume, and
    required power-on lineage replay.
-10. 🟨 Pass the two-seed, 20,000-action `left_home` qualification before a multi-day run.
-11. ⬜ Distill useful self-generated lineages into a richer frozen visual policy.
-12. ✅ Replace Monkey in the four-lane pretrial dashboard.
+10. 🟨 Conclude Q1 honestly: H3 `left_home` reached, but the two-seed gate failed 1/2.
+11. ⬜ Bound replay/archive growth and compare optimized/learned emitters under the same Q1 gate.
+12. ⬜ Distill useful self-generated lineages into a richer frozen visual policy.
+13. ✅ Replace Monkey in the four-lane pretrial dashboard.
 
 ## Later informed-agent roadmap
 
@@ -50,8 +51,9 @@ flowchart TD
     PRE --> LAB["✅ Selection × mutation lab<br/>failed next-map gate"]
     LAB --> REF["✅ Named referee + lineage store"]
     REF --> P1["✅ Q0<br/>Checkpoint expedition runner"]
-    P1 --> Q1["🟨 CURRENT<br/>Two-seed left_home gate"]
-    Q1 --> SK["⬜ Reusable navigation and battle behavior"]
+    P1 --> Q1["🟨 Q1<br/>H3 reached; gate 1/2"]
+    Q1 --> EM["⬜ CURRENT<br/>Scale + emitter comparison"]
+    EM --> SK["⬜ Reusable navigation and battle behavior"]
     SK --> HY["⬜ PLANNED<br/>Planner + memory + watchdog"]
     HY --> P2["⬜ PLANNED<br/>Phase 2: defeat Brock"]
     P2 --> AB["🧭 LATER<br/>Controlled agent comparisons"]
@@ -64,7 +66,7 @@ sequence.” Small prototypes may happen earlier, but an official result cannot 
 
 This older project phase predates the checkpoint program's separate **Q0 completion-foundation
 gate**. Q0 has passed; the two broader Phase 0 evidence items below remain useful but are not
-prerequisites for the bounded Q1 checkpoint trial.
+prerequisites for the now-concluded bounded Q1 checkpoint trial.
 
 **Narrative question:** Can we trust the stage before judging the player?
 
@@ -112,12 +114,14 @@ torn-tail recovery all have regression checks; two bounded real-ROM runs passed 
 
 ### 1B — Pass one remembered step
 
-- 🟨 Run two fresh 20,000-action seeds against the exact `left_home` milestone.
-- ⬜ Require three complete power-on replays for each passing milestone lineage.
-- ⬜ Preserve failed siblings, loop stops, replay cost, and interventions in the dashboard ledger.
-- ⬜ Refuse post-result budget expansion; a miss triggers an emitter comparison.
+- ✅ Run two fresh 20,000-action seeds against the exact `left_home` milestone.
+- ✅ Require three complete power-on replays for each passing milestone lineage.
+- ✅ Preserve failed siblings, loop stops, replay cost, and interventions in the dashboard ledger.
+- ✅ Refuse post-result budget expansion; the 1/2 result triggers an emitter comparison.
 
-**Gate:** both predeclared seeds reach `left_home` inside one hour and 2 GiB each.
+**Result:** one seed reached `left_home`; one stopped at `left_bedroom`. H3 milestone evidence was
+earned, but the gate requiring both seeds failed. The random emitter remains the baseline rather
+than the selected completion mechanism.
 
 ### 1C — Choose and train bounded emitters
 
@@ -196,17 +200,19 @@ knowledge, and tool access must be reported rather than compressed into a single
 The selection/mutation branch is concluded. The immediate queue follows the horizon failure it
 revealed.
 
-1. **Q1 bounded search** — reach the exact `left_home` transition without a human action segment,
-   under two fresh 20,000-action/one-hour seeds, while preserving every failed branch.
-2. **Replay gate** — require three complete power-on replays with exact hashes, the full canonical
-   descriptor, and canonical referee summary before the milestone becomes selectable.
-3. **Scaling work** — stream lineages, index replay counts, validate ancestry topologically, bound
+1. **Freeze Q1** — preserve the complete 1/2 result, 419-action successful lineage, and all failed
+   branches as the random checkpoint-search denominator.
+2. **Scaling work** — stream lineages, index replay counts, validate ancestry topologically, bound
    the replay queue, and freeze private-payload retention before any multi-day campaign.
-4. **Emitter comparison** — if random suffixes miss Q1, compare action-sequence, recurrent visual,
-   and hybrid emitters without expanding the gate after seeing the result.
-5. **Opening curriculum** — only after Q1, extend checkpoint exploration through Oak, starter,
+3. **Selection repair** — keep floods of one-use visual cells from delaying newly advanced
+   frontiers, while retaining diversity and the full failure ledger.
+4. **Emitter comparison** — compare optimized action-sequence, recurrent visual, and hybrid
+   emitters under the unchanged two-seed Q1 gate.
+5. **Dual-frame evidence** — retain the exact semantic event frame and a separately labeled stable
+   narrative frame after transitions.
+6. **Opening curriculum** — only after a new emitter passes Q1, extend checkpoint exploration through Oak, starter,
    rival, Parcel, and Pokédex.
-6. **Learned-policy track** — use self-generated successful and recovery traces to train bounded
+7. **Learned-policy track** — use self-generated successful and recovery traces to train bounded
    visual skills before attempting one frozen end-to-end policy.
 
 ## What is deliberately not promised

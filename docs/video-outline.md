@@ -5,7 +5,9 @@
 > that a useful accident could have children—but the completed
 > [selection × mutation lab](selection-mutation-lab.md) showed that better inheritance still did not
 > create meaningful game progress. The current story is the checkpoint-expedition pivot: first make
-> long-horizon discoveries reproducible, then use them to train and evaluate one frozen policy.
+> long-horizon discoveries reproducible, then use them to train and evaluate one frozen policy. Q1
+> now supplies the first payoff and complication: one random-emitter seed replayed a route outside,
+> the other failed, and verification cost almost one million additional controller actions.
 
 This document is a production guide for telling the project's story without getting ahead of the
 evidence. The detailed Episode 0 section preserves the original before-training production plan;
@@ -32,7 +34,7 @@ the next test, and lets the evidence change the plan.
 | 0. Before the AI | How do we know a later success is real and repeatable? | A deterministic, instrumented clean start in the bedroom |
 | 1. Monkeys with controllers | What can true randomness accomplish, and what can it never retain? | Preserved baseline plus the retirement decision |
 | 2. Survival of the luckiest | Can useful accidents accumulate through selection and mutation? | Better retention, no next map, and an honest failed mechanism |
-| 3. Leave home | Can checkpointed search discover and exactly replay one tiny step? | Two bounded house-exit trials with the full denominator |
+| 3. Leave home | Can checkpointed search discover and exactly replay one tiny step? | One success, one failure, a verified 419-action lineage, and no false two-seed victory |
 | 4. Meet Oak | Can pixels or a learned action model improve on random suffix search? | Matched emitter comparison and a replayed starter milestone |
 | 5. A real errand | Can a population extend a verified lineage through Oak's Parcel? | Checkpoint-assisted result clearly separated from clean-start policy ability |
 | 6. Nature or nurture? | Which progress came from pixels, rewards, RAM, or selection? | Four-lane successor arena with declared information budgets |
@@ -90,6 +92,24 @@ The false Hall-of-Fame audit is a particularly useful visual beat. Put two green
 `SNAPSHOT HASH MATCHED` and `SCREEN HASH MATCHED`. Then strike through the headline `HALL OF FAME`
 when the independent referee reads `POWER ON`. The lesson is memorable: deterministic evidence can
 reproduce a false label perfectly unless meaning is checked separately.
+
+### Episode 3 result turn: “It left—and that still was not a pass”
+
+Show both seed timelines at equal scale. Seed `20260730` reaches the ground floor and spends the rest
+of its 20,000-action fuel without finding the exit. Seed `20260731` reaches the same point sooner,
+then steps outside at action 17,832. Pause on the tempting successful clip before revealing the
+predeclared rule: **both seeds had to succeed**. Put `H3 MILESTONE VERIFIED` beside `Q1 GATE: 1/2 —
+FAILED` so the audience can see that a real achievement and a failed experiment can coexist.
+
+Then reveal the second denominator. The two agents spent 40,000 actions exploring and 954,704
+actions proving local checkpoints from power-on. Animate a short exploration bar beside a replay
+bar almost twenty-four times longer. This turns an implementation bottleneck into the episode's
+next question: can the experiment remember selectively without weakening proof?
+
+The exact `left_home` screenshot is a dark transition frame. Keep it on screen as `EXACT EVENT
+FRAME`, then cut to the later clear outdoor frame as `STABLE NARRATIVE FRAME`. Do not substitute the
+prettier image silently. That contrast expresses the whole editorial premise: evidence and
+storytelling serve different jobs, and both should be visible.
 
 ### Suggested beats
 

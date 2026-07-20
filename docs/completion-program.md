@@ -1,13 +1,11 @@
 # The Hall of Fame completion program
 
-> **Status, 2026-07-19:** Q0 completion-harness qualification passed; Q1 has not. The completed six-lane
-> mechanism lab consumed 9,216,000 controller actions without a lineage exceeding milestone tier 1,
-> reaching more than one map, or acquiring a party member. The successor now has a 55-outcome
-> referee through Hall of Fame, a private content-addressed frontier store, tamper-evident action
-> lineages, ancestry-wide quarantine, and mandatory semantic power-on replay. The bounded
-> single-writer runner, localhost-only dashboard, exact stop/resume, and disk ceilings passed unit
-> and real-ROM development checks. The first 512-action qualification reached Oak's introduction
-> but no playable milestone. The multi-seed Q1 house-exit search remains the next evidence gate.
+> **Status, 2026-07-19:** Q0 passed; the concluded Q1 trial reached `left_home` in one of two seeds
+> and therefore failed its predeclared two-seed gate. The successful seed preserved a 419-action
+> power-on lineage and passed all three semantic promotion replays. Across both seeds, 40,000
+> exploration actions caused 954,704 replay actions. This earns the narrow H3 claim that the
+> expedition reached a verified milestone, not that a model learned the behavior. Replay/archive
+> scaling and a matched emitter comparison now precede any opening curriculum or multi-day run.
 
 ### Implementation ledger
 
@@ -19,7 +17,7 @@
 | Mandatory power-on replay semantics | ✅ Real-ROM integration checked | A deliberately false Hall-of-Fame cell is rejected even when its snapshot and screen hashes replay exactly |
 | Verified frontier promotion | ✅ Implemented | Every lineage boundary must pass; local cells need one replay and milestone advances need three |
 | Single-writer bounded runner and dashboard | ✅ Implemented and checked | Real stop/resume preserved archive, selection/RNG state, and the intervention ledger |
-| First autonomous house-exit qualification | ⬜ Not passed | Q1 is frozen at two bounded seeds and remains the multi-day go/no-go gate |
+| First autonomous house-exit qualification | 🟨 H3 reached; Q1 failed 1/2 | One seed replayed `left_home`; both-seed robustness requirement was not met |
 
 ## The destination
 
@@ -354,6 +352,18 @@ This is H0 engineering evidence; it is not H1 learning evidence.
 Do not launch a multi-day campaign until Q1 passes. A system that cannot reliably preserve the
 first frontier will only create a larger pile of opening attempts.
 
+**Concluded result:** seed `20260730` reached `left_bedroom` and exhausted 20,000 exploration
+actions. Seed `20260731` reached `left_home` at exploration action 17,832; its shortest accepted
+lineage contained 419 actions and passed three of three promotion replays. Both runs had zero human
+interventions and stopped at exactly 20,000 actions. The target result was therefore 1/2: enough
+for H3 milestone evidence, not enough to pass Q1. The full denominator and integrity anchors are in
+the [Q1 result record](../experiments/q1-left-home/README.md).
+
+The trial also strengthened the scaling blocker. It used 954,704 replay actions for 40,000
+exploration actions—23.87 replay actions per exploration action—and admitted 2,317 cells. The unchanged
+random emitter will not receive a larger rescue budget. Q1 is now the fixed baseline for a
+materially different scheduler/emitter comparison.
+
 ### Q2 — opening curriculum
 
 - reach each G2 outcome through archived, replay-verified progress;
@@ -502,9 +512,10 @@ evidence that changed course.
 5. ✅ Quarantine unverified discoveries and use milestone-aware active-archive replacement.
 6. ✅ Complete the single-writer runner, loop classification, bounded adaptive suffixes, exact
    resume, storage ceilings, ancestry quarantine, and dashboard.
-7. 🟨 Qualify Q1 at the exact `left_home` milestone under two 20,000-action seeds before scheduling
-   a multi-day run.
-8. ⬜ Compare discovery emitters at Q2; select based on replayed milestone progress per action.
+7. 🟨 Record Q1 as H3 reached but robustness failed: one of two 20,000-action seeds replayed
+   the exact `left_home` milestone.
+8. ⬜ Bound replay and archive-selection growth, then compare discovery emitters at Q2 using the
+   unchanged Q1 target and budgets; select on replayed milestone progress per action and seed.
 9. ⬜ Begin richer visual-policy skill training only after the expedition produces a useful
    curriculum.
 

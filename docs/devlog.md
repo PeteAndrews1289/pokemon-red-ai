@@ -1,5 +1,41 @@
 # Development log
 
+## 2026-07-19 — Q1 steps outside once, but fails its two-seed gate
+
+### Complete denominator
+
+- Ran both predeclared seeds sequentially against the real ROM with identical one-hour,
+  20,000-exploration-action, 2 GiB, suffix, selection, and replay limits. Both stopped normally at
+  exactly 20,000 actions with zero human interventions.
+- Seed `20260730` reached `game_started` at exploration action 6,407 and `left_bedroom` at 8,766,
+  then exhausted its budget without stepping outside.
+- Seed `20260731` reached `game_started` at 6,231, `left_bedroom` at 7,941, and `left_home` at
+  17,832. Its shortest accepted house-exit lineage contained 419 actions and replayed from power-on
+  three of three times with matching hashes and canonical semantics.
+- Reported the target as 1/2. Accepted the H3 claim that the expedition reached a verified named
+  milestone, but failed Q1's requirement that both fresh seeds reach it.
+
+### Cost and new failure vocabulary
+
+- Spent 954,704 replay actions to verify 40,000 exploration actions—23.87 replay actions per new
+  exploration action. All 2,984 replay attempts passed.
+- Stored 2,502 evidence cells and admitted 2,317, leaving 2,284 active frontier cells. Archive
+  breadth grew faster than useful new frontiers could be revisited, exposing selection starvation
+  alongside the already known full-lineage replay cost.
+- Preserved seed one's miss instead of extending it or reporting only the successful seed. The
+  random emitter remains a baseline; it did not learn from either result.
+- Found a narrative-recording limitation: the exact verified `left_home` image was a transition
+  frame, while a later frame clearly showed Red outside. Future runners must keep both the exact
+  causal frame and a separately labeled stable narrative frame.
+
+### Decision
+
+- Do not increase the random emitter's budget and do not begin a multi-day run.
+- First stream/index replay work, bound local verification, repair frontier starvation, and compare
+  optimized action-sequence and learned visual emitters under the unchanged Q1 protocol.
+- Published the full result, integrity anchors, failed seed, and interpretation in
+  [`experiments/q1-left-home`](../experiments/q1-left-home/README.md).
+
 ## 2026-07-19 — Hall-of-Fame completion foundation passes Q0
 
 ### The goal and the evidence ladder

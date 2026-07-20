@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased — Q1 `left_home` result
+
+- Completed both frozen 20,000-action checkpoint-search seeds with zero interventions and exact
+  action-limit stops.
+- Verified a 419-action power-on lineage through `left_home` in seed `20260731`; all three milestone
+  promotion replays matched hashes and canonical semantics.
+- Preserved seed `20260730` as a valid failure at `left_bedroom`, making the declared Q1 result 1/2
+  rather than promoting one successful clip into a two-seed pass.
+- Recorded 40,000 exploration actions, 954,704 replay actions, 2,984/2,984 replay passes, and 2,502
+  stored evidence cells across the complete result.
+- Accepted the narrow H3 milestone claim while keeping learned-policy claims open: the current
+  random button emitter receives no observation and performs no policy update.
+- Added a public metadata-only Q1 record with both seeds, integrity hashes, timeline, interpretation,
+  scaling limits, and the next matched-emitter decision.
+- Added a dual-frame recording requirement after the exact semantic `left_home` capture occurred
+  during a visually unclear transition.
+
 ## Unreleased — Hall-of-Fame completion foundation
 
 - Concluded the six-lane selection × mutation lab without naming a winner: frontier selection

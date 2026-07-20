@@ -4,8 +4,9 @@
 > population then inherited one narrow accident—starting the game—but six controlled selection and
 > mutation treatments still failed to leave the first map. The next protagonist is an expedition
 > that can remember verified stepping stones without pretending those checkpoints are one learned
-> policy. Its Q0 machinery works; its first named gameplay gate remains open. Its destination and
-> strict claims are defined in the
+> policy. Its Q0 machinery worked, and one of two Q1 seeds assembled and replayed a 419-action route
+> outside. The failed companion seed and nearly one million verification actions keep that moment
+> from becoming a false victory. Its destination and strict claims are defined in the
 > [Hall of Fame completion program](completion-program.md).
 
 ## The question
@@ -29,8 +30,8 @@ journey without those restores before the project says one model learned the gam
 
 ## Where the project honestly stands
 
-**Online-learning and neuroevolution pretrials have run; no agent has completed a named opening
-quest or passed a frozen whole-game evaluation.**
+**The checkpoint expedition has replayed one named opening transition; no learned policy has passed
+a frozen local-skill or whole-game evaluation.**
 
 Phase 0 built the measuring instrument: a reproducible emulator harness that can start the exact
 same game, issue timed controller inputs, observe a small and disclosed slice of state, restore an
@@ -53,12 +54,13 @@ test sequence used to prove that the laboratory works.
 | Has online reinforcement learning begun? | Yes, in development pretrials; no frozen task evaluation has been claimed. |
 | Does Pure Monkey learn? | No; it is now a preserved and retired random baseline. |
 | Has neuroevolution begun? | Yes. It inherited game-start behavior, but all six follow-up lanes failed the second-map gate. |
+| Has the checkpoint expedition left the house? | Once in two bounded random-emitter seeds; the lineage replayed, but the Q1 robustness gate failed. |
 | Can the software boot and control the game reproducibly? | Yes. |
 | Can it verify the intended game revision? | Yes. |
 | Can it record controller actions and selected state without leaking the ROM path? | Yes. |
 | Can it reach the first playable state twice with identical results? | Yes. |
 | Is the current test sequence an autonomous playthrough? | No; it is test infrastructure. |
-| What comes next? | Run two frozen, bounded searches for a replayed house exit, then compare better action emitters rather than silently enlarging a failure. |
+| What comes next? | Make replay and selection scale, then compare better action emitters against the preserved 1/2 house-exit baseline. |
 
 Keeping this table current is part of the project. A small true claim is more valuable than a large
 ambiguous one.

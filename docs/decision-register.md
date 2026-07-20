@@ -558,6 +558,49 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
 - **Consequence:** The next claim opportunity is the predeclared two-seed `left_home` Q1 gate.
 - **Revisit when:** Q1 finishes.
 
+## DR-0030 — Accept H3 while failing the two-seed Q1 gate
+
+- **Date:** 2026-07-19
+- **Status:** Concluded; H3 accepted, Q1 robustness gate failed
+- **Scope:** Two-seed `left_home` development trial
+- **Information label:** `RANDOM-ACTION-EMITTER / PRIVILEGED-TRAINING-REFEREE / ARCHIVE-RESTORE / ACTION-LINEAGE`
+- **Decision:** Report the complete result as one success in two seeds. Accept the narrow claim that
+  the expedition reached and replayed `left_home`; do not describe Q1 as passed and do not rerun the
+  unchanged random emitter with a larger budget.
+- **Alternatives considered:** Call any one verified discovery a Q1 pass; discard the failed seed;
+  extend seed `20260730` until it leaves the house; run more random seeds before changing design.
+- **Observation/evidence:** Both seeds exhausted exactly 20,000 exploration actions with zero human
+  interventions. Seed `20260730` stopped at `left_bedroom`. Seed `20260731` discovered `left_home`
+  at action 17,832, preserved a shortest 419-action lineage, and passed all three promotion replays.
+  The two runs passed 2,984 of 2,984 total replays. Their reviewed status hashes are
+  `255fa5ee920fa20b0a239d04c499033c7877e397f81e2e5c3cadeaeedde2cd04` and
+  `cc0898a011f87f2073365afb5852b22346f3b228956daefe00a8315ffd64ecc1`.
+- **Interpretation:** Checkpoint memory can turn random action suffixes into cumulative, verified
+  progress, but one success does not meet a two-seed reliability rule. The archive learned where to
+  continue searching; the observation-free emitter learned nothing.
+- **Consequence:** Preserve Q1 as the random checkpoint-search baseline. The next experiment changes
+  the emitter and scheduler under the same target, seeds-per-condition, and exploration budget.
+  H3 language is permitted; H1/H2 learned-policy language is not.
+- **Revisit when:** A materially different emitter completes its matched `left_home` comparison.
+
+## DR-0031 — Preserve both exact and stable milestone frames
+
+- **Date:** 2026-07-19
+- **Status:** Accepted recording requirement; implementation pending
+- **Scope:** Narrative evidence without rewriting causal evidence
+- **Decision:** Keep the exact frame captured when a semantic milestone fires, then separately record
+  the first stable post-transition frame with its additional emulator frames and label. Never
+  replace the exact frame with the prettier one.
+- **Alternatives considered:** Use only the exact frame; delay all milestone detection until the
+  screen looks stable; manually choose a later screenshot without recording the selection rule.
+- **Observation/evidence:** The first `left_home` semantic state and all hashes replayed exactly, but
+  its image was a dark transition frame. A later ordinary frame clearly showed Red outside.
+- **Interpretation:** Machine-valid evidence and audience-readable evidence can require different
+  frames. Keeping both makes the distinction visible instead of editing around it.
+- **Consequence:** The next runner revision must account for stable-frame capture separately in the
+  trace and action/frame budget. The Q1 exact frame remains the authority for the milestone event.
+- **Revisit when:** The dual-frame recorder passes a transition-event integration check.
+
 ## Unresolved decisions
 
 These are questions, not hidden commitments. Each becomes a numbered entry when evidence supports

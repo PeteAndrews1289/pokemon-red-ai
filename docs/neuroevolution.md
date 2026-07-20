@@ -4,8 +4,8 @@
 > a reproducible game-start behavior. The later six-lane selection × mutation lab improved retention,
 > especially under frontier selection, but no lane reached a second map or formed a party. That
 > negative result is preserved rather than relabeled as a winner. The checkpoint-assisted expedition
-> substrate has now passed its Q0 engineering gate; its first gameplay gate is still open. This is
-> mechanism evidence—not evidence that a policy has learned to play Pokémon successfully.
+> substrate passed Q0 and later replayed `left_home` in one of two bounded seeds. That is H3
+> expedition evidence, while the 1/2 Q1 gate and every learned-policy claim remain failed or open.
 
 ## The idea in one sentence
 
@@ -402,7 +402,7 @@ without forcing every lineage to imitate the most immediately profitable behavio
 - ✅ Integrate and Q0-qualify the single-writer expedition runner, bounded dashboard, clean stop,
   and exact resume against the real ROM.
 - ✅ Require three power-on ancestral replays in code before a major milestone can be promoted.
-- ⬜ Reach and replay the first named gameplay milestone, `left_home`, in the frozen Q1 trial.
+- 🟨 Reach and replay `left_home` in one Q1 seed; record that the two-seed gate failed 1/2.
 - ⬜ Treat Hall of Fame as complete only after the entire winning lineage replays successfully.
 
 ## Failure modes we expect to learn from

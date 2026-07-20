@@ -7,12 +7,12 @@
 > integrity-bound frontier checkpoints, complete action lineages, and mandatory power-on replay
 > before any checkpoint may become a verified milestone.
 
-- **Current stage:** Q1 two-seed `left_home` checkpoint-expedition gate
+- **Current stage:** Q1 concluded at 1/2; replay scaling and matched emitter comparison next
 - **Status date:** 2026-07-19
 
-**Most important caveat:** the evolutionary result comes from one inherited population in a
-development run. It is not a frozen autonomous evaluation, a fresh-seed replication, or an Oak's
-Parcel result.
+**Most important caveat:** Q1 verified one replayable house-exit lineage, but the acting suffix
+emitter was uniformly random and only one of two seeds reached the target. This is expedition
+milestone evidence, not a learned-policy result or an Oak's Parcel result.
 
 The project can now launch the exact supported game revision, issue deterministic controller
 inputs, observe a small documented state, and reproduce the start of a clean game. That is useful
@@ -72,9 +72,11 @@ flowchart LR
 | Frontier evidence is integrity-bound | ✅ Verified | E2 | Cells bind ROM/version snapshots, action segments, frames, ancestry, semantic descriptors, full metadata, and a hash-chained audit log |
 | False semantic replay is rejected | ✅ Verified | E2 | A real-ROM regression reproduces exact hashes for a deliberately false Hall-of-Fame cell and fails its canonical milestone check |
 | Milestone frontiers require replay | ✅ Verified | E2 | Local discoveries require one passing replay and milestone advances require three before active selection |
-| A resumable expedition runner exists | ✅ Verified | E3 engineering | Two bounded real-ROM runs passed all replays; one retained an explicit stop/resume and exact final budget; no Q1 result is claimed |
+| A resumable expedition runner exists | ✅ Verified | E3 engineering | Bounded real-ROM qualification retained an explicit stop/resume and exact final budget; Q1 performance is reported separately |
 | The Q0 discovery baseline reached a playable milestone | ⬜ Not demonstrated | E0 | It reached Oak's introduction visually but the referee correctly remained at `power_on` |
-| The current store is marathon-scale | ⬜ Blocked by profiling | E0 | A 1,024-action qualification spent 9,280 additional replay actions; streaming, indexes, and retention are required before a multi-day run |
+| The expedition reached `left_home` | ✅ Verified in one development seed | E3 / H3 | A 419-action lineage passed three promotion replays; the two-seed Q1 result was 1/2 and the emitter was random |
+| The Q1 robustness gate passed | ⬜ Failed | E3 | Seed `20260730` stopped at the ground floor; seed `20260731` stepped outside; both exhausted the frozen 20,000-action budget |
+| The current store is marathon-scale | ⬜ Blocked by profiling | E0 | Q1 spent 954,704 replay actions on 40,000 exploration actions; streaming, indexes, selective verification, and retention are required before a multi-day run |
 | Long random action sequences remain stable | ⬜ Planned | E0 | Extended stability run has not been reported |
 | A human Oak's Parcel baseline exists | ⬜ Planned | E0 | No baseline action count or completion time is available yet |
 | A trained policy leaves the bedroom | ⬜ Planned | E0 | Development learners have wandered beyond it, but no frozen task evaluation has been run |
@@ -89,7 +91,7 @@ suggest precision that does not exist before the training design and difficulty 
 | Phase | Deliverable | Current state | Exit signal |
 | --- | --- | --- | --- |
 | Q0 — Completion foundation | Reproducible checkpoint runner plus truthful completion referee | **Passed** | Runner, replay, resume, privacy, and corruption checks recorded |
-| 1 — Expedition opening | Replay-verified bedroom, house, starter, and Parcel frontiers | **Q1 active; no autonomous milestone result** | Two bounded seeds reach `left_home` and replay under the frozen gate |
+| 1 — Expedition opening | Replay-verified bedroom, house, starter, and Parcel frontiers | **Q1 concluded 1/2; H3 reached, exit gate failed** | A materially different emitter reaches `left_home` under the same two-seed gate before extending the curriculum |
 | 2 — Brock | Reusable skills plus planner, memory, and watchdog | **Not started** | Frozen clean-start evaluation defeats Brock under budget |
 | Later — Comparisons | Language-model, RL, and hybrid ablations | **Not started** | Same referee and declared budgets used for all configurations |
 
@@ -183,13 +185,14 @@ A compact future update can use this table:
 
 The immediate goal is not a flashy success clip. It is a trustworthy first remembered step.
 
-1. Run the frozen Q1 search for the exact `left_home` milestone under two fresh 20,000-action seeds.
-2. Preserve all failed branches, replay costs, loop stops, interventions, and live dashboard data.
-3. Require three complete semantic-and-hash replays before promoting `left_home`.
-4. If Q1 fails, compare action-sequence and learned visual emitters under the same gate instead of
-   silently expanding the budget.
-5. Implement streaming replay, replay indexes, topological validation, and bounded private-payload
-   retention before authorizing a multi-day opening curriculum.
+1. Preserve the [complete 1/2 Q1 result](../experiments/q1-left-home/README.md) as the random
+   checkpoint-search baseline.
+2. Implement streaming replay, replay indexes, topological validation, selective local-cell
+   verification, and bounded private-payload retention.
+3. Prevent a growing queue of one-use visual cells from starving newly advanced frontiers.
+4. Compare an optimized action-sequence emitter and learned visual emitter under the unchanged
+   two-seed, 20,000-action `left_home` gate.
+5. Advance toward Oak and the starter only after one materially different emitter passes that gate.
 
 See [Roadmap](roadmap.md) for acceptance gates and [Visual storytelling](visual-storytelling.md) for
 how those results should be shown.

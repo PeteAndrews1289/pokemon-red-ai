@@ -9,8 +9,9 @@ The emulator foundation, blind runners, online learners, and first neuroevolutio
 working. There is still **no evaluated successful Pokémon-playing policy or whole-game result**.
 Pure Monkey completed its role as the random baseline. A 90-minute evolutionary pretrial inherited
 a narrow game-start behavior; the completed six-lane follow-up then failed to extend any treatment
-beyond one map. The checkpoint expedition, named Hall-of-Fame referee, and power-on replay gate that
-follow from that failure have passed their Q0 engineering checks; the first gameplay gate has not.
+beyond one map. The checkpoint expedition then reached and replayed `left_home` in one of two
+bounded seeds. That earns a narrow expedition milestone claim while failing the frozen two-seed Q1
+gate. Replay scaling and a materially different emitter comparison are now the active work.
 
 ## Start here
 
@@ -22,6 +23,7 @@ follow from that failure have passed their Q0 engineering checks; the first game
 | Learn what evolutionary training tested | [Evolutionary Explorer](neuroevolution.md) | Genomes, mutation, MAP-Elites, lab results, checkpoint successor, and claim boundaries |
 | Inspect the current experiment branch | [Selection × mutation lab](selection-mutation-lab.md) | The 90-minute result, six-lane matrix, measurements, narrative, and claim limits |
 | See the path to completing the game | [Hall of Fame completion program](completion-program.md) | Expedition architecture, information labels, claim ladder, qualification gates, and policy distillation |
+| Inspect the first verified expedition milestone | [Q1 `left_home` result](../experiments/q1-left-home/README.md) | Both seeds, full denominator, lineage hashes, replay cost, and why 1/2 is not a pass |
 | Audit every accepted and discarded idea | [Decision register](decision-register.md) | Append-only decisions, failed hypotheses, alternatives, evidence, and consequences |
 | Follow the central story | [Project narrative](narrative.md) | Why the failures and evidence are part of the project |
 | Understand the reward ladder | [Reward architecture](reward-architecture.md) | Actions, milestones, loop controls, and reporting boundaries |
@@ -51,7 +53,8 @@ flowchart LR
     E --> L["✅ 2 × 3 mechanism lab<br/>failed next-map gate"]
     L --> F["✅ Referee + lineage foundation"]
     F --> G["✅ Q0 expedition runner"]
-    G --> H["🟨 Multi-seed house-exit gate"]
+    G --> H["🟨 Q1 house exit<br/>H3 reached; gate 1/2"]
+    H --> I["⬜ Replay scale +<br/>emitter comparison"]
 ```
 
 The diagram shows project position, not game progress. Reaching the game-start state is a narrow

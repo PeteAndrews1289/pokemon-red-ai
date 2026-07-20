@@ -7,19 +7,17 @@
 
 This is a transparent, reproducible Pokémon Red learning project. Every experiment separately
 discloses what chooses buttons, what that component observes, and what its training system may know.
-The original game-naive, pixels-only condition remains a strict control. The current Q0/Q1
-completion search deliberately starts with a seeded random action emitter and a sealed, read-only
-referee; later trials will compare learned pixel actors under the same checkpoint and replay rules.
+The original game-naive, pixels-only condition remains a strict control. The Q0/Q1 completion
+baseline deliberately used a seeded random action emitter and a sealed, read-only referee; the next
+trials compare learned or optimized emitters under the same checkpoint and replay rules.
 
-> **Current status: the six-lane selection × mutation follow-up is complete and every tested
-> condition failed its next-map gate.** All six conditions spent equal 1,536,000-action budgets and
-> remained on one map with no party member. Frontier selection retained the known title-sequence
-> behavior far better than uniform selection, but retention did not become progress. The
-> [Hall of Fame completion program](docs/completion-program.md) now has 55 named milestones, a
-> content-addressed checkpoint/action-lineage store, and a bounded single-writer runner. A real-ROM
-> Q0 qualification replayed every admitted state exactly and survived a graceful stop/resume. It
-> reached Oak's introduction, not the first playable milestone; Q1 and every learning claim remain
-> open.
+> **Current status: the first two-seed checkpoint search reached `left_home` in one of two seeds.**
+> Seed `20260731` discovered a 419-action power-on lineage that stepped outside and passed all three
+> promotion replays; seed `20260730` stopped at the ground floor. The predeclared Q1 gate therefore
+> failed its two-seed requirement even though the expedition earned the narrower H3 milestone claim.
+> Across both seeds, verification consumed 954,704 actions in addition to 40,000 exploration
+> actions. The next work is replay/archive scaling and a matched emitter comparison—not a larger
+> random run. See the [complete Q1 result](experiments/q1-left-home/README.md).
 
 The current code preserves every historical runner, including Monkey, Archivist, online learners,
 and clean-start neuroevolution, so rejected approaches remain reproducible. See
@@ -61,7 +59,7 @@ levels remain tracked in [Progress](docs/progress.md).
 | Preserved random comparison | Monkey vs. pixels-only Archivist under matched budgets |
 | Completed 90-minute pretrial | Evolution reached tier 1; online learners plateaued around Pallet Town and Route 1 |
 | Concluded neural experiment | Six inherited-archive lanes all failed the second-map/party gate under equal fuel |
-| Current completion work | Q1 multi-seed house-exit search after a qualified private frontier runner and deterministic power-on replay |
+| Current completion work | Q1 concluded at 1/2; scale replay and compare learned/optimized emitters under the same house-exit gate |
 | North star | First discover a replayable Hall-of-Fame lineage, then train and evaluate one frozen pixel policy |
 
 ## The journey
@@ -73,8 +71,9 @@ flowchart LR
     B2 --> B1["✅ First inheritance<br/>repeat game start"]
     B1 --> EV["✅ 2 × 3 mechanism lab<br/>no next-map progress"]
     EV --> EX["✅ Q0 checkpoint runner<br/>remember stepping stones"]
-    EX --> Q1["🟨 Q1 house exit<br/>two fresh seeds"]
-    Q1 --> FR["⬜ Complete lineage<br/>then one frozen policy"]
+    EX --> Q1["🟨 Q1 house exit<br/>H3 reached; gate 1/2"]
+    Q1 --> EM["⬜ Q2 emitter comparison<br/>same frozen target"]
+    EM --> FR["⬜ Complete lineage<br/>then one frozen policy"]
 ```
 
 GitHub issues and experiment records will attach evidence to this roadmap. A checked engineering
@@ -104,7 +103,7 @@ that an agent has learned navigation, understood the screen, or completed a ques
 flowchart LR
     Game["Pokémon Red"] --> Pixels["Rendered RGB only"]
     Pixels -. "future learned input" .-> Emitter["Discovery emitter"]
-    RNG["Seeded RNG<br/>current Q0/Q1"] --> Emitter
+    RNG["Seeded RNG<br/>Q0/Q1 baseline"] --> Emitter
     Emitter --> Act["Controller buttons"]
     Act --> Game
     Game --> Referee["Sealed read-only referee"]
@@ -115,8 +114,8 @@ flowchart LR
     Replay --> Story["Evidence + failures + narrative"]
 ```
 
-The actor never receives RAM, checkpoint bytes, milestone names, or a route. The current Q0/Q1
-qualification emitter receives only a seeded pseudorandom generator; it is an open-loop discovery
+The actor never receives RAM, checkpoint bytes, milestone names, or a route. The Q0/Q1 baseline
+emitter received only a seeded pseudorandom generator; it is an open-loop discovery
 baseline, not a learned model and not yet a pixel actor. Later visual policies will receive rendered
 pixels under a separate label. RAM-derived state may influence training reward, archive selection,
 curriculum, and failure termination through the declared referee. Checkpoint restores are
@@ -149,6 +148,7 @@ Start with [the documentation hub](docs/index.md), or jump directly to:
 - [Blind curiosity protocol](docs/blind-curiosity.md) — pixels-only rules, novelty, archive, and run guide
 - [Evolutionary Explorer](docs/neuroevolution.md) — how genomes, mutation, selection, and lineage worked, plus the checkpoint successor they motivated
 - [Selection × mutation lab](docs/selection-mutation-lab.md) — the concluded 90-minute evidence, completed six-lane fork, and failed next-map gate
+- [Q1 `left_home` result](experiments/q1-left-home/README.md) — both seeds, the verified successful lineage, replay cost, and failed robustness gate
 - [Hall of Fame completion program](docs/completion-program.md) — the checkpoint expedition, claim ladder, qualification gates, and path to one learned policy
 - [Append-only decision register](docs/decision-register.md) — accepted, rejected, retired, superseded, and failed ideas with their evidence
 - [Progress](docs/progress.md) — current evidence, status, and reporting rules

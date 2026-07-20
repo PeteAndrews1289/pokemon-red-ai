@@ -62,9 +62,9 @@ but it is not strict blind. The referee may influence training outside the polic
 unable to choose an action or write game memory.
 
 `RANDOM-ACTION-EMITTER` means the actor receives only a seeded pseudorandom generator. It is a
-reproducible discovery baseline, not a learned model and not a pixels-only policy. The current Q1
-checkpoint search uses this label so archive-level learning cannot be confused with a button policy
-that learns from observations.
+reproducible discovery baseline, not a learned model and not a pixels-only policy. The concluded Q1
+checkpoint search used this label so archive-level learning could not be confused with a button
+policy that learns from observations.
 
 The exact definitions, examples, and completion claim ladder are in the
 [Hall of Fame completion program](completion-program.md#the-information-labels).
