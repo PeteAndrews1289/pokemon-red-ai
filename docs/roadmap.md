@@ -1,11 +1,10 @@
 # Roadmap
 
-> **Direction update:** Pure Monkey is retired after establishing the random baseline. The immediate
-> primary track is now [Evolutionary Explorer](neuroevolution.md): a pixels-only recurrent policy
-> population with mutation, quality-diversity selection, and auditable ancestry. Online Q learning
-> and the later informed-agent plan remain comparisons. A concluded 90-minute run found inherited
-> game-start behavior plus two bottlenecks; the current 2 × 3 lab isolates parent selection and
-> mutation scale.
+> **Direction update:** Pure Monkey and clean-start mutation remain preserved controls. The
+> completed 2 × 3 lab changed selection and mutation but every lane still failed the second-map
+> gate. The primary track is now the [Hall of Fame completion program](completion-program.md): a
+> currently random discovery emitter, privileged read-only training referee, verified frontier
+> checkpoints, complete action lineages, and eventual distillation into one frozen visual policy.
 
 ## Completed blind-discovery arc
 
@@ -23,11 +22,14 @@
 3. ✅ Implement mutation-only reproduction, MAP-Elites, genealogy, and resume checkpoints.
 4. ✅ Complete a bounded 90-minute population pretrial and freeze its archive and genealogy.
 5. ✅ Diagnose uniform parent selection and destructive broad mutation as candidate bottlenecks.
-6. 🟨 Run the six-lane selection × mutation fork with 1,536,000 actions per lane.
-7. ⬜ Confirm the selected mechanism from fresh random populations across multiple seeds.
-8. ⬜ Freeze a clean-start early-game comparison against the preserved random baseline.
-9. ⬜ Add checkpoint-assisted expedition mode with required power-on lineage replay.
-10. ✅ Replace Monkey in the four-lane pretrial dashboard.
+6. ✅ Run the six-lane selection × mutation fork with 1,536,000 actions per lane.
+7. ✅ Record that no condition passed the second-map gate; do not select a marathon winner.
+8. ✅ Implement the named completion referee and integrity-bound expedition evidence foundation.
+9. ✅ Integrate the single-writer checkpoint expedition, localhost dashboard, exact resume, and
+   required power-on lineage replay.
+10. 🟨 Pass the two-seed, 20,000-action `left_home` qualification before a multi-day run.
+11. ⬜ Distill useful self-generated lineages into a richer frozen visual policy.
+12. ✅ Replace Monkey in the four-lane pretrial dashboard.
 
 ## Later informed-agent roadmap
 
@@ -45,11 +47,11 @@ flowchart TD
     P0["✅ Harness + random baseline"] --> EV0["✅ Evolution design"]
     EV0 --> EV1["✅ Genome + population engine"]
     EV1 --> PRE["✅ First inheritance<br/>90-minute pretrial"]
-    PRE --> LAB["🟨 CURRENT<br/>Selection × mutation lab"]
-    LAB --> FRESH["⬜ Fresh-seed confirmation"]
-    FRESH --> REF["⬜ Frozen clean-start comparison"]
-    REF --> P1["⬜ Checkpoint-assisted expedition"]
-    P1 --> SK["⬜ Reusable navigation and battle behavior"]
+    PRE --> LAB["✅ Selection × mutation lab<br/>failed next-map gate"]
+    LAB --> REF["✅ Named referee + lineage store"]
+    REF --> P1["✅ Q0<br/>Checkpoint expedition runner"]
+    P1 --> Q1["🟨 CURRENT<br/>Two-seed left_home gate"]
+    Q1 --> SK["⬜ Reusable navigation and battle behavior"]
     SK --> HY["⬜ PLANNED<br/>Planner + memory + watchdog"]
     HY --> P2["⬜ PLANNED<br/>Phase 2: defeat Brock"]
     P2 --> AB["🧭 LATER<br/>Controlled agent comparisons"]
@@ -58,7 +60,11 @@ flowchart TD
 Arrows mean “needs evidence from,” not necessarily “must be implemented in a single strict
 sequence.” Small prototypes may happen earlier, but an official result cannot skip its gates.
 
-## Phase 0 — Build a trustworthy starting line
+## Legacy Phase 0 — Build a trustworthy starting line
+
+This older project phase predates the checkpoint program's separate **Q0 completion-foundation
+gate**. Q0 has passed; the two broader Phase 0 evidence items below remain useful but are not
+prerequisites for the bounded Q1 checkpoint trial.
 
 **Narrative question:** Can we trust the stage before judging the player?
 
@@ -85,59 +91,54 @@ sequence.” Small prototypes may happen earlier, but an official result cannot 
 **Phase 0 exit:** both remaining deliverables are recorded under the experiment protocol. This gate
 does not require a trained policy.
 
-## Phase 1 — Make Oak's Parcel the first learning problem
+## Phase 1 — Build a verified opening curriculum
 
-**Narrative question:** Can the system turn raw controls and limited state into purposeful early-game
-behavior?
+**Narrative question:** Can the system remember one useful step, prove where it came from, and then
+extend it without a human route?
 
-Oak's Parcel is a useful first arc because it combines menus, indoor/outdoor transitions,
-exploration, a starter choice, a trainer battle, travel to Viridian City, and a return journey.
+Oak's Parcel remains the first complete story arc, but checkpoint-assisted discovery comes before a
+clean-start learned-policy claim. Those are separate artifacts and separate evidence rungs.
 
-### 1A — Freeze the environment contract
+### 1A — Trust the expedition substrate
 
-- ⬜ Define observation schema version 1: exactly what the policy sees and at what cadence.
-- ⬜ Define action schema version 1: controller choices, timing, and invalid-action handling.
-- ⬜ Separate policy observations from referee-only state.
-- ⬜ Define episode starts, terminations, truncations, and recovery behavior.
-- ⬜ Add deterministic environment tests around menus, movement, map transitions, and battles.
+- ✅ Separate action-emitter inputs from referee-only state.
+- ✅ Freeze deterministic action timing, named milestone semantics, and the strict completion bit.
+- ✅ Bind snapshots, action segments, cells, ancestry, manifests, and audit events to hashes.
+- ✅ Quarantine every unverified lineage boundary and preserve exact stop/resume state.
+- ✅ Classify pixel loops and enforce action, time, output, and free-space ceilings.
 
-**Gate:** the same recorded action sequence produces the same observation/action-boundary trace
-under the declared environment version.
+**Gate:** Q0 passed. Corruption, forged semantics, false Hall of Fame, ancestor laundering, and
+torn-tail recovery all have regression checks; two bounded real-ROM runs passed every replay.
 
-### 1B — Define measurement before reward
+### 1B — Pass one remembered step
 
-- ⬜ Declare ordered milestones from bedroom start through parcel delivery.
-- ⬜ Define task success independently from shaped reward.
-- ⬜ Record the human baseline and a random-policy baseline.
-- ⬜ Choose training and evaluation budgets before the official comparison.
-- ⬜ Implement loop, timeout, blackout, and invalid-state classifications.
+- 🟨 Run two fresh 20,000-action seeds against the exact `left_home` milestone.
+- ⬜ Require three complete power-on replays for each passing milestone lineage.
+- ⬜ Preserve failed siblings, loop stops, replay cost, and interventions in the dashboard ledger.
+- ⬜ Refuse post-result budget expansion; a miss triggers an emitter comparison.
 
-**Gate:** a script, random policy, and human run can all be scored by the same referee without
-special cases that change their actions.
+**Gate:** both predeclared seeds reach `left_home` inside one hour and 2 GiB each.
 
-### 1C — Train bounded skills
+### 1C — Choose and train bounded emitters
 
-- ⬜ Start with a small navigation baseline rather than the whole quest.
-- ⬜ Train menu interaction and text-advance behavior as separately measurable skills if needed.
-- ⬜ Add battle action selection after overworld controls are stable.
-- ⬜ Evaluate held-out starts/seeds and report every checkpoint selected for evaluation.
-- ⬜ Keep shaped reward plots separate from actual milestone completion.
+- ⬜ Compare random/action-sequence, recurrent visual, and hybrid emitters under matched gates.
+- ⬜ Train navigation, dialogue/text advance, menu control, and battle behavior as measurable local
+  skills from self-generated checkpoint distributions.
+- ⬜ Keep shaped reward and archive quality separate from named success.
+- ⬜ Implement the replay/storage scaling gate before multi-day compute.
 
-**Gate:** at least one frozen learned policy improves on the declared random baseline under the
-same attempt budget. The threshold and attempt count must be frozen before the result is called
-official.
+**Gate:** a frozen learned local policy improves on the random discovery denominator over every
+predeclared attempt; archive search remains labeled separately.
 
-### 1D — Complete the clean-start quest
+### 1D — Discover, then learn, Oak's Parcel
 
-- ⬜ Leave the bedroom and house.
-- ⬜ Trigger Professor Oak.
-- ⬜ Choose a starter.
-- ⬜ Complete the first rival battle.
-- ⬜ Reach Viridian City and collect the parcel.
-- ⬜ Return the parcel to Professor Oak.
+- ⬜ Assemble and replay an `ACTION-LINEAGE` through house exit, Oak, starter, rival, Viridian,
+  parcel collection, parcel delivery, and Pokédex.
+- ⬜ Distill the successful and recovery trajectories into one visual policy.
+- ⬜ Evaluate that frozen policy from power-on without archive restore or updates.
 
-**Phase 1 exit:** a frozen configuration completes the predeclared Oak's Parcel success condition
-from clean game starts at the predeclared success threshold and budget, with all attempts reported.
+**Phase 1 exit:** report both the strongest replayed action-lineage claim and the strongest frozen-
+policy claim. A discovered Parcel route does not automatically satisfy the learned-policy gate.
 
 ## Phase 2 — Turn isolated behavior into a reusable agent
 
@@ -158,9 +159,9 @@ from clean game starts at the predeclared success threshold and budget, with all
 - ⬜ Reach Pewter City and enter the Gym.
 - ⬜ Defeat Brock from a clean game start.
 
-**Phase 2 exit:** a frozen hybrid configuration defeats Brock under a declared clean-start
-evaluation protocol. Replanning and watchdog events are visible in the run record; silent reloads
-or manual rescues count as interventions.
+**Phase 2 exit:** first replay a complete power-on `ACTION-LINEAGE` through Brock, then separately
+evaluate frozen learned skills or a frozen hybrid from clean power-on. Replanning and watchdog
+events remain visible; silent reloads or manual rescues count as interventions.
 
 ## Later — Ask comparative questions
 
@@ -192,21 +193,21 @@ knowledge, and tool access must be reported rather than compressed into a single
 
 ## Near-term work queue
 
-The engine and first population pretrial are complete. The immediate queue now follows the evidence
-from that run.
+The selection/mutation branch is concluded. The immediate queue follows the horizon failure it
+revealed.
 
-1. **Frozen branch point** — preserve the exact 33-elite archive, genealogy, and narrative hashes.
-2. **Selection treatments** — retain archive-wide uniform selection and add 80% frontier/20%
-   diversity selection with a three-candidate lexicographic tournament.
-3. **Mutation treatments** — compare the broad control with gentle and multiscale profiles.
-4. **Six-lane orchestration** — equal 128-child queues, action ceilings, health checks, graceful
-   stop, and one 2 × 3 dashboard.
-5. **Narrative telemetry** — record parent tier, mutation channel, retention, improvement, lineage
-   depth, first-milestone action, and infrastructure failures.
-6. **Fresh-seed confirmation** — rerun the selected mechanism from unrelated random founders and
-   more than one seed.
-7. **Frozen evaluation** — compare a declared frozen output against the preserved baseline without
-   using the development archive as the test set.
+1. **Q1 bounded search** — reach the exact `left_home` transition without a human action segment,
+   under two fresh 20,000-action/one-hour seeds, while preserving every failed branch.
+2. **Replay gate** — require three complete power-on replays with exact hashes, the full canonical
+   descriptor, and canonical referee summary before the milestone becomes selectable.
+3. **Scaling work** — stream lineages, index replay counts, validate ancestry topologically, bound
+   the replay queue, and freeze private-payload retention before any multi-day campaign.
+4. **Emitter comparison** — if random suffixes miss Q1, compare action-sequence, recurrent visual,
+   and hybrid emitters without expanding the gate after seeing the result.
+5. **Opening curriculum** — only after Q1, extend checkpoint exploration through Oak, starter,
+   rival, Parcel, and Pokédex.
+6. **Learned-policy track** — use self-generated successful and recovery traces to train bounded
+   visual skills before attempting one frozen end-to-end policy.
 
 ## What is deliberately not promised
 

@@ -31,7 +31,7 @@ Every experiment must list:
 3. what was available only during development; and
 4. what persisted in memory between decisions, attempts, and runs.
 
-The primary track is **game-naive, pixels-only curiosity**. It excludes map identifiers,
+The original strict control is **game-naive, pixels-only curiosity**. It excludes map identifiers,
 coordinates, RAM-derived text, party/battle fields, PyBoy tile data, OCR, referee values,
 walkthroughs, demonstrations, and pretrained game-aware encoders from both policy input and
 reward-facing features.
@@ -42,6 +42,32 @@ the policy” if it still changes which experience the policy receives.
 
 The observation schema and action schema must carry versions. Adding one field, changing sampling
 cadence, changing frame repeat, or altering invalid-action handling creates a new version.
+
+### Required information and evidence labels
+
+“Pixels-only” describes the actor input, not the whole experiment. Every future run must separately
+declare:
+
+1. actor information: `RANDOM-ACTION-EMITTER`, `PIXEL-ACTOR`, `RAM-INFORMED-ACTOR`, or
+   `SCRIPTED-ACTOR`;
+2. training information: `STRICT-BLIND`, `PRIVILEGED-TRAINING-REFEREE`, or
+   `ASSISTED-TRAINING`;
+3. start state: `POWER-ON`, `FIXED-SNAPSHOT`, `ARCHIVE-RESTORE`, or `LINEAGE-REPLAY`; and
+4. evaluated object: `FIXED-POLICY`, `POPULATION`, `ACTION-LINEAGE`, or `HYBRID-SYSTEM`.
+
+`STRICT-BLIND` means semantic or RAM-derived state cannot causally influence reward, fitness,
+selection, curriculum, reset, termination, checkpoint choice, or retained training memory. A
+`PIXEL-ACTOR / PRIVILEGED-TRAINING-REFEREE` run is still a legitimate pixels-only actor experiment,
+but it is not strict blind. The referee may influence training outside the policy while remaining
+unable to choose an action or write game memory.
+
+`RANDOM-ACTION-EMITTER` means the actor receives only a seeded pseudorandom generator. It is a
+reproducible discovery baseline, not a learned model and not a pixels-only policy. The current Q1
+checkpoint search uses this label so archive-level learning cannot be confused with a button policy
+that learns from observations.
+
+The exact definitions, examples, and completion claim ladder are in the
+[Hall of Fame completion program](completion-program.md#the-information-labels).
 
 ## Authority boundaries
 

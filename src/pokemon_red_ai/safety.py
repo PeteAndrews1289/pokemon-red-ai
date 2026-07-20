@@ -26,3 +26,15 @@ def sensitive_text_reasons(text: str) -> list[str]:
         if pattern.search(text):
             reasons.append(label)
     return reasons
+
+
+def private_artifact_path_reason(parts: tuple[str, ...], filename: str) -> str | None:
+    """Recognize private expedition payloads whose generic suffix would evade old guards."""
+
+    normalized = tuple(part.lower() for part in parts)
+    lowered = filename.lower()
+    if "snapshots" in normalized and lowered.endswith(".json.gz"):
+        return "compressed expedition emulator snapshot"
+    if "segments" in normalized and lowered.endswith(".json"):
+        return "private expedition action segment"
+    return None

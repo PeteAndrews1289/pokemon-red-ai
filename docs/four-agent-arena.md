@@ -3,7 +3,10 @@
 > **Decision update, 2026-07-19:** Pure Monkey has completed its role as the true-random control and
 > is retired from future headline arenas. The existing command and artifacts remain reproducible.
 > A 90-minute successor pretrial replaced it with Evolutionary Explorer and is now concluded. Its
-> frozen neural archive seeds the next [six-lane selection × mutation lab](selection-mutation-lab.md).
+> frozen neural archive seeded the now-complete
+> [six-lane selection × mutation lab](selection-mutation-lab.md). The lab improved retention but
+> produced no second map or party member, so none of its six treatments became the completion
+> configuration. The project has moved to the separately labeled checkpoint expedition.
 
 ## The completed baseline design
 
@@ -90,9 +93,9 @@ That creates a clean branch in the story: the experiment finally made luck inher
 that **inheritance is not enough if useful parents rarely reproduce or their children change too
 much**.
 
-## From four agents to the 2 × 3 lab
+## From four agents to the completed 2 × 3 lab
 
-The next pretrial temporarily narrows the question from four kinds of learning to six variants of
+The next pretrial temporarily narrowed the question from four kinds of learning to six variants of
 Evolutionary Explorer:
 
 | | Broad control | Gentle mutation | Multiscale mutation |
@@ -100,10 +103,19 @@ Evolutionary Explorer:
 | Uniform archive selection | U-B | U-G | U-M |
 | 80/20 frontier selection | F-B | F-G | F-M |
 
-Each lane imports the same 33-elite neural archive, evaluates 128 children at 12,000 actions each,
-and therefore receives exactly 1,536,000 actions. Every child starts Pokémon from power-on; no
-emulator snapshot or in-game position is inherited. This is an engineering fork for choosing a
-mechanism, not six fresh training seeds and not a frozen-policy evaluation.
+Each lane imported the same 33-elite neural archive, evaluated 128 children at 12,000 actions each,
+and therefore received exactly 1,536,000 actions. Every child started Pokémon from power-on; no
+emulator snapshot or in-game position was inherited. Frontier selection raised game-start retention
+from 39.6% to 78.1%, but every treatment remained on one map with no party. Nearly every child also
+collapsed into an almost constant-action policy. The lab answered its mechanism question without
+producing a winner: choosing better ancestors preserved the known behavior, but the policy and
+horizon still could not compose the next behavior.
+
+The result justified a change of experimental unit. The current completion track preserves verified
+game states plus exact action lineages, explores outward in short branches, and requires power-on
+replay before accepting progress. Its initial branch emitter is explicitly random, not the neural
+policy above. A learned pixel policy is introduced only after this substrate can discover and replay
+the early milestones reliably.
 
 ## What learning meant in the baseline arena
 
@@ -241,7 +253,9 @@ Every protocol change starts with bounded calibration. The successor arena passe
 short ROM-backed mechanism checks, then the 90-minute run exposed the selection and mutation
 bottlenecks. The six-lane lab has now passed archive-import, dashboard, exact-lifetime, visual-
 capture, and clean-exit checks across all six treatments, plus a deliberate whole-lab interruption
-and recovery. Existing online-learning policies must start fresh in any later comparison.
+and recovery. The first eight checks below passed. The ninth was not exercised because no new
+semantic milestone was promoted. Existing online-learning policies must start fresh in any later
+comparison.
 
 1. all six evolutionary lanes remain healthy and checkpoint-resumable;
 2. every lane records the same source-archive content hash;
@@ -265,14 +279,16 @@ three views:
 2. progress after the same wall-clock time;
 3. post-run semantic milestones from a sealed referee.
 
-One run per arm is a scouting comparison and a narrative episode, not statistical proof. The next
-scientific step is to repeat the most informative arms across multiple seeds.
+One run per arm is a scouting comparison and a narrative episode, not statistical proof. Because no
+arm passed the declared next-map gate, the next scientific step is not to crown the largest local
+position count. It is to change the mechanism, qualify that change at a named milestone, and then
+repeat the informative configuration across fresh seeds.
 
 ## Narrative spine
 
 The baseline supplied the first answer: **luck without inheritance remains luck**. The successor
 showed that one useful accident could have descendants, then exposed a second problem: those
-descendants were either not chosen often enough or changed too much. The 2 × 3 lab turns those two
-suspects into the episode's visible grid. Introduce each lane with equal action fuel, let the
-audience see both retained and extinct branches, and end by stating that the selected mechanism
-must still restart from fresh random populations.
+descendants were either not chosen often enough or changed too much. The 2 × 3 lab turned those two
+suspects into the episode's visible grid. Frontier selection solved much of the reproduction problem,
+but not the progress problem. The honest ending is therefore not a winning cell; it is the discovery
+of a deeper constant-action and long-horizon bottleneck, followed by the checkpoint-expedition pivot.

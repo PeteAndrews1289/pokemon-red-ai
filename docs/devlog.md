@@ -1,5 +1,81 @@
 # Development log
 
+## 2026-07-19 — Hall-of-Fame completion foundation passes Q0
+
+### The goal and the evidence ladder
+
+- Made the long-term target explicit: first discover a complete, power-on-replayable lineage through
+  the Hall of Fame; then use that record as curriculum for a single frozen policy. Only the latter
+  supports the claim that one learned model knows enough to complete the game.
+- Defined seven claim levels, H0 through H6, so a reliable emulator, an archived discovery, an exact
+  lineage replay, and one-policy completion cannot be described with the same word.
+- Replaced loose progress counts with 55 ordered named outcomes. The catalogue includes mandatory
+  keys and HMs as well as story events, and Hall of Fame requires the Champion event and Hall-of-Fame
+  map at the same time.
+
+### Failed designs found before they became results
+
+- Rejected the first hash-only replay verifier after an adversarial real-ROM audit reproduced the
+  correct snapshot and screen hashes for a cell falsely labeled Hall of Fame. The independently
+  recomputed state was still `power_on`. Exact replay is now necessary but never sufficient for a
+  semantic claim.
+- Bound every descriptor, quality field, lineage boundary, and referee summary into content identity
+  after the same audit showed that edited metadata could survive under an unchanged cell ID.
+- Prevented “replay laundering,” where a replayed child could promote through an ancestor that had
+  never passed its own gate. Every non-root ancestor must now satisfy its own required replay count.
+- Fixed resume accounting so evicted archive members no longer consume the selection allowance of
+  their replacements, and so active-cell counts reconstruct exactly after restart.
+- Changed audit recovery after a torn final write: preserve the damaged bytes privately, resume from
+  the valid prefix, and append a recovery event. A complete corrupt record still fails closed.
+- Fixed the runner ledger after a first resume implementation replaced the prior `stop_requested`
+  ending. The trace now retains `stop_requested`, appends `run_resumed`, and later records the true
+  terminal reason.
+- Strengthened the publication guard so a private artifact cannot bypass review merely by being
+  force-added beneath an ignored run directory.
+
+### What Q0 proved—and did not prove
+
+- Implemented a single-writer checkpoint expedition with private content-addressed snapshots,
+  exact action segments, complete ancestry, quarantine, replay promotion, reproducible random state,
+  bounded disk/time/action limits, clean stop/resume, and a localhost-only dashboard that cannot
+  serve frontier payloads.
+- Qualified the runner against the real ROM. A 512-exploration-action run created 42 active cells;
+  all 42 exact replays passed and consumed another 4,392 actions. Its latest image reached Oak's
+  introduction, while the semantic referee correctly remained at `power_on`.
+- Repeated the check with a deliberate stop at 384 actions and an exact resume to 512. Archive,
+  counters, selection state, random state, and the intervention ledger remained intact.
+- Labeled the current branch generator truthfully as
+  `RANDOM-ACTION-EMITTER / PRIVILEGED-TRAINING-REFEREE`. The archive can learn where to spend search
+  effort; the button emitter receives neither pixels nor RAM and does not learn.
+
+### Frozen next gate and deliberate blocker
+
+- Froze Q1 before running it: the exact target is `left_home`; two fresh seeds receive at most
+  20,000 exploration actions, one hour, and 2 GiB each. A milestone advance requires three complete
+  power-on replays. Failure changes the emitter comparison rather than silently enlarging the budget.
+- Refused to launch the requested multi-day campaign yet. A 1,024-action qualification spent 9,280
+  additional actions on replay—about 9.1 replay actions per exploration action—and remained at
+  `power_on`. Full lineage materialization, repeated ledger scans, ancestry validation, verification
+  backlog, and rejected-payload retention must be bounded before marathon scale.
+- Recorded the SSD's available capacity separately from computational readiness: free space is not
+  evidence that replay growth is safe.
+
+## 2026-07-19 — Six-lane lab concludes without a winner
+
+- Completed all six selection × mutation treatments at exactly 128 children and 1,536,000 actions
+  per lane, or 9,216,000 actions total.
+- Frontier selection retained game start in 300 of 384 children (78.1%), versus 152 of 384 (39.6%)
+  under uniform selection. This supports the narrow claim that selection changed inheritance.
+- Every lane nevertheless remained at tier 1, one map, zero warps, zero party members, and zero
+  badges. Frontier–Broad's seven positions did not pass the predeclared second-map gate and was not
+  relabeled as a winner.
+- Found a deeper failure signal: the median longest repeated-action streak in every treatment was
+  roughly 11,800 of 12,000 actions. The deterministic argmax policy had mostly become a
+  constant-action controller.
+- Concluded that improved parent choice and gentler mutation preserve existing behavior without
+  solving behavior composition or the clean-start horizon. Preserved the matrix as negative
+  evidence and moved the primary completion track to verified checkpoint search.
+
 ## 2026-07-19 — Six-lane mechanism lab qualifies
 
 - Implemented the generic N-lane orchestrator and the paired 2 × 3 preset: uniform/frontier parent

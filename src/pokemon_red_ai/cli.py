@@ -28,6 +28,12 @@ from pokemon_red_ai.evolution_lab import (
     run_evolution_lab,
     show_evolution_lab_status,
 )
+from pokemon_red_ai.expedition_runner import (
+    ExpeditionRunConfig,
+    request_expedition_stop,
+    run_expedition,
+    show_expedition_status,
+)
 from pokemon_red_ai.report import generate_run_report
 from pokemon_red_ai.rom import RomValidationError, resolve_rom_path, verify_rom
 from pokemon_red_ai.smoke import run_smoke_test
@@ -210,6 +216,47 @@ def build_parser() -> argparse.ArgumentParser:
         help="Gracefully checkpoint and stop every evolution lab lane.",
     )
     evolution_lab_stop.add_argument("lab_directory", type=Path)
+
+    expedition = subparsers.add_parser(
+        "expedition-run",
+        help="Run bounded checkpoint-assisted exploration with a privileged referee.",
+    )
+    expedition.add_argument("--rom", type=Path, help="Private path to Pokemon Red.gb")
+    expedition.add_argument("--output", type=Path, required=True)
+    expedition.add_argument("--hours", type=float, default=2)
+    expedition.add_argument("--max-actions", type=int, default=1_000_000)
+    expedition.add_argument("--seed", type=int, default=20_260_719)
+    expedition.add_argument("--archive-capacity", type=int, default=4_096)
+    expedition.add_argument("--min-suffix-actions", type=int, default=32)
+    expedition.add_argument("--max-suffix-actions", type=int, default=1_024)
+    expedition.add_argument("--attempts-per-expansion", type=int, default=8)
+    expedition.add_argument("--frontier-capture-actions", type=int, default=8)
+    expedition.add_argument("--loop-window-actions", type=int, default=64)
+    expedition.add_argument("--loop-repeat-limit", type=int, default=12)
+    expedition.add_argument("--frontier-probability", type=float, default=0.75)
+    expedition.add_argument("--rehearsal-probability", type=float, default=0.10)
+    expedition.add_argument("--promotion-replay-passes", type=int, default=3)
+    expedition.add_argument(
+        "--port",
+        type=int,
+        default=8_765,
+        help="127.0.0.1 dashboard port; pass 0 to disable serving",
+    )
+    expedition.add_argument("--status-seconds", type=float, default=10)
+    expedition.add_argument("--max-output-mib", type=int, default=4_096)
+    expedition.add_argument("--min-free-gib", type=float, default=50)
+    expedition.add_argument("--resume", action="store_true")
+
+    expedition_status = subparsers.add_parser(
+        "expedition-status",
+        help="Show the latest checkpoint expedition status.",
+    )
+    expedition_status.add_argument("run_directory", type=Path)
+    expedition_stop = subparsers.add_parser(
+        "expedition-stop",
+        help="Gracefully stop a checkpoint expedition at a short-suffix boundary.",
+    )
+    expedition_stop.add_argument("run_directory", type=Path)
 
     arena = subparsers.add_parser(
         "arena-run",
@@ -477,6 +524,60 @@ def run_evolution_lab_command(args: argparse.Namespace) -> int:
     )
 
 
+def run_expedition_command(args: argparse.Namespace) -> int:
+    rom_path = resolve_rom_path(args.rom)
+    fingerprint = verify_rom(rom_path)
+    config = ExpeditionRunConfig(
+        duration_seconds=args.hours * 3_600,
+        max_actions=args.max_actions,
+        seed=args.seed,
+        archive_capacity=args.archive_capacity,
+        min_suffix_actions=args.min_suffix_actions,
+        max_suffix_actions=args.max_suffix_actions,
+        attempts_per_expansion=args.attempts_per_expansion,
+        frontier_capture_interval_actions=args.frontier_capture_actions,
+        loop_window_actions=args.loop_window_actions,
+        loop_repeat_limit=args.loop_repeat_limit,
+        frontier_probability=args.frontier_probability,
+        rehearsal_probability=args.rehearsal_probability,
+        promotion_replay_passes=args.promotion_replay_passes,
+        dashboard_port=args.port,
+        status_interval_seconds=args.status_seconds,
+        max_output_bytes=args.max_output_mib * 1024 * 1024,
+        min_free_bytes=int(args.min_free_gib * 1024 * 1024 * 1024),
+    )
+    if args.port:
+        print(
+            f"Live dashboard while the expedition is running: "
+            f"http://127.0.0.1:{args.port}/index.html",
+            flush=True,
+        )
+    result = run_expedition(
+        rom_path,
+        fingerprint,
+        config=config,
+        run_directory=args.output,
+        resume=args.resume,
+    )
+    print(f"Checkpoint expedition: {result.stop_reason}")
+    print(f"Actions: {result.counters.total_actions:,}")
+    print(f"Attempts: {result.counters.attempts:,}")
+    print(f"Active frontier cells: {result.archive_cells:,}")
+    print(f"Best milestone: {result.best_milestone.label}")
+    print(f"Finished dashboard: {(result.run_directory / 'index.html').resolve()}")
+    healthy = {
+        "action_limit",
+        "duration_limit",
+        "low_disk_space",
+        "output_limit",
+        "sigint",
+        "sigterm",
+        "stop_requested",
+        "hall_of_fame_verified",
+    }
+    return 0 if result.stop_reason in healthy else 1
+
+
 def show_blind_status(run_directory: Path) -> int:
     status_path = run_directory.expanduser() / "status.json"
     if not status_path.is_file():
@@ -544,6 +645,12 @@ def main(argv: list[str] | None = None) -> int:
             return show_evolution_lab_status(args.lab_directory.expanduser().resolve())
         if args.command == "evolution-lab-stop":
             return request_evolution_lab_stop(args.lab_directory.expanduser().resolve())
+        if args.command == "expedition-run":
+            return run_expedition_command(args)
+        if args.command == "expedition-status":
+            return show_expedition_status(args.run_directory)
+        if args.command == "expedition-stop":
+            return request_expedition_stop(args.run_directory)
         if args.command == "arena-run":
             return run_agent_arena(args)
         if args.command == "arena-status":

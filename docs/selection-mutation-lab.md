@@ -1,11 +1,38 @@
 # The selection × mutation lab
 
-> **Status, 2026-07-19:** the six-lane runner and dashboard passed a ROM-backed, one-child-per-lane
-> qualification against the frozen source archive. Every lane completed exactly 12,000 actions,
-> wrote one genealogy record, and exited cleanly after a deliberate whole-lab interruption and
-> recovery. No equal-budget result from the full lab is claimed yet.
+> **Final status, 2026-07-19:** complete. All six lanes reached exactly 128 evaluated children and
+> 1,536,000 controller actions, for 9,216,000 actions total in 3,523.886 wall-clock seconds. Every
+> lane remained at milestone tier 1, one map, zero warps, zero party members, and zero badges.
+> Frontier–broad reached the largest local position count, seven, but no treatment passed the
+> predeclared second-map gate. The mechanism matrix is therefore preserved as a useful failed
+> qualification, not promoted into a multi-day completion configuration.
 
-The qualification deliberately tested the machinery, not the hypotheses. It confirmed that all
+| Lane | Game starts / 128 | Archive insertions | Positions | Maps | Result |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Uniform / Broad | 42 | 7 | 4 | 1 | Failed next-map gate |
+| Uniform / Gentle | 56 | 0 | 4 | 1 | Failed next-map gate |
+| Uniform / Multiscale | 54 | 5 | 6 | 1 | Failed next-map gate |
+| Frontier / Broad | 86 | 9 | 7 | 1 | Failed next-map gate |
+| Frontier / Gentle | 114 | 2 | 6 | 1 | Failed next-map gate |
+| Frontier / Multiscale | 100 | 6 | 6 | 1 | Failed next-map gate |
+
+Frontier selection retained game start in 300 of 384 children (78.1%), versus 152 of 384 (39.6%)
+under uniform selection. Frontier–gentle was the strongest retention condition at 114 of 128
+(89.1%), but its two insertions show the tradeoff: it protected the known behavior without turning
+that behavior into a new map or party member. The treatment changed inheritance; it did not solve
+composition or horizon.
+
+Another failure signal was nearly hidden by the position table. Across all lanes, the median
+longest repeated-action streak was roughly 11,798–11,810 actions out of each 12,000-action child.
+Observation: most policies became almost constant-action controllers. Hypothesis, not conclusion:
+deterministic argmax control may be a deeper bottleneck than either tested selection or mutation
+setting.
+
+The final private comparison summary is identified by SHA-256
+`a13137e6ecad9a01e43e52c1b35299847583aff8be7b1e4c3309517fc4a8ee2b`. The run paths,
+snapshots, ROM, and gameplay captures remain outside Git.
+
+The earlier qualification deliberately tested the machinery, not the hypotheses. It confirmed that all
 six processes imported the same 33 elites, used the paired seed and declared treatment, began each
 child from power-on, and stopped at an exact lifetime boundary. Broad changed 1,311 parameters in
 the paired first child while gentle changed 272, making the intended intervention visible in the
@@ -35,9 +62,9 @@ The failures explain why the population stopped there:
    occupied distinct action-profile cells. That kept behavioral variety, as designed, but also
    gave unproductive lineages many chances to reproduce.
 
-These are not reasons to hide the run. They are the reason for the next experiment: change one
-selection dimension and one mutation dimension in a controlled grid, then watch which mechanism
-helps a fragile inherited skill survive.
+These were not reasons to hide the run. They were the reason the completed grid changed one
+selection dimension and one mutation dimension. The result showed that a fragile inherited skill
+could survive much more often without extending into meaningful gameplay.
 
 ## What the 90-minute pretrial actually found
 
@@ -79,9 +106,9 @@ artifacts used to choose the next design without revealing a ROM, save state, or
 | Genealogy | `efba7dc5d9c127425caa74df948097a4e8e8f76bb7722b2bb02746ba0bf2b182` |
 | Final narrative snapshot | `915406e43832df933491e18d1582b255c383e44545b0b038e6f14a422966666c` |
 
-## The 2 × 3 question
+## The 2 × 3 question that was tested
 
-The next lab asks:
+The completed lab asked:
 
 > Is progress limited mainly by choosing the wrong parents, by mutations that are too destructive,
 > or by an interaction between the two?
@@ -153,9 +180,9 @@ Each lane receives:
 - a declared deterministic random seed and complete parent/mutation genealogy;
 - a clean power-on Pokémon state for every child.
 
-The six lanes run concurrently on the same Mac. Controller actions are the primary scientific
-budget because wall-clock speed can vary with processor contention. Both action-normalized and
-wall-clock views will still be reported.
+The six lanes ran concurrently on the same Mac. Controller actions were the primary scientific
+budget because wall-clock speed varied with processor contention; both action-normalized and
+wall-clock views were retained.
 
 ### What “same frozen archive” does and does not mean
 
@@ -163,14 +190,15 @@ The imported archive contains neural-network parameters and their recorded metad
 drop a child into Pallet Town or restore the source run's emulator state. Every new child must
 reproduce its behavior from power-on with a reset recurrent memory.
 
-This makes the lab an **engineering fork**: all lanes inherit a successful population discovered in
-an earlier pretrial so the selection and mutation mechanisms can be compared quickly. It is not the
-project's eventual true fresh run. After choosing a mechanism, the honest confirmation starts new
-populations from unrelated random genomes across multiple seeds.
+This made the lab an **engineering fork**: all lanes inherited a population discovered in an
+earlier pretrial so the selection and mutation mechanisms could be compared quickly. No mechanism
+passed the progress gate, so no fresh-founder winner was selected. Clean-start neuroevolution is
+preserved as the historical control; the completion track moved to explicitly labeled checkpoint
+search.
 
-## Measurements that matter
+## Measurements that mattered
 
-The dashboard and final report should show more than the largest score.
+The dashboard and final report were designed to show more than the largest score.
 
 | Measurement | What it reveals |
 | --- | --- |
@@ -191,9 +219,9 @@ directed warp or second-map descendant. Reaching a starter is a stretch result. 
 number alone does not count as progress; a batch counter can rise even when no useful lineage
 deepens.
 
-## Visual and narrative plan
+## Visual and narrative evidence
 
-The 2 × 3 grid is also the episode's central visual. Each cell should show the latest frame, actions,
+The 2 × 3 grid is also the episode's central visual. Each cell showed the latest frame, actions,
 children evaluated, source of the current parent, mutation channel, milestone tier, archive size,
 and a small lineage trace. Shared charts should compare all six lanes at the same action count.
 
@@ -221,20 +249,20 @@ A clear video sequence is:
    total or unequal wall time.
 6. **The result, including failure:** identify which mechanism retained, extended, or destroyed the
    behavior, and preserve empty branches as evidence.
-7. **The reset:** explain that the winning mechanism must next prove itself from fresh random
-   populations. The fork selects a method; it does not finish the experiment.
+7. **The reset:** reveal that there was no winner. Better retention still produced no next map, so
+   the story turns from inheriting weights to remembering verified game states.
 
 Suggested episode question: **“Evolution finally remembered how to press Start. Could it remember
 that skill long enough to learn anything else?”**
 
 ## Claim boundary
 
-After this lab, the strongest permissible statements are conditional:
+After this lab, the strongest permissible statements are:
 
-- “This lane retained the source archive's start behavior more often under the declared budget.”
-- “This lineage added the first directed warp/second map, if the recorded result replays.”
-- “Frontier selection, gentle mutation, or their interaction performed better in this one
-  six-lane engineering fork.”
+- “Frontier selection retained the source archive's start behavior more often under this declared
+  budget.”
+- “Frontier–gentle had the best retention and little archive novelty.”
+- “No lane added a directed warp, second map, or party member.”
 
 Do **not** say:
 
@@ -246,10 +274,9 @@ Do **not** say:
   population-level selection;
 - “the pixels-only policy knew the milestone” because only the sealed referee saw semantic state.
 
-## Decision gate after the lab
+## Decision taken after the lab
 
-Choose a mechanism only after every lane reaches its equal action ceiling or records a declared
-terminal condition. Prefer a method that:
+Every lane reached its equal action ceiling, but none satisfied the required progress criteria:
 
 1. retains game-start behavior across descendants;
 2. adds a directed warp, map, or other milestone;
@@ -257,9 +284,9 @@ terminal condition. Prefer a method that:
 4. remains deterministic, recoverable, and bounded;
 5. wins on action-normalized evidence rather than one edited highlight.
 
-If no lane improves, the result still narrows the problem. The next candidate changes would be the
-behavior descriptor, recurrent architecture, lifetime curriculum, or novelty/local-competition
-rule—not silently adding waypoints to a pixels-only actor.
+Because no lane improved, the result narrowed the problem. The project did not invent a winner from
+seven local positions. It preserved the matrix and moved to a checkpoint-assisted expedition with
+strict information labels and complete power-on replay.
 
 ## Research background
 
@@ -273,5 +300,5 @@ rule—not silently adding waypoints to a pixels-only actor.
   function.
 - [Go-Explore](https://www.nature.com/articles/s41586-020-03157-9) demonstrates the value of
   preserving rare progress and returning to promising states in hard-exploration problems. This
-  six-lane lab imports **genomes**, not emulator states; checkpoint-assisted expeditions remain a
-  separately labeled later track.
+  six-lane lab imported **genomes**, not emulator states; checkpoint-assisted expeditions are the
+  separately labeled successor track.

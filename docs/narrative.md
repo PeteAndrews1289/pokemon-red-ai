@@ -1,10 +1,12 @@
 # The story of this project
 
-> **Editorial update:** Pure Monkey has finished its role as the opening control. It could produce
-> accidents but could not remember them. The next protagonist is a population: successful pixel
-> policies have descendants, failed branches go extinct, and several kinds of survivor remain
-> visible. The design and its strict claims are defined in
-> [Evolutionary Explorer](neuroevolution.md).
+> **Editorial update:** Pure Monkey could produce accidents but could not remember them. A neural
+> population then inherited one narrow accident—starting the game—but six controlled selection and
+> mutation treatments still failed to leave the first map. The next protagonist is an expedition
+> that can remember verified stepping stones without pretending those checkpoints are one learned
+> policy. Its Q0 machinery works; its first named gameplay gate remains open. Its destination and
+> strict claims are defined in the
+> [Hall of Fame completion program](completion-program.md).
 
 ## The question
 
@@ -19,15 +21,16 @@ It is much more interesting to keep the failures, define the rules before the at
 agent was allowed to see, and build a trail of evidence from its first useless button presses to its
 first reliable skill. This repository is meant to become that trail.
 
-For the next act, the central character is not one agent but a family tree. Each child lives with a
-fixed neural policy. Selection decides which behaviors receive descendants. The audience can watch
-useful accidents become inherited tendencies, dominant families stall, rare lineages open new
-parts of the game, and old champions go extinct. Planner and hybrid systems remain possible later
-comparisons rather than claims about the current implementation.
+The family tree remains Act II: it showed that useful accidents can become inherited tendencies,
+then exposed the clean-start horizon. Act III asks whether evolution can preserve a state, the
+exact actions that reached it, and a verifiable ancestry, then explore outward. Every checkpoint
+restore is disclosed as training assistance. A later frozen visual model must make the complete
+journey without those restores before the project says one model learned the game.
 
 ## Where the project honestly stands
 
-**Online Q-learning pretrials have run. Neuroevolution has not started.**
+**Online-learning and neuroevolution pretrials have run; no agent has completed a named opening
+quest or passed a frozen whole-game evaluation.**
 
 Phase 0 built the measuring instrument: a reproducible emulator harness that can start the exact
 same game, issue timed controller inputs, observe a small and disclosed slice of state, restore an
@@ -49,13 +52,13 @@ test sequence used to prove that the laboratory works.
 | Has an AI learned to play Pokémon Red? | No. |
 | Has online reinforcement learning begun? | Yes, in development pretrials; no frozen task evaluation has been claimed. |
 | Does Pure Monkey learn? | No; it is now a preserved and retired random baseline. |
-| Has neuroevolution begun? | No; the successor is designed at E0 but not implemented. |
+| Has neuroevolution begun? | Yes. It inherited game-start behavior, but all six follow-up lanes failed the second-map gate. |
 | Can the software boot and control the game reproducibly? | Yes. |
 | Can it verify the intended game revision? | Yes. |
 | Can it record controller actions and selected state without leaking the ROM path? | Yes. |
 | Can it reach the first playable state twice with identical results? | Yes. |
 | Is the current test sequence an autonomous playthrough? | No; it is test infrastructure. |
-| What comes next? | Deterministic genome inference, mutation, MAP-Elites, genealogy, and bounded population pretrials. |
+| What comes next? | Run two frozen, bounded searches for a replayed house exit, then compare better action emitters rather than silently enlarging a failure. |
 
 Keeping this table current is part of the project. A small true claim is more valuable than a large
 ambiguous one.
@@ -134,11 +137,11 @@ cannot alter game memory or request a teleport.
 
 ### The senses: observation adapter
 
-The future observation adapter will decide what information crosses from the game into an agent.
-It is not built yet. Phase 0 instead has a six-field read-only instrumentation snapshot for harness
-validation and future referee logic: whether the game has started, an anonymous map number, tile
-coordinates, party size, and battle state. Phase 1 must explicitly choose which of those fields—if
-any—become policy inputs alongside pixels or visible text.
+Each implemented actor adapter decides what information crosses from the game into that agent.
+Pixels-only learners receive rendered frames; the conventional learner receives its separately
+declared coarse state; the Q0/Q1 suffix emitter receives no observation at all. The referee now has
+a wider read-only semantic view for the 55-outcome ladder, but those values do not become actor
+inputs unless a future run explicitly adopts the `RAM-INFORMED-ACTOR` label.
 
 ### The strategist: planner
 

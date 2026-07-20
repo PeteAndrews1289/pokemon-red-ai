@@ -1,5 +1,31 @@
 # Changelog
 
+## Unreleased — Hall-of-Fame completion foundation
+
+- Concluded the six-lane selection × mutation lab without naming a winner: frontier selection
+  roughly doubled game-start retention, but all six treatments remained on one map with no party,
+  and most children spent nearly their whole lifetime repeating one action.
+- Defined a six-level evidence ladder separating infrastructure, discovered checkpoints, complete
+  lineage replay, and one frozen policy completing Pokémon Red.
+- Added a 55-outcome referee through a strict Hall-of-Fame condition, including mandatory key items,
+  HMs, locations, and story gates.
+- Added a private content-addressed frontier store with complete ancestry, exact action segments,
+  semantic identity hashes, capacity control, orphan recovery, tamper-evident audit events, and
+  ancestry-wide replay quarantine.
+- Added a bounded single-writer expedition runner with exact random/counter/archive resume,
+  stop/resume ledger preservation, adaptive 32–1,024-action suffixes, disk ceilings, event captures,
+  status commands, and a safe localhost-only dashboard.
+- Rejected a hash-only verifier that could reproduce a deliberately forged Hall-of-Fame label while
+  the real ROM remained at power-on; replay now recomputes the milestone from actual semantic state.
+- Closed audit failures involving forged descriptors, unverified-ancestor replay laundering,
+  evicted-cell resume counts, torn audit tails, and force-added private files beneath ignored paths.
+- Passed Q0 against the private ROM: a 512-action exploration admitted 42 cells and replayed all 42
+  exactly, while correctly reporting Oak's introduction as `power_on` rather than game progress.
+- Froze Q1 as two fresh `left_home` trials, each limited to 20,000 exploration actions, one hour,
+  and 2 GiB. The current suffix generator is labeled as seeded random, not as a learned pixel model.
+- Blocked any multi-day or 150-million-action expedition until streaming lineage replay, indexed
+  verification, bounded validation, and private-payload retention prevent superlinear growth.
+
 ## Unreleased — evolutionary successor decision
 
 - Concluded the first 90-minute successor pretrial with clean final checkpoints: Evolutionary

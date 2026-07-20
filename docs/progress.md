@@ -1,12 +1,13 @@
 # Progress and evidence
 
-> **Current research direction:** Pure Monkey has completed its role as the random control and is
-> retired from future headline runs. Three online-learning lanes and one quality-diversity
-> neuroevolution lane completed a 90-minute development pretrial. The neural population inherited a
-> narrow game-start behavior; a [six-lane mechanism lab](selection-mutation-lab.md) is now qualified
-> to test selection and mutation before a fresh-seed confirmation.
+> **Current research direction:** the completed
+> [six-lane mechanism lab](selection-mutation-lab.md) failed its second-map gate in every condition.
+> The clean-start mutation population remains the historical inheritance control. Primary work has
+> moved to the [Hall of Fame completion program](completion-program.md): a named semantic referee,
+> integrity-bound frontier checkpoints, complete action lineages, and mandatory power-on replay
+> before any checkpoint may become a verified milestone.
 
-- **Current stage:** verified harness, online/evolutionary pretrials, and 2 × 3 mechanism calibration
+- **Current stage:** Q1 two-seed `left_home` checkpoint-expedition gate
 - **Status date:** 2026-07-19
 
 **Most important caveat:** the evolutionary result comes from one inherited population in a
@@ -65,8 +66,15 @@ flowchart LR
 | Pure Monkey is a non-learning random baseline | ✅ Verified | E2 | Its seeded uniform action distribution has no policy update or success-dependent state; it remains reproducible but is retired |
 | The evolutionary successor has a frozen design | ✅ Verified | E1 | Genome, archive, selection, lineage, compute, and evidence rules are documented and implemented |
 | A population neuroevolution runner exists | ✅ Verified | E2 | Deterministic genomes, mutation, archive replacement, genealogy, checkpointing, and a ROM-backed runner are tested |
-| The population inherited game-start behavior | 🟨 In progress | E2 | One 90-minute development run found strong parent/child retention; no held-out or fresh-seed evaluation exists |
-| The selection × mutation fork is ready | ✅ Verified | E2 | Six ROM-backed lanes recovered together after interruption, completed exact paired lifetimes, preserved synchronized and milestone visuals, and exited cleanly |
+| The population inherited game-start behavior | ✅ Verified in its development scope | E2 | One 90-minute run found strong parent/child retention; the behavior did not extend past one map and is not a held-out policy result |
+| The selection × mutation fork completed | ✅ Verified | E3 | Six lanes each completed 128 children and 1,536,000 actions; every lane stayed on one map with no party member |
+| Named milestones reach Hall of Fame | ✅ Verified | E2 | Fifty-five ordered outcomes include mandatory keys/HMs; completion requires both the Champion event and Hall-of-Fame map |
+| Frontier evidence is integrity-bound | ✅ Verified | E2 | Cells bind ROM/version snapshots, action segments, frames, ancestry, semantic descriptors, full metadata, and a hash-chained audit log |
+| False semantic replay is rejected | ✅ Verified | E2 | A real-ROM regression reproduces exact hashes for a deliberately false Hall-of-Fame cell and fails its canonical milestone check |
+| Milestone frontiers require replay | ✅ Verified | E2 | Local discoveries require one passing replay and milestone advances require three before active selection |
+| A resumable expedition runner exists | ✅ Verified | E3 engineering | Two bounded real-ROM runs passed all replays; one retained an explicit stop/resume and exact final budget; no Q1 result is claimed |
+| The Q0 discovery baseline reached a playable milestone | ⬜ Not demonstrated | E0 | It reached Oak's introduction visually but the referee correctly remained at `power_on` |
+| The current store is marathon-scale | ⬜ Blocked by profiling | E0 | A 1,024-action qualification spent 9,280 additional replay actions; streaming, indexes, and retention are required before a multi-day run |
 | Long random action sequences remain stable | ⬜ Planned | E0 | Extended stability run has not been reported |
 | A human Oak's Parcel baseline exists | ⬜ Planned | E0 | No baseline action count or completion time is available yet |
 | A trained policy leaves the bedroom | ⬜ Planned | E0 | Development learners have wandered beyond it, but no frozen task evaluation has been run |
@@ -80,8 +88,8 @@ suggest precision that does not exist before the training design and difficulty 
 
 | Phase | Deliverable | Current state | Exit signal |
 | --- | --- | --- | --- |
-| 0 — Foundation | Reproducible, inspectable emulator harness | **Core verified; validation work remains** | Human baseline and long stability run recorded |
-| 1 — Oak's Parcel | First bounded navigation/battle learning problem | **Development pretrials active** | Frozen clean-start evaluation meets a declared success threshold |
+| Q0 — Completion foundation | Reproducible checkpoint runner plus truthful completion referee | **Passed** | Runner, replay, resume, privacy, and corruption checks recorded |
+| 1 — Expedition opening | Replay-verified bedroom, house, starter, and Parcel frontiers | **Q1 active; no autonomous milestone result** | Two bounded seeds reach `left_home` and replay under the frozen gate |
 | 2 — Brock | Reusable skills plus planner, memory, and watchdog | **Not started** | Frozen clean-start evaluation defeats Brock under budget |
 | Later — Comparisons | Language-model, RL, and hybrid ablations | **Not started** | Same referee and declared budgets used for all configurations |
 
@@ -173,14 +181,15 @@ A compact future update can use this table:
 
 ## Next evidence targets
 
-The immediate goal is not a flashy success clip. It is to make the first learning result
-interpretable.
+The immediate goal is not a flashy success clip. It is a trustworthy first remembered step.
 
-1. Implement and round-trip the fixed recurrent genome deterministically.
-2. Prove that its actor receives only the declared pixels and previous action.
-3. Build and test mutation, elitism, archive replacement, genealogy, and resume logic.
-4. Run 16-candidate and then 128-candidate Pokémon pretrials with four workers.
-5. Freeze a clean-start early-game evaluation before enabling checkpoint-assisted expedition mode.
+1. Run the frozen Q1 search for the exact `left_home` milestone under two fresh 20,000-action seeds.
+2. Preserve all failed branches, replay costs, loop stops, interventions, and live dashboard data.
+3. Require three complete semantic-and-hash replays before promoting `left_home`.
+4. If Q1 fails, compare action-sequence and learned visual emitters under the same gate instead of
+   silently expanding the budget.
+5. Implement streaming replay, replay indexes, topological validation, and bounded private-payload
+   retention before authorizing a multi-day opening curriculum.
 
 See [Roadmap](roadmap.md) for acceptance gates and [Visual storytelling](visual-storytelling.md) for
 how those results should be shown.

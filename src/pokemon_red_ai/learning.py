@@ -10,6 +10,7 @@ from typing import Any
 
 import numpy as np
 
+from pokemon_red_ai.milestones import MilestoneTracker
 from pokemon_red_ai.state import PokemonRedState
 
 
@@ -380,6 +381,7 @@ class RewardTracker:
     got_pokeballs_rewarded: bool = False
     required_items_rewarded: set[int] = field(default_factory=set)
     component_totals: Counter[str] = field(default_factory=Counter)
+    milestone_tracker: MilestoneTracker = field(default_factory=MilestoneTracker)
 
     OAKS_PARCEL = 0x46
     POKE_BALL = 0x04
@@ -483,6 +485,10 @@ class RewardTracker:
         action_button: str | None,
         components: dict[str, float],
     ) -> None:
+        # Named milestones are referee observations, not additional reward components. Recording
+        # them here keeps existing reward experiments numerically reproducible while giving the
+        # checkpoint expedition a stable, ordered progress vocabulary.
+        self.milestone_tracker.observe(state)
         rewards_enabled = self.mode in {"outcome", "conventional"}
         if state.game_started and not self.game_started_seen:
             self.game_started_seen = True
@@ -645,6 +651,7 @@ class RewardTracker:
             "got_pokeballs_rewarded": self.got_pokeballs_rewarded,
             "required_items_rewarded": sorted(self.required_items_rewarded),
             "component_totals": dict(self.component_totals),
+            "named_milestones": self.milestone_tracker.checkpoint_dict(),
         }
 
     @classmethod
@@ -705,5 +712,8 @@ class RewardTracker:
             },
             component_totals=Counter(
                 {str(key): float(item) for key, item in value.get("component_totals", {}).items()}
+            ),
+            milestone_tracker=MilestoneTracker.from_checkpoint_dict(
+                value.get("named_milestones")
             ),
         )

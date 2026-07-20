@@ -5,21 +5,27 @@
 
 **How far can an agent get in Pokémon Red when nobody tells it what Pokémon is?**
 
-This is a transparent, reproducible **game-naive, pixels-only curiosity** experiment. The primary
-agent begins at power-on with the rendered Game Boy screen and controller buttons—but no map,
-walkthrough, demonstrations, semantic game state, OCR, or Pokémon-specific goal.
+This is a transparent, reproducible Pokémon Red learning project. Every experiment separately
+discloses what chooses buttons, what that component observes, and what its training system may know.
+The original game-naive, pixels-only condition remains a strict control. The current Q0/Q1
+completion search deliberately starts with a seeded random action emitter and a sealed, read-only
+referee; later trials will compare learned pixel actors under the same checkpoint and replay rules.
 
-> **Current status: a 90-minute successor pretrial is complete, and its six-lane follow-up is
-> ROM-qualified.** Pure Monkey established the true-random baseline and is retired from future headline
-> arenas because it cannot learn from success. Evolutionary Explorer inherited a reproducible
-> game-start behavior, but uniform parent selection and broad mutation limited further progress.
-> The next 2 × 3 engineering fork tests those two suspected bottlenecks directly.
+> **Current status: the six-lane selection × mutation follow-up is complete and every tested
+> condition failed its next-map gate.** All six conditions spent equal 1,536,000-action budgets and
+> remained on one map with no party member. Frontier selection retained the known title-sequence
+> behavior far better than uniform selection, but retention did not become progress. The
+> [Hall of Fame completion program](docs/completion-program.md) now has 55 named milestones, a
+> content-addressed checkpoint/action-lineage store, and a bounded single-writer runner. A real-ROM
+> Q0 qualification replayed every admitted state exactly and survived a graceful stop/resume. It
+> reached Oak's introduction, not the first playable milestone; Q1 and every learning claim remain
+> open.
 
-The current code still preserves every historical runner, including Monkey and Archivist, so old
-results remain reproducible. The immediate research step gives six copies of the same frozen neural
-archive equal action budgets while varying selection and mutation. Every child still begins the
-game from power-on. See [the selection × mutation lab](docs/selection-mutation-lab.md) for the exact
-matrix, hypotheses, evidence anchors, and claim boundaries.
+The current code preserves every historical runner, including Monkey, Archivist, online learners,
+and clean-start neuroevolution, so rejected approaches remain reproducible. See
+[the selection × mutation lab](docs/selection-mutation-lab.md) for the concluded matrix and
+[the decision register](docs/decision-register.md) for every accepted, retired, superseded, and
+failed-to-qualify choice.
 
 ## The story so far
 
@@ -32,9 +38,11 @@ the test?** A surprising amount has to be settled first—one exact ROM revision
 timing, clean start states, observation boundaries, private artifact handling, and a record of every
 attempt. That foundation is Act I of the project, not backstage work to be edited out later.
 
-The primary protocol is [Game-naive, pixels-only curiosity](docs/blind-curiosity.md). The editorial
-direction lives in [The project narrative](docs/narrative.md), and evidence levels remain tracked in
-[Progress](docs/progress.md).
+The primary completion protocol is the
+[Hall of Fame completion program](docs/completion-program.md). The original
+[game-naive, pixels-only curiosity](docs/blind-curiosity.md) protocol remains the philosophical
+control. The editorial direction lives in [The project narrative](docs/narrative.md), and evidence
+levels remain tracked in [Progress](docs/progress.md).
 
 ## At a glance
 
@@ -43,17 +51,18 @@ direction lives in [The project narrative](docs/narrative.md), and evidence leve
 | Is there a trained neural Pokémon-playing model yet? | A neural population inherited game-start behavior, but there is no evaluated successful Pokémon-playing policy yet |
 | Can a game-naive agent explore from power-on? | Yes: random, archive, and online pixels-only runners have been exercised |
 | Why retire Pure Monkey? | Its action distribution never changes; lucky outcomes cannot become future behavior |
-| What will replace it? | A quality-diversity neuroevolution population with visible ancestry |
+| What replaced it? | A quality-diversity neuroevolution population proved narrow inheritance, then failed to extend it beyond the opening |
 | What guides the Archivist trainer? | Coarse pixels, novelty membership, and archive visit counts |
-| Does RAM guide every arm? | No: only declared outcome rewards and the Conventional policy use it |
+| Does RAM guide every arm? | No. Every run declares actor and training information separately; the completion referee may guide training but never chooses buttons |
 | Does the supplied game boot and accept controlled input? | Yes |
 | Can a clean run reach the first playable bedroom state? | Yes, deterministically |
 | Can the harness identify map, position, party size, and battle state? | Yes, read-only |
 | Are ROMs, saves, snapshots, and gameplay captures committed? | No |
 | Preserved random comparison | Monkey vs. pixels-only Archivist under matched budgets |
 | Completed 90-minute pretrial | Evolution reached tier 1; online learners plateaued around Pallet Town and Route 1 |
-| Current neural experiment | Six inherited-archive lanes test uniform/frontier selection × broad/gentle/multiscale mutation |
-| Later outcome milestones | Bedroom, Oak's Parcel, and Brock—referee-only, never rewards |
+| Concluded neural experiment | Six inherited-archive lanes all failed the second-map/party gate under equal fuel |
+| Current completion work | Q1 multi-seed house-exit search after a qualified private frontier runner and deterministic power-on replay |
+| North star | First discover a replayable Hall-of-Fame lineage, then train and evaluate one frozen pixel policy |
 
 ## The journey
 
@@ -62,8 +71,10 @@ flowchart LR
     P0["✅ Harness<br/>trust the stage"] --> B0["✅ Monkey<br/>baseline concluded"]
     B0 --> B2["✅ Online learners<br/>pretrials"]
     B2 --> B1["✅ First inheritance<br/>repeat game start"]
-    B1 --> EV["🟨 2 × 3 mechanism lab<br/>selection × mutation"]
-    EV --> FR["⬜ Fresh-seed confirmation<br/>then frozen evaluation"]
+    B1 --> EV["✅ 2 × 3 mechanism lab<br/>no next-map progress"]
+    EV --> EX["✅ Q0 checkpoint runner<br/>remember stepping stones"]
+    EX --> Q1["🟨 Q1 house exit<br/>two fresh seeds"]
+    Q1 --> FR["⬜ Complete lineage<br/>then one frozen policy"]
 ```
 
 GitHub issues and experiment records will attach evidence to this roadmap. A checked engineering
@@ -87,25 +98,31 @@ separate.
 These claims are covered by the unit and private-ROM integration test suite. They do **not** imply
 that an agent has learned navigation, understood the screen, or completed a quest.
 
-## Primary experimental system
+## Primary completion system
 
 ```mermaid
 flowchart LR
     Game["Pokémon Red"] --> Pixels["Rendered RGB only"]
-    Pixels --> Policy["Small recurrent policy"]
-    Policy --> Act["Game Boy controller"]
+    Pixels -. "future learned input" .-> Emitter["Discovery emitter"]
+    RNG["Seeded RNG<br/>current Q0/Q1"] --> Emitter
+    Emitter --> Act["Controller buttons"]
     Act --> Game
-    Game --> Referee["Sealed progress referee"]
-    Referee --> Selection["Diverse elite selection"]
-    Selection --> Mutation["Recorded mutation"]
-    Mutation --> Policy
-    Referee --> Story["Lineage + charts + narrative"]
+    Game --> Referee["Sealed read-only referee"]
+    Referee --> Archive["Verified frontier archive"]
+    Archive --> Restore["Training-only checkpoint restore"]
+    Restore --> Game
+    Archive --> Replay["Complete power-on lineage replay"]
+    Replay --> Story["Evidence + failures + narrative"]
 ```
 
-RAM-derived state may later help the sealed referee explain what happened, but it cannot influence
-reward, actions, resets, archive selection, or checkpoints. Archivist restores are trainer-owned,
-pixel-selected, and disclosed; they are disabled in future clean power-on evaluation. See
-[the blind protocol](docs/blind-curiosity.md) and [Architecture](docs/architecture.md).
+The actor never receives RAM, checkpoint bytes, milestone names, or a route. The current Q0/Q1
+qualification emitter receives only a seeded pseudorandom generator; it is an open-loop discovery
+baseline, not a learned model and not yet a pixel actor. Later visual policies will receive rendered
+pixels under a separate label. RAM-derived state may influence training reward, archive selection,
+curriculum, and failure termination through the declared referee. Checkpoint restores are
+trainer-owned and disclosed; they are disabled when evaluating one frozen model from power-on. See
+[the experiment protocol](docs/experiment-protocol.md) and
+[the completion program](docs/completion-program.md).
 
 ## What will count as progress?
 
@@ -130,8 +147,10 @@ Start with [the documentation hub](docs/index.md), or jump directly to:
 
 - [Project narrative](docs/narrative.md) — the central question and story arc
 - [Blind curiosity protocol](docs/blind-curiosity.md) — pixels-only rules, novelty, archive, and run guide
-- [Evolutionary Explorer](docs/neuroevolution.md) — how genomes, mutation, selection, lineage, and checkpoint-assisted search will work
-- [Selection × mutation lab](docs/selection-mutation-lab.md) — the concluded 90-minute evidence and current six-lane engineering fork
+- [Evolutionary Explorer](docs/neuroevolution.md) — how genomes, mutation, selection, and lineage worked, plus the checkpoint successor they motivated
+- [Selection × mutation lab](docs/selection-mutation-lab.md) — the concluded 90-minute evidence, completed six-lane fork, and failed next-map gate
+- [Hall of Fame completion program](docs/completion-program.md) — the checkpoint expedition, claim ladder, qualification gates, and path to one learned policy
+- [Append-only decision register](docs/decision-register.md) — accepted, rejected, retired, superseded, and failed ideas with their evidence
 - [Progress](docs/progress.md) — current evidence, status, and reporting rules
 - [Roadmap](docs/roadmap.md) — engineering, learning, and storytelling milestones
 - [Architecture](docs/architecture.md) — components, data flow, and authority boundaries
@@ -242,7 +261,27 @@ screenshots with hashes, hourly Markdown comparisons, and JSONL evidence. After 
 orchestrator interruption, repeat the identical command with `--resume`; configuration, source,
 ROM, lane matrix, and predecessor hashes must all still match.
 
-Run the successor arena with one living local dashboard:
+Run the bounded checkpoint expedition on an external SSD:
+
+```bash
+pokemon-red-ai expedition-run \
+  --output "/Volumes/External/PokemonRedAI/expeditions/q1-seed-20260730" \
+  --hours 1 \
+  --max-actions 20000 \
+  --seed 20260730 \
+  --port 8765
+```
+
+The localhost dashboard exists only while the command is running; the finished `index.html`
+remains in the run directory. Use `expedition-status PATH`, `expedition-stop PATH`, and repeat the
+identical command with `--resume` after a graceful stop. The initial emitter is explicitly labeled
+`RANDOM-ACTION-EMITTER`; archive selection remembers verified stepping stones, but this is not yet
+one learned policy. Do not schedule a multi-day campaign until the multi-seed Q1 gate passes and
+the replay/store scaling blockers in the completion program are addressed.
+
+Historical reproducibility only: the command below is the retired 48-hour successor-arena design.
+It is preserved so the earlier protocol can be audited, **not** as the current next run. Do not
+launch it while the checkpoint expedition's Q1 and scaling gates remain open.
 
 ```bash
 pokemon-red-ai arena-run \
@@ -252,12 +291,12 @@ pokemon-red-ai arena-run \
   --q-policy-buckets 1048576
 ```
 
-While either dashboard is active, open `http://127.0.0.1:8765/index.html`. The runners are designed
-for an external SSD, five-minute recovery checkpoints, long-spaced visual evidence, and graceful
-group stopping.
+If that historical arena is deliberately reproduced, its dashboard appears at
+`http://127.0.0.1:8765/index.html`. Its recovery and storage controls do not remove the scientific
+reason it was retired.
 [The four-agent arena](docs/four-agent-arena.md) records both the historical protocol and the
 replacement decision. [Evolutionary Explorer](docs/neuroevolution.md) defines the neural lane, and
-[the selection × mutation lab](docs/selection-mutation-lab.md) defines the current branch.
+[the selection × mutation lab](docs/selection-mutation-lab.md) preserves the concluded control.
 
 ## Supported ROM
 
@@ -285,7 +324,8 @@ pytest -m "not integration"
 pytest -m integration  # Requires POKEMON_RED_ROM
 ```
 
-The reinforcement-learning stack remains optional until training begins:
+The heavier reinforcement-learning stack remains optional because the current lightweight runners
+do not require it:
 
 ```bash
 python -m pip install -e ".[rl]"

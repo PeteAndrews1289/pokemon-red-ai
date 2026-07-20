@@ -1,10 +1,11 @@
 # Evolutionary Explorer: learning by inheritance
 
-> **Status: first 90-minute Pokémon pretrial concluded; six-lane mechanism lab ROM-qualified.** The
-> population inherited a reproducible game-start behavior, but uniform archive selection and broad
-> mutation did not carry it into further game progress. The next engineering fork varies selection
-> and mutation while keeping the source archive, power-on start, and action budget fixed. This is
-> pretrial evidence—not evidence that a policy has learned to play Pokémon successfully.
+> **Status: both clean-start neuroevolution pretrials are concluded.** The first population inherited
+> a reproducible game-start behavior. The later six-lane selection × mutation lab improved retention,
+> especially under frontier selection, but no lane reached a second map or formed a party. That
+> negative result is preserved rather than relabeled as a winner. The checkpoint-assisted expedition
+> substrate has now passed its Q0 engineering gate; its first gameplay gate is still open. This is
+> mechanism evidence—not evidence that a policy has learned to play Pokémon successfully.
 
 ## The idea in one sentence
 
@@ -17,7 +18,7 @@ gradient descent changing them. The individual policy does not update while it p
 happens between evaluations, when selection decides which genomes are allowed to produce mutated
 offspring.
 
-## Why Pure Monkey is retiring
+## Why Pure Monkey retired
 
 Pure Monkey sampled every action independently from a fixed uniform distribution. Its random seed
 made a run reproducible, but success never changed the probability of the next action. A lucky door,
@@ -27,15 +28,15 @@ That made it a useful control. It established what persistent game state plus tr
 produce and gave the project a denominator for early claims. It is not a useful main character for
 multi-day training because it cannot improve.
 
-The decision is **retire, not erase**:
+The decision was **retire, not erase**:
 
 - keep the `monkey` command so historical experiments remain reproducible;
 - keep every existing trace, checkpoint, dashboard, and narrative;
 - stop allocating a headline lane to it in future four-way arenas;
 - label its evidence as a frozen random baseline rather than a learner;
-- replace that lane with Evolutionary Explorer after qualification.
+- replace that lane with Evolutionary Explorer after qualification—a completed historical step.
 
-## What kind of evolution are we choosing?
+## What kind of evolution did we choose?
 
 The video description alone does not identify one exact algorithm. Several systems can look like
 “run 1,000, breed the winner” from the outside:
@@ -50,26 +51,27 @@ The video description alone does not identify one exact algorithm. Several syste
 | Go-Explore | Promising environment states and return paths | Handles rare, long-horizon discoveries | Snapshot-assisted progress is not one policy solving from scratch |
 
 MAP-Elites and Go-Explore are layers around a policy representation, not alternatives to neural
-networks. Our version combines a fixed recurrent neural genome with a MAP-Elites archive; the
-checkpoint-assisted track additionally borrows Go-Explore's return-then-explore principle.
+networks. The completed clean-start version combined a fixed recurrent neural genome with a
+MAP-Elites archive. Its checkpoint successor borrows Go-Explore's return-then-explore principle but
+currently explores with disclosed random action suffixes rather than mutated neural weights.
 
-The first version is **quality-diversity neuroevolution with mutation-only reproduction**. It
-borrows two ideas:
+The first version was **quality-diversity neuroevolution with mutation-only reproduction**. It
+borrowed two ideas:
 
 1. **MAP-Elites:** preserve strong but behaviorally different descendants instead of keeping only
    the single highest score.
 2. **Go-Explore:** remember promising deterministic game states, return to one, and explore outward
    from it rather than repeatedly losing every rare discovery.
 
-It will not initially be NEAT. NEAT evolves both network weights and network topology, using
+It did not initially use NEAT. NEAT evolves both network weights and network topology, using
 speciation and crossover to protect structural innovations. That is powerful, but it adds several
 moving parts before we know whether a small fixed network and an honest fitness/archive protocol
-can cross the early game. Fixed topology makes the first experiment easier to understand, test,
-serialize, visualize, and reproduce. Topology evolution becomes a later ablation.
+can cross the early game. Fixed topology made the first experiment easier to understand, test,
+serialize, visualize, and reproduce. Topology evolution remains a possible later ablation.
 
-It will also not use crossover initially. A child will have one parent plus a recorded mutation.
-This produces an unambiguous family tree: every behavioral change has one ancestral policy and one
-mutation seed. Crossover can be tested later without silently changing the first question.
+It also did not use crossover. A child had one parent plus a recorded mutation. This produced an
+unambiguous family tree: every behavioral change had one ancestral policy and one mutation seed.
+Crossover can still be tested later without silently rewriting the first question.
 
 ## The four lanes in the successor pretrial
 
@@ -105,9 +107,11 @@ The three online learners executed roughly 2.2–2.56 million actions each, obse
 reached maximum party levels 27–29. They remained in a Pallet Town/Route 1 loop. Levels and actions
 show activity; they do not establish story completion.
 
-The archive and genealogy were frozen rather than discarded. The next
-[selection × mutation lab](selection-mutation-lab.md) starts six evolutionary lanes from those same
-neural elites. It imports brains, not game position: every child starts Pokémon from power-on.
+The archive and genealogy were frozen rather than discarded. The completed
+[selection × mutation lab](selection-mutation-lab.md) started six evolutionary lanes from those
+same neural elites. It imported brains, not game position: every child started Pokémon from
+power-on. All six conditions remained on one map with no party member, which is why checkpointed
+state inheritance is now the primary completion track rather than a distant optional phase.
 
 ## The policy: deliberately small and visible
 
@@ -144,9 +148,9 @@ software version, the action trace should be identical.
 Each child receives exactly **12,000 actions** from a clean power-on state. Action count—not wall
 time—is the scientific lifetime. A two-child ROM-backed qualification completed 24,000 actions in
 26.2 seconds when run alone (about 917 actions/second); shared machine load lowers per-lane speed.
-Fresh runs begin with 16 unrelated random genomes. The current engineering fork instead imports the
-frozen 33-elite archive so selection and mutation can be isolated without waiting to rediscover the
-title sequence six separate times.
+Fresh runs begin with 16 unrelated random genomes. The completed engineering fork instead imported
+the frozen 33-elite archive so selection and mutation could be isolated without waiting to
+rediscover the title sequence six separate times.
 
 The first two full lifetimes exposed an early descriptor defect: before meaningful game progress,
 both policies landed in the same archive cell even though their button habits differed. The
@@ -222,13 +226,13 @@ to use sigma `0.20`. In a 13,096-parameter network, an ordinary child therefore 
 parameters. The first full pretrial showed that useful behavior could be inherited, but often did
 not survive this edit.
 
-The next lab compares the control against two alternatives:
+The completed lab compared the control against two alternatives:
 
 - **gentle:** `p=0.02`, sigma `0.01` on every birth;
 - **multiscale:** 80% micro (`p=0.01`, sigma `0.02`), 15% broad (`p=0.10`, sigma `0.05`), and 5%
   macro (`p=0.10`, sigma `0.20`).
 
-All three profiles continue to:
+All three profiles:
 
 - retain every current archive elite unchanged;
 - produce one child from one parent;
@@ -246,7 +250,14 @@ weights. That is the cleanest test of a general controller, but it repeatedly pa
 of the introduction, starter sequence, and every previous route. Completing a long role-playing
 game that way is unlikely to be practical on one iMac.
 
-The proposed **Evolutionary Expedition** therefore has two explicit evidence tracks.
+The initially proposed **Evolutionary Expedition** therefore had two explicit evidence tracks.
+That proposal is preserved below because it explains the pivot; the current Q0/Q1 implementation
+keeps the evidence separation but uses a random suffix emitter before testing a visual policy.
+
+The complete successor architecture, required run labels, Hall-of-Fame claim ladder, and staged
+qualification gates now live in the
+[Hall of Fame completion program](completion-program.md). This document remains the detailed record
+of the predecessor neural-population design and the evidence that motivated that program.
 
 ### Track A — clean-start policy evolution
 
@@ -256,13 +267,16 @@ question, but initially uses short milestones such as obtaining a starter or rea
 ### Track B — checkpoint-assisted expedition
 
 An archive elite may carry a private emulator snapshot and the complete action lineage that reached
-it. Descendants branch from that state with mutated network weights. This makes whole-game search
-plausible, but the population—not a single independently capable policy—is the acting system.
+it. The original proposal branched from that state with mutated network weights. The implemented
+Q0/Q1 runner instead branches with seeded random action suffixes so the archive, replay, and
+corruption rules can be isolated before an emitter comparison. Either version makes whole-game
+search more plausible, but the population—not a single independently capable policy—is the acting
+system.
 
 Checkpoint assistance must never be concealed. A result card will say either `CLEAN START` or
 `CHECKPOINT-ASSISTED LINEAGE`.
 
-Whenever Track B unlocks a new major milestone, the runner will replay the entire ancestral action
+Whenever Track B unlocks a new major milestone, the runner must replay the entire ancestral action
 lineage from power-on. The milestone is accepted only if the replay reaches the same verified state
 without manual intervention. The final completion claim requires a deterministic power-on replay of
 the winning lineage. A later single-policy distillation experiment would be a separate result.
@@ -276,7 +290,7 @@ as one neural network mastering the entire route.
 “One thousand models” does not require one thousand simultaneous emulators. A model here is a small
 genome evaluated in a queue.
 
-The current six-lane calibration is:
+The completed six-lane calibration was:
 
 | Setting | Initial value | Reason |
 | --- | ---: | --- |
@@ -290,12 +304,15 @@ The current six-lane calibration is:
 
 The M1 iMac runs six emulator processes concurrently, not 768 simultaneous policies. Every lane is
 a queue of 128 child evaluations. A thousand candidates would likewise be a longer queue, not a
-thousand open emulator windows. The dashboard should therefore emphasize **candidates evaluated**,
+thousand open emulator windows. The dashboard therefore emphasized **candidates evaluated**,
 **actions consumed**, and **surviving lineages**, not imply that every genome is alive at once.
 
 Later-stage children need larger budgets. The runner should increase the suffix budget only when a
 milestone tier proves that a longer horizon is justified. Compute estimates must be recalculated
-from calibration artifacts before the first unattended 48-hour expedition.
+from checkpoint-runner artifacts before any unattended multi-day expedition. The first
+1,024-action qualification spent another 9,280 actions replaying lineages, so the present
+implementation is deliberately blocked from marathon use until replay and archive costs are
+bounded.
 
 ## What the dashboard must teach
 
@@ -355,17 +372,21 @@ without forcing every lineage to imitate the most immediately profitable behavio
   checkpoints.
 - ✅ Unit-test deterministic genomes, mutation, elitism, bounded archive replacement, and the
   clean-start runner.
-- 🟨 Continue failure-injection and longer resume qualification during pretrials.
+- ✅ Preserve valid audit prefixes after a torn final write, reject complete corrupt records, and
+  verify stop/resume without silently deleting the earlier stop event.
 
 ### E3 — Pokémon pretrial
 
 - ✅ Complete the first 90-minute population run and preserve its archive and genealogy.
 - ✅ Identify reproducible title-sequence inheritance plus uniform-selection and mutation-retention
   bottlenecks.
-- 🟨 Run the equal-budget 2 × 3 selection/mutation fork from the frozen neural archive.
-- 🟨 Confirm six-emulator stability, bounded storage, deterministic lineage replay, and visible
-  diversity.
-- ⬜ Repeat the selected mechanism from fresh random populations across multiple seeds.
+- ✅ Run the equal-budget 2 × 3 selection/mutation fork from the frozen neural archive.
+- ✅ Confirm six-emulator stability, bounded storage, recoverable runner state, and visible
+  diversity under the declared one-hour action ceilings.
+- ✅ Record that no treatment passed the next-map gate; retain all six as mechanism evidence rather
+  than inventing a winner from local position count.
+- ⬜ Repeat a materially changed clean-start learner only when a later ablation requires the
+  historical control; do not spend fresh seeds on the unchanged failed mechanism.
 
 ### E4 — clean-start early-game evaluation
 
@@ -375,21 +396,26 @@ without forcing every lineage to imitate the most immediately profitable behavio
 
 ### E5 — checkpoint-assisted expedition
 
-- Enable snapshot inheritance only after clean-start behavior and replay verification work.
-- Require a power-on ancestral replay for every promoted major milestone.
-- Treat Hall of Fame as complete only after the entire winning lineage replays successfully.
+- ✅ Implement the ordered 55-outcome and strict Hall-of-Fame referee.
+- ✅ Implement integrity-bound private snapshots, exact action segments, ancestry, quarantine, and
+  mandatory semantic power-on replay foundations.
+- ✅ Integrate and Q0-qualify the single-writer expedition runner, bounded dashboard, clean stop,
+  and exact resume against the real ROM.
+- ✅ Require three power-on ancestral replays in code before a major milestone can be promoted.
+- ⬜ Reach and replay the first named gameplay milestone, `left_home`, in the frozen Q1 trial.
+- ⬜ Treat Hall of Fame as complete only after the entire winning lineage replays successfully.
 
 ## Failure modes we expect to learn from
 
 | Failure | Why it happens | Planned defense |
 | --- | --- | --- |
 | One lineage dominates | Scalar fitness rewards a local optimum | MAP-Elites cells and novelty-biased parent selection |
-| Useful lineages rarely reproduce | Uniform selection over many weak diversity cells | Compare frontier-biased selection with a 20% diversity reserve |
-| Mutations erase skills | Too much parameter noise | Elitism, gentle and multiscale profiles, and immutable parents |
-| No behavioral change | Too little parameter noise | Scheduled large mutations and diversity tracking |
-| Snapshot corruption looks like progress | Invalid or incompatible state inheritance | ROM/version binding, hashes, and power-on lineage replay |
+| Useful lineages rarely reproduce | Uniform selection over many weak diversity cells | Frontier selection roughly doubled game-start retention, but still produced no map progress; checkpointed frontier search is the successor |
+| Mutations erase skills | Too much parameter noise | Gentle and multiscale profiles preserved more ancestry but did not create useful novelty; keep this as a negative result |
+| No behavioral change | Too little parameter noise | The six-lane lab demonstrated this failure directly; future emitter comparisons must measure named milestones, not local motion |
+| Snapshot corruption looks like progress | Invalid or incompatible state inheritance | ROM/version binding, content hashes, semantic recomputation, quarantine, and exact power-on lineage replay are implemented |
 | Fitness is farmed | Coordinates, menus, or battles repeat cheaply | Lexicographic milestones and capped local signals |
-| The archive grows forever | Too many descriptors or snapshots | Fixed bins, per-cell elite limits, and storage ceilings |
+| The archive grows forever | Too many descriptors or snapshots | Capacity and storage ceilings exist, but rejected-evidence retention and replay indexing still block marathon scale |
 | “Solved” means only one lucky suffix | Checkpoint-assisted branches hide the history | Full ancestral replay and explicit evidence labels |
 | Family tree becomes unreadable | Every failed child is drawn equally | Preserve all data but visually prioritize survivors and milestones |
 

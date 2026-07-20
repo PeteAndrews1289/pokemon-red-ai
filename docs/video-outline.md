@@ -1,10 +1,11 @@
 # Video and series outline
 
 > **Series-direction update:** Pure Monkey supplied the opening experiment and the conclusion: luck
-> cannot accumulate when success never changes later behavior. The next episode asks, “What if a
-> useful accident could have children?” Evolutionary Explorer supplies a family tree, mutation
-> history, and visible extinctions. The first answer is now recorded, and the current
-> [selection × mutation lab](selection-mutation-lab.md) supplies the episode's experimental fork.
+> cannot accumulate when success never changes later behavior. Evolutionary Explorer then showed
+> that a useful accident could have children—but the completed
+> [selection × mutation lab](selection-mutation-lab.md) showed that better inheritance still did not
+> create meaningful game progress. The current story is the checkpoint-expedition pivot: first make
+> long-horizon discoveries reproducible, then use them to train and evaluate one frozen policy.
 
 This document is a production guide for telling the project's story without getting ahead of the
 evidence. The detailed Episode 0 section preserves the original before-training production plan;
@@ -30,9 +31,9 @@ the next test, and lets the evidence change the plan.
 | --- | --- | --- |
 | 0. Before the AI | How do we know a later success is real and repeatable? | A deterministic, instrumented clean start in the bedroom |
 | 1. Monkeys with controllers | What can true randomness accomplish, and what can it never retain? | Preserved baseline plus the retirement decision |
-| 2. Survival of the luckiest | Can useful accidents accumulate through selection and mutation? | Qualified population and first inherited improvement |
-| 3. Leave home | Do evolved policies retain progress beyond one lucky ancestor? | Family tree plus clean-start house-exit evaluation |
-| 4. Meet Oak | Can a lineage cross navigation, dialogue, menus, and a battle? | Starter milestone and full ancestral replay |
+| 2. Survival of the luckiest | Can useful accidents accumulate through selection and mutation? | Better retention, no next map, and an honest failed mechanism |
+| 3. Leave home | Can checkpointed search discover and exactly replay one tiny step? | Two bounded house-exit trials with the full denominator |
+| 4. Meet Oak | Can pixels or a learned action model improve on random suffix search? | Matched emitter comparison and a replayed starter milestone |
 | 5. A real errand | Can a population extend a verified lineage through Oak's Parcel? | Checkpoint-assisted result clearly separated from clean-start policy ability |
 | 6. Nature or nurture? | Which progress came from pixels, rewards, RAM, or selection? | Four-lane successor arena with declared information budgets |
 | 7. Brock | Can an evolved lineage prepare, navigate, and win? | Power-on lineage replay, including every failed branch |
@@ -40,12 +41,12 @@ the next test, and lets the evidence change the plan.
 Do not promise a full playthrough in the first episode. Promise an investigation with the next
 milestone close enough to be credible.
 
-## Featured future episode: “What If Luck Could Reproduce?”
+## Featured completed episode: “What If Luck Could Reproduce?”
 
 - **Central narrative:** Random play can create a miracle but cannot inherit it. Evolution turns an
   accident into an ancestor.
-- **Honest endpoint:** The population machinery works, ancestry is reproducible, and at least one
-  descendant adds measurable behavior without erasing the full experimental denominator.
+- **Honest endpoint:** Frontier selection made the known game-start behavior much more heritable,
+  yet all six lanes remained on one map and most policies collapsed into a repeated-action habit.
 - **Do not claim:** that one network learned during its lifetime, that checkpoint-assisted search
   equals one clean-start policy, or that a rising archive score means the game is solved.
 
@@ -62,9 +63,33 @@ columns are broad, gentle, and multiscale mutation. Give every lane a visible ac
 1,536,000 actions. This transforms parameter tuning into an audience-readable question: **should
 evolution choose better parents, make smaller changes, or do both?**
 
-The end card must say `INHERITED ARCHIVE — ENGINEERING FORK`. Even if one lane reaches a new map, it
-has selected a mechanism, not proved learning from scratch. The next honest step is a fresh random-
-founder replication.
+The result card must say `INHERITED ARCHIVE — FAILED NEXT-MAP GATE`. Frontier selection retained
+game start in 78.1% of children versus 39.6% under uniform selection, but no lane reached a second
+map or formed a party. Do not crown Frontier–Broad because it visited seven local positions. The
+next honest step is the checkpoint-expedition pivot, not a larger copy of the same run.
+
+## The new central narrative: “First, teach the experiment to remember”
+
+The strongest story is no longer a tournament between four agents. It is a sequence of increasingly
+hard promises:
+
+1. **Randomness can stumble forward, but cannot retain the lesson.** Pure Monkey establishes the
+   denominator.
+2. **Inheritance can retain one behavior, but still fail to compose the next.** The population and
+   six-lane lab make that failure visible.
+3. **A checkpoint can remember progress, but a saved state can also create a convincing lie.** The
+   first replay verifier accepted a forged Hall-of-Fame label because the bytes replayed exactly.
+   Semantic recomputation rejected it: the real replay was still at power-on.
+4. **Reliable discovery precedes learned completion.** The expedition must build an exact,
+   power-on-replayable solution lineage. That lineage becomes self-produced curriculum for a later
+   model; it is not itself described as one model solving the game.
+5. **The final claim is deliberately difficult.** One frozen policy must start at power-on and reach
+   the Hall of Fame with its observation boundary, attempts, and interventions declared in advance.
+
+The false Hall-of-Fame audit is a particularly useful visual beat. Put two green checks on screen:
+`SNAPSHOT HASH MATCHED` and `SCREEN HASH MATCHED`. Then strike through the headline `HALL OF FAME`
+when the independent referee reads `POWER ON`. The lesson is memorable: deterministic evidence can
+reproduce a false label perfectly unless meaning is checked separately.
 
 ### Suggested beats
 
@@ -100,7 +125,9 @@ founder replication.
 - **Target length:** 12–16 minutes
 - **Purpose:** Introduce the ambition, show why instrumentation matters, and end at the exact point
   where training can begin.
-- **Current status represented:** No model has been trained and no acting agent has played the game.
+- **Historical status represented:** At the time this Episode 0 plan was drafted, no model had been
+  trained and no acting agent had played the game. Later episodes must replace this card with the
+  current evidence ladder rather than reuse it as a present-tense claim.
 
 ### Cold open — the future, interrupted (0:00–0:35)
 
@@ -383,7 +410,7 @@ Complete this before recording narration and again before publishing.
 
 | Tempting line | Better line |
 | --- | --- |
-| “I trained an AI to play Pokémon.” | “I built the reproducible environment; training begins next.” |
+| “I trained an AI to play Pokémon.” | “I built and tested several learners; none has yet completed a named gameplay milestone in the current expedition.” |
 | “It learned the room.” | “It crossed the exit in 17 of 20 held-out attempts.” |
 | “It only saw the game.” | “The policy received pixels plus the declared X/Y coordinates.” |
 | “No cheating.” | “The policy could not write memory or load snapshots; the referee read these six fields.” |

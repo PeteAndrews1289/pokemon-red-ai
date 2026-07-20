@@ -8,8 +8,9 @@ This project has two stories running in parallel:
 The emulator foundation, blind runners, online learners, and first neuroevolution population are
 working. There is still **no evaluated successful Pokémon-playing policy or whole-game result**.
 Pure Monkey completed its role as the random baseline. A 90-minute evolutionary pretrial inherited
-a narrow game-start behavior; a ROM-qualified six-lane mechanism lab now tests why that behavior
-did not extend further.
+a narrow game-start behavior; the completed six-lane follow-up then failed to extend any treatment
+beyond one map. The checkpoint expedition, named Hall-of-Fame referee, and power-on replay gate that
+follow from that failure have passed their Q0 engineering checks; the first gameplay gate has not.
 
 ## Start here
 
@@ -18,8 +19,10 @@ did not extend further.
 | Understand the project in a few minutes | [Project README](../README.md) | What is being built and how to run it |
 | Audit the primary experiment | [Blind curiosity protocol](blind-curiosity.md) | What the agent sees, how novelty works, and what counts as leakage |
 | Watch the four agents together | [Four-agent arena](four-agent-arena.md) | Exact information ladder, rewards, dashboard, and 48-hour procedure |
-| Learn how evolutionary training will work | [Evolutionary Explorer](neuroevolution.md) | Genomes, mutation, MAP-Elites, lineage replay, compute, and claim boundaries |
+| Learn what evolutionary training tested | [Evolutionary Explorer](neuroevolution.md) | Genomes, mutation, MAP-Elites, lab results, checkpoint successor, and claim boundaries |
 | Inspect the current experiment branch | [Selection × mutation lab](selection-mutation-lab.md) | The 90-minute result, six-lane matrix, measurements, narrative, and claim limits |
+| See the path to completing the game | [Hall of Fame completion program](completion-program.md) | Expedition architecture, information labels, claim ladder, qualification gates, and policy distillation |
+| Audit every accepted and discarded idea | [Decision register](decision-register.md) | Append-only decisions, failed hypotheses, alternatives, evidence, and consequences |
 | Follow the central story | [Project narrative](narrative.md) | Why the failures and evidence are part of the project |
 | Understand the reward ladder | [Reward architecture](reward-architecture.md) | Actions, milestones, loop controls, and reporting boundaries |
 | See what is genuinely complete today | [Progress](progress.md) | What is verified, what is merely implemented, and what is still planned |
@@ -45,13 +48,15 @@ flowchart LR
     B --> C["✅ Online-learning pretrials"]
     C --> D["✅ Evolution engine"]
     D --> E["✅ First inherited behavior"]
-    E --> L["🟨 2 × 3 mechanism lab"]
-    L --> F["⬜ Fresh-seed confirmation"]
-    F --> G["⬜ Frozen evaluation"]
+    E --> L["✅ 2 × 3 mechanism lab<br/>failed next-map gate"]
+    L --> F["✅ Referee + lineage foundation"]
+    F --> G["✅ Q0 expedition runner"]
+    G --> H["🟨 Multi-seed house-exit gate"]
 ```
 
 The diagram shows project position, not game progress. Reaching the game-start state is a narrow
-inherited behavior, and the current inherited-archive engineering fork is not a frozen evaluation.
+inherited behavior, the concluded inherited-archive fork was not a frozen evaluation, and Q0
+runner reliability is not a gameplay milestone.
 
 ## Three reading paths
 
