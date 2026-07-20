@@ -28,6 +28,16 @@
   build stopped at action 8,045, resumed with unchanged model and parameter hashes plus the same
   19 updates, then reached action 11,858 with 55/55 replay checks. The canaries establish mechanism
   reliability and seed variance; neither is a Forest qualification.
+- Gracefully concluded the frozen eight-hour handoff when the Frontier Apprentice was ready. It
+  retained 3,535,933 actions, 13,136/13,136 passing replay checks, and `obtained_pokedex` as its
+  best milestone after 26,930 seconds. Since the Pokédex had arrived near minute 68, the final
+  record contains more than six hours without a Viridian-Forest promotion rather than silently
+  allowing the obsolete actor to compete for compute.
+- Launched the first fresh eight-hour Frontier Apprentice campaign from power-on at commit
+  `6c49cc4`, seed `20260751`, with an 8,192-cell archive, 150-million-action safety ceiling, and
+  50-GiB free-space floor. In its first 13 seconds it reached `left_home`, learned three verified
+  promotions from 616 successful actions in 42 optimizer updates, and passed 14/14 replay checks.
+  This is a launch health observation; the Forest gate and later game remain open outcomes.
 
 ## 2026-07-20 — Leaving home becomes the beginning
 

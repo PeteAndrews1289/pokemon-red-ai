@@ -7,9 +7,9 @@
 > integrity-bound frontier checkpoints, complete action lineages, and mandatory power-on replay
 > before any checkpoint may become a verified milestone.
 
-- **Current stage:** the frozen apprentice handoff reached the Pokédex and exposed a multi-hour
-  plateau; Frontier Apprentice now passes its first real-ROM mechanism and exact-resume canary, so
-  the next gate is a bounded Viridian-Forest comparison against that frozen baseline
+- **Current stage:** the frozen apprentice handoff ended at 3.54 million actions and the Pokédex;
+  the first fresh eight-hour Frontier Apprentice campaign is now active from clean power-on, with
+  Viridian Forest as its first performance gate and Hall of Fame as its unchanged terminal goal
 - **Status date:** 2026-07-20
 
 **Most important caveat:** Q1 verified one replayable house-exit lineage, but the acting suffix
