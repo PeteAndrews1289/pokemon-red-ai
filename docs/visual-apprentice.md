@@ -351,6 +351,21 @@ Apple Metal acceleration separately and record both throughput and memory before
 
 ## Evaluation gates
 
+### Full-game expedition handoff
+
+Completing the local curriculum does not make `left_home` the project endpoint. The first
+full-game handoff freezes the completed curriculum model and installs it as Archive v2's visual
+action prior. Each restored suffix starts with zero recurrent state. A seeded exploration coin
+replaces 2% of argmax actions before the verified house-exit frontier and 35% at or after it. The
+privileged trainer chooses only that disclosed exploration rate from the parent milestone; it does
+not choose the replacement button or expose milestone identity to the model.
+
+This hybrid can search every named milestone through Hall of Fame, retain useful checkpoints, and
+assemble replayable action lineages. It does not update neural weights beyond the house curriculum,
+so later progress belongs to the combined frozen-policy/exploration/archive system. A later dataset
+aggregation stage may distill verified suffixes into new weights under a separately versioned
+protocol.
+
 Training success is diagnostic. A claim requires a frozen checkpoint and a sealed attempt set.
 
 ### Curriculum development gate

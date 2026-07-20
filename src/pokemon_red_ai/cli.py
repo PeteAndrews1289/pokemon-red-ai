@@ -51,6 +51,8 @@ from pokemon_red_ai.evolution_lab import (
     show_evolution_lab_status,
 )
 from pokemon_red_ai.expedition_runner import (
+    APPRENTICE_HYBRID_EMITTER,
+    RANDOM_EXPEDITION_EMITTER,
     ExpeditionRunConfig,
     request_expedition_stop,
     run_expedition,
@@ -267,6 +269,13 @@ def build_parser() -> argparse.ArgumentParser:
     expedition.add_argument("--status-seconds", type=float, default=10)
     expedition.add_argument("--max-output-mib", type=int, default=4_096)
     expedition.add_argument("--min-free-gib", type=float, default=50)
+    expedition.add_argument(
+        "--apprentice-model",
+        type=Path,
+        help="Completed private curriculum run whose frozen learner guides the expedition",
+    )
+    expedition.add_argument("--apprentice-pre-frontier-epsilon", type=float, default=0.02)
+    expedition.add_argument("--apprentice-post-frontier-epsilon", type=float, default=0.35)
     expedition.add_argument("--resume", action="store_true")
 
     expedition_status = subparsers.add_parser(
@@ -655,6 +664,17 @@ def run_evolution_lab_command(args: argparse.Namespace) -> int:
 def run_expedition_command(args: argparse.Namespace) -> int:
     rom_path = resolve_rom_path(args.rom)
     fingerprint = verify_rom(rom_path)
+    apprentice_model = None
+    apprentice_model_sha256 = ""
+    emitter_kind = RANDOM_EXPEDITION_EMITTER
+    if args.apprentice_model is not None:
+        apprentice_model = args.apprentice_model.expanduser().resolve()
+        learner_metadata_path = apprentice_model / "learner.json"
+        if not learner_metadata_path.is_file():
+            raise ValueError("Apprentice model directory does not contain learner.json")
+        learner_metadata = json.loads(learner_metadata_path.read_text(encoding="utf-8"))
+        apprentice_model_sha256 = str(learner_metadata.get("file_sha256", ""))
+        emitter_kind = APPRENTICE_HYBRID_EMITTER
     config = ExpeditionRunConfig(
         duration_seconds=args.hours * 3_600,
         max_actions=args.max_actions,
@@ -673,6 +693,10 @@ def run_expedition_command(args: argparse.Namespace) -> int:
         status_interval_seconds=args.status_seconds,
         max_output_bytes=args.max_output_mib * 1024 * 1024,
         min_free_bytes=int(args.min_free_gib * 1024 * 1024 * 1024),
+        emitter_kind=emitter_kind,
+        apprentice_model_sha256=apprentice_model_sha256,
+        apprentice_pre_frontier_epsilon=args.apprentice_pre_frontier_epsilon,
+        apprentice_post_frontier_epsilon=args.apprentice_post_frontier_epsilon,
     )
     if args.port:
         print(
@@ -686,6 +710,7 @@ def run_expedition_command(args: argparse.Namespace) -> int:
         config=config,
         run_directory=args.output,
         resume=args.resume,
+        apprentice_model_directory=apprentice_model,
     )
     print(f"Checkpoint expedition: {result.stop_reason}")
     print(f"Actions: {result.counters.total_actions:,}")

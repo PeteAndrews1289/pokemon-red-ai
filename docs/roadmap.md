@@ -32,8 +32,10 @@
 12. ✅ Qualify Archive v2 edge verification, bounded niches, suffix buffering, exact resume, and hard-crash recovery on the real ROM.
 13. ✅ Pass [Visual Apprentice v1](visual-apprentice.md) Stage 0: two matching captures, exact
     offline/reload fit, and the exact 419-action route selected once from clean power-on.
-14. 🟨 Train recovery in the reverse checkpoint curriculum, preserving every failed attempt and
-    withholding H2 until a frozen policy passes held-out local starts.
+14. ✅ Complete the adaptive reverse checkpoint curriculum while preserving every failed attempt;
+    continue withholding H2 until a frozen policy passes held-out local starts.
+15. 🟨 Use the completed local model as a frozen visual prior in a full-game Archive v2 campaign;
+    continue after `left_home` and stop only at Hall of Fame or declared resource boundaries.
 14. ⬜ Compare qualified optimized/learned emitters under a matched house-exit gate.
 15. ⬜ Distill useful self-generated lineages into a richer frozen visual policy.
 16. ✅ Replace Monkey in the four-lane pretrial dashboard.

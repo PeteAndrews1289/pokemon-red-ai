@@ -7,10 +7,10 @@
 > integrity-bound frontier checkpoints, complete action lineages, and mandatory power-on replay
 > before any checkpoint may become a verified milestone.
 
-- **Current stage:** Q1 concluded at 1/2; Archive v2 passed staged qualification; Visual Apprentice
-  Stage 0 passed its complete real-ROM gate; reverse-curriculum recovery learning is the active
-  development experiment
-- **Status date:** 2026-07-19
+- **Current stage:** Visual Apprentice Stage 0 and its seven-rung reverse curriculum completed;
+  the active experiment is an apprentice-guided Archive v2 campaign whose terminal milestone is
+  the Hall of Fame rather than `left_home`
+- **Status date:** 2026-07-20
 
 **Most important caveat:** Q1 verified one replayable house-exit lineage, but the acting suffix
 emitter was uniformly random and only one of two seeds reached the target. This is expedition
@@ -79,6 +79,8 @@ flowchart LR
 | Disk monitoring is bounded between exact reconciliations | ✅ Verified | E2 | Known writes are counted incrementally, exact tree scans occur only at declared boundaries, and free-space/output limits remain enforced |
 | Archive v2 bounds local verification and frontier arrivals | ✅ Qualified | E3 engineering | Three 4,096-action real-ROM trials passed continuous, graceful-resume, and hard-crash gates; edge replay stayed at or below 0.111× and the crash twin matched deterministic terminal state exactly |
 | Visual Apprentice Stage 0 connects end to end | ✅ Qualified in its one-route scope | E3 pipeline | Two independent captures matched; one 468,312-parameter CNN-LSTM reached 419/419 offline and after reload, then selected the exact 419-action route to `left_home` once from clean power-on; no recovery, generalization, or H2 claim |
+| Reverse curriculum reaches the complete opening horizon | ✅ Completed in development scope | E3 development | Seven adaptive rungs completed in 480 attempts with 451 successes; the final full-horizon rung passed 29/30 twice, but weights changed between attempts and no held-out H2 evaluation exists |
+| The apprentice-guided expedition continues beyond `left_home` | 🟨 Active | E1 | Frozen pixel-policy actions and seeded exploration now feed Archive v2's full 55-milestone search; no later verified milestone is claimed before run evidence exists |
 | The Q0 discovery baseline reached a playable milestone | ⬜ Not demonstrated | E0 | It reached Oak's introduction visually but the referee correctly remained at `power_on` |
 | The expedition reached `left_home` | ✅ Verified in one development seed | E3 / H3 | A 419-action lineage passed three promotion replays; the two-seed Q1 result was 1/2 and the emitter was random |
 | The Q1 robustness gate passed | ⬜ Failed | E3 | Seed `20260730` stopped at the ground floor; seed `20260731` stepped outside; both exhausted the frozen 20,000-action budget |

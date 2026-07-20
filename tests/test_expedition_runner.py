@@ -19,6 +19,7 @@ from pokemon_red_ai.blind import BLIND_ACTIONS, FrozenSnapshot
 from pokemon_red_ai.emulator import EmulatorSnapshot
 from pokemon_red_ai.expedition import ExpeditionStore, FrontierArchive
 from pokemon_red_ai.expedition_runner import (
+    APPRENTICE_HYBRID_EMITTER,
     ExpeditionRunConfig,
     SeededRandomSequenceEmitter,
     VisualLoopDetector,
@@ -64,6 +65,16 @@ def test_bounded_config_adaptive_horizon_and_loop_detector() -> None:
         ExpeditionRunConfig(disk_reconcile_interval_actions=0)
     with pytest.raises(ValueError, match="free-space check interval"):
         ExpeditionRunConfig(disk_free_check_interval_seconds=0)
+    with pytest.raises(ValueError, match="model SHA-256"):
+        ExpeditionRunConfig(emitter_kind=APPRENTICE_HYBRID_EMITTER)
+    with pytest.raises(ValueError, match="cannot declare"):
+        ExpeditionRunConfig(apprentice_model_sha256="a" * 64)
+    hybrid = ExpeditionRunConfig(
+        emitter_kind=APPRENTICE_HYBRID_EMITTER,
+        apprentice_model_sha256="a" * 64,
+    )
+    assert hybrid.apprentice_pre_frontier_epsilon == 0.02
+    assert hybrid.apprentice_post_frontier_epsilon == 0.35
 
 
 def test_disk_monitor_does_not_walk_the_tree_for_each_action(

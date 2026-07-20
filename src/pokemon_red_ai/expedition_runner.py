@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import binascii
+import contextlib
 import gzip
 import hashlib
 import html
@@ -26,6 +27,8 @@ from urllib.parse import urlsplit
 import numpy as np
 from PIL import Image
 
+from pokemon_red_ai.apprentice_data import preprocess_apprentice_frame
+from pokemon_red_ai.apprentice_model import build_apprentice_policy, require_torch
 from pokemon_red_ai.blind import (
     ACTION_HOLD_FRAMES,
     ACTION_RELEASE_FRAMES,
@@ -60,6 +63,11 @@ EXPEDITION_RUNNER_CHECKPOINT_SCHEMA = 2
 POWER_ON_PROGRESS = MilestoneProgress("power_on", 0, "Power-on")
 _CHECKPOINT_FRAME_SHAPE = (144, 160, 3)
 _CHECKPOINT_FRAME_ENCODING = "rgb24-base64-v1"
+RANDOM_EXPEDITION_EMITTER = "seeded_random"
+APPRENTICE_HYBRID_EMITTER = "visual_apprentice_hybrid"
+LEFT_HOME_MILESTONE_INDEX = next(
+    index for index, milestone in enumerate(MILESTONES, start=1) if milestone.key == "left_home"
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -86,6 +94,10 @@ class ExpeditionRunConfig:
     disk_free_check_interval_seconds: float = 5
     max_output_bytes: int = 4 * 1024 * 1024 * 1024
     min_free_bytes: int = 50 * 1024 * 1024 * 1024
+    emitter_kind: str = RANDOM_EXPEDITION_EMITTER
+    apprentice_model_sha256: str = ""
+    apprentice_pre_frontier_epsilon: float = 0.02
+    apprentice_post_frontier_epsilon: float = 0.35
 
     def __post_init__(self) -> None:
         if self.duration_seconds <= 0 or self.max_actions < 1:
@@ -122,8 +134,25 @@ class ExpeditionRunConfig:
             raise ValueError("Expedition free-space check interval must be positive")
         if self.max_output_bytes < 1_048_576 or self.min_free_bytes < 0:
             raise ValueError("Expedition disk limits are invalid")
+        if self.emitter_kind not in {RANDOM_EXPEDITION_EMITTER, APPRENTICE_HYBRID_EMITTER}:
+            raise ValueError("Expedition emitter kind is invalid")
+        if not 0 <= self.apprentice_pre_frontier_epsilon <= 1:
+            raise ValueError("Pre-frontier apprentice exploration must be a probability")
+        if not 0 <= self.apprentice_post_frontier_epsilon <= 1:
+            raise ValueError("Post-frontier apprentice exploration must be a probability")
+        if self.emitter_kind == APPRENTICE_HYBRID_EMITTER:
+            if (
+                len(self.apprentice_model_sha256) != 64
+                or any(
+                    character not in "0123456789abcdef"
+                    for character in self.apprentice_model_sha256
+                )
+            ):
+                raise ValueError("Hybrid expedition requires the frozen apprentice model SHA-256")
+        elif self.apprentice_model_sha256:
+            raise ValueError("Random expeditions cannot declare an apprentice model")
 
-    def public_dict(self) -> dict[str, int | float | bool]:
+    def public_dict(self) -> dict[str, object]:
         return asdict(self)
 
 
@@ -302,6 +331,139 @@ class SeededRandomSequenceEmitter:
             release_frames=ACTION_RELEASE_FRAMES,
         )
 
+    def reset(self, _actor: PixelsOnlyActor, *, exploration_probability: float) -> None:
+        del exploration_probability
+
+    def public_identity(self) -> dict[str, object]:
+        return {
+            "policy_id": self.policy_id,
+            "inputs": ["seeded_prng"],
+            "pretrained_components": [],
+            "frozen_weights": True,
+            "trainer_routes_exploration": False,
+        }
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as source:
+        for chunk in iter(lambda: source.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _model_parameter_sha256(model: Any) -> str:
+    digest = hashlib.sha256()
+    for name, tensor in sorted(model.state_dict().items()):
+        value = tensor.detach().cpu().contiguous().numpy()
+        descriptor = json.dumps(
+            {"name": name, "dtype": value.dtype.str, "shape": list(value.shape)},
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        digest.update(len(descriptor).to_bytes(8, "big"))
+        digest.update(descriptor)
+        digest.update(value.tobytes())
+    return digest.hexdigest()
+
+
+class VisualApprenticeHybridEmitter:
+    """Frozen pixel policy with disclosed seeded exploration after checkpoint restores."""
+
+    policy_id = "visual-apprentice-frozen-plus-seeded-exploration-v1"
+
+    def __init__(
+        self,
+        rng: random.Random,
+        model_directory: Path,
+        *,
+        expected_model_sha256: str,
+    ) -> None:
+        self._rng = rng
+        self._actor: PixelsOnlyActor | None = None
+        self._previous_frame: np.ndarray | None = None
+        self._previous_action = -1
+        self._recurrent_state: tuple[Any, Any] | None = None
+        self._exploration_probability = 0.0
+        directory = model_directory.expanduser().resolve()
+        metadata_path = directory / "learner.json"
+        model_path = directory / "learner.pt"
+        if not metadata_path.is_file() or not model_path.is_file():
+            raise ValueError("Hybrid expedition requires a completed apprentice learner bundle")
+        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+        if (
+            metadata.get("development_only") is not True
+            or metadata.get("file_sha256") != expected_model_sha256
+            or _sha256_file(model_path) != expected_model_sha256
+        ):
+            raise ValueError("Apprentice learner file does not match its declared identity")
+        self._torch = require_torch()
+        self._torch.set_num_threads(1)
+        with contextlib.suppress(RuntimeError):
+            self._torch.set_num_interop_threads(1)
+        self._torch.use_deterministic_algorithms(True)
+        self._model = build_apprentice_policy().to("cpu")
+        state = self._torch.load(model_path, map_location="cpu", weights_only=True)
+        self._model.load_state_dict(state, strict=True)
+        self._model.eval()
+        parameter_sha256 = _model_parameter_sha256(self._model)
+        if metadata.get("parameter_sha256") != parameter_sha256:
+            raise ValueError("Apprentice learner tensor values do not match their metadata")
+        self._identity = {
+            "policy_id": self.policy_id,
+            "inputs": [
+                "two_processed_pixel_frames",
+                "previous_action",
+                "recurrent_state",
+                "seeded_prng_exploration",
+            ],
+            "pretrained_components": [
+                {
+                    "kind": "visual_apprentice_reverse_curriculum_development_model",
+                    "file_sha256": expected_model_sha256,
+                    "parameter_sha256": parameter_sha256,
+                }
+            ],
+            "frozen_weights": True,
+            "trainer_routes_exploration": True,
+        }
+
+    def public_identity(self) -> dict[str, object]:
+        return dict(self._identity)
+
+    def reset(self, actor: PixelsOnlyActor, *, exploration_probability: float) -> None:
+        if not 0 <= exploration_probability <= 1:
+            raise ValueError("Hybrid exploration probability must be between zero and one")
+        self._actor = actor
+        current = preprocess_apprentice_frame(actor.observe())
+        self._previous_frame = current
+        self._previous_action = -1
+        self._recurrent_state = None
+        self._exploration_probability = exploration_probability
+
+    def emit(self) -> BlindAction:
+        if self._actor is None or self._previous_frame is None:
+            raise RuntimeError("Hybrid emitter must reset after every checkpoint restore")
+        current = preprocess_apprentice_frame(self._actor.observe())
+        pair = np.stack((self._previous_frame, current), axis=0)
+        with self._torch.no_grad():
+            logits, self._recurrent_state = self._model.step(
+                self._torch.from_numpy(pair).unsqueeze(0),
+                self._torch.tensor([self._previous_action], dtype=self._torch.long),
+                self._recurrent_state,
+            )
+        if self._rng.random() < self._exploration_probability:
+            action_index = self._rng.randrange(len(BLIND_ACTIONS))
+        else:
+            action_index = int(logits.argmax(dim=-1).item())
+        self._previous_frame = current
+        self._previous_action = action_index
+        return BlindAction(
+            button=BLIND_ACTIONS[action_index],
+            hold_frames=ACTION_HOLD_FRAMES,
+            release_frames=ACTION_RELEASE_FRAMES,
+        )
+
 
 class VisualLoopDetector:
     """Stop suffixes that spend too much of a recent window on one rendered screen."""
@@ -436,6 +598,8 @@ def _implementation_sha256() -> str:
         "blind.py",
         "emulator.py",
         "state.py",
+        "apprentice_data.py",
+        "apprentice_model.py",
     ):
         digest.update(name.encode("utf-8"))
         digest.update((package / name).read_bytes())
@@ -738,6 +902,7 @@ def _status_payload(
     latest_referee_state: PokemonRedState | None,
     reached_milestones: set[str],
     completion_cell_id: str | None,
+    emitter_identity: Mapping[str, object],
 ) -> dict[str, Any]:
     active = sorted(
         archive.active_cells,
@@ -752,7 +917,12 @@ def _status_payload(
         "schema_version": 2,
         "protocol_version": EXPEDITION_RUNNER_PROTOCOL_VERSION,
         "store_protocol_version": EXPEDITION_PROTOCOL_VERSION,
-        "run_name": "Checkpoint Expedition — blind suffixes, privileged referee",
+        "run_name": (
+            "Checkpoint Expedition — apprentice-guided full-game frontier"
+            if emitter_identity.get("policy_id")
+            == VisualApprenticeHybridEmitter.policy_id
+            else "Checkpoint Expedition — blind suffixes, privileged referee"
+        ),
         "run_class": "development",
         "state": state,
         "stop_reason": stop_reason,
@@ -813,8 +983,8 @@ def _status_payload(
         "max_output_bytes": config.max_output_bytes,
         "disk_monitor": dict(disk_monitor),
         "information_boundary": {
-            "action_emitter": SeededRandomSequenceEmitter.policy_id,
-            "action_emitter_inputs": ["seeded_prng"],
+            "action_emitter": emitter_identity["policy_id"],
+            "action_emitter_inputs": list(emitter_identity["inputs"]),
             "loop_detector_inputs": ["rendered_rgb"],
             "referee_inputs": ["documented_read_only_ram"],
             "archive_selection_inputs": ["referee_milestones", "frontier_descriptor"],
@@ -822,7 +992,11 @@ def _status_payload(
             "ram_used_by_referee": True,
             "snapshots_visible_to_actor": False,
             "human_demonstrations": [],
-            "pretrained_components": [],
+            "pretrained_components": list(emitter_identity["pretrained_components"]),
+            "frozen_actor_weights": bool(emitter_identity["frozen_weights"]),
+            "trainer_routes_exploration": bool(
+                emitter_identity["trainer_routes_exploration"]
+            ),
         },
         "active_frontier": [
             {
@@ -874,6 +1048,39 @@ def render_expedition_dashboard(status: Mapping[str, Any]) -> str:
     updated = html.escape(str(status.get("updated_at", "starting")))
     state = html.escape(str(status.get("state", "starting")).upper())
     reason = html.escape(str(status.get("stop_reason") or "running"))
+    boundary = status.get("information_boundary", {})
+    hybrid = bool(
+        isinstance(boundary, Mapping)
+        and boundary.get("action_emitter") == VisualApprenticeHybridEmitter.policy_id
+    )
+    eyebrow = (
+        "FROZEN VISUAL APPRENTICE + SEEDED EXPLORATION · FULL-GAME DEVELOPMENT"
+        if hybrid
+        else "RANDOM DISCOVERY BASELINE · NOT A LEARNED MODEL"
+    )
+    headline = (
+        "Leaving home was<br/>only the beginning."
+        if hybrid
+        else "Evolution is allowed<br/>to remember."
+    )
+    lede = (
+        "A frozen pixel policy supplies learned opening behavior. After the house frontier, "
+        "seeded exploratory actions increase while Archive v2 preserves and replay-verifies "
+        "later milestones toward the Hall of Fame."
+        if hybrid
+        else "A seeded-random actor emits buttons without RAM or milestone access. A sealed "
+        "referee may recognize progress and choose restorable stepping stones. Named promotions "
+        "must replay their complete input lineage from power-on."
+    )
+    contract = (
+        "The actor receives pixels, previous action, recurrent state, and a seeded exploration "
+        "coin. A trainer uses the verified parent milestone only to raise exploration after "
+        "left_home. Neural weights are frozen; the archive and scheduler accumulate progress."
+        if hybrid
+        else "Buttons come only from a seeded PRNG. The loop detector sees rendered pixels. RAM "
+        "is read only by the referee, and checkpoints never enter the actor. This is "
+        "checkpoint-assisted discovery, not a continuous learned-policy completion."
+    )
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -900,11 +1107,9 @@ th{{color:var(--muted)}}.contract{{margin-top:14px;color:var(--muted);padding:13
 var(--line);border-radius:12px}}footer{{color:var(--muted);font-size:.7rem;margin-top:15px}}
 @media(max-width:760px){{.grid{{grid-template-columns:1fr}}.stats{{grid-template-columns:1fr 1fr}}}}
 </style></head><body><main>
-<div class="eyebrow">RANDOM DISCOVERY BASELINE · NOT A LEARNED MODEL · {state}</div>
-<h1>Evolution is allowed<br/>to remember.</h1>
-<p class="lede">A seeded-random actor emits buttons without RAM or milestone access. A sealed
-referee may recognize progress and choose restorable stepping stones. Named promotions must replay
-their complete input lineage from power-on.</p>
+<div class="eyebrow">{eyebrow} · {state}</div>
+<h1>{headline}</h1>
+<p class="lede">{lede}</p>
 <section class="grid"><article class="card">
 <img src="latest.png?v={updated}" alt="Latest rendered Game Boy frame" />
 <div class="stats"><div><span>Exploration actions</span>
@@ -927,9 +1132,7 @@ their complete input lineage from power-on.</p>
 <div class="attempt">{html.escape(current_label)}</div>
 <table><thead><tr><th>Milestone</th><th>Map</th><th>Depth</th><th>Selections</th></tr></thead>
 <tbody>{rows}</tbody></table></article></section>
-<div class="contract"><strong>Information boundary:</strong> buttons come only from a seeded PRNG.
-The loop detector sees rendered pixels. RAM is read only by the referee, and checkpoints never enter
-the actor. This is checkpoint-assisted discovery, not a continuous learned-policy completion.</div>
+<div class="contract"><strong>Information boundary:</strong> {contract}</div>
 <footer>Updated {updated} · private ROM bytes, snapshots, and action segments are not linked
 here.</footer>
 </main></body></html>"""
@@ -1583,6 +1786,7 @@ def run_expedition(
     config: ExpeditionRunConfig,
     run_directory: Path,
     resume: bool = False,
+    apprentice_model_directory: Path | None = None,
 ) -> ExpeditionRunResult:
     """Run a bounded checkpoint expedition under one lease for every persistent write."""
 
@@ -1604,6 +1808,7 @@ def run_expedition(
             run_directory=output,
             resume=resume,
             writer_lock=writer_lock,
+            apprentice_model_directory=apprentice_model_directory,
         )
     finally:
         _release_single_writer(writer_lock)
@@ -1617,6 +1822,7 @@ def _run_expedition_locked(
     run_directory: Path,
     resume: bool,
     writer_lock: Path,
+    apprentice_model_directory: Path | None,
 ) -> ExpeditionRunResult:
     """Implementation entered only after the run directory's writer lease is held."""
 
@@ -1632,12 +1838,29 @@ def _run_expedition_locked(
     run_config_sha256 = hashlib.sha256(
         _canonical_json(config.public_dict()).encode("utf-8")
     ).hexdigest()
+    rng = random.Random(config.seed)
+    if config.emitter_kind == APPRENTICE_HYBRID_EMITTER:
+        if apprentice_model_directory is None:
+            raise ValueError("Hybrid expedition requires --apprentice-model")
+        emitter: SeededRandomSequenceEmitter | VisualApprenticeHybridEmitter = (
+            VisualApprenticeHybridEmitter(
+                rng,
+                apprentice_model_directory,
+                expected_model_sha256=config.apprentice_model_sha256,
+            )
+        )
+    else:
+        if apprentice_model_directory is not None:
+            raise ValueError("Random expedition cannot load an apprentice model")
+        emitter = SeededRandomSequenceEmitter(rng)
+    emitter_identity = emitter.public_identity()
     store_metadata = {
         "runner_protocol_version": EXPEDITION_RUNNER_PROTOCOL_VERSION,
         "verification_protocol": "edge-and-promotion-v2",
         "ordinary_cell_gate": "one_exact_parent_to_child_edge_replay",
         "named_promotion_gate": (f"{config.promotion_replay_passes}_exact_fresh_power_on_replays"),
-        "actor": SeededRandomSequenceEmitter.policy_id,
+        "actor": emitter.policy_id,
+        "actor_identity": emitter_identity,
         "actor_receives_ram": False,
         "referee_receives_ram": True,
         "run_config_sha256": run_config_sha256,
@@ -1647,7 +1870,6 @@ def _run_expedition_locked(
     }
     checkpoint: dict[str, Any] | None = None
     resume_pixels: np.ndarray | None = None
-    rng = random.Random(config.seed)
     counters = ExpeditionCounters()
     attempts_by_parent: dict[str, int] = {}
     reached_milestones: set[str] = set()
@@ -1831,10 +2053,11 @@ def _run_expedition_locked(
         "rom": rom.public_dict(),
         "config": config.public_dict(),
         "actor": {
-            "name": SeededRandomSequenceEmitter.policy_id,
-            "inputs": ["seeded_prng"],
+            "name": emitter.policy_id,
+            "inputs": list(emitter_identity["inputs"]),
             "ram": False,
             "snapshots": False,
+            "frozen_weights": bool(emitter_identity["frozen_weights"]),
         },
         "trainer": {
             "loop_inputs": ["rendered_rgb"],
@@ -1852,7 +2075,7 @@ def _run_expedition_locked(
             "ordinary_cells_persisted_per_suffix_maximum": 1,
         },
         "human_demonstrations": [],
-        "pretrained_components": [],
+        "pretrained_components": list(emitter_identity["pretrained_components"]),
         "source": source,
         "implementation_sha256": implementation,
         "run_config_sha256": run_config_sha256,
@@ -1927,7 +2150,6 @@ def _run_expedition_locked(
     current_attempt: dict[str, Any] | None = None
     start_clock = monotonic()
     last_status = 0.0
-    emitter = SeededRandomSequenceEmitter(rng)
     active_stopper: _SignalStop | None = None
 
     def elapsed() -> float:
@@ -1981,6 +2203,7 @@ def _run_expedition_locked(
                 latest_referee_state=latest_state,
                 reached_milestones=reached_milestones,
                 completion_cell_id=completion_cell_id,
+                emitter_identity=emitter_identity,
             )
             reported_bytes = disk_monitor.run_bytes
             _write_live_artifacts(output, status, latest_pixels)
@@ -2227,6 +2450,15 @@ def _run_expedition_locked(
                     config.loop_repeat_limit,
                 )
                 verified_progress = _progress_for_cell(parent)
+                exploration_probability = (
+                    config.apprentice_post_frontier_epsilon
+                    if verified_progress.index >= LEFT_HOME_MILESTONE_INDEX
+                    else config.apprentice_pre_frontier_epsilon
+                )
+                emitter.reset(
+                    actor,
+                    exploration_probability=exploration_probability,
+                )
                 segment_actions: list[BlindAction] = []
                 candidate_buffer = SuffixCandidateBuffer()
                 committed_cell: FrontierCell | None = None
@@ -2240,6 +2472,8 @@ def _run_expedition_locked(
                     "actions": 0,
                     "adaptive_selection_count": selection_count,
                     "starting_milestone": verified_progress.key,
+                    "action_emitter": emitter.policy_id,
+                    "exploration_probability": exploration_probability,
                     "candidate_captures": 0,
                     "ordinary_candidates_persisted": 0,
                     "ordinary_candidate_preflight": None,

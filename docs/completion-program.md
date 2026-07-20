@@ -27,7 +27,8 @@
 | First autonomous house-exit qualification | 🟨 H3 reached; Q1 failed 1/2 | One seed replayed `left_home`; both-seed robustness requirement was not met |
 | Bookkeeping/disk scaling foundation | ✅ Implemented and private-ROM checked | Constant-time replay-count lookup, streamed lineages, topological validation, and bounded disk reconciliation; does not reduce emulator replay count by itself |
 | Archive v2 local verification/scheduling | ✅ Staged real-ROM qualification passed | Continuous, graceful-resume, and hard-crash trials reached exact limits; edge cost stayed bounded and the crash twin matched deterministic terminal state |
-| Visual Apprentice v1 | 🟨 Stage 0 passed; recovery curriculum active | One frozen CNN-LSTM exactly fit and replayed its sole 419-action route from clean power-on; this connects the pipeline but is not H2, recovery, or generalization evidence |
+| Visual Apprentice v1 | ✅ Local development curriculum complete | Stage 0 replayed the exact route; the adaptive reverse curriculum then completed seven rungs and two final 29/30 windows; no held-out H2 claim |
+| Apprentice-guided full-game expedition | 🟨 Active development campaign | Frozen pixel policy plus disclosed seeded exploration feeds Archive v2; `left_home` is a frontier and only verified Hall of Fame is terminal |
 
 ## The destination
 

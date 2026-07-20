@@ -878,6 +878,39 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
 - **Supersedes / superseded by:** Operationalizes DR-0039's next step; recurrent PPO remains deferred
   rather than rejected.
 
+## DR-0041 — Turn the house exit into a frontier, not a terminal goal
+
+- **Date:** 2026-07-20
+- **Status:** Trialing; eight-hour full-game development campaign authorized
+- **Scope:** Handoff from the Visual Apprentice local curriculum to the Hall-of-Fame expedition
+- **Information label:** `PIXEL-ACTOR + SEEDED-EXPLORATION / PRIVILEGED-TRAINING-REFEREE /
+  ARCHIVE-RESTORE / HYBRID-SYSTEM`
+- **Decision:** Use the completed reverse-curriculum model as one frozen visual action emitter
+  inside Archive v2. Reset its recurrent memory after every checkpoint restore. Before the
+  verified `left_home` frontier, replace 2% of its argmax actions with seeded exploration; at and
+  after that frontier, replace 35%. Continue checkpoint-assisted exploration across the complete
+  55-milestone referee until the Hall of Fame or an eight-hour/action/storage boundary. Preserve
+  exact local edge verification and three fresh power-on replays for every named promotion.
+- **Alternatives considered:** Stop after leaving the house; repeat the completed house curriculum
+  for eight hours; claim the frozen network already knows unseen towns and battles; use a purely
+  random power-on expedition and ignore the learned opening; update neural weights on arbitrary
+  failures without a validated success target; hard-code a walkthrough beyond the house.
+- **Observation/evidence:** The full 27/30-twice curriculum completed all seven rungs in 233.9
+  seconds. Across 480 adaptive attempts it recorded 451 successful house exits, and the final
+  419-action-remaining rung passed two consecutive 29/30 windows. Because `left_home` was coded as
+  terminal, the process then stopped normally instead of using the remaining overnight budget.
+- **Interpretation:** The narrow skill is no longer the compute bottleneck. The next uncertainty is
+  whether a frozen visual prior plus explicit stochastic exploration can create later verified
+  frontiers. The network is not claimed to learn unseen game mechanics during this campaign; the
+  archive and scheduler are the components that accumulate progress tonight.
+- **Consequence:** The dashboard must show the latest gameplay frame, current suffix, best verified
+  milestone, next named milestone, active frontier, replay costs, and the hybrid information
+  boundary. `left_home` becomes one promotion among many. Only a machine-checked Hall-of-Fame
+  promotion can end the run as game completion.
+- **Revisit when:** The eight-hour campaign ends, reaches a later named milestone, or shows that the
+  frozen house policy prevents useful post-house exploration.
+- **Supersedes / superseded by:** Extends DR-0040 beyond its deliberately local terminal boundary.
+
 ## Unresolved decisions
 
 These are questions, not hidden commitments. Each becomes a numbered entry when evidence supports

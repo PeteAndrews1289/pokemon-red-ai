@@ -1,5 +1,26 @@
 # Development log
 
+## 2026-07-20 — Leaving home becomes the beginning
+
+- Completed the full reverse-curriculum development gate in 233.9 seconds rather than eight hours:
+  480 adaptive attempts, 451 successful exits, 451 self-imitation updates, and two final 29/30
+  windows from the complete 419-action horizon. The run stopped normally at
+  `curriculum_complete`; its vanished live server was restored as a read-only dashboard.
+- Identified the scope error plainly: `left_home` was still a terminal condition even though the
+  project goal is the Hall of Fame. Preserved the result rather than stretching a completed local
+  curriculum into eight hours of redundant episodes.
+- Added a hybrid full-game expedition emitter. It loads the completed private apprentice model by
+  file and tensor hash, keeps the weights frozen, resets recurrent memory at every archive restore,
+  and mixes seeded random actions with pixel-policy argmax decisions. The trainer raises that
+  exploration rate from 2% to 35% only after the verified house-exit frontier.
+- Retained Archive v2's complete Hall-of-Fame milestone catalogue, semantic referee, bounded
+  primary niches, local edge proofs, three fresh power-on promotion replays, crash-tail recovery,
+  disk limits, and continuously refreshed gameplay dashboard. The frozen network does not receive
+  RAM, milestone identity, coordinates, snapshots, or route position.
+- Classified this as a hybrid development campaign: the model supplies a learned opening prior,
+  seeded exploration proposes unfamiliar actions, and the archive/scheduler accumulate progress.
+  Neural weights do not update on unseen-game failures in this run.
+
 ## 2026-07-19 — From one lucky route toward a learned visual skill
 
 ### Restore the publication baseline
