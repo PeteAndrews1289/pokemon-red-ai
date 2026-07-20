@@ -1097,6 +1097,9 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
   ending reward. Its final model and novelty hashes matched. A second canary stopped gracefully at
   action 7,607, restored the hash-validated version-3 model and experience memory, and completed its
   original 8,192-action ceiling with 64 total updates.
+  A clean-commit, production-shaped canary then ran four workers for 2,048 combined actions and two
+  full updates at 376.10 actions/s, wrote all four frames, and matched the model plus all four
+  worker-memory hashes.
 - **Narrative value:** This is the second clean act break for a future video: the model did not
   disobey its objective; it found the easiest literal interpretation. Place the rising battle
   reward beside a flat verified-milestone line, then reveal that “ending” never meant “winning.”

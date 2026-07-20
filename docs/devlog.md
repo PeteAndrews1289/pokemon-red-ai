@@ -21,6 +21,8 @@
   one classified success, no generic battle-ending reward, and exact final model/novelty hashes.
   Passed a separate graceful-resume canary from action 7,607 to the original 8,192-action ceiling
   with the version-3 protocol and persistent experience memory intact.
+- Passed the clean-commit production shape with four simultaneous workers, 2,048 actions, two full
+  updates, four current frames, and exact model plus four worker-memory hashes at 376.10 actions/s.
 - Preserved the video beat: return rose while the verified-progress meter stayed flat. The lesson
   is not “the AI was lazy”; it is that the machine optimized the exact transition we rewarded.
 - Closed version 2 at its planned one-hour evidence boundary: 1,064,964 actions, 1,040 updates, 260

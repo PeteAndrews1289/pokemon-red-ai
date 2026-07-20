@@ -189,6 +189,11 @@ model, optimizer, and worker reward memory, then reached the original 8,192-acti
 total updates. These checks establish wiring, classification, and restart behavior. One successful
 wild encounter does not establish robust battle skill or later-game advancement.
 
+The final production-shape gate used a clean source commit and the intended four workers, 256-step
+rollouts, 256-sample batches, and four optimizer epochs. It completed 2,048 combined actions, two
+updates, and four episodes at 376.10 actions/s. All four live frames existed, and the model plus all
+four worker reward memories matched their terminal hashes.
+
 ## Checkpoints and interruption semantics
 
 The latest and previous PPO archives are retained. A checkpoint binds the model file hash, total
