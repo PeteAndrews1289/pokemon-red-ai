@@ -770,6 +770,42 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
 - **Revisit when:** The overfit smoke finishes, or the learner needs a store behavior that the
   bounded qualification did not exercise.
 
+## DR-0038 — Make the first learner prove the whole loop on one route
+
+- **Date:** 2026-07-19
+- **Status:** Implemented and unit checked; real-ROM qualification pending
+- **Scope:** Visual Apprentice Stage 0
+- **Information label:** `PIXEL-ACTOR / SELF-GENERATED-DEMONSTRATION` for cloning;
+  `PIXEL-ACTOR / POWER-ON / FIXED-POLICY` for the live gate
+- **Decision:** Extract the one certified 419-action Q1 promotion through an immutable store view,
+  freeze its 420 processed decision-boundary frames and labels as a hashed private dataset, and
+  deliberately overfit one 468,312-parameter CNN-LSTM with direct PyTorch 2.13 on CPU. Require
+  exact teacher-forced predictions, exact predicted-previous-action feedback, identical frozen
+  reload behavior, and a single clean-power-on emulator attempt within 1,000 actions. Keep data,
+  offline, and live statuses separate; Stage 0 passes only when all three pass.
+- **Alternatives considered:** Begin recurrent PPO immediately; use Stable-Baselines3 as a
+  behavioral-cloning framework; feed route position or checkpoint identity to make memorization
+  easy; treat offline action accuracy as emulator success; install a broad imitation-learning
+  stack; train with Metal acceleration on the 8 GB host; silently select any of the 162 Q1 cells
+  that inherited `left_home`.
+- **Observation/evidence:** Only cell `4618cb56f99c95b594534474` is the certified Q1 promotion. It
+  has a 419-action lineage, three historical complete power-on certificates, and zero deficits.
+  Direct PyTorch supplies the recurrent supervised learner without the environment, rollout, and
+  value-loss machinery needed only for later PPO. The implemented synthetic suite checks immutable
+  extraction, 419/420 alignment, tamper refusal, parameter count, recurrent reset, and shape
+  contracts.
+- **Interpretation:** Before spending a two-day budget on interactive learning, the project should
+  prove that pixels become labels, labels become stable parameters, and those parameters can drive
+  the same emulator. This smoke is intentionally allowed to memorize time and one route; that is
+  the limitation being measured, not a hidden generalization claim.
+- **Consequence:** Without exact live route equality, the strongest possible Stage-0 sentence is
+  “one frozen model exactly fit its single trajectory offline and reached `left_home` once in
+  closed loop.” A failed live gate remains evidence of
+  compounding error. Stable-Baselines3/sb3-contrib and recurrent PPO remain deferred to recovery
+  training. Private arrays and checkpoints are now rejected by the repository publication guard.
+- **Revisit when:** The real-ROM extraction, overfit, or clean-power-on gate finishes; any pass then
+  triggers independent route and perturbation collection rather than an H2 claim.
+
 ## Unresolved decisions
 
 These are questions, not hidden commitments. Each becomes a numbered entry when evidence supports

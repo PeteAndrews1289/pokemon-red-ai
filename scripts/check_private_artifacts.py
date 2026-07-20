@@ -10,7 +10,20 @@ from pokemon_red_ai.safety import private_artifact_path_reason, sensitive_text_r
 
 ROOT = Path(__file__).resolve().parents[1]
 IGNORED_DIRECTORIES = {".git", ".venv", ".pytest_cache", ".ruff_cache", "runs"}
-FORBIDDEN_SUFFIXES = {".gb", ".gbc", ".gba", ".ram", ".rtc", ".sav", ".state"}
+FORBIDDEN_SUFFIXES = {
+    ".ckpt",
+    ".gb",
+    ".gba",
+    ".gbc",
+    ".npy",
+    ".npz",
+    ".pt",
+    ".pth",
+    ".ram",
+    ".rtc",
+    ".sav",
+    ".state",
+}
 KNOWN_ROM_SHA256 = "5ca7ba01642a3b27b0cc0b5349b52792795b62d3ed977e98a09390659af96b7b"
 MAX_TEXT_SCAN_BYTES = 1_000_000
 

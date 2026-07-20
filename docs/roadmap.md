@@ -30,7 +30,7 @@
 10. ✅ Conclude Q1 honestly: H3 `left_home` reached, but the two-seed gate failed 1/2.
 11. ✅ Index replay counts, stream lineages, validate ancestry topologically, and bound disk scans.
 12. ✅ Qualify Archive v2 edge verification, bounded niches, suffix buffering, exact resume, and hard-crash recovery on the real ROM.
-13. 🟨 Build, train, and evaluate [Visual Apprentice v1](visual-apprentice.md) under its frozen local gate.
+13. 🟨 Build, train, and evaluate [Visual Apprentice v1](visual-apprentice.md) under its frozen local gate; Stage-0 code and synthetic checks are complete.
 14. ⬜ Compare qualified optimized/learned emitters under a matched house-exit gate.
 15. ⬜ Distill useful self-generated lineages into a richer frozen visual policy.
 16. ✅ Replace Monkey in the four-lane pretrial dashboard.
@@ -135,11 +135,13 @@ than the selected completion mechanism.
 - ✅ Implement Archive v2: one semantic/spatial primary niche with bounded visual alternatives,
   one ordinary candidate per suffix, exact edge verification for training restores, and three
   fresh power-on replays for named promotion claims.
+- ✅ Implement the Stage-0 immutable demonstration extractor, recurrent cloning trainer, frozen
+  reload check, and snapshot-free clean-power-on evaluator.
 - ⬜ Compare random/action-sequence, recurrent visual, and hybrid emitters under matched gates.
 - ⬜ Train navigation, dialogue/text advance, menu control, and battle behavior as measurable local
   skills from self-generated checkpoint distributions.
 - ⬜ Keep shaped reward and archive quality separate from named success.
-- ⬜ Qualify replay ratio, archive arrivals, exact resume, retention marking, and dashboard privacy
+- ✅ Qualify replay ratio, archive arrivals, exact resume, retention marking, and dashboard privacy
   under staged real-ROM action counts before multi-day compute.
 
 **Gate:** a frozen learned local policy improves on the random discovery denominator over every
@@ -218,9 +220,10 @@ revealed.
 3. **Archive v2 qualification** — ✅ continuous, graceful-resume, and hard-crash real-ROM trials
    reached exact budgets; ordinary edge replay stayed bounded and the crash twin's deterministic
    terminal state matched its uninterrupted control.
-4. **Visual Apprentice pilot** — 🟨 replay the self-generated 419-action route into a deliberate
-   overfit smoke, gather independent/recovery branches, and evaluate one frozen recurrent pixel
-   policy under the gates in [Visual Apprentice v1](visual-apprentice.md).
+4. **Visual Apprentice pilot** — 🟨 the immutable extractor, 468,312-parameter recurrent policy,
+   CPU overfit trainer, frozen reload, and clean-power-on evaluator are implemented and checked;
+   run the two-extraction data gate, offline overfit, and live emulator gate, then gather
+   independent/recovery branches under [Visual Apprentice v1](visual-apprentice.md).
 5. **Emitter comparison** — compare optimized action-sequence, recurrent visual, and hybrid
    emitters under the unchanged two-seed Q1 gate.
 6. **Dual-frame evidence** — retain the exact semantic event frame and a separately labeled stable

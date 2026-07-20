@@ -378,6 +378,7 @@ class ExpeditionStore:
         self._event_sequence = 0
         self._last_event_sha256 = "0" * 64
         self._successful_replay_counts: dict[str, int] = {}
+        self._power_on_replay_certificate_ids: dict[str, list[str]] = {}
         self._successful_edge_replay_counts: dict[str, int] = {}
         self._edge_replay_certificate_ids: dict[str, list[str]] = {}
         self._event_log_recovery: dict[str, Any] | None = None
@@ -558,6 +559,9 @@ class ExpeditionStore:
         if kind == "power_on_replay":
             self._successful_replay_counts[cell_id] = (
                 self._successful_replay_counts.get(cell_id, 0) + 1
+            )
+            self._power_on_replay_certificate_ids.setdefault(cell_id, []).append(
+                certificate_id
             )
             return
         self._successful_edge_replay_counts[cell_id] = (
@@ -1069,6 +1073,13 @@ class ExpeditionStore:
         if cell_id not in self.cells:
             raise ValueError("Unknown frontier cell")
         return self._successful_replay_counts.get(cell_id, 0)
+
+    def power_on_replay_certificate_ids(self, cell_id: str) -> tuple[str, ...]:
+        """Return event-chain hashes for successful complete power-on replays."""
+
+        if cell_id not in self.cells:
+            raise ValueError("Unknown frontier cell")
+        return tuple(self._power_on_replay_certificate_ids.get(cell_id, ()))
 
     def successful_edge_replay_count(self, cell_id: str) -> int:
         if cell_id not in self.cells:

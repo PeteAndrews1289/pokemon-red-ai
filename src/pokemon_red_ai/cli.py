@@ -5,10 +5,28 @@ import json
 import os
 import platform
 import sys
+import threading
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import UTC, datetime
+from functools import partial
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from importlib.metadata import version
 from pathlib import Path
 
+from pokemon_red_ai.apprentice_data import (
+    capture_apprentice_dataset,
+    verify_apprentice_dataset,
+)
+from pokemon_red_ai.apprentice_qualification import (
+    qualify_stage0_composite,
+    qualify_stage0_data,
+)
+from pokemon_red_ai.apprentice_stage0 import (
+    Stage0TrainingConfig,
+    evaluate_stage0_policy,
+    train_stage0_overfit,
+)
 from pokemon_red_ai.arena import (
     FINAL_ARENA_MAX_ACTIONS,
     FINAL_ARENA_Q_POLICY_BUCKETS,
@@ -288,6 +306,71 @@ def build_parser() -> argparse.ArgumentParser:
     arena_status.add_argument("arena_directory", type=Path)
     arena_stop = subparsers.add_parser("arena-stop", help="Gracefully stop a four-agent arena.")
     arena_stop.add_argument("arena_directory", type=Path)
+
+    apprentice_extract = subparsers.add_parser(
+        "apprentice-extract",
+        help="Turn one explicitly verified expedition promotion into a private pixel dataset.",
+    )
+    apprentice_extract.add_argument("--rom", type=Path, help="Private path to Pokemon Red.gb")
+    apprentice_extract.add_argument(
+        "--expedition",
+        type=Path,
+        required=True,
+        help="Expedition run directory or its frontier store",
+    )
+    apprentice_extract.add_argument("--cell-id", required=True)
+    apprentice_extract.add_argument("--expected-lineage-sha256", required=True)
+    apprentice_extract.add_argument("--output", type=Path, required=True)
+
+    apprentice_verify = subparsers.add_parser(
+        "apprentice-dataset-verify",
+        help="Verify every hash and invariant in a private Visual Apprentice dataset.",
+    )
+    apprentice_verify.add_argument("dataset", type=Path)
+
+    apprentice_data_qualify = subparsers.add_parser(
+        "apprentice-data-qualify",
+        help="Require two independent captures with one exact logical dataset hash.",
+    )
+    apprentice_data_qualify.add_argument("--first", type=Path, required=True)
+    apprentice_data_qualify.add_argument("--second", type=Path, required=True)
+    apprentice_data_qualify.add_argument("--output", type=Path, required=True)
+
+    apprentice_overfit = subparsers.add_parser(
+        "apprentice-overfit",
+        help="Deliberately overfit the Stage-0 recurrent policy to one verified trajectory.",
+    )
+    apprentice_overfit.add_argument("--dataset", type=Path, required=True)
+    apprentice_overfit.add_argument("--output", type=Path, required=True)
+    apprentice_overfit.add_argument(
+        "--port",
+        type=int,
+        default=8_770,
+        help="127.0.0.1 live dashboard port; pass 0 to disable serving",
+    )
+
+    apprentice_evaluate = subparsers.add_parser(
+        "apprentice-evaluate",
+        help="Give one frozen Stage-0 policy a clean-power-on emulator exam.",
+    )
+    apprentice_evaluate.add_argument("--rom", type=Path, help="Private path to Pokemon Red.gb")
+    apprentice_evaluate.add_argument("--model", type=Path, required=True)
+    apprentice_evaluate.add_argument(
+        "--dataset",
+        type=Path,
+        required=True,
+        help="Exact training dataset binding the model to the certified route",
+    )
+    apprentice_evaluate.add_argument("--output", type=Path, required=True)
+
+    apprentice_qualify = subparsers.add_parser(
+        "apprentice-stage0-qualify",
+        help="Issue Stage-0 PASS only when data, offline, and live gates agree.",
+    )
+    apprentice_qualify.add_argument("--data-qualification", type=Path, required=True)
+    apprentice_qualify.add_argument("--training", type=Path, required=True)
+    apprentice_qualify.add_argument("--evaluation", type=Path, required=True)
+    apprentice_qualify.add_argument("--output", type=Path, required=True)
 
     return parser
 
@@ -578,6 +661,125 @@ def run_expedition_command(args: argparse.Namespace) -> int:
     return 0 if result.stop_reason in healthy else 1
 
 
+def run_apprentice_extract(args: argparse.Namespace) -> int:
+    rom_path = resolve_rom_path(args.rom)
+    expedition = args.expedition.expanduser().resolve()
+    nested_store = expedition / "frontier"
+    store = nested_store if (nested_store / "manifest.json").is_file() else expedition
+    manifest = capture_apprentice_dataset(
+        rom_path,
+        store,
+        args.cell_id,
+        args.expected_lineage_sha256,
+        args.output,
+    )
+    print("Visual Apprentice dataset: PASS")
+    print(f"Verified actions: {manifest['action_count']:,}")
+    print(f"Decision-boundary frames: {manifest['decision_boundary_frame_count']:,}")
+    print(f"Dataset SHA-256: {manifest['dataset_sha256']}")
+    print(f"Private dataset: {args.output.expanduser().resolve()}")
+    return 0
+
+
+def run_apprentice_verify(args: argparse.Namespace) -> int:
+    manifest = verify_apprentice_dataset(args.dataset)
+    print("Visual Apprentice dataset integrity: PASS")
+    print(f"Actions: {manifest['action_count']:,}")
+    print(f"Dataset SHA-256: {manifest['dataset_sha256']}")
+    return 0
+
+
+def run_apprentice_data_qualify(args: argparse.Namespace) -> int:
+    receipt = qualify_stage0_data(args.first, args.second, args.output)
+    print("Visual Apprentice two-capture data gate: PASS")
+    print(f"Dataset SHA-256: {receipt['identities']['dataset_sha256']}")
+    print(f"Qualification bundle: {args.output.expanduser().resolve()}")
+    return 0
+
+
+class _QuietDashboardHandler(SimpleHTTPRequestHandler):
+    def log_message(self, _format: str, *_args: object) -> None:
+        return None
+
+
+@contextmanager
+def _serve_apprentice_dashboard(directory: Path, port: int) -> Iterator[None]:
+    if port == 0:
+        yield
+        return
+    if not 1 <= port <= 65_535:
+        raise ValueError("--port must be zero or between 1 and 65535")
+    handler = partial(_QuietDashboardHandler, directory=str(directory.expanduser().resolve()))
+    server = ThreadingHTTPServer(("127.0.0.1", port), handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        print(
+            f"Live Visual Apprentice dashboard: http://127.0.0.1:{port}/index.html",
+            flush=True,
+        )
+        yield
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
+def run_apprentice_overfit(args: argparse.Namespace) -> int:
+    config = Stage0TrainingConfig()
+    with _serve_apprentice_dashboard(args.output, args.port):
+        result = train_stage0_overfit(args.dataset, args.output, config=config)
+    print(f"Stage-0 offline gate: {'PASS' if result.passed else 'FAIL'}")
+    print(f"Stop reason: {result.stop_reason}")
+    print(f"Epochs: {result.epochs:,}")
+    print(
+        f"Teacher-forced exact labels: "
+        f"{result.offline.teacher_correct:,}/{result.action_count:,}"
+    )
+    print(
+        f"Predicted-feedback exact labels: "
+        f"{result.offline.feedback_correct:,}/{result.action_count:,}"
+    )
+    print(f"Frozen model SHA-256: {result.model_sha256}")
+    print(f"Dashboard: {(result.output_directory / 'index.html').resolve()}")
+    return 0 if result.passed else 1
+
+
+def run_apprentice_evaluate(args: argparse.Namespace) -> int:
+    rom_path = resolve_rom_path(args.rom)
+    result = evaluate_stage0_policy(
+        rom_path,
+        args.model,
+        args.output,
+        max_actions=1_000,
+        dataset_path=args.dataset,
+    )
+    print(f"Stage-0 clean-power-on gate: {'PASS' if result.passed else 'FAIL'}")
+    print(f"Stop reason: {result.stop_reason}")
+    print(f"Actions: {result.actions:,}")
+    print(f"Final milestone: {result.final_milestone}")
+    print(f"Matched teacher prefix: {result.matched_teacher_prefix:,}")
+    print(f"Exact teacher route: {result.exact_teacher_actions}")
+    print(f"Private evidence: {result.output_directory.resolve()}")
+    return 0 if result.passed else 1
+
+
+def run_apprentice_stage0_qualify(args: argparse.Namespace) -> int:
+    receipt = qualify_stage0_composite(
+        args.data_qualification,
+        args.training,
+        args.evaluation,
+        args.output,
+    )
+    print("Visual Apprentice Stage 0: PASS")
+    print("Data gate: PASS")
+    print("Offline/reload gate: PASS")
+    print("Clean-power-on gate: PASS")
+    print(f"Composite SHA-256: {receipt['bundle_sha256']}")
+    print(f"Qualification bundle: {args.output.expanduser().resolve()}")
+    return 0
+
+
 def show_blind_status(run_directory: Path) -> int:
     status_path = run_directory.expanduser() / "status.json"
     if not status_path.is_file():
@@ -657,6 +859,18 @@ def main(argv: list[str] | None = None) -> int:
             return show_arena_status(args.arena_directory.expanduser().resolve())
         if args.command == "arena-stop":
             return request_arena_stop(args.arena_directory.expanduser().resolve())
+        if args.command == "apprentice-extract":
+            return run_apprentice_extract(args)
+        if args.command == "apprentice-dataset-verify":
+            return run_apprentice_verify(args)
+        if args.command == "apprentice-data-qualify":
+            return run_apprentice_data_qualify(args)
+        if args.command == "apprentice-overfit":
+            return run_apprentice_overfit(args)
+        if args.command == "apprentice-evaluate":
+            return run_apprentice_evaluate(args)
+        if args.command == "apprentice-stage0-qualify":
+            return run_apprentice_stage0_qualify(args)
     except (OSError, RomValidationError, ValueError, RuntimeError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 2

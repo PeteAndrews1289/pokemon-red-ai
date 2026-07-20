@@ -27,7 +27,7 @@
 | First autonomous house-exit qualification | 🟨 H3 reached; Q1 failed 1/2 | One seed replayed `left_home`; both-seed robustness requirement was not met |
 | Bookkeeping/disk scaling foundation | ✅ Implemented and private-ROM checked | Constant-time replay-count lookup, streamed lineages, topological validation, and bounded disk reconciliation; does not reduce emulator replay count by itself |
 | Archive v2 local verification/scheduling | ✅ Staged real-ROM qualification passed | Continuous, graceful-resume, and hard-crash trials reached exact limits; edge cost stayed bounded and the crash twin matched deterministic terminal state |
-| Visual Apprentice v1 | 🟨 Development design frozen; pipeline next | Self-generated imitation, reverse curriculum, recovery PPO, and held-out gates are specified; no trained model result exists |
+| Visual Apprentice v1 | 🟨 Stage-0 pipeline implemented; real-ROM gate next | Immutable self-generated extraction, recurrent imitation, frozen reload, and clean-power-on evaluation are checked synthetically; no trained model result exists |
 
 ## The destination
 
@@ -533,7 +533,7 @@ evidence that changed course.
    the exact `left_home` milestone.
 8. ✅ Bound replay and archive-selection growth and pass continuous, graceful-resume, and
    hard-crash Archive v2 qualification.
-9. 🟨 Build the Visual Apprentice data/overfit pipeline, then compare discovery emitters at Q2
+9. 🟨 Run the implemented Visual Apprentice data/overfit/live gate, then compare discovery emitters at Q2
    under the unchanged target and budgets.
 
 The [experiment protocol](experiment-protocol.md) remains authoritative for official attempts. The

@@ -11,7 +11,7 @@ The original game-naive, pixels-only condition remains a strict control. The Q0/
 baseline deliberately used a seeded random action emitter and a sealed, read-only referee; the next
 trials compare learned or optimized emitters under the same checkpoint and replay rules.
 
-> **Current status: Archive v2 passed its real-ROM scaling and interruption qualification.**
+> **Current status: Archive v2 passed; the first Visual Apprentice pipeline is implemented.**
 > Seed `20260731` discovered a 419-action power-on lineage that stepped outside and passed all three
 > promotion replays; seed `20260730` stopped at the ground floor. The predeclared Q1 gate therefore
 > failed its two-seed requirement even though the expedition earned the narrower H3 milestone claim.
@@ -22,7 +22,10 @@ trials compare learned or optimized emitters under the same checkpoint and repla
 > to the same deterministic terminal state as its uninterrupted twin, while ordinary edge replay
 > used 453 actions for 4,096 exploration actions. The next active step is the
 > [Visual Apprentice](docs/visual-apprentice.md) learning pilot—not a longer run of the still-random
-> emitter. See the [Archive v2 qualification](experiments/archive-v2-qualification/README.md) and
+> emitter. The new Stage-0 path immutably extracts the certified 419-action demonstration, trains a
+> 468,312-parameter CNN-LSTM on CPU, proves save/reload identity, and gives the frozen model a
+> snapshot-free power-on exam. Its real-ROM result is still pending. See the
+> [Archive v2 qualification](experiments/archive-v2-qualification/README.md) and
 > [complete Q1 result](experiments/q1-left-home/README.md).
 
 The current code preserves every historical runner, including Monkey, Archivist, online learners,
@@ -67,7 +70,7 @@ control. The next learned-policy design is frozen in
 | Preserved random comparison | Monkey vs. pixels-only Archivist under matched budgets |
 | Completed 90-minute pretrial | Evolution reached tier 1; online learners plateaued around Pallet Town and Route 1 |
 | Concluded neural experiment | Six inherited-archive lanes all failed the second-map/party gate under equal fuel |
-| Current completion work | Q1 concluded at 1/2; Archive v2 qualified; Visual Apprentice pipeline and pilot next |
+| Current completion work | Q1 concluded at 1/2; Archive v2 qualified; Visual Apprentice Stage 0 implemented and awaiting its real-ROM gate |
 | North star | First discover a replayable Hall-of-Fame lineage, then train and evaluate one frozen pixel policy |
 
 ## The journey
@@ -289,8 +292,57 @@ explicitly labeled `RANDOM-ACTION-EMITTER`; archive selection remembers verified
 but this is not yet one learned policy. If the process dies after advancing beyond its checkpoint,
 resume privately preserves the abandoned event/cell tail—even a half-written final event—in a
 hashed recovery bundle before exact rollback. The checkpoint carries its own display frame, so a
-newer live dashboard image cannot invalidate it. Do not schedule a multi-day campaign until Archive
-v2 passes its staged scaling qualification and the completion program authorizes the run.
+newer live dashboard image cannot invalidate it. Archive v2 has now passed its staged scaling gate;
+the next constraint is qualifying a learned emitter, not spending more compute on random suffixes.
+
+Run the bounded Visual Apprentice Stage-0 learning test with the optional CPU dependency:
+
+```bash
+python -m pip install -e ".[dev,apprentice]"
+
+pokemon-red-ai apprentice-extract \
+  --expedition "/Volumes/External/PokemonRedAI/expeditions/q1-left-home/frontier" \
+  --cell-id 4618cb56f99c95b594534474 \
+  --expected-lineage-sha256 84aa0179b01df7a8c9d5220d5bd5ba042f639489e2918459570b5c4e42d0c25c \
+  --output "/Volumes/External/PokemonRedAI/visual-apprentice/stage0-dataset-a"
+
+pokemon-red-ai apprentice-extract \
+  --expedition "/Volumes/External/PokemonRedAI/expeditions/q1-left-home/frontier" \
+  --cell-id 4618cb56f99c95b594534474 \
+  --expected-lineage-sha256 84aa0179b01df7a8c9d5220d5bd5ba042f639489e2918459570b5c4e42d0c25c \
+  --output "/Volumes/External/PokemonRedAI/visual-apprentice/stage0-dataset-b"
+
+pokemon-red-ai apprentice-data-qualify \
+  --first "/Volumes/External/PokemonRedAI/visual-apprentice/stage0-dataset-a" \
+  --second "/Volumes/External/PokemonRedAI/visual-apprentice/stage0-dataset-b" \
+  --output "/Volumes/External/PokemonRedAI/visual-apprentice/stage0-data-gate"
+
+pokemon-red-ai apprentice-overfit \
+  --dataset "/Volumes/External/PokemonRedAI/visual-apprentice/stage0-dataset-a" \
+  --output "/Volumes/External/PokemonRedAI/visual-apprentice/stage0-training" \
+  --port 8770
+
+pokemon-red-ai apprentice-evaluate \
+  --model "/Volumes/External/PokemonRedAI/visual-apprentice/stage0-training" \
+  --dataset "/Volumes/External/PokemonRedAI/visual-apprentice/stage0-dataset-a" \
+  --output "/Volumes/External/PokemonRedAI/visual-apprentice/stage0-evaluation"
+
+pokemon-red-ai apprentice-stage0-qualify \
+  --data-qualification "/Volumes/External/PokemonRedAI/visual-apprentice/stage0-data-gate" \
+  --training "/Volumes/External/PokemonRedAI/visual-apprentice/stage0-training" \
+  --evaluation "/Volumes/External/PokemonRedAI/visual-apprentice/stage0-evaluation" \
+  --output "/Volumes/External/PokemonRedAI/visual-apprentice/stage0-qualification"
+```
+
+Pass `--rom` to the two emulator commands or set `POKEMON_RED_ROM`. Extraction opens the historical
+store through an immutable view and requires the explicit promotion cell, lineage hash, three
+historical power-on certificates, and an exact new terminal replay. The private dataset contains
+420 processed decision-boundary frames and 419 labels. Stage 0 passes only if two independent
+extractions share one logical hash, the frozen reload predicts all 419 labels in teacher-forced and
+feedback modes, and the live clean-power-on model reaches `left_home`. Even a pass means only that
+one model exactly fit one trajectory offline and reached the same goal once in closed loop;
+recovery and generalization remain untested. Dataset arrays and model checkpoints are rejected by
+the publication guard.
 
 Historical reproducibility only: the command below is the retired 48-hour successor-arena design.
 It is preserved so the earlier protocol can be audited, **not** as the current next run. Do not
@@ -337,10 +389,11 @@ pytest -m "not integration"
 pytest -m integration  # Requires POKEMON_RED_ROM
 ```
 
-The heavier reinforcement-learning stack remains optional because the current lightweight runners
-do not require it:
+The Stage-0 behavioral-cloning test needs only the smaller optional PyTorch extra. The later
+recurrent-PPO stack remains separate so extraction and historical runners stay lightweight:
 
 ```bash
+python -m pip install -e ".[apprentice]"
 python -m pip install -e ".[rl]"
 ```
 

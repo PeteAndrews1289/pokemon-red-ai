@@ -89,6 +89,27 @@
 - Authorized Archive v2 for the next bounded Visual Apprentice pipeline. Did not relabel the
   random emitter as learned or authorize an unbounded multi-day random search.
 
+### Implement the first end-to-end learning smoke
+
+- Selected the one actual Q1 `left_home` promotion rather than any of its 161 descendants that
+  inherited the same milestone. Bound extraction to its explicit cell ID, 419-action lineage hash,
+  three historical power-on certificates, and zero verification deficits.
+- Added a read-only extractor that captures 420 processed decision-boundary frames without
+  auditing or repairing the historical store. Dataset arrays, action alignment, source prefix,
+  terminal snapshot/screen/descriptor, and manifest receive independent integrity checks.
+- Froze a 468,312-parameter two-frame CNN-LSTM with previous action and recurrent state as its only
+  non-pixel inputs. Chose direct PyTorch 2.13 on CPU for Stage 0; deferred sb3-contrib and recurrent
+  PPO until recovery learning actually needs them.
+- Added a bounded full-sequence cloning run, teacher-forced and predicted-feedback 419/419 gates,
+  container-independent parameter hash, safe frozen reload, live status page, and model metadata.
+- Added one clean-power-on evaluator with zero restored recurrent state, snapshots, reward,
+  updates, retries, or interventions. Its RAM reader is referee-only and can stop the attempt at
+  exact `left_home`; no semantic value enters the actor.
+- Extended publication safety to reject dataset and model payload extensions. The Stage-0 data,
+  model, sealing, live-rollout, and composite suite passes 15 automated checks; the real-ROM result
+  remains pending and no trained-policy
+  claim has been made.
+
 ## 2026-07-19 — Q1 steps outside once, but fails its two-seed gate
 
 ### Complete denominator

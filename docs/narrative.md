@@ -63,7 +63,7 @@ test sequence used to prove that the laboratory works.
 | Can it record controller actions and selected state without leaking the ROM path? | Yes. |
 | Can it reach the first playable state twice with identical results? | Yes. |
 | Is the current test sequence an autonomous playthrough? | No; it is test infrastructure. |
-| What comes next? | Build the Visual Apprentice pipeline, then compare a learned visual emitter against the preserved 1/2 random house-exit baseline. |
+| What comes next? | Run the implemented Visual Apprentice Stage-0 gate, then compare a learned visual emitter against the preserved 1/2 random house-exit baseline. |
 
 Keeping this table current is part of the project. A small true claim is more valuable than a large
 ambiguous one.

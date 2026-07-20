@@ -1,8 +1,9 @@
 # Visual Apprentice v1
 
-> **Status:** accepted development design; implementation and training results are pending. The
-> first checkpoint expedition produced one verified 419-action house-exit lineage. That is enough
-> to test the training pipeline, not enough to claim that a policy learned a general skill.
+> **Status:** Stage-0 extraction, recurrent cloning, frozen reload, and clean-power-on evaluation
+> are implemented and unit checked; the first real-ROM result is pending. The first checkpoint
+> expedition produced one verified 419-action house-exit lineage. That is enough to test the
+> training pipeline, not enough to claim that a policy learned a general skill.
 
 ## The question
 
@@ -71,10 +72,12 @@ specific failures already observed.
 
 ### Observation
 
-The initial candidate uses two recent `72 × 80` grayscale or four-shade palette frames, stored as
-`uint8`, plus an eight-element previous-action indicator. The two frames expose small motion and
-transition cues without retaining a long unbounded history. The recurrent state supplies longer
-memory.
+The initial candidate uses two recent `72 × 80` grayscale frames, stored as `uint8`, plus an
+eight-element previous-action indicator. Version 1 freezes integer grayscale as
+`(77R + 150G + 29B + 128) >> 8`, followed by a non-overlapping `2 × 2` integer mean. The two frames
+expose small motion and transition cues without retaining a long unbounded history. The recurrent
+state supplies longer memory. The first observation duplicates the clean power-on frame; later
+observations pair the previous and current decision boundaries.
 
 The old `20 × 18` novelty signature and `10 × 9` policy hash remain diagnostics. They are too coarse
 to be the complete neural observation for text, menus, doors, and sprite alignment.
@@ -115,15 +118,16 @@ Linear: 256 features
         |
 concatenate previous-action indicator
         |
-one recurrent layer, 128 or 256 units
+one LSTM layer, 128 units
         |
-eight-action policy head + scalar value head
+eight-action policy head
 ```
 
-The target range is approximately 500,000 to 1,000,000 trainable parameters. Begin with 128
-recurrent units and increase only if profiling or an ablation justifies it. Training samples from
-the policy distribution. The canonical evaluation attempt uses deterministic argmax; separately
-declared stochastic evaluation seeds may measure reliability.
+The implemented Stage-0 actor has exactly 468,312 trainable parameters. Its cloning checkpoint has
+no value head because no value loss is used in the overfit smoke; the later PPO actor-critic will
+add a value head without silently relabeling this architecture. Training samples from the policy
+distribution in later stages. The canonical Stage-0 evaluation uses deterministic argmax;
+separately declared stochastic evaluation seeds may measure reliability in later gates.
 
 ## Turning one accident into training data
 
@@ -175,6 +179,41 @@ small prediction errors compound before the exit.
 
 The smoke answers “does the pipeline connect?” It does not answer “did the policy learn a robust
 skill?”
+
+The implemented qualification has three independent statuses:
+
+| Gate | Exact requirement | What failure means |
+| --- | --- | --- |
+| Data | Two immutable extractions produce the same logical dataset hash; each contains 419 labels and 420 decision-boundary frames; the new terminal replay exactly matches the certified promotion | The historical route, observation alignment, or artifact writer is not trustworthy enough to train |
+| Offline overfit | One CPU-trained checkpoint and its frozen reload predict 419/419 labels with both teacher-forced and predicted previous actions | The recurrent training or serialization path cannot even memorize its one example |
+| Closed loop | The frozen reload starts from clean power-on with zero recurrent state and reaches exact `left_home` within 1,000 model-selected actions | Offline accuracy did not survive interaction with the emulator |
+
+Stage 0 passes only when all three pass. Exact equality with the original 419 actions is reported
+separately from task success. Without exact route equality, the strongest permitted sentence is:
+**“One frozen model exactly fit its single trajectory offline and reached `left_home` once in
+closed loop.”** It is not an H2 claim and says nothing yet about perturbation recovery, held-out
+starts, or general Pokémon play.
+
+### Implemented Stage-0 boundaries
+
+- The historical expedition opens through a read-only checkpoint view; extraction never repairs,
+  audits, or appends to the source store.
+- The extractor requires cell `4618cb56f99c95b594534474`, its public lineage hash, a genuine
+  milestone promotion, three historical power-on certificates, and zero lineage deficits.
+- Frames, labels, previous actions, episode boundaries, model tensors, per-action rollout traces,
+  and milestone images remain private on the external SSD.
+- Dataset files, manifests, model metadata, and model tensors are individually hashed. Model tensor
+  values also receive a container-independent hash.
+- The trainer uses direct PyTorch 2.13 on CPU, full-sequence backpropagation, Adam at `1e-3`, a
+  fixed seed, deterministic algorithms, at most four threads, and a 15-minute/2,000-epoch ceiling.
+- The live evaluator has no snapshot API, reward input, update step, retry, or human intervention.
+  RAM-derived state exists only in the separate referee that decides whether `left_home` occurred.
+- Repository safety checks reject tracked `.npy`, `.npz`, `.pt`, `.pth`, and `.ckpt` payloads.
+
+The `apprentice-extract`, `apprentice-dataset-verify`, `apprentice-overfit`, and
+`apprentice-evaluate` commands expose each boundary separately. Training writes a live-updating
+private `index.html`, `status.json`, metrics ledger, events, frozen model, and summary. A failed
+gate remains a result; it does not receive a `SUCCESS` marker.
 
 ### Stage 1 — Behavioral-cloning warm start
 

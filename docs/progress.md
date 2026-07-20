@@ -8,7 +8,7 @@
 > before any checkpoint may become a verified milestone.
 
 - **Current stage:** Q1 concluded at 1/2; Archive v2 passed staged qualification; the Visual
-  Apprentice data and overfit pipeline are next
+  Apprentice Stage-0 pipeline is implemented and unit checked, with real-ROM qualification next
 - **Status date:** 2026-07-19
 
 **Most important caveat:** Q1 verified one replayable house-exit lineage, but the acting suffix
@@ -77,7 +77,7 @@ flowchart LR
 | Replay bookkeeping is indexed and streamed | ✅ Verified | E2 | Replay counts rebuild from the authoritative event hash chain, lineage actions stream by segment, and ancestry validates topologically; the private-ROM suite passed |
 | Disk monitoring is bounded between exact reconciliations | ✅ Verified | E2 | Known writes are counted incrementally, exact tree scans occur only at declared boundaries, and free-space/output limits remain enforced |
 | Archive v2 bounds local verification and frontier arrivals | ✅ Qualified | E3 engineering | Three 4,096-action real-ROM trials passed continuous, graceful-resume, and hard-crash gates; edge replay stayed at or below 0.111× and the crash twin matched deterministic terminal state exactly |
-| Visual Apprentice v1 has a frozen development design | ✅ Specified | E0 | Pixel inputs, recurrent model, self-generated data, curriculum, hardware bounds, ablations, and evaluation gates are documented; no model has been trained |
+| Visual Apprentice Stage 0 is implemented | ✅ Checked in synthetic scope | E2 | Immutable extraction, hashed private arrays, a 468,312-parameter CNN-LSTM, exact offline/reload gates, and a clean-power-on evaluator pass automated checks; no real-ROM model result exists yet |
 | The Q0 discovery baseline reached a playable milestone | ⬜ Not demonstrated | E0 | It reached Oak's introduction visually but the referee correctly remained at `power_on` |
 | The expedition reached `left_home` | ✅ Verified in one development seed | E3 / H3 | A 419-action lineage passed three promotion replays; the two-seed Q1 result was 1/2 and the emitter was random |
 | The Q1 robustness gate passed | ⬜ Failed | E3 | Seed `20260730` stopped at the ground floor; seed `20260731` stepped outside; both exhausted the frozen 20,000-action budget |

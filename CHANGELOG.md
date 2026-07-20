@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased — Visual Apprentice Stage 0
+
+- Added immutable extraction of the certified 419-action Q1 promotion into 420 processed private
+  decision-boundary frames with exact source, action, array, and terminal integrity checks.
+- Added a frozen 468,312-parameter CNN-LSTM behavioral-cloning actor using two `72 × 80` grayscale
+  frames, previous action, and recurrent state; no referee or checkpoint value enters the actor.
+- Added bounded CPU overfit training, teacher-forced and feedback-mode exact-label gates,
+  container-independent parameter hashing, safe frozen reload, metrics, events, and a live page.
+- Added a clean-power-on live evaluator with a 1,000-action ceiling and no snapshots, rewards,
+  updates, retries, interventions, or restored recurrent state.
+- Added an `apprentice` PyTorch extra and deferred sb3-contrib to later recurrent-PPO work.
+- Extended the publication guard to reject private NumPy datasets and model checkpoint payloads.
+- Kept the Stage-0 claim boundary explicit: implementation and synthetic checks do not prove a
+  real-ROM result, recovery, held-out skill, or general Pokémon play.
+
 ## Unreleased — Q1 `left_home` result
 
 - Completed both frozen 20,000-action checkpoint-search seeds with zero interventions and exact

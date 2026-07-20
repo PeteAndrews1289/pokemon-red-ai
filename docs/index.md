@@ -13,6 +13,8 @@ beyond one map. The checkpoint expedition then reached and replayed `left_home` 
 bounded seeds. That earns a narrow expedition milestone claim while failing the frozen two-seed Q1
 gate. Archive v2 then passed continuous, graceful-resume, and hard-crash qualification. Turning the
 verified route into a learned visual skill is now the active work.
+The Stage-0 immutable extractor, recurrent cloning trainer, frozen reload check, and clean-power-on
+evaluator are implemented and unit checked; their first real-ROM result is still pending.
 
 ## Start here
 

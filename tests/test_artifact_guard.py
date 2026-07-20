@@ -41,6 +41,12 @@ def test_private_artifact_path_reason_catches_expedition_payloads() -> None:
     assert private_artifact_path_reason(("docs", "example.json"), "example.json") is None
 
 
+def test_publication_guard_forbids_apprentice_arrays_and_models() -> None:
+    assert {".npy", ".npz", ".pt", ".pth", ".ckpt"}.issubset(
+        artifact_guard.FORBIDDEN_SUFFIXES
+    )
+
+
 def test_tracked_file_below_ignored_runs_directory_is_still_scanned(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
