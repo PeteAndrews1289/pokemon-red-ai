@@ -1196,6 +1196,52 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
 - **Supersedes / superseded by:** Extends DR-0047. It preserves Version 4 as the pixels-only result
   and explicitly changes the Version-5 actor boundary rather than retroactively redefining it.
 
+## DR-0049 — Treat backtracking as active-goal progress, not failed exploration
+
+- **Date:** 2026-07-20
+- **Status:** Implemented; public/private tests, migration audit, and real-ROM engineering canary
+  passed; long-run behavioral qualification pending
+- **Scope:** Parallel PPO Version 5.1 reward ownership, return curriculum, route representation,
+  watchdog semantics, and assisted observation boundary
+- **Information label:** `PIXEL+TRAINER-MAP+ACTIVE-GOAL+ROUTE-ACTOR / PPO / ARCHIVE-RESTORE /
+  TEACHER`; this remains an assisted curriculum lane
+- **Decision:** Stop Version 5 cleanly at Oak's Parcel. Preserve all replay-verified curriculum but
+  start fresh PPO weights under a new protocol. Expire local lesson rewards when their owning goal
+  is complete. Insert item-qualified Route 1, Pallet Town, and Oak's Lab return milestones. Build
+  topological guidance from certified or observed map transitions, allow certified edges to guide
+  both directions, disclose the next route map and bounded distance to the assisted actor, pay
+  signed potential change, and let distance improvement count as watchdog progress.
+- **Alternatives considered:** Run Version 5 longer unchanged; enlarge novelty tables; increase
+  reward for new maps or Pokédex discovery; script the Parcel route; add only one delivery reward;
+  use positive-only proximity credit; resume Version-5 PPO weights despite changed inputs; begin a
+  full learned planner before isolating this failure.
+- **Observation/evidence:** Version 5 finished after 1,390,596 actions, 1,358 updates, 723 episodes,
+  and three promotions. It entered the Mart at 619,660 and obtained the Parcel at 619,956. Mart-
+  approach credit was 923.00 at the Parcel but 2,774.75 at shutdown, demonstrating that an expired
+  lesson remained behaviorally relevant. Its model and worker-memory hashes matched. The Version-
+  5.1 migration audit retained all 21 entries, canonical Parcel index 10, and three promotions.
+  The public suite passed 160 tests; focused regressions prove lesson expiry and exactly zero net
+  route credit for an advance/reversal pair. A four-worker real-ROM canary completed 8,192 actions
+  and eight updates, recorded +24 net route credit and no expired Mart credit, and ended with
+  matching model plus four worker hashes and no verification failure.
+- **Interpretation:** Novelty is useful for discovery but cannot serve as the definition of progress
+  in a game built around errands and revisits. The model's plateau is partly a task-definition
+  failure: the trainer rewarded an obsolete destination more clearly than the current intent.
+  A task-conditioned potential makes familiar travel meaningful without paying for oscillation.
+- **Consequence:** Protocol identifiers become `parallel-recurrent-ppo-v5.1` and
+  `active-goal-bidirectional-navigation-v1`. Later milestones shift by three after Parcel; imports
+  fail if any imported ordinal changed. The dashboard adds net active-route credit. Version-5 PPO
+  archives remain historical evidence and cannot resume as Version 5.1.
+- **Narrative value:** The first fetch quest becomes the reward designer's test. “The AI refused to
+  go backward” is replaced with the more honest reveal: “we had taught it that backward could not
+  be progress.” The new experiment turns intent into a visible meter and makes success or failure
+  on the road home legible.
+- **Revisit when:** The return-trip canary fails engineering checks; the long run promotes Route 1,
+  Pallet Town, Oak's Lab, or delivery; route credit oscillates without milestone progress; or a
+  future one-way transition disproves the current bidirectional scaffold.
+- **Supersedes / superseded by:** Extends DR-0048. It preserves Version 5's Mart/Parcel evidence but
+  supersedes its always-live local lesson semantics.
+
 ## Unresolved decisions
 
 These are questions, not hidden commitments. Each becomes a numbered entry when evidence supports

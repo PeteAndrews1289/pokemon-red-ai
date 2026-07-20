@@ -48,8 +48,8 @@ def state(**changes: object) -> PokemonRedState:
 
 def test_full_game_reward_is_nonrepeatable_and_round_trips() -> None:
     tracker = FullGameRewardTracker()
-    pokedex = MilestoneProgress("obtained_pokedex", 12, "Received the Pokedex")
-    forest = MilestoneProgress("reached_viridian_forest", 13, "Entered Viridian Forest")
+    pokedex = MilestoneProgress("obtained_pokedex", 15, "Received the Pokedex")
+    forest = MilestoneProgress("reached_viridian_forest", 16, "Entered Viridian Forest")
     tracker.prime(state(), pokedex)
 
     events = bytearray(319)
@@ -105,7 +105,7 @@ def test_full_game_reward_is_nonrepeatable_and_round_trips() -> None:
 def test_reward_prime_absorbs_every_restored_parent_without_repaying_it() -> None:
     tracker = FullGameRewardTracker()
     route = MilestoneProgress("reached_route_1", 7, "Reached Route 1")
-    pokedex = MilestoneProgress("obtained_pokedex", 12, "Received the Pokedex")
+    pokedex = MilestoneProgress("obtained_pokedex", 15, "Received the Pokedex")
     tracker.prime(state(map_id=0x0C, player_x=4, player_y=8), route)
     tracker.prime(
         state(
@@ -209,28 +209,28 @@ def test_opponent_damage_gets_dense_credit_without_turning_escape_into_success()
 
 def test_mart_dialogue_stage_is_a_bounded_episode_lesson() -> None:
     tracker = FullGameRewardTracker()
-    city = MilestoneProgress("reached_viridian_city", 8, "Reached Viridian City")
-    tracker.prime(state(map_id=0x2A, viridian_mart_script=0), city)
+    mart = MilestoneProgress("entered_viridian_mart", 9, "Entered the Viridian Poke Mart")
+    tracker.prime(state(map_id=0x2A, viridian_mart_script=0), mart)
 
     first = tracker.score(
         state(map_id=0x2A, viridian_mart_script=1),
-        city,
+        mart,
         action_button="a",
         loop_detected=False,
     )
     repeated = tracker.score(
         state(map_id=0x2A, viridian_mart_script=1),
-        city,
+        mart,
         action_button="a",
         loop_detected=False,
     )
     assert first.components["mart_dialogue_progress"] == 5
     assert "mart_dialogue_progress" not in repeated.components
 
-    tracker.prime(state(map_id=1, viridian_mart_script=None), city)
+    tracker.prime(state(map_id=1, viridian_mart_script=None), mart)
     replayed_lesson = tracker.score(
         state(map_id=0x2A, viridian_mart_script=1),
-        city,
+        mart,
         action_button="a",
         loop_detected=False,
     )
@@ -264,6 +264,52 @@ def test_mart_approach_only_rewards_a_new_episode_best_distance() -> None:
     assert closer.components["mart_approach"] == pytest.approx(0.25)
     assert "mart_approach" not in farther.components
     assert "mart_approach" not in repeated.components
+
+
+def test_completed_mart_lessons_expire_after_the_parcel() -> None:
+    tracker = FullGameRewardTracker()
+    parcel = MilestoneProgress("obtained_oaks_parcel", 10, "Obtained Oak's Parcel")
+    tracker.prime(
+        state(map_id=0x2A, player_x=4, player_y=6, viridian_mart_script=1),
+        parcel,
+    )
+
+    result = tracker.score(
+        state(map_id=0x01, player_x=29, player_y=19, viridian_mart_script=2),
+        parcel,
+        action_button="down",
+        loop_detected=False,
+    )
+
+    assert "mart_approach" not in result.components
+    assert "mart_dialogue_progress" not in result.components
+
+
+def test_bidirectional_goal_potential_rewards_return_and_cancels_oscillation() -> None:
+    tracker = FullGameRewardTracker()
+    parcel = MilestoneProgress("obtained_oaks_parcel", 10, "Obtained Oak's Parcel")
+    tracker.prime(state(map_id=0x2A, bag_item_ids=(0x46,)), parcel)
+
+    south = tracker.score(
+        state(map_id=0x01, bag_item_ids=(0x46,)),
+        parcel,
+        action_button="down",
+        loop_detected=False,
+    )
+    north = tracker.score(
+        state(map_id=0x2A, bag_item_ids=(0x46,)),
+        parcel,
+        action_button="up",
+        loop_detected=False,
+    )
+
+    assert south.components["goal_route_progress"] == 8
+    assert north.components["goal_route_progress"] == -8
+    assert (
+        south.components["goal_route_progress"]
+        + north.components["goal_route_progress"]
+        == 0
+    )
 
 
 def test_experience_reward_is_lifetime_bounded_but_local_wins_still_count() -> None:

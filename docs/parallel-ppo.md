@@ -324,6 +324,24 @@ Primary implementation references: the reference
 and the supported Pokémon Red
 [battle core](https://github.com/pret/pokered/blob/master/engine/battle/core.asm).
 
+## Version 5.1: active goals and bidirectional routes
+
+Version 5 passed its Mart lessons but revealed that their rewards did not expire: Mart-approach
+credit continued growing after Oak's Parcel was already held. Version 5.1 changes the protocol to
+`parallel-recurrent-ppo-v5.1` and the reward protocol to
+`active-goal-bidirectional-navigation-v1`.
+
+The return trip is now three item-qualified milestones—Route 1, Pallet Town, then Oak's Lab. Local
+lessons pay only while they own the current goal. The assisted actor receives the next map and
+distance on a shortest route built from certified or worker-observed transitions. Map-level route
+reward is signed, so moving toward the goal pays and undoing the move removes the same amount.
+Goal-distance improvement also resets the trainer-only stagnation watchdog.
+
+Version 5.1 may import a cleanly finished, hash-valid Version-5 curriculum. It does not resume its
+PPO weights because the actor input and objective changed. Full rationale, preserved metrics,
+limitations, and the narrative plan are in
+[Version 5.1: learning that progress sometimes points backward](version-5-1-backtracking.md).
+
 ## Promotion remains harder than reward
 
 When a worker observes a named milestone beyond the curriculum's current best, it writes a private

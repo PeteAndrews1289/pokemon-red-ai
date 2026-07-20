@@ -23,7 +23,11 @@
 > episodes produced 499 visual loops and 469 long stagnations; arriving once did not make the next
 > errand reliably learnable. Version 5 turns Viridian into a visible classroom. The teacher gets a
 > map of where it has looked and a lesson card saying “enter the Mart.” The future student must
-> eventually take the exam without either aid.
+> eventually take the exam without either aid. Version 5 then passed both classroom lessons: it
+> entered the Mart and obtained Oak's Parcel. The twist is that the reward system kept pointing at
+> the Mart after the task changed. The model had not “forgotten Oak”; the experiment had encoded
+> novelty and an expired lesson more clearly than intent. Version 5.1 turns the route around, makes
+> backtracking measurable, and asks whether a demonstrated path can become a two-way skill.
 
 This document is a production guide for telling the project's story without getting ahead of the
 evidence. The detailed Episode 0 section preserves the original before-training production plan;
@@ -53,6 +57,7 @@ the next test, and lets the evidence change the plan.
 | 3. Leave home | Can checkpointed search discover and exactly replay one tiny step? | One success, one failure, a verified 419-action lineage, and no false two-seed victory |
 | 4. The apprentice | Can one lucky route become a reusable pixel-conditioned skill? | Deliberate overfit smoke, recovery failures, and the first frozen local evaluation |
 | 5. Four games, one memory | Can failures teach one shared recurrent policy? | PPO learning curves, complete denominator, and a replay-verified milestone result or plateau |
+| 6. The road back | What happens when the correct progress is through familiar territory? | Parcel return checkpoints, active-goal reward accounting, and an honest test of route reuse |
 | 6. A real errand | Can a population extend a verified lineage through Oak's Parcel? | Checkpoint-assisted result clearly separated from clean-start policy ability |
 | 7. Nature or nurture? | Which progress came from pixels, rewards, RAM, or selection? | Successor comparisons with declared information budgets |
 | 8. Brock | Can an evolved lineage prepare, navigate, and win? | Power-on lineage replay, including every failed branch |

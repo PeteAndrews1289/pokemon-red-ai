@@ -9,7 +9,7 @@ Pokédex in about 68 minutes, but spent more than five additional hours without 
 named milestone. Frontier Apprentice turns every later verified milestone into another lesson.
 
 Its terminal condition is the same strict Hall-of-Fame condition as the completion program. The
-same loop applies to every entry in the 55-milestone catalogue; Viridian Forest is the first test,
+same loop applies to every entry in the 59-milestone catalogue; Viridian Forest is the first test,
 not a special case in the code.
 
 ## The central loop
@@ -64,7 +64,7 @@ existing badge, item, level, or Pokédex state.
 
 | Component | Default | Purpose |
 | --- | ---: | --- |
-| Next named milestone | +1,000 | Dominant progress signal across all 55 milestones |
+| Next named milestone | +1,000 | Dominant progress signal across all 59 milestones |
 | New badge | +500 | Make Gym completion unmistakable |
 | New persistent event bit | +20 | Reward story and prerequisite changes without a walkthrough |
 | New map / directed warp | +25 / +10 | Reward leaving local cul-de-sacs and using doors |
@@ -85,7 +85,7 @@ an early-game conditional—defines progress.
 ### The complete ratchet
 
 The same code path covers every chapter below. Each range is inclusive and refers to the ordered
-55-milestone catalogue; there is no separate early-game terminal condition.
+59-milestone catalogue; there is no separate early-game terminal condition.
 
 | Milestones | Chapter | Boundary outcomes |
 | ---: | --- | --- |

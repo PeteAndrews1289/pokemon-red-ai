@@ -23,6 +23,7 @@ from pokemon_red_ai.blind import (
     PixelsOnlyActor,
 )
 from pokemon_red_ai.expedition import MilestoneProgress
+from pokemon_red_ai.quest_navigation import route_guidance
 from pokemon_red_ai.state import PokemonRedState
 
 FRONTIER_LEARNER_POLICY_ID = "visual-frontier-self-imitation-v1"
@@ -77,6 +78,7 @@ class FullGameRewardConfig:
     opponent_damage_cap: float = 4.0
     lesson_navigation: float = 0.25
     lesson_progress: float = 5.0
+    goal_navigation: float = 8.0
     blackout: float = -20.0
     visual_loop: float = -2.0
     repeated_action: float = -0.02
@@ -149,6 +151,8 @@ class FullGameRewardTracker:
     _battle_damage_credit: float = 0.0
     _episode_mart_distance: int | None = None
     _episode_mart_script: int = 0
+    _episode_goal_key: str | None = None
+    _episode_route_distance: int | None = None
     _last_action: str | None = None
     _action_streak: int = 0
 
@@ -174,8 +178,13 @@ class FullGameRewardTracker:
         self._last_party_experience = state.total_party_experience
         self._battle_progressed = False
         self._prime_enemy_health(state)
-        self._episode_mart_distance = self._mart_distance(state)
+        self._episode_mart_distance = (
+            self._mart_distance(state) if progress.key == "reached_viridian_city" else None
+        )
         self._episode_mart_script = state.viridian_mart_script or 0
+        guidance = route_guidance(state, progress, self.seen_warps)
+        self._episode_goal_key = guidance.goal_key
+        self._episode_route_distance = guidance.distance
         self._last_action = None
         self._action_streak = 0
 
@@ -232,7 +241,9 @@ class FullGameRewardTracker:
             components["named_milestone"] = c.milestone * delta
             self.best_milestone_index = progress.index
 
-        mart_distance = self._mart_distance(state)
+        mart_distance = (
+            self._mart_distance(state) if progress.key == "reached_viridian_city" else None
+        )
         if mart_distance is not None:
             if self._episode_mart_distance is None:
                 self._episode_mart_distance = mart_distance
@@ -242,7 +253,11 @@ class FullGameRewardTracker:
                 )
                 self._episode_mart_distance = mart_distance
 
-        mart_script = state.viridian_mart_script
+        mart_script = (
+            state.viridian_mart_script
+            if progress.key == "entered_viridian_mart"
+            else None
+        )
         if mart_script is not None and mart_script > self._episode_mart_script:
             components["mart_dialogue_progress"] = c.lesson_progress * (
                 mart_script - self._episode_mart_script
@@ -264,6 +279,20 @@ class FullGameRewardTracker:
                 if position not in self.seen_positions:
                     components["new_position"] = c.new_position
                     self.seen_positions.add(position)
+
+        guidance = route_guidance(state, progress, self.seen_warps)
+        if guidance.goal_key != self._episode_goal_key:
+            self._episode_goal_key = guidance.goal_key
+            self._episode_route_distance = guidance.distance
+        elif guidance.distance is not None and self._episode_route_distance is not None:
+            delta = self._episode_route_distance - guidance.distance
+            if delta:
+                # Signed potential change: advancing pays, undoing the move takes the same credit
+                # back, and oscillation therefore cannot manufacture reward.
+                components["goal_route_progress"] = c.goal_navigation * delta
+            self._episode_route_distance = guidance.distance
+        elif guidance.distance is not None:
+            self._episode_route_distance = guidance.distance
 
         events = _set_bits(state.event_flags)
         new_events = events - self.seen_events

@@ -2,6 +2,24 @@
 
 ## Unreleased — parallel recurrent PPO
 
+- Closed Version 5 cleanly after 1,390,596 actions, 1,358 PPO updates, 723 episodes, and three
+  verified promotions. It entered the Mart at action 619,660 and obtained Oak's Parcel at 619,956.
+- Preserved a negative result: Mart-approach credit continued accumulating after the Parcel,
+  proving that a locally bounded lesson can still be globally obsolete.
+- Added Version 5.1 active-goal reward ownership. Mart approach and dialogue shaping now expire as
+  soon as their owning lesson is complete.
+- Added three item-qualified return milestones for Route 1, Pallet Town, and Oak's Lab so a fetch
+  quest's reverse leg becomes visible, replay-verifiable curriculum progress.
+- Added a persistent certified/observed map graph, assisted next-route-map context, signed
+  potential-based route reward with zero oscillation profit, and goal-aware stagnation handling.
+- Added fail-closed Version-5 curriculum migration and retained all 21 entries plus three verified
+  promotions in a migration audit; Version-5 weights remain ineligible under the changed protocol.
+- Added the full design, limitations, falsifiable questions, and video beat in
+  `docs/version-5-1-backtracking.md`.
+- Passed a four-worker 8,192-action real-ROM Version-5.1 canary with eight PPO updates, +24 net
+  active-route credit, no expired Mart reward, zero verification failures, and matching terminal
+  model plus four novelty hashes.
+
 - Closed Version 4 cleanly at 1,776,644 actions and 1,735 updates. Its 2,109-action Route 1 suffix
   reached Viridian City at action 790,900 and passed one edge replay plus three complete power-on
   replays, producing the first PPO curriculum promotion.

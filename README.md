@@ -11,8 +11,7 @@ The original game-naive, pixels-only condition remains a strict control. The Q0/
 baseline deliberately used a seeded random action emitter and a sealed, read-only referee; the next
 trials compare learned or optimized emitters under the same checkpoint and replay rules.
 
-> **Current status: recurrent PPO produced its first verified promotion, and Version 5 is turning
-> that frontier into a sequence of learnable lessons.**
+> **Current status: Version 5 obtained Oak's Parcel, and Version 5.1 is teaching the return trip.**
 > Stage 0 memorized and exactly replayed its one 419-action house-exit route. Reverse curriculum
 > completed that opening in development, and Frontier Apprentice proved that network updates can be
 > gated behind replay-verified milestones. Its limitation was equally important: almost every
@@ -27,11 +26,14 @@ trials compare learned or optimized emitters under the same checkpoint and repla
 > ended cleanly at 1,147,988 actions with nine successful battles, but still no promotion beyond
 > Route 1. Version 4 added bounded opponent-HP credit, three-action history, longer episodes, and
 > classified loop termination. Its completed 1,776,644-action run produced a replay-verified
-> Viridian City promotion at action 790,900. Version 5 imports that verified curriculum—not the
-> old PPO weights—and gives a separately labeled assisted teacher episodic map memory, a current
-> lesson, and bounded micro-rewards. The first four-worker real-ROM canary completed 16,384 actions
-> and 16 updates with matching terminal hashes. This is a curriculum-learning experiment, not yet
-> a claim that one unassisted model can complete Pokémon Red from power-on.
+> Viridian City promotion at action 790,900. Version 5 then verified entry into the Mart at action
+> 619,660 and Oak's Parcel at 619,956 in its own run. That success exposed a general failure:
+> expired Mart guidance continued paying when the correct task was to backtrack. Version 5.1 gates
+> rewards to the active goal, inserts Parcel-return checkpoints, reuses certified routes in both
+> directions, and gives signed route-distance credit that oscillation cannot farm. See
+> [Learning that progress sometimes points backward](docs/version-5-1-backtracking.md). This is a
+> curriculum-learning experiment, not yet a claim that one unassisted model can complete Pokémon
+> Red from power-on.
 
 The current code preserves every historical runner, including Monkey, Archivist, online learners,
 and clean-start neuroevolution, so rejected approaches remain reproducible. See

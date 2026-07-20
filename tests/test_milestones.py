@@ -192,6 +192,27 @@ def test_viridian_mart_is_a_dense_checkpoint_before_oaks_parcel() -> None:
     assert [milestone.key for milestone in parcel][-1] == "obtained_oaks_parcel"
 
 
+def test_parcel_return_is_split_into_monotonic_backtracking_checkpoints() -> None:
+    tracker = MilestoneTracker()
+    parcel_state = {
+        "party_count": 1,
+        "events": (PokemonRedEvent.GOT_OAKS_PARCEL,),
+        "items": (PokemonRedItem.OAKS_PARCEL,),
+    }
+    tracker.observe(state(map_id=PokemonRedMap.VIRIDIAN_MART, **parcel_state))
+    route = tracker.observe(state(map_id=PokemonRedMap.ROUTE_1, **parcel_state))
+    pallet = tracker.observe(state(map_id=PokemonRedMap.PALLET_TOWN, **parcel_state))
+    lab = tracker.observe(state(map_id=PokemonRedMap.OAKS_LAB, **parcel_state))
+
+    assert route[-1].key == "returned_to_route_1_with_parcel"
+    assert pallet[-1].key == "returned_to_pallet_town_with_parcel"
+    assert lab[-1].key == "entered_oaks_lab_with_parcel"
+
+    without_parcel = MilestoneTracker()
+    without_parcel.observe(state(map_id=PokemonRedMap.ROUTE_1, party_count=1))
+    assert "returned_to_route_1_with_parcel" not in reached_keys(without_parcel)
+
+
 def test_badges_are_named_individually_without_inventing_missing_badges() -> None:
     tracker = MilestoneTracker()
     tracker.observe(state(badges=Badge.EARTH))

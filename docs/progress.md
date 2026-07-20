@@ -1,14 +1,13 @@
 # Progress and evidence
 
 > **Current research direction:** Parallel PPO Version 4 produced the first replay-verified PPO
-> promotion, from Route 1 into Viridian City. Version 5 now tests a micro-curriculum assisted
-> teacher: four simultaneous games share one recurrent policy, an episodic map memory, and an
-> explicit next lesson. The eventual pixels-only, restore-free power-on evaluation remains a
-> separate and harder claim.
+> promotion, from Route 1 into Viridian City. Version 5 then verified the Viridian Mart and Oak's
+> Parcel. Version 5.1 tests whether active-goal gating, bidirectional route reuse, and three explicit
+> return checkpoints can teach necessary backtracking. The eventual pixels-only, restore-free
+> power-on evaluation remains a separate and harder claim.
 
-- **Current stage:** Version 4 is closed with Viridian City verified; Version 5's four-worker
-  assisted teacher has passed its real-ROM engineering canary and is ready for a long run whose
-  current lesson is entering Viridian Mart
+- **Current stage:** Version 5 is closed cleanly at Oak's Parcel; Version 5.1 passed its real-ROM
+  engineering canary and is ready for the return-trip long run
 - **Status date:** 2026-07-20
 
 **Most important caveat:** Q1 verified one replayable house-exit lineage, but the acting suffix
@@ -80,8 +79,11 @@ flowchart LR
 | Visual Apprentice Stage 0 connects end to end | ✅ Qualified in its one-route scope | E3 pipeline | Two independent captures matched; one 468,312-parameter CNN-LSTM reached 419/419 offline and after reload, then selected the exact 419-action route to `left_home` once from clean power-on; no recovery, generalization, or H2 claim |
 | Recurrent PPO can extend the verified curriculum | ✅ Verified once | E3 checkpoint-assisted | Version 4 promoted Route 1 to Viridian City at action 790,900; the suffix passed one edge and three complete power-on replays, but one policy has not reproduced that lineage from power-on |
 | Version 5 assisted-teacher wiring is real-ROM checked | ✅ Qualified engineering | E3 pipeline | Four workers imported 19 verified entries, completed 16,384 actions and 16 PPO updates, exercised bounded Mart guidance, and ended with matching hashes; the Mart lesson itself remains unpassed |
+| Version 5 reached Oak's Parcel | ✅ Replay verified | E3 checkpoint-assisted | The stopped run completed 1,390,596 actions and three verified promotions; Mart entry at 619,660 and Parcel at 619,956 each survived exact replay admission |
+| Version 5.1 represents backtracking as active progress | ✅ Implemented and unit checked | E2 | Expired lessons are gated off, signed route potential cancels oscillation, and Parcel return is split into Route 1, Pallet Town, and Oak's Lab; behavioral qualification remains pending |
+| Version 5.1 engineering path runs on the real ROM | ✅ Qualified engineering | E3 pipeline | Four workers completed 8,192 actions and eight updates, recorded +24 net route credit and no expired Mart credit, had zero verification failures, and ended with matching model plus four worker hashes; no return milestone was claimed |
 | Reverse curriculum reaches the complete opening horizon | ✅ Completed in development scope | E3 development | Seven adaptive rungs completed in 480 attempts with 451 successes; the final full-horizon rung passed 29/30 twice, but weights changed between attempts and no held-out H2 evaluation exists |
-| The apprentice-guided expedition continues beyond `left_home` | 🟨 Active | E1 | Frozen pixel-policy actions and seeded exploration now feed Archive v2's full 55-milestone search; no later verified milestone is claimed before run evidence exists |
+| The apprentice-guided expedition continues beyond `left_home` | 🟨 Active | E1 | Frozen pixel-policy actions and seeded exploration now feed Archive v2's full 59-milestone search; no later verified milestone is claimed before run evidence exists |
 | Frontier Apprentice learns only replay-verified promotions | ✅ Checked | E2 / E3 engineering | A real-ROM canary learned five promotions through `chose_starter`, made 38 updates, passed 49/49 replay checks, and resumed at the exact learner hash after an intentional stop; Forest performance remains untested |
 | Parallel recurrent PPO updates from every rollout | ✅ Checked | E2 / E3 engineering | Pixels-only and privileged canaries completed optimizer updates and hash-bound checkpoints; a production-shaped four-worker run completed two full updates and wrote all dashboard frames |
 | Four emulator workers fit the current M1 host | ✅ Checked | E2 local benchmark | Under the prior learner's one-core load, 2/4/6 workers measured 178.06/419.34/351.39 actions/s; the four-worker production shape measured 218.65 actions/s with four optimizer epochs |

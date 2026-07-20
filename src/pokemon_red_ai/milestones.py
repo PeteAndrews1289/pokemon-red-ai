@@ -21,6 +21,7 @@ class PokemonRedMap(IntEnum):
     ROUTE_1 = 0x0C
     ROUTE_23 = 0x22
     REDS_HOUSE_1F = 0x25
+    OAKS_LAB = 0x28
     VIRIDIAN_MART = 0x2A
     VIRIDIAN_FOREST = 0x33
     MT_MOON_1F = 0x3B
@@ -315,6 +316,36 @@ _UNORDERED_MILESTONES = (
         "story",
         _condition(event=PokemonRedEvent.GOT_OAKS_PARCEL),
         _condition(items=(PokemonRedItem.OAKS_PARCEL,)),
+    ),
+    _definition(
+        "returned_to_route_1_with_parcel",
+        "Returned to Route 1 with Oak's Parcel",
+        "Oak's Errand",
+        "landmark",
+        _condition(
+            maps=(PokemonRedMap.ROUTE_1,),
+            items=(PokemonRedItem.OAKS_PARCEL,),
+        ),
+    ),
+    _definition(
+        "returned_to_pallet_town_with_parcel",
+        "Returned to Pallet Town with Oak's Parcel",
+        "Oak's Errand",
+        "landmark",
+        _condition(
+            maps=(PokemonRedMap.PALLET_TOWN,),
+            items=(PokemonRedItem.OAKS_PARCEL,),
+        ),
+    ),
+    _definition(
+        "entered_oaks_lab_with_parcel",
+        "Entered Oak's Lab with Oak's Parcel",
+        "Oak's Errand",
+        "landmark",
+        _condition(
+            maps=(PokemonRedMap.OAKS_LAB,),
+            items=(PokemonRedItem.OAKS_PARCEL,),
+        ),
     ),
     _definition(
         "delivered_oaks_parcel",

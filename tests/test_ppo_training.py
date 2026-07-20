@@ -14,6 +14,7 @@ from pokemon_red_ai.blind import BLIND_ACTIONS
 from pokemon_red_ai.ppo_training import (
     ACTION_HISTORY_LENGTH,
     GOAL_COUNT,
+    MAP_CONTEXT_SIZE,
     MAP_MEMORY_FEATURES,
     MAP_MEMORY_SIZE,
     PRIVILEGED_STATE_SIZE,
@@ -82,7 +83,9 @@ def test_feature_extractor_preserves_declared_information_boundary(mode: str) ->
                 ),
                 "goal": gym.spaces.Box(0, 1, shape=(GOAL_COUNT,), dtype=np.float32),
                 "skill": gym.spaces.Box(0, 1, shape=(SKILL_COUNT,), dtype=np.float32),
-                "map_context": gym.spaces.Box(0, 1, shape=(2,), dtype=np.float32),
+                "map_context": gym.spaces.Box(
+                    0, 1, shape=(MAP_CONTEXT_SIZE,), dtype=np.float32
+                ),
             }
         )
     extractor = PokemonPpoFeatures(gym.spaces.Dict(spaces))
@@ -98,7 +101,7 @@ def test_feature_extractor_preserves_declared_information_boundary(mode: str) ->
                 "map_memory": torch.zeros((2, 2, MAP_MEMORY_SIZE, MAP_MEMORY_SIZE)),
                 "goal": torch.zeros((2, GOAL_COUNT)),
                 "skill": torch.zeros((2, SKILL_COUNT)),
-                "map_context": torch.zeros((2, 2)),
+                "map_context": torch.zeros((2, MAP_CONTEXT_SIZE)),
             }
         )
 
@@ -106,7 +109,11 @@ def test_feature_extractor_preserves_declared_information_boundary(mode: str) ->
     expected = (
         256
         + ACTION_HISTORY_LENGTH * len(BLIND_ACTIONS)
-        + (MAP_MEMORY_FEATURES + GOAL_COUNT + SKILL_COUNT + 2 if mode == "assisted" else 0)
+        + (
+            MAP_MEMORY_FEATURES + GOAL_COUNT + SKILL_COUNT + MAP_CONTEXT_SIZE
+            if mode == "assisted"
+            else 0
+        )
         + (PRIVILEGED_STATE_SIZE if mode == "privileged" else 0)
     )
     assert features.shape == (2, expected)
@@ -176,14 +183,14 @@ def test_dashboard_names_actor_boundary_and_finished_state() -> None:
                 "pixels + three recent actions; trainer-only RAM rewards and loop termination"
             ),
             "novelty_scope": "persistent per worker across episodes and resumes",
-            "reward_protocol": "microcurriculum-map-memory-v1",
+            "reward_protocol": "active-goal-bidirectional-navigation-v1",
             "battle_events": {"success": 3, "ended_without_progress": 7},
         }
     )
     assert "Failures now" in page
     assert "pixels + three recent actions; trainer-only RAM rewards" in page
     assert "persistent per worker across episodes and resumes" in page
-    assert "microcurriculum-map-memory-v1" in page
+    assert "active-goal-bidirectional-navigation-v1" in page
     assert "Battle successes" in page
     assert ">3<" in page
     assert "No-progress battle exits" in page

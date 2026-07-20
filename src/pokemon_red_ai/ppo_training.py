@@ -41,11 +41,12 @@ from pokemon_red_ai.expedition import (
 from pokemon_red_ai.frontier_learning import FullGameRewardTracker
 from pokemon_red_ai.milestones import HALL_OF_FAME_KEY, MILESTONE_BY_KEY, MILESTONES
 from pokemon_red_ai.provenance import detect_source_provenance
+from pokemon_red_ai.quest_navigation import route_guidance
 from pokemon_red_ai.rom import verify_rom
 from pokemon_red_ai.state import PokemonRedState, PokemonRedStateReader
 
-PPO_PROTOCOL = "parallel-recurrent-ppo-v5"
-PPO_REWARD_PROTOCOL = "microcurriculum-map-memory-v1"
+PPO_PROTOCOL = "parallel-recurrent-ppo-v5.1"
+PPO_REWARD_PROTOCOL = "active-goal-bidirectional-navigation-v1"
 PPO_MODES = frozenset({"pixels", "assisted", "privileged"})
 PRIVILEGED_STATE_SIZE = 24
 ACTION_HISTORY_LENGTH = 3
@@ -53,6 +54,7 @@ MAP_MEMORY_SIZE = 64
 MAP_MEMORY_FEATURES = 64
 SKILL_COUNT = 3
 GOAL_COUNT = len(MILESTONES) + 1
+MAP_CONTEXT_SIZE = 4
 
 
 def _require_rl() -> tuple[Any, Any, Any, Any, Any, Any]:
@@ -210,12 +212,13 @@ def _canonical_progress(key: str) -> MilestoneProgress:
 def _import_verified_ppo_curriculum(
     source_run: Path, curriculum_directory: Path
 ) -> dict[str, Any]:
-    """Import only the replay-admitted curriculum from a finished Version-4 run."""
+    """Import only replay-admitted curriculum from a cleanly finished PPO run."""
 
     source_manifest_path = source_run / "curriculum" / "manifest.json"
     source_manifest = json.loads(source_manifest_path.read_text(encoding="utf-8"))
-    if source_manifest.get("protocol") != "parallel-recurrent-ppo-v4":
-        raise ValueError("Version 5 can import only a verified Version-4 PPO curriculum")
+    source_protocol = source_manifest.get("protocol")
+    if source_protocol not in {"parallel-recurrent-ppo-v4", "parallel-recurrent-ppo-v5"}:
+        raise ValueError("Version 5.1 can import only a verified Version-4 or Version-5 curriculum")
     source_status = json.loads((source_run / "status.json").read_text(encoding="utf-8"))
     source_checkpoint = json.loads(
         (source_run / "checkpoint.json").read_text(encoding="utf-8")
@@ -227,7 +230,7 @@ def _import_verified_ppo_curriculum(
         "hall_of_fame_verified",
     }:
         raise ValueError("PPO curriculum source is not a cleanly finished run")
-    if source_checkpoint.get("protocol") != "parallel-recurrent-ppo-v4":
+    if source_checkpoint.get("protocol") != source_protocol:
         raise ValueError("PPO curriculum source checkpoint has the wrong protocol")
     if source_checkpoint.get("best_milestone") != source_manifest.get("best_milestone"):
         raise ValueError("PPO curriculum source best milestone is inconsistent")
@@ -516,11 +519,18 @@ class EpisodeMapMemory:
         return value
 
 
-def _map_context(state: PokemonRedState, progress: MilestoneProgress) -> np.ndarray:
+def _map_context(
+    state: PokemonRedState,
+    progress: MilestoneProgress,
+    observed_edges: set[tuple[int, int]] | tuple[()] = (),
+) -> np.ndarray:
+    guidance = route_guidance(state, progress, observed_edges)
     return np.asarray(
         [
             (state.map_id or 0) / 255,
             min(progress.index + 1, GOAL_COUNT - 1) / max(1, GOAL_COUNT - 1),
+            0.0 if guidance.next_map is None else (guidance.next_map + 1) / 256,
+            0.0 if guidance.distance is None else min(guidance.distance, 8) / 8,
         ],
         dtype=np.float32,
     )
@@ -543,6 +553,8 @@ class VisualStagnationTracker:
     _enemy_hp_floor: int | None = None
     _last_battle: int = 0
     _max_mart_script: int = 0
+    _goal_key: str | None = None
+    _best_route_distance: int | None = None
     _stagnant_actions: int = 0
 
     def reset(self, state: PokemonRedState, progress: MilestoneProgress) -> None:
@@ -558,6 +570,9 @@ class VisualStagnationTracker:
         self._enemy_hp_floor = state.enemy_hp
         self._last_battle = state.battle_state or 0
         self._max_mart_script = state.viridian_mart_script or 0
+        guidance = route_guidance(state, progress)
+        self._goal_key = guidance.goal_key
+        self._best_route_distance = guidance.distance
         self._stagnant_actions = 0
 
     def observe(
@@ -586,6 +601,16 @@ class VisualStagnationTracker:
             if current > getattr(self, name):
                 setattr(self, name, current)
                 useful_progress = True
+        guidance = route_guidance(state, progress)
+        if guidance.goal_key != self._goal_key:
+            self._goal_key = guidance.goal_key
+            self._best_route_distance = guidance.distance
+            useful_progress = True
+        elif guidance.distance is not None and (
+            self._best_route_distance is None or guidance.distance < self._best_route_distance
+        ):
+            self._best_route_distance = guidance.distance
+            useful_progress = True
         battle = state.battle_state or 0
         if battle in {1, 2}:
             if self._last_battle not in {1, 2}:
@@ -646,7 +671,7 @@ class PokemonPpoFeatures(BaseFeaturesExtractor):
         feature_count = (
             256
             + ACTION_HISTORY_LENGTH * len(BLIND_ACTIONS)
-            + (MAP_MEMORY_FEATURES + GOAL_COUNT + SKILL_COUNT + 2 if assisted else 0)
+            + (MAP_MEMORY_FEATURES + GOAL_COUNT + SKILL_COUNT + MAP_CONTEXT_SIZE if assisted else 0)
             + (PRIVILEGED_STATE_SIZE if privileged else 0)
         )
         super().__init__(observation_space, features_dim=feature_count)
@@ -729,7 +754,9 @@ class PokemonRedPpoEnvironment(gym.Env):
                     ),
                     "goal": spaces.Box(0, 1, shape=(GOAL_COUNT,), dtype=np.float32),
                     "skill": spaces.Box(0, 1, shape=(SKILL_COUNT,), dtype=np.float32),
-                    "map_context": spaces.Box(0, 1, shape=(2,), dtype=np.float32),
+                    "map_context": spaces.Box(
+                        0, 1, shape=(MAP_CONTEXT_SIZE,), dtype=np.float32
+                    ),
                 }
             )
         self.observation_space = spaces.Dict(observation)
@@ -778,7 +805,11 @@ class PokemonRedPpoEnvironment(gym.Env):
                     "map_memory": self.map_memory.observation(observed_state),
                     "goal": _goal_observation(self.current_progress),
                     "skill": _skill_observation(observed_state, self.current_progress),
-                    "map_context": _map_context(observed_state, self.current_progress),
+                    "map_context": _map_context(
+                        observed_state,
+                        self.current_progress,
+                        self.reward_tracker.seen_warps,
+                    ),
                 }
             )
         self.previous_frame = current
@@ -1207,6 +1238,10 @@ def _render_dashboard(status: Mapping[str, Any]) -> str:
                 f"{float(rewards.get('opponent_damage', 0)):,.2f}",
             ),
             (
+                "Net active-route credit",
+                f"{float(rewards.get('goal_route_progress', 0)):,.2f}",
+            ),
+            (
                 "New-best Mart approach credit",
                 f"{float(rewards.get('mart_approach', 0)):,.2f}",
             ),
@@ -1369,8 +1404,8 @@ class PpoRunCallback(BaseCallback):
                 "pixels + three recent actions; trainer-only RAM rewards and loop termination"
                 if self.config.mode == "pixels"
                 else (
-                    "pixels + three recent actions + trainer-built visited map + goal/skill hint; "
-                    "assisted teacher lane"
+                    "pixels + three recent actions + trainer-built visited map + active goal/skill "
+                    "+ next certified route map; assisted teacher lane"
                     if self.config.mode == "assisted"
                     else "pixels + three recent actions + disclosed RAM state comparator"
                 )
@@ -1411,6 +1446,8 @@ class PpoRunCallback(BaseCallback):
                 f"{status['battle_events'].get('ended_without_progress', 0):,}\n\n"
                 f"- Opponent-damage credit: "
                 f"{status['reward_components'].get('opponent_damage', 0):,.2f}\n"
+                f"- Net active-route credit: "
+                f"{status['reward_components'].get('goal_route_progress', 0):,.2f}\n"
                 f"- New-best Mart approach credit: "
                 f"{status['reward_components'].get('mart_approach', 0):,.2f}\n"
                 f"- Mart dialogue-stage credit: "

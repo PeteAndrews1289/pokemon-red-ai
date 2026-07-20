@@ -13,15 +13,15 @@
 > exact parent-to-child edge verification, bounds visual variants and suffix admissions, and
 > preserves three fresh power-on replays for every named promotion. Frontier Apprentice and four
 > generations of recurrent PPO then extended the curriculum through Route 1. Version 4 produced
-> the first PPO promotion into Viridian City. The active gate is now Version 5's explicitly
-> assisted lesson `entered_viridian_mart`, followed by student distillation and an unassisted
-> power-on exam.
+> the first PPO promotion into Viridian City. Version 5 then verified the Mart and Oak's Parcel.
+> The active gate is Version 5.1's explicitly assisted return curriculum: Route 1, Pallet Town,
+> Oak's Lab, and Parcel delivery, followed by student distillation and an unassisted power-on exam.
 
 ### Implementation ledger
 
 | Completion foundation | State | Evidence boundary |
 | --- | --- | --- |
-| Ordered named milestone catalogue | ✅ Implemented and tested | 55 read-only outcomes, including mandatory keys/HMs; does not imply an agent reached any of them |
+| Ordered named milestone catalogue | ✅ Implemented and tested | 59 read-only outcomes, including mandatory keys/HMs and Parcel return stages; does not imply an agent reached any of them |
 | Strict Hall-of-Fame condition | ✅ Implemented and tested | Champion event and Hall-of-Fame map must coincide |
 | Private snapshot/action store | ✅ Implemented and tested | ROM/version/payload, parent, frame, depth, cell, lineage, and audit hashes fail closed |
 | Mandatory power-on replay semantics | ✅ Real-ROM integration checked | A deliberately false Hall-of-Fame cell is rejected even when its snapshot and screen hashes replay exactly |
@@ -32,7 +32,8 @@
 | Archive v2 local verification/scheduling | ✅ Staged real-ROM qualification passed | Continuous, graceful-resume, and hard-crash trials reached exact limits; edge cost stayed bounded and the crash twin matched deterministic terminal state |
 | Visual Apprentice v1 | ✅ Local development curriculum complete | Stage 0 replayed the exact route; the adaptive reverse curriculum then completed seven rungs and two final 29/30 windows; no held-out H2 claim |
 | Recurrent PPO curriculum | ✅ Viridian City verified | Version 4 promoted a 2,109-action suffix after one edge and three power-on replays; this is checkpoint-assisted H3 evidence |
-| Version 5 assisted teacher | 🟨 Current long lesson | Episodic map memory, next-goal/skill hints, and bounded local lessons are disclosed training aids; only verified Hall of Fame is terminal |
+| Version 5 assisted teacher | ✅ Closed at Oak's Parcel | Three replay-verified promotions reached the Mart and Parcel; the run also exposed obsolete lesson reward after completion |
+| Version 5.1 active-goal return curriculum | 🟨 Current qualification | Three Parcel-qualified return checkpoints, bidirectional certified routes, and signed route potential address fetch quests without claiming a pixels-only result |
 | Pixels-only student and clean exam | ⬜ Not started | Teacher trajectories may become self-generated demonstrations, but H5 requires frozen restore-free power-on attempts without the aids |
 
 ## The destination

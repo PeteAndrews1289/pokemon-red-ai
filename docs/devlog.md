@@ -1,5 +1,33 @@
 # Development log
 
+## 2026-07-20 — The Parcel teaches us that progress can point backward
+
+- Stopped Version 5 cleanly at 1,390,596 actions, 1,358 PPO updates, 723 episodes, and 5,862.825
+  seconds. Its model and four terminal novelty memories matched their checkpoint hashes.
+- Preserved three verified promotions. The run entered the Viridian Mart at action 619,660 and
+  obtained Oak's Parcel at 619,956, advancing the complete verified lineage to 9,238 actions.
+- Audited the apparent post-Parcel plateau and found a reward-design contradiction: Mart-approach
+  credit grew from 923.00 at the Parcel promotion to 2,774.75 by shutdown. A finished lesson was
+  still encouraging the policy to return north.
+- Rejected simply increasing novelty, route-table size, or runtime. Fetch quests, healing, dungeon
+  exits, and field-move revisits all require familiar travel; the missing abstraction was an active
+  goal, not more undirected exploration.
+- Implemented Version 5.1 with three Parcel-qualified return milestones, lesson ownership and
+  expiry, bidirectional reuse of certified map edges, observed-edge graph growth, signed route
+  potential, next-route-map actor context, and a goal-aware watchdog.
+- Kept the information boundary explicit. This is an assisted teacher: it sees route context
+  assembled from demonstrated or observed transitions, but no future walkthrough, collision map,
+  scripted button, or emulator write.
+- Audited migration against the finished Version-5 artifacts. All 21 curriculum entries imported,
+  Oak's Parcel remained canonical index 10, and all three promotions were retained. Version-5 PPO
+  weights do not resume under the changed observation/reward protocol.
+- Passed 160 non-integration tests, including regressions proving expired Mart credit is absent and
+  a forward/backward route cycle produces exactly zero net route reward.
+- Passed all 10 private-ROM integration tests, then a four-worker 8,192-action canary in 34.705
+  seconds. It completed eight updates, paid +24 net route credit, paid no expired Mart lesson,
+  recorded zero verification failures, and ended with matching model plus four worker hashes. It
+  did not promote Route 1, which is not interpreted as a behavioral failure at this canary length.
+
 ## 2026-07-20 — Viridian becomes a classroom, not another lottery
 
 - Stopped Version 4 cleanly after 1,776,644 actions, 1,735 PPO updates, 968 episodes, and 6,033.643
