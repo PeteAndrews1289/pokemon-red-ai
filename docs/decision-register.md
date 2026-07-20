@@ -601,18 +601,120 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
   trace and action/frame budget. The Q1 exact frame remains the authority for the milestone event.
 - **Revisit when:** The dual-frame recorder passes a transition-event integration check.
 
+## DR-0032 — Repair the CI import boundary before extending the experiment
+
+- **Date:** 2026-07-19
+- **Status:** Completed
+- **Scope:** GitHub Actions and contributor test entrypoint
+- **Information label:** Infrastructure; no actor result
+- **Decision:** Add the repository root to pytest's declared import path, rerun the exact failing
+  command locally, and require both push- and pull-request-triggered jobs to pass before resuming
+  experiment changes.
+- **Alternatives considered:** Ignore the duplicate red checks because the package itself imported;
+  change only the GitHub command to `python -m pytest`; remove the new artifact-guard regression.
+- **Observation/evidence:** Both GitHub checks stopped during collection because
+  `tests/test_artifact_guard.py` imported the repository's standalone `scripts` namespace, which
+  was not on the console entrypoint's path. The artifact guard, documentation checker, and Ruff
+  had already passed. With the explicit pytest path, 92 non-integration tests passed locally and
+  both independent GitHub jobs returned success.
+- **Interpretation:** This was a test-discovery configuration error, not evidence that the
+  expedition or its safety guard failed. Keeping the regression matters because force-added
+  private files below ignored run directories must remain detectable.
+- **Consequence:** CI is green on the same branch before Archive v2 work begins. The fix is isolated
+  from experiment behavior in its own commit.
+- **Revisit when:** The repository layout or test runner changes.
+
+## DR-0033 — Remove repeated ledger scans and per-action tree walks first
+
+- **Date:** 2026-07-19
+- **Status:** Completed and real-ROM tested
+- **Scope:** First marathon-scaling foundation
+- **Information label:** Infrastructure; no actor result
+- **Decision:** Rebuild successful replay counts once from the validated hash-chained event log,
+  update the in-memory index only after durable append, stream lineage actions segment by segment,
+  validate ancestry topologically, and replace recursive per-action disk scans with bounded
+  incremental monitoring plus periodic exact reconciliation.
+- **Alternatives considered:** Add more SSD space; scan `events.jsonl` and the entire run tree on
+  every query; weaken the event hash chain; wait to optimize until a multi-day run becomes slow.
+- **Observation/evidence:** Q1 produced 1,300 cells in the successful store and 1,528 replay passes.
+  After this change the reviewed store reopened in about 1.38 seconds and all replay counts were
+  queried in about 0.00013 seconds. The full private-ROM suite passed 109 tests. Both GitHub jobs
+  passed after publication.
+- **Interpretation:** These changes make bookkeeping bounded without weakening replay truth. They
+  do not yet reduce the number or length of emulator replays, so they are necessary but not
+  sufficient for a two-day campaign.
+- **Consequence:** The next scaling work may focus on verification policy and scheduling rather
+  than repeatedly paying avoidable filesystem and ledger costs.
+- **Revisit when:** A staged 100,000-action qualification exposes another superlinear operation.
+
+## DR-0034 — Trial edge verification and bounded primary niches in Archive v2
+
+- **Date:** 2026-07-19
+- **Status:** Accepted; implementation and qualification in progress
+- **Scope:** Q2 checkpoint search and training-curriculum generation
+- **Information label:** `RANDOM-ACTION-EMITTER / PRIVILEGED-TRAINING-REFEREE / ARCHIVE-RESTORE / ACTION-LINEAGE`
+- **Decision:** Make ordinary cells training-eligible after an exact parent-snapshot-to-child edge
+  replay, while retaining three fresh complete power-on replays for every named milestone
+  promotion. Group active cells by milestone, map, coarse position, and battle mode; treat visual
+  class as a bounded alternative rather than an unlimited primary niche. Persist and verify at
+  most one ordinary candidate per suffix, and give new milestone frontiers immediate bounded
+  scheduling attention.
+- **Alternatives considered:** Continue one full power-on replay for every eight-action capture;
+  remove replay from local cells entirely; keep every 16-bit visual class as an independent arm;
+  enlarge the archive until the backlog fits; allow a sampled local audit to support H3 language.
+- **Observation/evidence:** Q1 admitted about 1.8 selectable cells per suffix opportunity and spent
+  954,704 replay actions on 40,000 exploration actions. A scheduler that revisits one parent while
+  admitting more than one new zero-visit arm cannot clear its own backlog. The successful named
+  lineage itself contained only 419 actions.
+- **Interpretation:** Search eligibility and public claim eligibility need different certificates.
+  Exact edge composition can safely support training restores; H3/H4 authority remains with full
+  power-on promotion replay.
+- **Consequence:** Archive v2 reports edge, promotion, and sampled-audit costs separately. The first
+  real-ROM qualification must demonstrate an ordinary edge-replay ratio no greater than 1.0,
+  exact resume, bounded variants, and unchanged three-pass named promotion semantics before a
+  long run is authorized.
+- **Revisit when:** Continuous and stop/resume Archive v2 qualifications finish.
+
+## DR-0035 — Build Visual Apprentice v1 from self-generated routes
+
+- **Date:** 2026-07-19
+- **Status:** Accepted development design; no trained result yet
+- **Scope:** First H2 learned-policy candidate
+- **Information label:** `PIXEL-ACTOR / PRIVILEGED-TRAINING-REFEREE / ARCHIVE-RESTORE` during
+  training; `PIXEL-ACTOR / POWER-ON / FIXED-POLICY` for the strongest evaluation
+- **Decision:** Warm-start a small recurrent convolutional policy from replayed self-generated
+  visual/action trajectories, then train recovery with recurrent PPO in a curriculum that expands
+  backward from the house exit to power-on. Reset recurrent state at every curriculum and
+  evaluation start.
+- **Alternatives considered:** Expand the hashed Q table again; call the 419-action button list a
+  learned model; use a human walkthrough as the primary teacher; train end-to-end sparse-reward PPO
+  from power-on; run a thousand resident neural models on the 8 GB machine.
+- **Observation/evidence:** Q1 now supplies one exact successful trajectory, which is sufficient for
+  an intentional overfit pipeline smoke but not a generalization claim. The earlier table learners
+  plateaued locally, the small evolutionary RNN collapsed into fragile action habits, and an
+  open-loop lineage cannot recover after one changed state.
+- **Interpretation:** The project's strongest story and experiment are the same question: can blind
+  search turn one lucky accident into reusable visual knowledge? Demonstration, reverse curriculum,
+  and learner-induced recovery states address different parts of that question.
+- **Consequence:** Follow [Visual Apprentice v1](visual-apprentice.md). The first H2 claim requires
+  one frozen policy to pass at least 45 of 50 branch-grouped held-out local starts; the later
+  power-on composition gate requires at least 18 of 20 declared attempts. Until then the model is
+  described only as implemented, training, or developmental.
+- **Revisit when:** The overfit smoke, multi-lineage dataset gate, or first frozen evaluation fails.
+
 ## Unresolved decisions
 
 These are questions, not hidden commitments. Each becomes a numbered entry when evidence supports
 a choice.
 
 - Which emitter wins the Q2 matched comparison after the random-suffix Q1 denominator?
-- What cell key preserves meaningful diversity without exploding archive size beyond the current
-  provisional semantic/spatial/visual key?
+- Whether Archive v2's provisional three visual alternatives per primary niche survive the staged
+  scaling qualification; the key structure itself is trialing under DR-0034.
 - Which milestone-tier reservations and private-payload retention policy preserve failures without
   making the SSD the archive-capacity limit?
 - What suffix-length scheduler beats the provisional 32–1,024 rule on verified progress per action?
 - Should the richer learned controller be one network with several heads or a learned router among
   navigation, dialogue, menu, and battle policies?
-- Which training method best uses self-generated trajectories on the current hardware?
+- Whether behavioral cloning plus recurrent PPO beats its cloning-only ablation under the frozen
+  Visual Apprentice protocol in DR-0035.
 - What held-out perturbations and success threshold justify H6 reliability?
