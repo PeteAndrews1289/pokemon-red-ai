@@ -63,7 +63,8 @@ test sequence used to prove that the laboratory works.
 | Can it record controller actions and selected state without leaking the ROM path? | Yes. |
 | Can it reach the first playable state twice with identical results? | Yes. |
 | Is the current test sequence an autonomous playthrough? | No; it is test infrastructure. |
-| What comes next? | Run the implemented Visual Apprentice Stage-0 gate, then compare a learned visual emitter against the preserved 1/2 random house-exit baseline. |
+| Can one model execute the lucky route? | Yes once: Stage 0 fit 419/419 labels, survived frozen reload, and selected the exact 419 actions from clean power-on to `left_home`. This is route memorization, not a robust skill. |
+| What comes next? | Start near the door with zero recurrent memory, learn only from genuine successful attempts, and move the curriculum backward while keeping every failure in the denominator. |
 
 Keeping this table current is part of the project. A small true claim is more valuable than a large
 ambiguous one.

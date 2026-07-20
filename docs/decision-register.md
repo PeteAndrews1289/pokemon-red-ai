@@ -806,6 +806,78 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
 - **Revisit when:** The real-ROM extraction, overfit, or clean-power-on gate finishes; any pass then
   triggers independent route and perturbation collection rather than an H2 claim.
 
+## DR-0039 — Pass Stage 0 without calling memorization a robust skill
+
+- **Date:** 2026-07-19
+- **Status:** Completed; Stage-0 composite qualification passed
+- **Scope:** Visual Apprentice data, offline training, frozen reload, and clean-power-on gate
+- **Information label:** `PIXEL-ACTOR / SELF-GENERATED-DEMONSTRATION` during cloning;
+  `PIXEL-ACTOR / POWER-ON / FIXED-POLICY` during the live attempt
+- **Decision:** Accept the first complete Stage-0 run because two independent captures agreed,
+  teacher-forced and predicted-feedback evaluation both reached 419/419, the frozen reload was
+  identical, and the policy reached exact `left_home` within the declared 1,000-action ceiling.
+  Report exact route equality and retain the single-attempt denominator. Do not promote this result
+  to H2.
+- **Alternatives considered:** Count offline accuracy alone; omit the second extraction; rerun the
+  live attempt until it succeeded; describe one closed-loop success as a learned house-exit skill;
+  hide exact action equality because it weakens the apparent result.
+- **Observation/evidence:** Training finished after 316 epochs and 99.112 seconds with 419/419
+  labels under both feedback modes. The frozen reload produced the same result. On the one planned
+  live attempt, the policy reached `game_started` at action 243, `left_bedroom` at 302, and
+  `left_home` at 419. All 419 selected actions exactly matched the sole training route. The sealed
+  composite bundle SHA-256 is
+  `236da389cc2ee18661d0e52ae58525cdd0c42b6068427a5ac34fd5cf662cfdde`.
+- **Interpretation:** The full neural pipeline now connects: deterministic pixels become labels,
+  labels become durable model parameters, and one frozen model drives the emulator successfully.
+  Exact route equality is simultaneously strong integrity evidence and evidence that Stage 0 did
+  not test recovery or generalization.
+- **Consequence:** Preserve the [complete Stage-0 result](../experiments/visual-apprentice-stage0/README.md).
+  Begin a reverse checkpoint curriculum with zero recurrent state at every local start and keep all
+  failed attempts visible. The next target is repeated recovery success, not a longer replay of
+  the memorized route.
+- **Revisit when:** A frozen checkpoint is evaluated on predeclared held-out local starts.
+- **Supersedes / superseded by:** Completes DR-0038's pending real-ROM gate; does not supersede
+  DR-0035's H2 requirements.
+
+## DR-0040 — Trial reverse-curriculum self-imitation before recurrent PPO
+
+- **Date:** 2026-07-19
+- **Status:** Trialing; bounded overnight development run authorized
+- **Scope:** First interactive Visual Apprentice learning pilot after Stage 0
+- **Information label:** `PIXEL-ACTOR / PRIVILEGED-TRAINING-REFEREE / FIXED-SNAPSHOT` during
+  curriculum training; no H2 evaluation label yet
+- **Decision:** Reconstruct seven trainer-owned starts with 8, 16, 32, 64, 128, 256, and 419
+  demonstration actions remaining. Reset the actor's recurrent state, previous action, and visual
+  history at each start. Prime each suffix explicitly from the certified demonstration, sample
+  bounded pixel-policy attempts, and apply self-imitation gradients only to attempts that actually
+  reach `left_home`. Promote a rung only after 27/30 successes twice. Run one CPU learner for at
+  most eight hours, 15 million emulator actions, 1.5 GiB resident memory, or 2 million actions
+  without promotion while retaining at least 50 GiB free on the external SSD.
+- **Alternatives considered:** Repeat the saturated Stage-0 overfit for eight hours; start recurrent
+  PPO from power-on; train on failed sampled actions; use four simultaneous Torch learners; restore
+  the demonstration's LSTM state beside each snapshot; call repeated deterministic replays a
+  success rate; run until the clock expires even when the curve is flat.
+- **Observation/evidence:** Stage 0 already proved exact one-route connection at 419/419, while the
+  preceding clean-start evolutionary trials showed that paying the full opening horizon on every
+  lifetime prevents useful local learning. Reverse curriculum directly tests the missing recovery
+  boundary without adding a value head, reward-weight tuning, or a second deep-learning framework
+  on the night of launch.
+- **Interpretation:** Success selection makes the interactive update causal: an attempt that reaches
+  the declared boundary can reinforce its own action sequence; a failure remains evidence but does
+  not teach the policy to fail. Demonstration priming and learner-generated updates must remain
+  separate in every status and ledger.
+- **Consequence:** First run a short real-ROM canary that exercises ladder reconstruction, weight
+  changes, dashboard heartbeat, checkpoint hashing, and stop behavior. If it passes, launch the
+  bounded eight-hour development run. Call the result a reverse-curriculum self-imitation pilot,
+  not a held-out evaluation or proof that the model learned Pokémon Red. Promotion windows contain
+  online updates and are scheduling heuristics, not fixed-policy confidence intervals. A hard-crash
+  resume remains diagnostic until append-only post-checkpoint tails can be reconciled without
+  duplicate rows.
+- **Revisit when:** The overnight run stops, a rung stagnates, or the first learner checkpoint is
+  ready for a separately frozen held-out evaluation.
+- **Supersedes / superseded by:** Operationalizes DR-0039's next step; recurrent PPO remains deferred
+  rather than rejected.
+
 ## Unresolved decisions
 
 These are questions, not hidden commitments. Each becomes a numbered entry when evidence supports

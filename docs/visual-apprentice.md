@@ -1,9 +1,9 @@
 # Visual Apprentice v1
 
-> **Status:** Stage-0 extraction, recurrent cloning, frozen reload, and clean-power-on evaluation
-> are implemented and unit checked; the first real-ROM result is pending. The first checkpoint
-> expedition produced one verified 419-action house-exit lineage. That is enough to test the
-> training pipeline, not enough to claim that a policy learned a general skill.
+> **Status:** Stage 0 passed on the real ROM. Two independent captures agreed, one recurrent pixel
+> policy reached 419/419 offline under both feedback modes, its frozen reload was identical, and it
+> selected the exact original 419-action route from clean power-on to `left_home`. This proves the
+> pipeline connects; it is still one memorized trajectory, not recovery, generalization, or H2.
 
 ## The question
 
@@ -215,6 +215,23 @@ The `apprentice-extract`, `apprentice-dataset-verify`, `apprentice-overfit`, and
 private `index.html`, `status.json`, metrics ledger, events, frozen model, and summary. A failed
 gate remains a result; it does not receive a `SUCCESS` marker.
 
+### Real-ROM Stage-0 result
+
+The first declared attempt passed every gate. Both 419-label/420-frame captures produced logical
+dataset SHA-256 `a8b03101d6f145e9d19831bc7d75caae90ca9f41b0c6518adf52e89eaa730aec`.
+Training reached exact teacher-forced and predicted-feedback accuracy after 316 epochs and 99.112
+seconds, then reproduced the same result after frozen reload. The live actor reached
+`game_started` at action 243, `left_bedroom` at 302, and `left_home` at 419. Its 419 selected
+actions were exactly equal to the original demonstration. No failed Stage-0 attempt was discarded
+or repeated.
+
+The [reviewed Stage-0 result](../experiments/visual-apprentice-stage0/README.md) publishes the
+complete denominator, aggregate metrics, bundle hashes, and an original visual without exposing
+the private frames or model. The strongest justified sentence is: **“One frozen model exactly fit
+its single training trajectory offline and replayed that exact route from clean power-on once.”**
+The next run must vary the start and retain failures if it is to measure a skill rather than route
+memorization.
+
 ### Stage 1 — Behavioral-cloning warm start
 
 Train the recurrent policy to predict actions from all available successful self-generated
@@ -244,6 +261,27 @@ than exposing checkpoint identity.
 Unlock the next rung only after the current rung passes a fixed development gate twice. Retain
 20–25% rehearsal starts from earlier rungs. Reject promotion when an earlier rung loses more than
 five percentage points; that regression becomes part of the forgetting ledger.
+
+The first implemented development pilot deliberately precedes PPO. It reconstructs the seven
+starts by replaying the certified demonstration, primes each suffix with the same self-generated
+teacher, then samples from the pixel policy. Only a sampled attempt that actually reaches
+`left_home` creates a self-imitation update; failed attempts are retained with no gradient. Demo
+priming and learner updates have separate counters. Promotion requires 27/30 successes twice.
+This launch version does not yet mix 20–25% earlier-rung starts into every update or run the frozen
+forgetting check above; its per-rung results must therefore be treated as calibration, and those
+two protections remain required before a formal local-skill gate.
+
+The pilot has an eight-hour wall limit, a 15-million total-action ceiling, a two-million-action
+no-promotion stop, a 1.5 GiB process-memory stop, a 50 GiB free-space floor, and one CPU learner.
+It is development data because its starts, demonstration, and gate are used for training. A later
+frozen attempt set remains necessary for H2.
+
+The launch checkpoint restores model, optimizer, random streams, counters, and promotion state from
+a hash-checked payload. Its append-only episode/update/event tails are not yet transactionally
+rolled back to that checkpoint after a hard crash, so a crash-resumed run may contain duplicate
+diagnostic rows and cannot become formal evaluation evidence. The uninterrupted canary and
+overnight pilot remain useful development tests; Archive v2's stronger crash-tail protocol is the
+model for the later qualified learner runner.
 
 ### Stage 3 — Recovery and dataset aggregation
 

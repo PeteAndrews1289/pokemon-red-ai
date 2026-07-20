@@ -110,6 +110,44 @@
   remains pending and no trained-policy
   claim has been made.
 
+### Pass Stage 0 on the real ROM
+
+- Captured the certified route twice through independent emulator instances. Both results contained
+  419 labels and 420 decision-boundary frames and produced logical dataset SHA-256
+  `a8b03101d6f145e9d19831bc7d75caae90ca9f41b0c6518adf52e89eaa730aec`.
+- Trained the 468,312-parameter CPU model for 316 epochs and 99.112 seconds. Teacher-forced and
+  predicted-feedback evaluation both reached 419/419, and the frozen reload was identical.
+- Ran the one planned clean-power-on attempt. With zero recurrent state and no snapshots, rewards,
+  updates, retries, or interventions, the model reached `left_home` after 419 actions. Its complete
+  selected sequence exactly matched its one training route.
+- Sealed data, training, evaluation, and composite bundles; published their reviewed aggregate and
+  full denominator in [Visual Apprentice Stage 0](../experiments/visual-apprentice-stage0/README.md).
+  Recorded the result as a connected learning pipeline, not H2, recovery, or generalization.
+
+### Build the first interactive recovery learner
+
+- Rejected an eight-hour repeat of the already saturated one-route overfit and deferred recurrent
+  PPO from power-on. Chose a smaller reverse-curriculum self-imitation pilot so the next run asks a
+  new question: can the model succeed when it begins partway through the route with zero memory?
+- Added seven backward starts at 8, 16, 32, 64, 128, 256, and 419 actions remaining. Each start
+  duplicates its first visible frame, sets previous action to the sentinel, and resets the LSTM;
+  checkpoint identity and route position remain trainer-only.
+- Separated demonstration priming from learner-generated updates. Every failed attempt is logged
+  and receives no gradient. Only an actual `left_home` rollout can enter the self-imitation half of
+  an update.
+- Froze promotion at 27/30 successes in two consecutive non-overlapping windows. Added atomic model,
+  optimizer, random-stream, counter, and gate checkpoints; hash-checked resume; status and event
+  ledgers; a local dashboard; and STOP, time, action, stagnation, process-memory, and free-disk
+  boundaries.
+- Capped the first development run at eight hours, 15 million emulator actions, two million actions
+  without a rung promotion, 1.5 GiB process memory, and a 50 GiB free-space floor. The three-minute
+  canary uses a visibly relaxed 2/3 gate once and cannot become qualification evidence.
+- Recorded one prelaunch audit limitation: a hard-crash resume restores the last hash-checked
+  learner state but does not yet reconcile append-only rows written after that checkpoint. Such a
+  run may contain duplicate diagnostic episode/update IDs and cannot become formal evidence. The
+  process therefore runs under macOS sleep prevention, and later qualification must add the same
+  explicit crash-tail reconciliation already proved for Archive v2.
+
 ## 2026-07-19 — Q1 steps outside once, but fails its two-seed gate
 
 ### Complete denominator

@@ -18,6 +18,10 @@ from pokemon_red_ai.apprentice_data import (
     capture_apprentice_dataset,
     verify_apprentice_dataset,
 )
+from pokemon_red_ai.apprentice_overnight import (
+    OvernightApprenticeConfig,
+    run_overnight_apprentice,
+)
 from pokemon_red_ai.apprentice_qualification import (
     qualify_stage0_composite,
     qualify_stage0_data,
@@ -371,6 +375,47 @@ def build_parser() -> argparse.ArgumentParser:
     apprentice_qualify.add_argument("--training", type=Path, required=True)
     apprentice_qualify.add_argument("--evaluation", type=Path, required=True)
     apprentice_qualify.add_argument("--output", type=Path, required=True)
+
+    apprentice_curriculum = subparsers.add_parser(
+        "apprentice-curriculum-run",
+        help="Run the bounded reverse-curriculum self-imitation development pilot.",
+    )
+    apprentice_curriculum.add_argument("--rom", type=Path, help="Private path to Pokemon Red.gb")
+    apprentice_curriculum.add_argument("--dataset", type=Path, required=True)
+    apprentice_curriculum.add_argument("--model", type=Path, required=True)
+    apprentice_curriculum.add_argument("--output", type=Path, required=True)
+    apprentice_curriculum.add_argument("--hours", type=float, default=8)
+    apprentice_curriculum.add_argument("--max-actions", type=int, default=15_000_000)
+    apprentice_curriculum.add_argument(
+        "--stagnation-actions", type=int, default=2_000_000
+    )
+    apprentice_curriculum.add_argument("--seed", type=int, default=20_260_743)
+    apprentice_curriculum.add_argument("--max-rss-mib", type=float, default=1_536)
+    apprentice_curriculum.add_argument("--min-free-gib", type=float, default=50)
+    apprentice_curriculum.add_argument("--torch-threads", type=int, default=4)
+    apprentice_curriculum.add_argument(
+        "--port",
+        type=int,
+        default=8_771,
+        help="127.0.0.1 dashboard port; pass 0 to disable serving",
+    )
+    apprentice_curriculum.add_argument(
+        "--canary",
+        action="store_true",
+        help="Use a three-minute relaxed plumbing check that cannot qualify a model",
+    )
+    apprentice_curriculum.add_argument("--resume", action="store_true")
+
+    apprentice_curriculum_status = subparsers.add_parser(
+        "apprentice-curriculum-status",
+        help="Show the latest reverse-curriculum heartbeat.",
+    )
+    apprentice_curriculum_status.add_argument("run_directory", type=Path)
+    apprentice_curriculum_stop = subparsers.add_parser(
+        "apprentice-curriculum-stop",
+        help="Request a graceful reverse-curriculum checkpoint and stop.",
+    )
+    apprentice_curriculum_stop.add_argument("run_directory", type=Path)
 
     return parser
 
@@ -780,6 +825,75 @@ def run_apprentice_stage0_qualify(args: argparse.Namespace) -> int:
     return 0
 
 
+def run_apprentice_curriculum(args: argparse.Namespace) -> int:
+    rom_path = resolve_rom_path(args.rom)
+    port = None if args.port == 0 else args.port
+    if args.canary:
+        config = OvernightApprenticeConfig.canary(dashboard_port=port)
+        print("Mode: three-minute development canary; relaxed promotion is not evidence.")
+    else:
+        config = OvernightApprenticeConfig(
+            seed=args.seed,
+            max_seconds=args.hours * 60 * 60,
+            max_emulator_actions=args.max_actions,
+            max_actions_without_promotion=args.stagnation_actions,
+            max_rss_mib=args.max_rss_mib,
+            minimum_free_gib=args.min_free_gib,
+            torch_threads=args.torch_threads,
+            dashboard_port=port,
+        )
+    if port is not None:
+        print(f"Live curriculum dashboard: http://127.0.0.1:{port}/index.html", flush=True)
+    result = run_overnight_apprentice(
+        rom_path,
+        args.dataset,
+        args.model,
+        args.output,
+        config=config,
+        resume=args.resume,
+    )
+    print(f"Curriculum state: {result.state}")
+    print(f"Stop reason: {result.stop_reason}")
+    print(f"Elapsed hours: {result.elapsed_seconds / 3600:.3f}")
+    print(f"Episodes: {result.episodes:,}")
+    print(f"Successes: {result.successes:,}")
+    print(f"Gradient updates: {result.updates:,}")
+    print(f"Emulator actions: {result.emulator_actions:,}")
+    print(f"Highest completed horizon: {result.highest_completed_horizon:,}")
+    print(f"Private evidence: {result.output_directory}")
+    return 0 if result.state != "failed" else 1
+
+
+def show_apprentice_curriculum_status(run_directory: Path) -> int:
+    status_path = run_directory.expanduser().resolve() / "status.json"
+    if not status_path.is_file():
+        raise ValueError("Curriculum status.json does not exist")
+    status = json.loads(status_path.read_text(encoding="utf-8"))
+    updated = datetime.fromisoformat(status["updated_at"])
+    age = max(0.0, (datetime.now(UTC) - updated).total_seconds())
+    print(f"State: {status['state']}")
+    print(f"Heartbeat age: {age:.1f} seconds")
+    print(f"Elapsed hours: {status['elapsed_seconds'] / 3600:.3f}")
+    print(f"Current rung: {status.get('current_horizon') or 'complete'} actions remaining")
+    print(f"Episodes: {status['episodes']:,}")
+    print(f"Successes: {status['successes']:,}")
+    print(f"Learner updates: {status.get('self_imitation_updates', 0):,}")
+    print(f"Demo priming updates: {status.get('demo_updates', 0):,}")
+    print(f"Emulator actions: {status['emulator_actions']:,}")
+    print(f"Actions/second: {status.get('actions_per_second', 0):,.2f}")
+    print(f"Stop reason: {status.get('stop_reason') or 'still running'}")
+    return 0 if status["state"] != "failed" else 1
+
+
+def request_apprentice_curriculum_stop(run_directory: Path) -> int:
+    directory = run_directory.expanduser().resolve()
+    if not (directory / "manifest.json").is_file():
+        raise ValueError("Curriculum run manifest does not exist")
+    (directory / "STOP").touch(exist_ok=True)
+    print("Graceful stop requested; the learner will checkpoint before exiting.")
+    return 0
+
+
 def show_blind_status(run_directory: Path) -> int:
     status_path = run_directory.expanduser() / "status.json"
     if not status_path.is_file():
@@ -871,6 +985,12 @@ def main(argv: list[str] | None = None) -> int:
             return run_apprentice_evaluate(args)
         if args.command == "apprentice-stage0-qualify":
             return run_apprentice_stage0_qualify(args)
+        if args.command == "apprentice-curriculum-run":
+            return run_apprentice_curriculum(args)
+        if args.command == "apprentice-curriculum-status":
+            return show_apprentice_curriculum_status(args.run_directory)
+        if args.command == "apprentice-curriculum-stop":
+            return request_apprentice_curriculum_stop(args.run_directory)
     except (OSError, RomValidationError, ValueError, RuntimeError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 2

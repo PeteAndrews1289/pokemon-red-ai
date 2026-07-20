@@ -30,7 +30,10 @@
 10. ✅ Conclude Q1 honestly: H3 `left_home` reached, but the two-seed gate failed 1/2.
 11. ✅ Index replay counts, stream lineages, validate ancestry topologically, and bound disk scans.
 12. ✅ Qualify Archive v2 edge verification, bounded niches, suffix buffering, exact resume, and hard-crash recovery on the real ROM.
-13. 🟨 Build, train, and evaluate [Visual Apprentice v1](visual-apprentice.md) under its frozen local gate; Stage-0 code and synthetic checks are complete.
+13. ✅ Pass [Visual Apprentice v1](visual-apprentice.md) Stage 0: two matching captures, exact
+    offline/reload fit, and the exact 419-action route selected once from clean power-on.
+14. 🟨 Train recovery in the reverse checkpoint curriculum, preserving every failed attempt and
+    withholding H2 until a frozen policy passes held-out local starts.
 14. ⬜ Compare qualified optimized/learned emitters under a matched house-exit gate.
 15. ⬜ Distill useful self-generated lineages into a richer frozen visual policy.
 16. ✅ Replace Monkey in the four-lane pretrial dashboard.

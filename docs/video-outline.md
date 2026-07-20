@@ -11,6 +11,10 @@
 > Archive v2 is the engineering resolution to that cliff: bounded local proof, a preserved failed
 > stop attempt, and a hard-crash twin that returned to the same deterministic terminal state. The
 > next protagonist is the model asked to turn the lucky route into a recoverable visual skill.
+> Its Stage-0 audition has now passed: after fitting the one 419-action route, the frozen model
+> reproduced that route exactly from power-on. The dramatic question is no longer whether the
+> wires connect; it is what happens when the apprentice starts midway with no remembered context
+> or makes its first mistake.
 
 This document is a production guide for telling the project's story without getting ahead of the
 evidence. The detailed Episode 0 section preserves the original before-training production plan;
@@ -122,6 +126,19 @@ The exact `left_home` screenshot is a dark transition frame. Keep it on screen a
 FRAME`, then cut to the later clear outdoor frame as `STABLE NARRATIVE FRAME`. Do not substitute the
 prettier image silently. That contrast expresses the whole editorial premise: evidence and
 storytelling serve different jobs, and both should be visible.
+
+### Episode 4 opening turn: “It copied perfectly. Did it learn?”
+
+Use the [Stage-0 gate card](../experiments/visual-apprentice-stage0/stage0-gates.svg) as a fast
+four-beat escalation: two independent data captures agree, offline feedback reaches 419/419, the
+frozen reload stays identical, and the live model leaves the house in exactly 419 actions. Let the
+moment feel like a win—then reveal that every one of those actions matched its only lesson. The
+experiment proved the nervous system connects, not that the apprentice can recover.
+
+The next visual should literally cut the route into a backward staircase: 8, 16, 32, 64, 128,
+256, and 419 actions remaining. Reset the model's memory at each stair. Show successes moving into
+the training tray and failures remaining visibly counted. This makes the distinction between
+memorization and learning understandable without pretending that a high loss curve is the story.
 
 ### Suggested beats
 
