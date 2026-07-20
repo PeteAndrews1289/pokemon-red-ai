@@ -75,6 +75,8 @@ class ExpeditionRunConfig:
     promotion_replay_passes: int = 3
     dashboard_port: int = 0
     status_interval_seconds: float = 10
+    disk_reconcile_interval_actions: int = 4_096
+    disk_free_check_interval_seconds: float = 5
     max_output_bytes: int = 4 * 1024 * 1024 * 1024
     min_free_bytes: int = 50 * 1024 * 1024 * 1024
 
@@ -107,6 +109,10 @@ class ExpeditionRunConfig:
             raise ValueError("Expedition dashboard port must be zero or a valid TCP port")
         if self.status_interval_seconds <= 0:
             raise ValueError("Expedition status interval must be positive")
+        if self.disk_reconcile_interval_actions < 1:
+            raise ValueError("Expedition disk reconciliation interval must be positive")
+        if self.disk_free_check_interval_seconds <= 0:
+            raise ValueError("Expedition free-space check interval must be positive")
         if self.max_output_bytes < 1_048_576 or self.min_free_bytes < 0:
             raise ValueError("Expedition disk limits are invalid")
 
@@ -327,8 +333,114 @@ def _implementation_sha256() -> str:
     return digest.hexdigest()
 
 
+def _directory_file_sizes(path: Path) -> dict[Path, int]:
+    """Take one exact file-size snapshot of a run tree.
+
+    Callers deliberately use this only at startup, declared action intervals, checkpoints,
+    and status writes. Persistent writes between snapshots are accounted for by observing the
+    bounded set of files that each operation can touch.
+    """
+
+    return {item: item.stat().st_size for item in path.rglob("*") if item.is_file()}
+
+
 def _directory_size(path: Path) -> int:
-    return sum(item.stat().st_size for item in path.rglob("*") if item.is_file())
+    return sum(_directory_file_sizes(path).values())
+
+
+class _RunDiskMonitor:
+    """Bound disk checks without recursively walking a growing archive per action."""
+
+    def __init__(
+        self,
+        output: Path,
+        *,
+        max_output_bytes: int,
+        min_free_bytes: int,
+        reconcile_interval_actions: int,
+        free_check_interval_seconds: float,
+        initial_action_count: int = 0,
+        now: float | None = None,
+    ) -> None:
+        if max_output_bytes < 1 or min_free_bytes < 0:
+            raise ValueError("Disk monitor limits are invalid")
+        if reconcile_interval_actions < 1 or free_check_interval_seconds <= 0:
+            raise ValueError("Disk monitor intervals are invalid")
+        self.output = output
+        self.max_output_bytes = max_output_bytes
+        self.min_free_bytes = min_free_bytes
+        self.reconcile_interval_actions = reconcile_interval_actions
+        self.free_check_interval_seconds = free_check_interval_seconds
+        self.run_bytes = 0
+        self.free_bytes = 0
+        self.exact_reconciliations = 0
+        self.incremental_file_checks = 0
+        self.free_space_checks = 0
+        self.last_reconciled_action = initial_action_count
+        self.output_limit_observed = False
+        self._known_file_sizes: dict[Path, int] = {}
+        self._last_free_check_at = monotonic() if now is None else now
+        self.reconcile(initial_action_count)
+        self.check_free(now=self._last_free_check_at, force=True)
+
+    def reconcile(self, action_count: int) -> int:
+        """Refresh exact size and seed the incremental per-file ledger."""
+
+        self._known_file_sizes = _directory_file_sizes(self.output)
+        self.run_bytes = sum(self._known_file_sizes.values())
+        self.exact_reconciliations += 1
+        self.last_reconciled_action = action_count
+        self.output_limit_observed |= self.run_bytes >= self.max_output_bytes
+        return self.run_bytes
+
+    def observe_files(self, *paths: Path) -> int:
+        """Account for known persistent writes using bounded individual stat calls."""
+
+        for path in dict.fromkeys(paths):
+            previous = self._known_file_sizes.get(path, 0)
+            try:
+                current = path.stat().st_size if path.is_file() else 0
+            except FileNotFoundError:
+                current = 0
+            self.incremental_file_checks += 1
+            self.run_bytes += current - previous
+            if current:
+                self._known_file_sizes[path] = current
+            else:
+                self._known_file_sizes.pop(path, None)
+        self.output_limit_observed |= self.run_bytes >= self.max_output_bytes
+        return self.run_bytes
+
+    def check_free(self, *, now: float | None = None, force: bool = False) -> int:
+        checked_at = monotonic() if now is None else now
+        if force or checked_at - self._last_free_check_at >= self.free_check_interval_seconds:
+            self.free_bytes = shutil.disk_usage(self.output).free
+            self.free_space_checks += 1
+            self._last_free_check_at = checked_at
+        return self.free_bytes
+
+    def reason(self, action_count: int, *, now: float | None = None) -> str | None:
+        if action_count - self.last_reconciled_action >= self.reconcile_interval_actions:
+            self.reconcile(action_count)
+        self.check_free(now=now)
+        if self.free_bytes < self.min_free_bytes:
+            return "low_disk_space"
+        if self.output_limit_observed or self.run_bytes >= self.max_output_bytes:
+            return "output_limit"
+        return None
+
+    def status_dict(self) -> dict[str, int | float | bool]:
+        return {
+            "run_bytes": self.run_bytes,
+            "free_bytes": self.free_bytes,
+            "exact_size_reconciliations": self.exact_reconciliations,
+            "incremental_file_checks": self.incremental_file_checks,
+            "free_space_checks": self.free_space_checks,
+            "last_reconciled_action": self.last_reconciled_action,
+            "reconcile_interval_actions": self.reconcile_interval_actions,
+            "free_check_interval_seconds": self.free_check_interval_seconds,
+            "output_limit_observed": self.output_limit_observed,
+        }
 
 
 def _validate_output_path(output: Path) -> None:
@@ -510,6 +622,7 @@ def _status_payload(
     started_at: str,
     elapsed_seconds: float,
     run_bytes: int,
+    disk_monitor: Mapping[str, int | float | bool],
     current: Mapping[str, Any] | None,
     latest_referee_state: PokemonRedState | None,
     reached_milestones: set[str],
@@ -576,6 +689,7 @@ def _status_payload(
         ),
         "run_bytes": run_bytes,
         "max_output_bytes": config.max_output_bytes,
+        "disk_monitor": dict(disk_monitor),
         "information_boundary": {
             "action_emitter": SeededRandomSequenceEmitter.policy_id,
             "action_emitter_inputs": ["seeded_prng"],
@@ -913,6 +1027,15 @@ def run_expedition(
             },
         )
 
+    disk_monitor = _RunDiskMonitor(
+        output,
+        max_output_bytes=config.max_output_bytes,
+        min_free_bytes=config.min_free_bytes,
+        reconcile_interval_actions=config.disk_reconcile_interval_actions,
+        free_check_interval_seconds=config.disk_free_check_interval_seconds,
+        initial_action_count=counters.total_actions,
+    )
+
     stop_reason = "unknown"
     latest_pixels: np.ndarray | None = None
     latest_state: PokemonRedState | None = None
@@ -929,20 +1052,20 @@ def run_expedition(
             return stopper.reason
         if stop_marker.exists():
             return "stop_requested"
+        if disk_reason := disk_monitor.reason(counters.total_actions):
+            return disk_reason
         if counters.total_actions >= config.max_actions:
             return "action_limit"
         if elapsed() >= config.duration_seconds:
             return "duration_limit"
-        if shutil.disk_usage(output).free < config.min_free_bytes:
-            return "low_disk_space"
-        if _directory_size(output) >= config.max_output_bytes:
-            return "output_limit"
         return None
 
     def write_status(state: str, reason: str | None) -> None:
         nonlocal latest_pixels
         if latest_pixels is None:
             return
+        disk_monitor.reconcile(counters.total_actions)
+        disk_monitor.check_free(force=True)
         status = _status_payload(
             state=state,
             stop_reason=reason,
@@ -952,15 +1075,38 @@ def run_expedition(
             best_progress=best_progress,
             started_at=started_at,
             elapsed_seconds=elapsed(),
-            run_bytes=_directory_size(output),
+            run_bytes=disk_monitor.run_bytes,
+            disk_monitor=disk_monitor.status_dict(),
             current=current_attempt,
             latest_referee_state=latest_state,
             reached_milestones=reached_milestones,
             completion_cell_id=completion_cell_id,
         )
         _write_live_artifacts(output, status, latest_pixels)
+        disk_monitor.observe_files(
+            output / "latest.png",
+            output / "status.json",
+            output / "index.html",
+        )
+
+    def checkpoint_written() -> None:
+        disk_monitor.observe_files(
+            checkpoint_path,
+            checkpoint_path.with_name("checkpoint.previous.json.gz"),
+        )
+        disk_monitor.reconcile(counters.total_actions)
+
+    def observe_cell_files(cell: FrontierCell) -> None:
+        disk_monitor.observe_files(
+            store.path / "events.jsonl",
+            store.path / "index.json",
+            store.path / "cells" / f"{cell.cell_id}.json",
+            store.path / "snapshots" / f"{cell.snapshot_sha256}.json.gz",
+            store.path / "segments" / f"{cell.segment_sha256}.json",
+        )
 
     writer_lock = _acquire_single_writer(output)
+    disk_monitor.observe_files(writer_lock)
     dashboard_server: ThreadingHTTPServer | None = None
     dashboard_thread: threading.Thread | None = None
     try:
@@ -1022,6 +1168,15 @@ def run_expedition(
                         "screen_sha256": root.screen_sha256,
                     },
                 )
+                disk_monitor.observe_files(
+                    trace_path,
+                    store.path / "events.jsonl",
+                    store.path / "index.json",
+                    store.path / "cells" / f"{root.cell_id}.json",
+                    store.path / "snapshots" / f"{root.snapshot_sha256}.json.gz",
+                    store.path / "segments" / f"{root.segment_sha256}.json",
+                    output / "milestones" / "000-power-on.png",
+                )
                 counters.elapsed_seconds = elapsed()
                 trace_offset = trace_path.stat().st_size
                 _write_checkpoint(
@@ -1042,6 +1197,7 @@ def run_expedition(
                         trace_offset=trace_offset,
                     ),
                 )
+                checkpoint_written()
                 write_status("running", None)
 
             while (reason := budget_reason(stopper)) is None and completion_cell_id is None:
@@ -1088,6 +1244,7 @@ def run_expedition(
                         **current_attempt,
                     },
                 )
+                disk_monitor.observe_files(trace_path, store.path / "events.jsonl")
 
                 for suffix_action in range(1, suffix_budget + 1):
                     action = emitter.emit()
@@ -1143,6 +1300,7 @@ def run_expedition(
                         if len(store.cells) > before_cells:
                             counters.cells_created += 1
                         decision = archive.consider(cell)
+                        observe_cell_files(cell)
                         replay_passed = not decision.reason.startswith("quarantined_replay_")
                         if decision.reason.startswith("quarantined_replay_"):
                             replay_passed = True
@@ -1178,6 +1336,7 @@ def run_expedition(
                                 counters.replay_attempts += 1
                                 counters.replay_actions += replay.action_count
                                 counters.replay_passes += int(replay.passed)
+                                disk_monitor.observe_files(store.path / "events.jsonl")
                                 if not replay.passed:
                                     replay_passed = False
                                     store.audit(
@@ -1192,9 +1351,11 @@ def run_expedition(
                                             else "canonical_lineage_progress"
                                         ),
                                     )
+                                    disk_monitor.observe_files(store.path / "events.jsonl")
                                     break
                             if replay_passed:
                                 decision = archive.consider(cell)
+                                disk_monitor.observe_files(store.path / "events.jsonl")
 
                         if replay_passed:
                             if decision.admitted:
@@ -1209,6 +1370,9 @@ def run_expedition(
                                         f"{verified_progress.key}.png"
                                     )
                                     _save_png(latest_pixels, output / "milestones" / filename)
+                                    disk_monitor.observe_files(
+                                        output / "milestones" / filename
+                                    )
                                 if verified_progress.key == HALL_OF_FAME_KEY:
                                     completion_cell_id = cell.cell_id
                             else:
@@ -1249,6 +1413,7 @@ def run_expedition(
                         "best_milestone": best_progress.public_dict(),
                     },
                 )
+                disk_monitor.observe_files(trace_path)
                 current_attempt = None
                 trace_offset = trace_path.stat().st_size
                 _write_checkpoint(
@@ -1269,6 +1434,7 @@ def run_expedition(
                         trace_offset=trace_offset,
                     ),
                 )
+                checkpoint_written()
                 write_status("running", None)
 
             if completion_cell_id is not None:
@@ -1289,6 +1455,7 @@ def run_expedition(
                 "completion_cell_id": completion_cell_id,
             },
         )
+        disk_monitor.observe_files(trace_path)
         resume_trace_offset = trace_path.stat().st_size
         _write_checkpoint(
             checkpoint_path,
@@ -1308,6 +1475,7 @@ def run_expedition(
                 trace_offset=resume_trace_offset,
             ),
         )
+        checkpoint_written()
         write_status("finished", stop_reason)
     except Exception as error:
         counters.elapsed_seconds = elapsed()

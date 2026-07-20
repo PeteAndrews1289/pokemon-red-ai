@@ -7,7 +7,7 @@ import os
 import random
 import re
 import subprocess
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Iterable, Iterator, Mapping
 from dataclasses import asdict, dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
@@ -329,6 +329,7 @@ class ExpeditionStore:
             raise ValueError("Expedition store contains duplicate cell IDs")
         self._event_sequence = 0
         self._last_event_sha256 = "0" * 64
+        self._successful_replay_counts: dict[str, int] = {}
         self._event_log_recovery: dict[str, Any] | None = None
         self._load_event_chain()
         self._validate_graph()
@@ -365,6 +366,11 @@ class ExpeditionStore:
             expected_hash = _sha256(_canonical_json(event))
             if event_hash != expected_hash:
                 raise ValueError("Expedition audit event hash is invalid")
+            successful_replay_cell_id = self._successful_replay_cell_id(event)
+            if successful_replay_cell_id is not None:
+                self._successful_replay_counts[successful_replay_cell_id] = (
+                    self._successful_replay_counts.get(successful_replay_cell_id, 0) + 1
+                )
             self._event_sequence = expected_sequence
             self._last_event_sha256 = event_hash
             valid_bytes += len(raw_line)
@@ -393,6 +399,34 @@ class ExpeditionStore:
                 "discarded_sha256": None,
                 "private_recovery_file": None,
             }
+
+    def _successful_replay_cell_id(self, event: Mapping[str, Any]) -> str | None:
+        """Validate and classify a replay event for the rebuildable in-memory index."""
+
+        if event.get("kind") != "power_on_replay":
+            return None
+        cell_id = event.get("cell_id")
+        if not isinstance(cell_id, str) or cell_id not in self.cells:
+            raise ValueError("Expedition replay event references an unknown cell")
+        mismatch_reasons = event.get("mismatch_reasons", [])
+        if not isinstance(mismatch_reasons, (list, tuple)):
+            raise ValueError("Expedition replay event mismatch reasons must be a sequence")
+        if event.get("passed") is not True or mismatch_reasons:
+            return None
+        cell = self.cells[cell_id]
+        try:
+            expected_index = int(event.get("expected_milestone_index", -1))
+            actual_index = int(event.get("actual_milestone_index", -1))
+        except (TypeError, ValueError) as error:
+            raise ValueError("Expedition successful replay milestone index is invalid") from error
+        if (
+            event.get("expected_milestone_id") != cell.descriptor.milestone_id
+            or expected_index != cell.descriptor.milestone_index
+            or event.get("actual_milestone_id") != cell.descriptor.milestone_id
+            or actual_index != cell.descriptor.milestone_index
+        ):
+            return None
+        return cell_id
 
     @classmethod
     def create(
@@ -491,10 +525,12 @@ class ExpeditionStore:
             self._validate_referee_summary(cell)
             if cell.cell_id != _cell_id(cell):
                 raise ValueError("Expedition cell ID does not bind its complete metadata")
+
+        ordered_cells = self._topological_cells()
+        logical_frames: dict[str, int] = {}
+        for cell in ordered_cells:
             segment = self.read_segment(cell.segment_sha256)
             snapshot = self.read_snapshot(cell.snapshot_sha256)
-            if cell.parent_id is not None and cell.parent_id not in self.cells:
-                raise ValueError("Expedition cell references a missing parent")
             if cell.parent_id is None:
                 if cell.depth_actions != 0 or segment or cell.discovered_global_action != 0:
                     raise ValueError("Expedition root has invalid action metadata")
@@ -519,8 +555,7 @@ class ExpeditionStore:
                     raise ValueError("A non-root expedition cell has an empty action segment")
                 if cell.depth_actions != parent.depth_actions + len(segment):
                     raise ValueError("Expedition cell action depth does not match its parent")
-                parent_snapshot = self.read_snapshot(parent.snapshot_sha256)
-                expected_frame = parent_snapshot.logical_frame + sum(
+                expected_frame = logical_frames[parent.cell_id] + sum(
                     action.total_frames for action in segment
                 )
                 if snapshot.logical_frame != expected_frame:
@@ -546,15 +581,42 @@ class ExpeditionStore:
                 cell.descriptor.milestone_id == "hall_of_fame"
             ) and "hall_of_fame" in cell.referee_summary:
                 raise ValueError("Frontier Hall-of-Fame summary disagrees with its descriptor")
-            seen: set[str] = set()
-            current: FrontierCell | None = cell
-            while current is not None:
-                if current.cell_id in seen:
+            logical_frames[cell.cell_id] = snapshot.logical_frame
+
+    def _topological_cells(self) -> tuple[FrontierCell, ...]:
+        """Return parents before children with one iterative cycle-detection pass."""
+
+        visitation: dict[str, int] = {}
+        ordered: list[FrontierCell] = []
+        for starting_id in self.cells:
+            if visitation.get(starting_id) == 2:
+                continue
+            stack = [(starting_id, False)]
+            while stack:
+                cell_id, expanded = stack.pop()
+                state = visitation.get(cell_id, 0)
+                if expanded:
+                    if state == 1:
+                        visitation[cell_id] = 2
+                        ordered.append(self.cells[cell_id])
+                    continue
+                if state == 2:
+                    continue
+                if state == 1:
                     raise ValueError("Expedition lineage contains a cycle")
-                seen.add(current.cell_id)
-                current = (
-                    None if current.parent_id is None else self.cells.get(current.parent_id)
-                )
+                visitation[cell_id] = 1
+                stack.append((cell_id, True))
+                parent_id = self.cells[cell_id].parent_id
+                if parent_id is None:
+                    continue
+                if parent_id not in self.cells:
+                    raise ValueError("Expedition cell references a missing parent")
+                parent_state = visitation.get(parent_id, 0)
+                if parent_state == 1:
+                    raise ValueError("Expedition lineage contains a cycle")
+                if parent_state != 2:
+                    stack.append((parent_id, False))
+        return tuple(ordered)
 
     @staticmethod
     def _validate_descriptor(descriptor: FrontierDescriptor) -> None:
@@ -793,40 +855,30 @@ class ExpeditionStore:
             current = self.cells[current.parent_id]
         return tuple(reversed(reversed_lineage))
 
-    def lineage_actions(self, cell_id: str) -> tuple[BlindAction, ...]:
+    def iter_lineage_actions(self, cell_id: str) -> Iterator[BlindAction]:
+        """Yield a lineage one stored segment at a time without joining all actions."""
+
         lineage = self.lineage(cell_id)
-        actions = tuple(
-            action
-            for cell in lineage
-            for action in self.read_segment(cell.segment_sha256)
-        )
-        if len(actions) != self.cells[cell_id].depth_actions:
-            raise ValueError("Frontier lineage depth does not match its action segments")
-        return actions
+        expected_actions = self.cells[cell_id].depth_actions
+
+        def iterate() -> Iterator[BlindAction]:
+            yielded_actions = 0
+            for cell in lineage:
+                for action in self.read_segment(cell.segment_sha256):
+                    yielded_actions += 1
+                    yield action
+            if yielded_actions != expected_actions:
+                raise ValueError("Frontier lineage depth does not match its action segments")
+
+        return iterate()
+
+    def lineage_actions(self, cell_id: str) -> tuple[BlindAction, ...]:
+        return tuple(self.iter_lineage_actions(cell_id))
 
     def successful_replay_count(self, cell_id: str) -> int:
         if cell_id not in self.cells:
             raise ValueError("Unknown frontier cell")
-        cell = self.cells[cell_id]
-        count = 0
-        with (self.path / "events.jsonl").open(encoding="utf-8") as source:
-            for line in source:
-                event = json.loads(line)
-                if event.get("kind") != "power_on_replay" or event.get("cell_id") != cell_id:
-                    continue
-                if event.get("passed") is not True or event.get("mismatch_reasons", []) != []:
-                    continue
-                if (
-                    event.get("expected_milestone_id") != cell.descriptor.milestone_id
-                    or int(event.get("expected_milestone_index", -1))
-                    != cell.descriptor.milestone_index
-                    or event.get("actual_milestone_id") != cell.descriptor.milestone_id
-                    or int(event.get("actual_milestone_index", -1))
-                    != cell.descriptor.milestone_index
-                ):
-                    continue
-                count += 1
-        return count
+        return self._successful_replay_counts.get(cell_id, 0)
 
     def required_replay_count(self, cell_id: str) -> int:
         cell = self.cells[cell_id]
@@ -870,12 +922,17 @@ class ExpeditionStore:
             **payload,
         }
         event_hash = _sha256(_canonical_json(event))
+        successful_replay_cell_id = self._successful_replay_cell_id(event)
         _append_json(
             self.path / "events.jsonl",
             {**event, "event_sha256": event_hash},
         )
         self._event_sequence += 1
         self._last_event_sha256 = event_hash
+        if successful_replay_cell_id is not None:
+            self._successful_replay_counts[successful_replay_cell_id] = (
+                self._successful_replay_counts.get(successful_replay_cell_id, 0) + 1
+            )
 
 
 class FrontierArchive:
@@ -1069,7 +1126,6 @@ def replay_frontier_cell(
     """Replay from fresh power-on and require exact hashes plus canonical semantic progress."""
 
     target = store.cells[cell_id]
-    actions = store.lineage_actions(cell_id)
     mismatch_reasons: list[str] = []
     actual_snapshot_sha256 = ""
     actual_screen_sha256 = ""
@@ -1082,7 +1138,7 @@ def replay_frontier_cell(
             reader = PokemonRedStateReader(emulator)
             initial_state = reader.read()
             actual_progress = milestone_progress_for_state(initial_state)
-            for action in actions:
+            for action in store.iter_lineage_actions(cell_id):
                 alive = (
                     emulator.tick(action.total_frames, render_last=True)
                     if action.button == "noop"
@@ -1144,7 +1200,7 @@ def replay_frontier_cell(
     result = ReplayResult(
         cell_id=cell_id,
         passed=not mismatch_reasons,
-        action_count=len(actions),
+        action_count=target.depth_actions,
         expected_snapshot_sha256=target.snapshot_sha256,
         actual_snapshot_sha256=actual_snapshot_sha256,
         expected_screen_sha256=target.screen_sha256,

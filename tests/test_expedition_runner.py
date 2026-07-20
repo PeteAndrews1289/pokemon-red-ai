@@ -8,6 +8,7 @@ import urllib.error
 import urllib.request
 from importlib.metadata import version
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -24,6 +25,7 @@ from pokemon_red_ai.expedition_runner import (
     _acquire_single_writer,
     _json_tuple,
     _release_single_writer,
+    _RunDiskMonitor,
     _start_dashboard_server,
     _stop_dashboard_server,
     adaptive_suffix_budget,
@@ -57,6 +59,79 @@ def test_bounded_config_adaptive_horizon_and_loop_detector() -> None:
         ExpeditionRunConfig(promotion_replay_passes=2)
     with pytest.raises(ValueError, match="capture interval"):
         ExpeditionRunConfig(frontier_capture_interval_actions=0)
+    with pytest.raises(ValueError, match="reconciliation interval"):
+        ExpeditionRunConfig(disk_reconcile_interval_actions=0)
+    with pytest.raises(ValueError, match="free-space check interval"):
+        ExpeditionRunConfig(disk_free_check_interval_seconds=0)
+
+
+def test_disk_monitor_does_not_walk_the_tree_for_each_action(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    original_snapshot = runner_module._directory_file_sizes
+    scans = 0
+
+    def counted_snapshot(path: Path) -> dict[Path, int]:
+        nonlocal scans
+        scans += 1
+        return original_snapshot(path)
+
+    monkeypatch.setattr(runner_module, "_directory_file_sizes", counted_snapshot)
+    monitor = _RunDiskMonitor(
+        tmp_path,
+        max_output_bytes=1_000_000,
+        min_free_bytes=0,
+        reconcile_interval_actions=64,
+        free_check_interval_seconds=1_000,
+        now=0,
+    )
+
+    assert scans == 1
+    for action_count in range(1, 64):
+        assert monitor.reason(action_count, now=0) is None
+    assert scans == 1
+
+    assert monitor.reason(64, now=0) is None
+    assert scans == 2
+    assert monitor.exact_reconciliations == 2
+
+
+def test_disk_monitor_enforces_incremental_size_and_timed_free_space_limits(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    payload = tmp_path / "payload.bin"
+    payload.write_bytes(b"123456789")
+    free_values = iter((200, 99))
+    free_checks = 0
+
+    def fake_disk_usage(_path: Path) -> SimpleNamespace:
+        nonlocal free_checks
+        free_checks += 1
+        return SimpleNamespace(free=next(free_values))
+
+    monkeypatch.setattr(runner_module.shutil, "disk_usage", fake_disk_usage)
+    monitor = _RunDiskMonitor(
+        tmp_path,
+        max_output_bytes=10,
+        min_free_bytes=100,
+        reconcile_interval_actions=1_000,
+        free_check_interval_seconds=5,
+        now=0,
+    )
+
+    assert monitor.reason(1, now=4.9) is None
+    assert free_checks == 1
+
+    growth = tmp_path / "growth.bin"
+    growth.write_bytes(b"xx")
+    monitor.observe_files(growth)
+    assert monitor.reason(2, now=4.9) == "output_limit"
+    assert monitor.output_limit_observed is True
+
+    assert monitor.reason(3, now=5) == "low_disk_space"
+    assert free_checks == 2
 
 
 def test_seeded_random_emitter_is_reproducible_and_has_no_state_input() -> None:
@@ -195,6 +270,63 @@ def _fingerprint() -> RomFingerprint:
     )
 
 
+@pytest.mark.parametrize("expected_reason", ["output_limit", "low_disk_space"])
+def test_runner_enforces_disk_stop_reasons(
+    expected_reason: str,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _patch_fake_emulator(monkeypatch)
+    _FakeEmulator.stop_path = None
+    _FakeEmulator.stop_after_step = None
+    output = tmp_path / expected_reason
+    max_output_bytes = 1_048_576
+    min_free_bytes = 1 if expected_reason == "low_disk_space" else 0
+
+    if expected_reason == "output_limit":
+        original_snapshot = runner_module._directory_file_sizes
+
+        def full_snapshot(path: Path) -> dict[Path, int]:
+            return {
+                **original_snapshot(path),
+                path / "virtual-budget-reservation": max_output_bytes,
+            }
+
+        monkeypatch.setattr(runner_module, "_directory_file_sizes", full_snapshot)
+    else:
+        monkeypatch.setattr(
+            runner_module.shutil,
+            "disk_usage",
+            lambda _path: SimpleNamespace(free=0),
+        )
+
+    result = run_expedition(
+        Path("unused.gb"),
+        _fingerprint(),
+        config=ExpeditionRunConfig(
+            duration_seconds=60,
+            max_actions=10,
+            seed=19,
+            archive_capacity=16,
+            min_suffix_actions=1,
+            max_suffix_actions=1,
+            attempts_per_expansion=1,
+            frontier_capture_interval_actions=1,
+            loop_window_actions=2,
+            loop_repeat_limit=2,
+            status_interval_seconds=10,
+            max_output_bytes=max_output_bytes,
+            min_free_bytes=min_free_bytes,
+        ),
+        run_directory=output,
+    )
+
+    assert result.stop_reason == expected_reason
+    assert result.counters.total_actions == 0
+    status = json.loads((output / "status.json").read_text(encoding="utf-8"))
+    assert status["stop_reason"] == expected_reason
+
+
 def test_runner_quarantines_replays_resumes_and_writes_live_artifacts(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -274,6 +406,12 @@ def test_runner_quarantines_replays_resumes_and_writes_live_artifacts(
     assert status["state"] == "finished"
     assert status["power_on_replay_gate_passed"] is True
     assert status["best_milestone"]["key"] == "left_bedroom"
+    disk_metrics = status["disk_monitor"]
+    assert disk_metrics["run_bytes"] <= status["run_bytes"]
+    assert disk_metrics["exact_size_reconciliations"] >= 1
+    assert disk_metrics["incremental_file_checks"] >= 1
+    assert disk_metrics["free_space_checks"] >= 1
+    assert disk_metrics["output_limit_observed"] is False
     assert boundary["action_emitter_inputs"] == ["seeded_prng"]
     assert boundary["ram_used_by_actor"] is False
     assert boundary["ram_used_by_referee"] is True

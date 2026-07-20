@@ -7,8 +7,10 @@ import os
 import random
 from pathlib import Path
 
+import numpy as np
 import pytest
 
+import pokemon_red_ai.expedition as expedition_module
 from pokemon_red_ai.blind import BlindAction, FrozenSnapshot, visual_key
 from pokemon_red_ai.emulator import EmulatorSnapshot, PokemonRedEmulator
 from pokemon_red_ai.expedition import (
@@ -85,7 +87,10 @@ def _record_required_replays(store: ExpeditionStore, cell_id: str) -> None:
         )
 
 
-def test_content_addressed_frontier_round_trip_and_complete_lineage(tmp_path: Path) -> None:
+def test_content_addressed_frontier_round_trip_and_complete_lineage(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     store = _store(tmp_path)
     root = store.add_root(
         snapshot=_snapshot(b"root"),
@@ -127,6 +132,231 @@ def test_content_addressed_frontier_round_trip_and_complete_lineage(tmp_path: Pa
     assert restored.read_snapshot(second.snapshot_sha256).thaw().payload == b"second"
     events = [json.loads(line) for line in (store.path / "events.jsonl").read_text().splitlines()]
     assert [event["kind"] for event in events] == ["frontier_cell_added"] * 3
+
+    index_path = store.path / "index.json"
+    index = json.loads(index_path.read_text(encoding="utf-8"))
+    index["cell_ids"].reverse()
+    index_path.write_text(json.dumps(index), encoding="utf-8")
+    read_snapshot = ExpeditionStore.read_snapshot
+    validated_snapshots: list[str] = []
+
+    def tracked_read_snapshot(self: ExpeditionStore, sha256: str) -> FrozenSnapshot:
+        validated_snapshots.append(sha256)
+        return read_snapshot(self, sha256)
+
+    monkeypatch.setattr(ExpeditionStore, "read_snapshot", tracked_read_snapshot)
+    reordered = ExpeditionStore.open(store.path)
+
+    assert tuple(cell.cell_id for cell in reordered.lineage(second.cell_id)) == (
+        root.cell_id,
+        first.cell_id,
+        second.cell_id,
+    )
+    assert len(validated_snapshots) == len(reordered.cells)
+
+
+def test_lineage_action_iterator_loads_one_segment_at_a_time(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    store = _store(tmp_path)
+    root = store.add_root(
+        snapshot=_snapshot(b"root"),
+        descriptor=_descriptor(0, visual_class=0),
+        screen_sha256="a" * 64,
+        referee_summary={},
+    )
+    first_actions = (BlindAction("start", 8, 12), BlindAction("a", 8, 12))
+    first = store.add_cell(
+        parent_id=root.cell_id,
+        snapshot=_snapshot(b"first", frame=40),
+        actions_from_parent=first_actions,
+        descriptor=_descriptor(1),
+        screen_sha256="b" * 64,
+        discovered_global_action=2,
+        referee_summary={},
+    )
+    final_action = BlindAction("down", 8, 12)
+    final = store.add_cell(
+        parent_id=first.cell_id,
+        snapshot=_snapshot(b"final", frame=60),
+        actions_from_parent=(final_action,),
+        descriptor=_descriptor(2),
+        screen_sha256="c" * 64,
+        discovered_global_action=3,
+        referee_summary={},
+    )
+    read_segment = store.read_segment
+    read_hashes: list[str] = []
+
+    def tracked_read_segment(sha256: str) -> tuple[BlindAction, ...]:
+        read_hashes.append(sha256)
+        return read_segment(sha256)
+
+    monkeypatch.setattr(store, "read_segment", tracked_read_segment)
+    actions = store.iter_lineage_actions(final.cell_id)
+
+    assert read_hashes == []
+    assert next(actions) == first_actions[0]
+    assert read_hashes == [root.segment_sha256, first.segment_sha256]
+    assert tuple(actions) == (first_actions[1], final_action)
+    assert read_hashes == [
+        root.segment_sha256,
+        first.segment_sha256,
+        final.segment_sha256,
+    ]
+
+
+def test_successful_replay_index_updates_and_rebuilds_without_rescanning(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    store = _store(tmp_path)
+    root = store.add_root(
+        snapshot=_snapshot(b"root"),
+        descriptor=_descriptor(0),
+        screen_sha256="a" * 64,
+        referee_summary={},
+    )
+    child = store.add_cell(
+        parent_id=root.cell_id,
+        snapshot=_snapshot(b"child", frame=20),
+        actions_from_parent=(BlindAction("a", 8, 12),),
+        descriptor=_descriptor(1),
+        screen_sha256="b" * 64,
+        discovered_global_action=1,
+        referee_summary={},
+    )
+    _record_required_replays(store, child.cell_id)
+    store.audit(
+        "power_on_replay",
+        cell_id=child.cell_id,
+        passed=False,
+        mismatch_reasons=[],
+        expected_milestone_id=child.descriptor.milestone_id,
+        expected_milestone_index=child.descriptor.milestone_index,
+        actual_milestone_id=child.descriptor.milestone_id,
+        actual_milestone_index=child.descriptor.milestone_index,
+    )
+    store.audit(
+        "power_on_replay",
+        cell_id=child.cell_id,
+        passed=True,
+        mismatch_reasons=[],
+        expected_milestone_id="power_on",
+        expected_milestone_index=0,
+        actual_milestone_id=child.descriptor.milestone_id,
+        actual_milestone_index=child.descriptor.milestone_index,
+    )
+
+    restored = ExpeditionStore.open(store.path)
+    assert restored.successful_replay_count(child.cell_id) == 3
+
+    events_path = restored.path / "events.jsonl"
+    path_open = Path.open
+
+    def reject_event_log_reads(path: Path, *args, **kwargs):
+        mode = args[0] if args else kwargs.get("mode", "r")
+        if path == events_path and "r" in mode:
+            raise AssertionError("successful_replay_count rescanned the event log")
+        return path_open(path, *args, **kwargs)
+
+    with monkeypatch.context() as context:
+        context.setattr(Path, "open", reject_event_log_reads)
+        assert restored.successful_replay_count(child.cell_id) == 3
+        _record_required_replays(restored, child.cell_id)
+        assert restored.successful_replay_count(child.cell_id) == 6
+
+    resumed = ExpeditionStore.open(store.path)
+    assert resumed.successful_replay_count(child.cell_id) == 6
+
+
+def test_power_on_replay_streams_actions_and_preserves_planned_action_count(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    store = _store(tmp_path)
+    state = PokemonRedState(False, None, None, None, None, None)
+    pixels = np.zeros((144, 160, 3), dtype=np.uint8)
+    descriptor = descriptor_from_state(
+        state,
+        milestone_id="power_on",
+        milestone_index=0,
+        visual_key=visual_key(pixels),
+    )
+    root = store.add_root(
+        snapshot=_snapshot(b"root"),
+        descriptor=descriptor,
+        screen_sha256=hashlib.sha256(pixels.tobytes()).hexdigest(),
+        referee_summary={},
+    )
+    planned_actions = (
+        BlindAction("a", 8, 12),
+        BlindAction("down", 8, 12),
+        BlindAction("start", 8, 12),
+    )
+    target = store.add_cell(
+        parent_id=root.cell_id,
+        snapshot=_snapshot(b"target", frame=60),
+        actions_from_parent=planned_actions,
+        descriptor=descriptor,
+        screen_sha256=hashlib.sha256(pixels.tobytes()).hexdigest(),
+        discovered_global_action=3,
+        referee_summary={},
+    )
+    target_snapshot = store.read_snapshot(target.snapshot_sha256).thaw()
+    streamed_actions: list[BlindAction] = []
+    iter_lineage_actions = store.iter_lineage_actions
+
+    def tracked_actions(cell_id: str):
+        for action in iter_lineage_actions(cell_id):
+            streamed_actions.append(action)
+            yield action
+
+    def reject_materialized_lineage(_cell_id: str):
+        raise AssertionError("replay_frontier_cell materialized the complete lineage")
+
+    class FakeEmulator:
+        def __init__(self, _rom_path: Path) -> None:
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args) -> None:
+            pass
+
+        def tick(self, _frames: int, *, render_last: bool) -> bool:
+            assert render_last
+            return False
+
+        def press(self, _button: str, *, hold_frames: int, release_frames: int) -> bool:
+            assert hold_frames > 0 and release_frames > 0
+            return False
+
+        def screen_rgb(self) -> np.ndarray:
+            return pixels
+
+        def save_state(self):
+            return target_snapshot
+
+    class FakeStateReader:
+        def __init__(self, _emulator: FakeEmulator) -> None:
+            pass
+
+        def read(self) -> PokemonRedState:
+            return state
+
+    monkeypatch.setattr(store, "iter_lineage_actions", tracked_actions)
+    monkeypatch.setattr(store, "lineage_actions", reject_materialized_lineage)
+    monkeypatch.setattr(expedition_module, "PokemonRedEmulator", FakeEmulator)
+    monkeypatch.setattr(expedition_module, "PokemonRedStateReader", FakeStateReader)
+
+    result = replay_frontier_cell(Path("unused.gb"), store, target.cell_id)
+
+    assert result.action_count == len(planned_actions)
+    assert streamed_actions == [planned_actions[0]]
+    assert "emulator_stopped" in result.mismatch_reasons
 
 
 def test_store_rejects_corrupt_snapshot_and_segment_payloads(tmp_path: Path) -> None:
@@ -218,6 +448,7 @@ def test_store_refuses_changed_milestone_semantics(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="different milestone semantics"):
         ExpeditionStore.open(store.path)
+
 
 def test_archive_protects_root_and_advanced_frontier_while_auditing_rejections(
     tmp_path: Path,
