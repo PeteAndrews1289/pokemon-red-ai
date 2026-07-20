@@ -1108,6 +1108,47 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
 - **Supersedes / superseded by:** Refines DR-0045 without changing its persistent novelty design,
   four-worker shape, actor input, replay gate, or Hall-of-Fame completion rule.
 
+## DR-0047 — Reward battle-local progress and terminate classified loops
+
+- **Date:** 2026-07-20
+- **Status:** Implemented; unit and real-ROM qualification passed
+- **Scope:** Parallel PPO Version 4 observation history, battle shaping, episode horizon, and loop
+  telemetry
+- **Information label:** `PIXEL-ACTOR / PRIVILEGED-TRAINING-REFEREE / PPO / ARCHIVE-RESTORE`;
+  enemy HP and loop state remain trainer-only
+- **Decision:** Start Version 4 fresh. Give the actor three recent self-actions, extend episodes to
+  16,384 actions, pay bounded credit for reducing live opponent HP, and end low-diversity visual
+  cycles after 128 stagnant actions or general no-progress episodes after 1,024 stagnant actions.
+  Preserve persistent campaign novelty and the replay-verification gate unchanged.
+- **Alternatives considered:** Resume Version 3; copy the full PWhiddy Version-2 observation;
+  increase the horizon to 163,840 immediately; reward healing; use coordinate frequency alone as a
+  loop detector; penalize all battle exits.
+- **Observation/evidence:** Version 3 completed 1,147,988 actions and 1,121 updates, but its nine
+  successful battles were outnumbered by 110 no-progress exits and it remained at Route 1. The
+  reference policy benefits from direct health, badge, event, and visited-map inputs and therefore
+  cannot be imported without changing the experiment. Its longer horizon and three-action history
+  are compatible with our declared actor boundary. Its coordinate `stuck` term does not classify
+  visual menu cycles and its coordinate memory resets per episode.
+- **Consequence:** Protocol identifiers become `parallel-recurrent-ppo-v4` and
+  `battle-local-credit-and-stagnation-v1`. Version-3 weights are retained but ineligible for resume.
+  Dashboard and narrative records expose opponent-damage credit, visual-cycle exits, long
+  stagnations, and all ordinary battle outcomes.
+- **Qualification evidence:** A 65,536-action stress canary exercised damage credit, durable battle
+  outcomes, and both loop classes, but review found that its inherited previous-action weights had
+  been placed in the oldest new history slot. It remains prequalification evidence. After remapping
+  those weights to the newest slot and adding a tensor test, the corrected four-worker build
+  completed 16,384 actions and 16 updates in 57.035 seconds. It recorded three battle starts, 5.412
+  damage credit, two durable successes, one blackout, five visual cycles, and one long stagnation.
+  No promotion or verification failed, and the model plus all four novelty memories matched their
+  checkpoint hashes. Route 1 remained the verified frontier.
+- **Narrative value:** The next act is about the missing middle. Version 3 could recognize victory
+  after it happened; Version 4 can credit the sequence that makes victory possible and can name the
+  loops that previously disappeared into a generic timeout.
+- **Revisit when:** The first matched long run reaches its declared boundary, shows another reward
+  loophole, or records a verified promotion.
+- **Supersedes / superseded by:** Extends DR-0046 while keeping durable success classification and
+  explicitly changing the local observation history and episode horizon.
+
 ## Unresolved decisions
 
 These are questions, not hidden commitments. Each becomes a numbered entry when evidence supports

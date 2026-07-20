@@ -1,5 +1,31 @@
 # Development log
 
+## 2026-07-20 — Version 3 closes; Version 4 learns from the middle of a battle
+
+- Stopped Version 3 gracefully after 1,147,988 actions, 1,121 updates, and 280 episodes. It retained
+  500 positions and nine durable battle successes but did not promote beyond Route 1. The model and
+  all four worker memories matched their checkpoint hashes.
+- Audited the actual Version-2 code in `PWhiddy/PokemonRedExperiments`. Its policy receives health,
+  levels, badges, events, a visited-map image, and three recent actions in addition to screens; its
+  longest recommended episodes are 163,840 actions across 64 environments. We recorded these as
+  useful engineering evidence, not a pixels-only comparison.
+- Added read-only, source-verified enemy and party HP instrumentation. Opponent damage now supplies
+  bounded local battle credit while durable battle success still requires experience or capture.
+- Added a perceptual cycle detector and a hard stagnation timer. Both are trainer-only, terminate
+  the episode with an explicit reason, and remain visible in status and hourly narrative records.
+- Expanded the local horizon to 16,384 actions and the actor's declared internal action history to
+  three actions. Version 4 starts fresh under new observation and reward protocol identifiers.
+- Ran a 65,536-action four-worker real-ROM stress canary at 295.60 actions/s. It produced 27.157
+  points of opponent-damage credit, seven durable battle successes, 18 visual-cycle exits, four
+  long-stagnation exits, no verification failure, four live frames, and exact final model/memory
+  hash matches. Review then found that the seed model's previous-action weights occupied the oldest
+  new history slot, so this run was retained as wiring evidence rather than final qualification.
+- Remapped the inherited previous-action weights to the newest history slot, zeroed the two new
+  older slots, and locked the behavior with a tensor-level test. The corrected four-worker canary
+  completed 16,384 actions and 16 updates, credited 5.412 opponent damage and two durable wins,
+  classified six loops/stagnations, and matched the final model plus all four memory hashes. Route 1
+  remained the verified frontier, so this is an engineering gate rather than gameplay progress.
+
 ## 2026-07-20 — Ending a battle was not the same as winning it
 
 - Version 2 initially improved global coverage after persistent novelty removed the first reset

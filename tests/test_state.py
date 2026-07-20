@@ -56,6 +56,10 @@ def test_state_reader_exposes_collection_and_party_progress() -> None:
             RamAddress.PARTY_MONS + 15: 0x02,
             RamAddress.PARTY_MONS + 16: 0x03,
             RamAddress.PARTY_MONS + 33: 12,
+            RamAddress.PARTY_MONS + 1: 0x00,
+            RamAddress.PARTY_MONS + 2: 0x1A,
+            RamAddress.PARTY_MONS + 34: 0x00,
+            RamAddress.PARTY_MONS + 35: 0x27,
             RamAddress.POKEDEX_OWNED: 0b00000001,
             RamAddress.POKEDEX_SEEN: 0b00000101,
             RamAddress.NUM_BAG_ITEMS: 2,
@@ -71,11 +75,32 @@ def test_state_reader_exposes_collection_and_party_progress() -> None:
     assert state.party_levels == (12,)
     assert state.party_experience == (0x010203,)
     assert state.total_party_experience == 0x010203
+    assert state.party_hp == (26,)
+    assert state.party_max_hp == (39,)
+    assert state.party_hp_fraction == 26 / 39
     assert state.party_moves == (33, 45)
     assert state.pokedex_seen_count == 2
     assert state.pokedex_owned_count == 1
     assert state.bag_item_ids == (0x04, 0x46)
     assert state.got_pokedex is True
+
+
+def test_state_reader_exposes_enemy_health_only_during_battle() -> None:
+    values = {
+        RamAddress.STATUS_FLAGS_6: 1,
+        RamAddress.IS_IN_BATTLE: 1,
+        RamAddress.ENEMY_MON_HP: 0,
+        RamAddress.ENEMY_MON_HP + 1: 17,
+        RamAddress.ENEMY_MON_MAX_HP: 0,
+        RamAddress.ENEMY_MON_MAX_HP + 1: 24,
+    }
+    state = PokemonRedStateReader(RecordingMemory(values)).read()
+    assert (state.enemy_hp, state.enemy_max_hp) == (17, 24)
+
+    values[RamAddress.IS_IN_BATTLE] = 0
+    outside = PokemonRedStateReader(RecordingMemory(values)).read()
+    assert outside.enemy_hp is None
+    assert outside.enemy_max_hp is None
 
 
 def test_unknown_battle_state_is_preserved() -> None:

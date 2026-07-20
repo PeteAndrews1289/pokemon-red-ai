@@ -21,10 +21,14 @@ trials compare learned or optimized emitters under the same checkpoint and repla
 > three complete power-on replays before admitting a named milestone. Pixels-only and separately
 > labeled privileged-input canaries pass; a four-worker production-shaped canary completed two
 > optimizer updates, wrote all live frames, and saved a hash-bound checkpoint. The first long
-> pixels-only run then exposed episode-reset novelty farming and was stopped at 862,212 actions
-> without advancing beyond Route 1. Version 2 persists hash-bound novelty memory across resets and
-> passed both reset and four-worker production canaries. Its fresh development campaign is now the
-> active evidence step—not yet a claim that the model can complete Pokémon Red.
+> pixels-only run then exposed episode-reset novelty farming. Version 2 fixed that loophole but paid
+> for ending battles whether or not the agent won. Version 3 required durable battle results and
+> ended cleanly at 1,147,988 actions with nine successful battles, but still no promotion beyond
+> Route 1. Version 4 now adds bounded opponent-HP credit, three-action history, longer episodes, and
+> classified loop termination. A 65,536-action stress canary exercised the mechanisms; review then
+> caught and corrected a warm-start action-history mapping error. The corrected four-worker build
+> passed a fresh 16,384-action real-ROM qualification—not yet a claim that the model can complete
+> Pokémon Red.
 
 The current code preserves every historical runner, including Monkey, Archivist, online learners,
 and clean-start neuroevolution, so rejected approaches remain reproducible. See
@@ -135,10 +139,12 @@ trainer-owned and disclosed; they are disabled when evaluating one frozen model 
 [the experiment protocol](docs/experiment-protocol.md) and
 [the completion program](docs/completion-program.md).
 
-The current parallel-PPO reward protocol is version 3. It does not pay merely because a battle
-ended: trainer-only evidence must show experience or capture progress, while the pixels-only actor
-still sees only rendered frames and its previous button. The dashboard reports successful and
-no-progress battle exits separately so battle grinding cannot masquerade as story progress.
+The current parallel-PPO reward protocol is version 4. It does not pay merely because a battle
+ended: trainer-only evidence must show experience or capture progress for a durable success. It
+also supplies bounded intermediate credit when opponent HP falls and explicitly terminates visual
+cycles or prolonged stagnation. The pixels-only actor still sees only rendered frames and its three
+most recent self-actions. The dashboard reports damage credit, successful and no-progress battles,
+and loop exits separately so local activity cannot masquerade as story progress.
 
 ## What will count as progress?
 

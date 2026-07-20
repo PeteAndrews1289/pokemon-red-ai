@@ -32,6 +32,12 @@ bytes are decoded in big-endian order and exposed as `party_experience`; their s
 `total_party_experience`. Experience remains trainer-only in pixels mode. It is used to distinguish
 a battle with durable growth from merely fleeing or closing the battle interface.
 
+Parallel PPO version 4 adds current and maximum HP for each party member plus the active opponent's
+current and maximum HP. Party HP uses `MON_HP` and `MON_MAXHP` offsets 1 and 34. Active opponent HP
+uses the generated `wEnemyMonHP` (`0xCFE6`) and `wEnemyMonMaxHP` (`0xCFF4`) symbols. Opponent values
+are returned only while `wIsInBattle` denotes a wild or trainer battle, avoiding stale battle
+scratch data outside combat. These fields remain trainer-only in pixels mode.
+
 ## Boundaries and caveats
 
 - The adapter has a read-one-byte interface and no memory-writing method.
@@ -42,7 +48,8 @@ a battle with durable growth from merely fleeing or closing the battle interface
   value while the map changes.
 - A party count of zero is valid before the player chooses a starter.
 - Menu and text scratch variables are deliberately excluded because they can remain stale.
-- Opponent data, text identifiers, arbitrary raw memory, and memory mutation remain excluded.
+- Opponent identity, moves, text identifiers, arbitrary raw memory, and memory mutation remain
+  excluded. Only active opponent HP and maximum HP are exposed for Version-4 battle credit.
 
 Instrumentation fields should be sampled at controller action boundaries. A future policy
 observation schema may select carefully justified fields, but it receives its own version and must

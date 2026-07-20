@@ -327,7 +327,7 @@ def build_parser() -> argparse.ArgumentParser:
     ppo.add_argument("--max-actions", type=int, default=20_000_000)
     ppo.add_argument("--seed", type=int, default=20_260_752)
     ppo.add_argument("--environments", type=int, default=4)
-    ppo.add_argument("--episode-actions", type=int, default=4_096)
+    ppo.add_argument("--episode-actions", type=int, default=16_384)
     ppo.add_argument("--rollout-steps", type=int, default=256)
     ppo.add_argument("--batch-size", type=int, default=256)
     ppo.add_argument("--epochs", type=int, default=4)

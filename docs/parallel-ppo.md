@@ -38,7 +38,7 @@ This implementation borrows the broad pattern and keeps this project's existing 
 | --- | --- | --- |
 | How do failures teach? | Optimize from rollout batches | Recurrent PPO updates from every vector rollout |
 | How is CPU time used? | Run many environments | Benchmark 2, 4, and 6; select four on the 8 GB M1 |
-| What does the actor see? | Pixels plus useful state can accelerate learning | Primary lane is pixels plus previous action; a separately labeled privileged comparator adds 24 state values |
+| What does the actor see? | Pixels plus useful state can accelerate learning | Primary lane is pixels plus three recent actions; a separately labeled privileged comparator adds 24 state values |
 | Where do episodes begin? | Useful checkpoint starts shorten the horizon | Starts come only from a frozen, replay-verified Archive-v2 curriculum |
 | What counts as progress? | Reward and map coverage make learning visible | Reward is diagnostic; only exact edge replay plus three power-on replays admit a new named milestone |
 | Is this game completion? | Early-game progress can still be informative | Only a verified Hall-of-Fame promotion ends training as completion, and only frozen power-on evaluation can support an autonomous-policy claim |
@@ -52,7 +52,7 @@ quietly mixing it into the pixels-only claim.
 
 | Lane | Actor receives | Trainer/referee may inspect | Honest label |
 | --- | --- | --- | --- |
-| Pixels | Two 72 × 80 grayscale frames and previous action | Documented RAM for reward, termination, curriculum, and replay | `PIXEL-ACTOR / PRIVILEGED-TRAINING-REFEREE / PPO / ARCHIVE-RESTORE` |
+| Pixels | Two 72 × 80 grayscale frames and three recent actions | Documented RAM for reward, termination, curriculum, and replay | `PIXEL-ACTOR / PRIVILEGED-TRAINING-REFEREE / PPO / ARCHIVE-RESTORE` |
 | Privileged comparator | The pixel input above plus 24 normalized state values | The same referee fields | `PIXEL+RAM-ACTOR / PPO / ARCHIVE-RESTORE / COMPARATOR` |
 
 The 24-value comparator vector contains game-start state, map and coordinates, party size, battle
@@ -83,7 +83,8 @@ flowchart LR
 ```
 
 The visual encoder matches the Visual Apprentice network: three convolution layers followed by a
-256-unit representation. The previous action is appended before a 128-unit LSTM. The eight-way
+256-unit representation. Version 4 appends one-hot encodings of the three most recent actions
+before a 128-unit LSTM. The eight-way
 policy head chooses Up, Down, Left, Right, A, B, Start, or No-op. The PPO value function is trained
 alongside the policy.
 
@@ -157,6 +158,96 @@ file matched the hashes recorded in the terminal checkpoint.
 Reward remains a training diagnostic. A high return does not mean the agent completed a quest,
 defeated a Gym Leader, or reached the Hall of Fame.
 
+## Version 3 result and Version 4 response
+
+Version 3 ended cleanly after 3,701.6 seconds. It completed 1,147,988 controller actions, 1,121 PPO
+updates, and 280 episodes at 310.13 actions per second. It retained 500 unique positions and 18
+verified curriculum starts. It began 152 battles, credited nine durable successes, recorded 110
+no-progress exits, and observed 17 blackouts. Its best verified milestone remained Route 1. The
+terminal model and all four persistent novelty memories matched the hashes in the final checkpoint.
+
+That is stronger evidence than a screenshot of a stuck menu. Version 3 could sometimes finish a
+battle, but its trainer supplied no credit for the useful intermediate act of selecting a move and
+reducing an opponent's HP. The 4,096-action episode horizon also made resets frequent, while a
+stable menu cycle could consume the rest of an episode without an explicit classification.
+
+Version 4 changes four things together, so it is an engineering iteration rather than a clean
+single-variable ablation:
+
+1. **Battle-local credit.** The trainer reads the documented big-endian `wEnemyMonHP` and
+   `wEnemyMonMaxHP` fields. Reducing an HP bar pays up to two points per full bar, capped at four
+   points per battle. Healing cannot make the same damage repay. Partial damage never reclassifies
+   an escape as a durable battle success.
+2. **Explicit loop termination.** A trainer-only perceptual screen signature watches for a
+   128-action low-diversity cycle. Useful new positions, milestones, experience, events, ownership,
+   badges, or lower enemy HP reset the timer. A separate 1,024-action ceiling classifies general
+   stagnation. The terminal penalty is paid once and the reason remains in the denominator.
+3. **Longer local horizon.** The default episode grows from 4,096 to 16,384 actions. This is still
+   one tenth of the reference project's 163,840-action setting; the watchdog makes the additional
+   budget conditional on continuing progress.
+4. **Visible action history.** The actor receives three recent one-hot actions rather than one.
+   These are the actor's own past outputs, not game RAM or a scripted hint. New LSTM input columns
+   start at zero during the Frontier Apprentice warm start.
+
+The protocol becomes `parallel-recurrent-ppo-v4` and the reward protocol becomes
+`battle-local-credit-and-stagnation-v1`. Version-3 PPO weights are preserved as evidence but cannot
+resume under the new observation and reward definitions.
+
+### What the reference implementation solves—and what it does not
+
+The reference project's Version 2 uses 64 environments and 163,840-action episodes. Its policy is
+not pixels-only: alongside three stacked screens it directly receives party health, encoded level
+sum, badge bits, event bits, a local visited-map image, and three recent actions. Its reward combines
+events, healing, badges, coordinate exploration, and a small coordinate-overuse term. This explains
+why importing its complete recipe would change the central experiment instead of merely improving
+it.
+
+Three reference ideas survive our information-boundary test: longer episodes, multiple recent
+actions, and early termination for prolonged lack of progress. The following do not enter the
+headline lane:
+
+- direct badge, event, health, or visited-map observations;
+- episode-reset coordinate rewards, because Version 1 already proved those can be farmed;
+- the reference `stuck` reward as a complete menu-loop solution, because it is a one-time potential
+  change after 600 visits to one coordinate and Version 2 otherwise ends only at its action limit;
+- healing reward, because repeated damage and recovery could become another renewable local loop.
+
+The reference contains no ready-made opponent-HP damage reward or robust perceptual menu-cycle
+detector. Those Version-4 mechanisms are local additions with their own tests and telemetry.
+
+### Version-4 qualification
+
+The first 16,384-action production-shape canary proved that the watchdog terminates real emulator
+episodes: it classified two perceptual cycles and two long stagnations, wrote four live frames, and
+finished 16 PPO updates with no promotion-verification failure. A second four-worker stress canary
+ran 65,536 actions and 64 updates in 221.708 seconds (295.60 actions/s). It recorded 33 battle
+starts, 27.157 points of bounded opponent-damage credit, seven durable successes, 14 no-progress
+exits, five blackouts, 18 visual cycles, and four long stagnations. It retained 491 positions and
+remained at Route 1 with no verification failure; all terminal hashes matched.
+
+Review then caught a warm-start semantic error in those two canaries. The older one-action model's
+weights had been copied into the oldest of Version 4's three history slots instead of the newest.
+The canaries remain useful evidence for HP credit and loop wiring, but they do not qualify the final
+observation mapping. The fix zeroes both new older-history slots and explicitly places the inherited
+weights in the newest-action slot. A focused tensor test locks that mapping.
+
+The corrected build then completed a fresh 16,384-action, four-worker canary in 57.035 seconds. It
+recorded three battle starts, 5.412 opponent-damage credit, two durable successes, one blackout,
+five visual cycles, one long stagnation, 16 PPO updates, and no promotion-verification failure. The
+manifest records the corrected mapping, and the final model plus all four worker memories matched
+their checkpoint hashes.
+
+Together these checks pass the Version-4 engineering gate: real HP deltas reach the reward ledger, partial damage
+and durable victory remain separate outcomes, loops end with named reasons, all workers update one
+policy, and terminal artifacts are internally consistent. It is not evidence of later-game
+learning. The next evidence step is a fresh long run under a declared budget.
+
+Primary implementation references: the reference
+[Version-2 environment](https://github.com/PWhiddy/PokemonRedExperiments/blob/master/v2/red_gym_env_v2.py),
+[Version-2 trainer](https://github.com/PWhiddy/PokemonRedExperiments/blob/master/v2/baseline_fast_v2.py),
+and the supported Pokémon Red
+[battle core](https://github.com/pret/pokered/blob/master/engine/battle/core.asm).
+
 ## Promotion remains harder than reward
 
 When a worker observes a named milestone beyond the curriculum's current best, it writes a private
@@ -176,7 +267,7 @@ This keeps two ideas separate:
 - **PPO update:** the policy learned from a rollout batch; and
 - **verified promotion:** the experiment proved a new durable game outcome.
 
-### Version-3 battle-credit canaries
+### Historical Version-3 battle-credit canaries
 
 The first real-ROM version-3 canary completed 8,192 actions, 64 optimizer updates, and eight
 episodes. It recorded one battle start, then 24 experience points, then one successful battle. Its
@@ -241,7 +332,8 @@ The live page refreshes every five seconds and shows:
 - best replay-verified milestone;
 - PPO update and verified-promotion counts;
 - episodes and unique map positions;
-- successful versus no-progress battle exits; and
+- successful versus no-progress battle exits;
+- opponent-damage credit and classified loop/stagnation exits; and
 - the latest rendered frame from every emulator worker.
 
 TensorBoard receives optimizer metrics. `status.json` supplies machine-readable counters.

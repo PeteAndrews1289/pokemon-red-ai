@@ -152,7 +152,7 @@ decision, not a coding accident—but it makes the limitation visible in one sho
 Then split the screen into four live Game Boy frames feeding one shared brain. Each worker gathers
 a different experience; after one rollout, draw a single optimizer pulse back into all four. Put
 the privileged referee outside the actor loop and label its two jobs: `REWARD` and `VERIFY`. The
-actor side should remain visibly labeled `PIXELS + PREVIOUS ACTION`.
+actor side should remain visibly labeled `PIXELS + THREE RECENT ACTIONS` for Version 4.
 
 Use the worker benchmark as a short comic beat. Two games leave empty CPU seats. Six games crowd
 the machine and slow down. Four wins at 419.34 collection actions per second in the setup test.
@@ -171,12 +171,16 @@ passes, show the replay four times before celebrating it. If the archive-assiste
 reaches the Hall of Fame, end on the next harder question: can one frozen policy do it from power-on
 without checkpoint help?
 
-Use PPO versions 1–3 as a compact objective-design sequence. Version 1 repeatedly rediscovered
+Use PPO versions 1–4 as a compact objective-design sequence. Version 1 repeatedly rediscovered
 familiar coordinates after resets. Version 2 remembered those coordinates, then made battle endings
 its dominant return while Route 1 remained the verified frontier. Freeze on the word **ENDED**, cross
 it out, and replace it with **DURABLE PROGRESS: EXPERIENCE OR CAPTURE**. The visual argument is that
-better bookkeeping exposed a second ambiguity; it is not a montage claiming the third design has
-already solved combat.
+better bookkeeping exposed a second ambiguity. Then show Version 3's nine wins among 152 battle
+starts: it knew when a battle had paid off, but gave no credit to the actions between menu entry and
+victory. Version 4 adds a visible opponent-HP bar that pays only while it falls. When a worker loops,
+stamp the frame `VISUAL CYCLE` or `STAGNATION` and recycle its episode budget. Keep Route 1 on the
+proof meter throughout; the sequence explains why the design changed without pretending Version 4
+has already solved the game.
 
 ### Suggested beats
 

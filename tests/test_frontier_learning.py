@@ -36,6 +36,10 @@ def state(**changes: object) -> PokemonRedState:
         "event_flags": bytes(319),
         "bag_item_ids": (),
         "got_pokedex": True,
+        "party_hp": (20,),
+        "party_max_hp": (20,),
+        "enemy_hp": None,
+        "enemy_max_hp": None,
     }
     values.update(changes)
     return PokemonRedState(**values)  # type: ignore[arg-type]
@@ -175,6 +179,31 @@ def test_battle_reward_requires_durable_progress_and_records_outcomes() -> None:
     assert gained.components["experience_gain"] == pytest.approx(1.0)
     assert won.components["battle_success"] == 2
     assert won.battle_event == "success"
+
+
+def test_opponent_damage_gets_dense_credit_without_turning_escape_into_success() -> None:
+    tracker = FullGameRewardTracker()
+    route = MilestoneProgress("reached_route_1", 7, "Reached Route 1")
+    tracker.prime(state(), route)
+    tracker.score(
+        state(battle_state=1, enemy_hp=20, enemy_max_hp=20),
+        route,
+        action_button="a",
+        loop_detected=False,
+    )
+    damaged = tracker.score(
+        state(battle_state=1, enemy_hp=10, enemy_max_hp=20),
+        route,
+        action_button="a",
+        loop_detected=False,
+    )
+    escaped = tracker.score(
+        state(), route, action_button="b", loop_detected=False
+    )
+
+    assert damaged.components["opponent_damage"] == pytest.approx(1.0)
+    assert escaped.battle_event == "ended_without_progress"
+    assert "battle_success" not in escaped.components
 
 
 def test_experience_reward_is_lifetime_bounded_but_local_wins_still_count() -> None:

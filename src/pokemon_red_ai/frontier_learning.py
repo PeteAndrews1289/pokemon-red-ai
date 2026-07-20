@@ -71,8 +71,10 @@ class FullGameRewardConfig:
     experience_gain: float = 0.02
     experience_gain_cap: float = 500.0
     battle_success: float = 2.0
+    opponent_damage: float = 2.0
+    opponent_damage_cap: float = 4.0
     blackout: float = -20.0
-    visual_loop: float = -0.2
+    visual_loop: float = -2.0
     repeated_action: float = -0.02
 
     def __post_init__(self) -> None:
@@ -138,6 +140,9 @@ class FullGameRewardTracker:
     _last_battle: int = 0
     _last_party_experience: int | None = None
     _battle_progressed: bool = False
+    _enemy_hp_floor: int | None = None
+    _last_enemy_hp: int | None = None
+    _battle_damage_credit: float = 0.0
     _last_action: str | None = None
     _action_streak: int = 0
 
@@ -162,6 +167,7 @@ class FullGameRewardTracker:
         self._last_battle = state.battle_state or 0
         self._last_party_experience = state.total_party_experience
         self._battle_progressed = False
+        self._prime_enemy_health(state)
         self._last_action = None
         self._action_streak = 0
 
@@ -184,7 +190,34 @@ class FullGameRewardTracker:
         battle_event: str | None = None
         if previous_battle not in {1, 2} and battle in {1, 2}:
             self._battle_progressed = False
+            self._prime_enemy_health(state)
             battle_event = "started"
+
+        if battle in {1, 2}:
+            enemy_hp = state.enemy_hp
+            enemy_max_hp = state.enemy_max_hp
+            if (
+                enemy_hp is not None
+                and enemy_max_hp is not None
+                and enemy_max_hp > 0
+                and self._enemy_hp_floor is not None
+                and enemy_hp < self._enemy_hp_floor
+            ):
+                fraction = (self._enemy_hp_floor - enemy_hp) / enemy_max_hp
+                available = max(0.0, c.opponent_damage_cap - self._battle_damage_credit)
+                credit = min(c.opponent_damage * fraction, available)
+                if credit > 0:
+                    components["opponent_damage"] = credit
+                    self._battle_damage_credit += credit
+                self._enemy_hp_floor = enemy_hp
+            elif (
+                enemy_hp is not None
+                and self._last_enemy_hp == 0
+                and enemy_hp > 0
+            ):
+                # A trainer has sent out a new opponent. Healing never resets the floor.
+                self._enemy_hp_floor = enemy_hp
+            self._last_enemy_hp = enemy_hp
 
         if progress.index > self.best_milestone_index:
             delta = progress.index - self.best_milestone_index
@@ -276,10 +309,12 @@ class FullGameRewardTracker:
             else:
                 battle_event = "ended_without_progress"
             self._battle_progressed = False
+            self._clear_enemy_health()
         elif battle == 0xFF and previous_battle != 0xFF:
             components["blackout"] = c.blackout
             battle_event = "blackout"
             self._battle_progressed = False
+            self._clear_enemy_health()
         self._last_battle = battle
 
         if action_button == self._last_action:
@@ -298,6 +333,16 @@ class FullGameRewardTracker:
             self.reward_events += 1
             self.component_totals.update(components)
         return RewardStep(total, components, battle_event)
+
+    def _prime_enemy_health(self, state: PokemonRedState) -> None:
+        self._enemy_hp_floor = state.enemy_hp
+        self._last_enemy_hp = state.enemy_hp
+        self._battle_damage_credit = 0.0
+
+    def _clear_enemy_health(self) -> None:
+        self._enemy_hp_floor = None
+        self._last_enemy_hp = None
+        self._battle_damage_credit = 0.0
 
     def checkpoint_dict(self) -> dict[str, Any]:
         return {

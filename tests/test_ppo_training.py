@@ -12,9 +12,12 @@ torch = pytest.importorskip("torch")
 
 from pokemon_red_ai.blind import BLIND_ACTIONS
 from pokemon_red_ai.ppo_training import (
+    ACTION_HISTORY_LENGTH,
     PRIVILEGED_STATE_SIZE,
     ParallelPpoConfig,
     PokemonPpoFeatures,
+    VisualStagnationTracker,
+    _remap_warm_start_lstm_input,
     _render_dashboard,
     _state_vector,
 )
@@ -57,21 +60,64 @@ def test_privileged_state_vector_is_fixed_and_bounded() -> None:
 def test_feature_extractor_preserves_declared_information_boundary(privileged: bool) -> None:
     spaces = {
         "pixels": gym.spaces.Box(0, 255, shape=(2, 72, 80), dtype=np.uint8),
-        "previous_action": gym.spaces.Box(0, 1, shape=(len(BLIND_ACTIONS),), dtype=np.float32),
+        "action_history": gym.spaces.Box(
+            0,
+            1,
+            shape=(ACTION_HISTORY_LENGTH * len(BLIND_ACTIONS),),
+            dtype=np.float32,
+        ),
     }
     if privileged:
         spaces["state"] = gym.spaces.Box(0, 1, shape=(PRIVILEGED_STATE_SIZE,), dtype=np.float32)
     extractor = PokemonPpoFeatures(gym.spaces.Dict(spaces))
     observations = {
         "pixels": torch.zeros((2, 2, 72, 80)),
-        "previous_action": torch.zeros((2, len(BLIND_ACTIONS))),
+        "action_history": torch.zeros((2, ACTION_HISTORY_LENGTH * len(BLIND_ACTIONS))),
     }
     if privileged:
         observations["state"] = torch.zeros((2, PRIVILEGED_STATE_SIZE))
 
     features = extractor(observations)
-    expected = 256 + len(BLIND_ACTIONS) + (PRIVILEGED_STATE_SIZE if privileged else 0)
+    expected = (
+        256
+        + ACTION_HISTORY_LENGTH * len(BLIND_ACTIONS)
+        + (PRIVILEGED_STATE_SIZE if privileged else 0)
+    )
     assert features.shape == (2, expected)
+
+
+def test_visual_stagnation_tracker_finds_cycles_and_resets_on_progress() -> None:
+    tracker = VisualStagnationTracker(cycle_window=4, cycle_unique_limit=2, hard_limit=20)
+    progress = pytest.importorskip("pokemon_red_ai.expedition").MilestoneProgress(
+        "power_on", 0, "Power-on"
+    )
+    state = PokemonRedState(True, 0, 1, 1, 1, 0, party_experience=(1,))
+    tracker.reset(state, progress)
+    frame = np.zeros((72, 80), dtype=np.uint8)
+    assert tracker.observe(frame, state, progress) is None
+    assert tracker.observe(frame, state, progress) is None
+    assert tracker.observe(frame, state, progress) is None
+    assert tracker.observe(frame, state, progress) == "visual_cycle"
+
+    moved = PokemonRedState(True, 0, 1, 2, 1, 0, party_experience=(1,))
+    assert tracker.observe(frame, moved, progress) is None
+
+
+def test_warm_start_maps_previous_action_to_newest_history_slot() -> None:
+    source = torch.arange(2 * (256 + len(BLIND_ACTIONS)), dtype=torch.float32).reshape(2, -1)
+    destination = torch.full(
+        (2, 256 + ACTION_HISTORY_LENGTH * len(BLIND_ACTIONS) + PRIVILEGED_STATE_SIZE),
+        -1.0,
+    )
+    _remap_warm_start_lstm_input(destination, source)
+
+    newest = 256 + (ACTION_HISTORY_LENGTH - 1) * len(BLIND_ACTIONS)
+    assert torch.equal(destination[:, :256], source[:, :256])
+    assert torch.count_nonzero(destination[:, 256:newest]) == 0
+    assert torch.equal(
+        destination[:, newest : newest + len(BLIND_ACTIONS)], source[:, 256:]
+    )
+    assert torch.count_nonzero(destination[:, newest + len(BLIND_ACTIONS) :]) == 0
 
 
 def test_dashboard_names_actor_boundary_and_finished_state() -> None:
@@ -87,16 +133,18 @@ def test_dashboard_names_actor_boundary_and_finished_state() -> None:
             "unique_positions": 3,
             "episodes": 2,
             "best_milestone": {"label": "Reached Route 1"},
-            "information_boundary": "pixels + previous action; trainer-only RAM rewards",
+            "information_boundary": (
+                "pixels + three recent actions; trainer-only RAM rewards and loop termination"
+            ),
             "novelty_scope": "persistent per worker across episodes and resumes",
-            "reward_protocol": "durable-battle-progress-v1",
+            "reward_protocol": "battle-local-credit-and-stagnation-v1",
             "battle_events": {"success": 3, "ended_without_progress": 7},
         }
     )
     assert "Failures now" in page
-    assert "pixels + previous action; trainer-only RAM rewards" in page
+    assert "pixels + three recent actions; trainer-only RAM rewards" in page
     assert "persistent per worker across episodes and resumes" in page
-    assert "durable-battle-progress-v1" in page
+    assert "battle-local-credit-and-stagnation-v1" in page
     assert "Battle successes" in page
     assert ">3<" in page
     assert "No-progress battle exits" in page

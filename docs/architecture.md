@@ -8,7 +8,7 @@
 
 ```mermaid
 flowchart LR
-    Games["Four private game runtimes"] --> Pixels["Pixels + previous action"]
+    Games["Four private game runtimes"] --> Pixels["Pixels + three recent actions"]
     Pixels --> Policy["One shared CNN-LSTM actor"]
     Policy --> Buttons["Eight deterministic actions"]
     Buttons --> Games
@@ -21,7 +21,7 @@ flowchart LR
     Curriculum -. "episode reset only" .-> Games
 ```
 
-The primary actor receives only pixels and its previous action. The referee computes reward and
+The primary actor receives only pixels and its three most recent actions. The referee computes reward and
 checks named outcomes but cannot choose buttons. The separately labeled privileged comparator adds
 a fixed 24-value state vector to the actor; its results cannot be presented as pixels-only. A
 checkpoint restore resets actor memory and pixel history with emulator state.
@@ -30,7 +30,7 @@ checkpoint restore resets actor memory and pixel history with emulator state.
 
 ```mermaid
 flowchart LR
-    Runtime["Private game runtime"] --> Actor["Pixels + previous action"]
+    Runtime["Private game runtime"] --> Actor["Pixels + three recent actions"]
     Actor --> Genome["Fixed recurrent genome"]
     Genome --> Buttons["Eight deterministic actions"]
     Buttons --> Runtime
@@ -117,7 +117,7 @@ boundaries remain separately declared for every lane. See
 [reward-architecture.md](reward-architecture.md) for the current catalogue.
 
 The current pixels-only PPO schema contains two processed 72 × 80 grayscale frames plus a one-hot
-previous action. The privileged comparator appends 24 normalized values described in
+three previous actions. The privileged comparator appends 24 normalized values described in
 [Parallel recurrent PPO](parallel-ppo.md). Reward-only fields remain on the referee side.
 
 ### Planner

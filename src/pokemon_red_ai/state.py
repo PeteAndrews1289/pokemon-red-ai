@@ -19,6 +19,8 @@ class RamAddress(IntEnum):
     the same SHA-1 as the supported ROM.
     """
 
+    ENEMY_MON_HP = 0xCFE6
+    ENEMY_MON_MAX_HP = 0xCFF4
     IS_IN_BATTLE = 0xD057
     PARTY_COUNT = 0xD163
     PARTY_SPECIES = 0xD164
@@ -38,6 +40,8 @@ class RamAddress(IntEnum):
 GAME_TIMER_COUNTING_MASK = 0x01
 PARTY_LENGTH = 6
 PARTY_MON_STRUCT_LENGTH = 44
+PARTY_MON_HP_OFFSET = 1
+PARTY_MON_MAX_HP_OFFSET = 34
 PARTY_MON_MOVES_OFFSET = 8
 PARTY_MON_EXPERIENCE_OFFSET = 14
 PARTY_MON_EXPERIENCE_LENGTH = 3
@@ -69,6 +73,10 @@ class PokemonRedState:
     bag_item_ids: tuple[int, ...] | None = None
     got_pokedex: bool | None = None
     party_experience: tuple[int, ...] | None = None
+    party_hp: tuple[int, ...] | None = None
+    party_max_hp: tuple[int, ...] | None = None
+    enemy_hp: int | None = None
+    enemy_max_hp: int | None = None
 
     @property
     def badge_count(self) -> int:
@@ -109,6 +117,18 @@ class PokemonRedState:
     def total_party_experience(self) -> int:
         return sum(self.party_experience or ())
 
+    @property
+    def current_party_hp(self) -> int:
+        return sum(self.party_hp or ())
+
+    @property
+    def maximum_party_hp(self) -> int:
+        return sum(self.party_max_hp or ())
+
+    @property
+    def party_hp_fraction(self) -> float:
+        return self.current_party_hp / max(1, self.maximum_party_hp)
+
     def public_dict(self) -> dict[str, object]:
         return {
             "schema_version": 1,
@@ -127,6 +147,11 @@ class PokemonRedState:
             "party_experience": list(self.party_experience or ()),
             "total_party_experience": self.total_party_experience,
             "max_party_level": self.max_party_level,
+            "party_hp": list(self.party_hp or ()),
+            "party_max_hp": list(self.party_max_hp or ()),
+            "party_hp_fraction": self.party_hp_fraction,
+            "enemy_hp": self.enemy_hp,
+            "enemy_max_hp": self.enemy_max_hp,
             "pokedex_seen_count": self.pokedex_seen_count,
             "pokedex_owned_count": self.pokedex_owned_count,
             "event_flags_count": self.event_flags_count,
@@ -180,6 +205,22 @@ class PokemonRedStateReader:
             )
             for index in range(party_count)
         )
+        party_hp = tuple(
+            self._read_u16_be(
+                int(RamAddress.PARTY_MONS)
+                + index * PARTY_MON_STRUCT_LENGTH
+                + PARTY_MON_HP_OFFSET
+            )
+            for index in range(party_count)
+        )
+        party_max_hp = tuple(
+            self._read_u16_be(
+                int(RamAddress.PARTY_MONS)
+                + index * PARTY_MON_STRUCT_LENGTH
+                + PARTY_MON_MAX_HP_OFFSET
+            )
+            for index in range(party_count)
+        )
         party_moves = tuple(
             move
             for index in range(party_count)
@@ -210,13 +251,15 @@ class PokemonRedStateReader:
             self._memory.read_u8(int(RamAddress.BAG_ITEMS) + index * 2)
             for index in range(bag_item_count)
         )
+        battle_state = self._memory.read_u8(RamAddress.IS_IN_BATTLE)
+        in_battle = battle_state in {1, 2}
         return PokemonRedState(
             game_started=True,
             map_id=self._memory.read_u8(RamAddress.CURRENT_MAP),
             player_y=self._memory.read_u8(RamAddress.PLAYER_Y),
             player_x=self._memory.read_u8(RamAddress.PLAYER_X),
             party_count=party_count,
-            battle_state=self._memory.read_u8(RamAddress.IS_IN_BATTLE),
+            battle_state=battle_state,
             badge_bits=self._memory.read_u8(RamAddress.OBTAINED_BADGES),
             party_species=party_species,
             party_levels=party_levels,
@@ -227,4 +270,15 @@ class PokemonRedStateReader:
             event_flags=event_flags,
             bag_item_ids=bag_item_ids,
             got_pokedex=bool(self._memory.read_u8(GOT_POKEDEX_ADDRESS) & GOT_POKEDEX_MASK),
+            party_hp=party_hp,
+            party_max_hp=party_max_hp,
+            enemy_hp=(self._read_u16_be(RamAddress.ENEMY_MON_HP) if in_battle else None),
+            enemy_max_hp=(
+                self._read_u16_be(RamAddress.ENEMY_MON_MAX_HP) if in_battle else None
+            ),
+        )
+
+    def _read_u16_be(self, address: int) -> int:
+        return (self._memory.read_u8(int(address)) << 8) | self._memory.read_u8(
+            int(address) + 1
         )

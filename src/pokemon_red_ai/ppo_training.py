@@ -10,9 +10,9 @@ import shutil
 import threading
 import time
 import uuid
-from collections import Counter
+from collections import Counter, deque
 from collections.abc import Mapping
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -44,10 +44,11 @@ from pokemon_red_ai.provenance import detect_source_provenance
 from pokemon_red_ai.rom import verify_rom
 from pokemon_red_ai.state import PokemonRedState, PokemonRedStateReader
 
-PPO_PROTOCOL = "parallel-recurrent-ppo-v3"
-PPO_REWARD_PROTOCOL = "durable-battle-progress-v1"
+PPO_PROTOCOL = "parallel-recurrent-ppo-v4"
+PPO_REWARD_PROTOCOL = "battle-local-credit-and-stagnation-v1"
 PPO_MODES = frozenset({"pixels", "privileged"})
 PRIVILEGED_STATE_SIZE = 24
+ACTION_HISTORY_LENGTH = 3
 
 
 def _require_rl() -> tuple[Any, Any, Any, Any, Any, Any]:
@@ -108,7 +109,7 @@ class ParallelPpoConfig:
     max_actions: int = 20_000_000
     seed: int = 20_260_752
     environments: int = 4
-    episode_actions: int = 4_096
+    episode_actions: int = 16_384
     rollout_steps: int = 256
     batch_size: int = 256
     epochs: int = 4
@@ -336,6 +337,103 @@ def _one_hot_action(action: int) -> np.ndarray:
     return value
 
 
+def _action_history(actions: deque[int]) -> np.ndarray:
+    return np.concatenate([_one_hot_action(action) for action in actions])
+
+
+@dataclass(slots=True)
+class VisualStagnationTracker:
+    """Trainer-only loop watchdog; none of this state enters the actor observation."""
+
+    cycle_window: int = 128
+    cycle_unique_limit: int = 8
+    hard_limit: int = 1_024
+    _frames: deque[bytes] = field(default_factory=lambda: deque(maxlen=128))
+    _seen_positions: set[tuple[int, int, int]] = field(default_factory=set)
+    _best_progress: int = 0
+    _max_experience: int = 0
+    _max_events: int = 0
+    _max_owned: int = 0
+    _max_badges: int = 0
+    _enemy_hp_floor: int | None = None
+    _last_battle: int = 0
+    _stagnant_actions: int = 0
+
+    def reset(self, state: PokemonRedState, progress: MilestoneProgress) -> None:
+        self._frames = deque(maxlen=self.cycle_window)
+        self._seen_positions = set()
+        if state.map_id is not None and state.player_x is not None and state.player_y is not None:
+            self._seen_positions.add((state.map_id, state.player_x, state.player_y))
+        self._best_progress = progress.index
+        self._max_experience = state.total_party_experience
+        self._max_events = state.event_flags_count
+        self._max_owned = state.pokedex_owned_count
+        self._max_badges = state.badge_count
+        self._enemy_hp_floor = state.enemy_hp
+        self._last_battle = state.battle_state or 0
+        self._stagnant_actions = 0
+
+    def observe(
+        self,
+        frame: np.ndarray,
+        state: PokemonRedState,
+        progress: MilestoneProgress,
+    ) -> str | None:
+        useful_progress = False
+        position = (
+            (state.map_id, state.player_x, state.player_y)
+            if None not in (state.map_id, state.player_x, state.player_y)
+            else None
+        )
+        if position is not None and position not in self._seen_positions:
+            self._seen_positions.add(position)  # type: ignore[arg-type]
+            useful_progress = True
+        for current, name in (
+            (progress.index, "_best_progress"),
+            (state.total_party_experience, "_max_experience"),
+            (state.event_flags_count, "_max_events"),
+            (state.pokedex_owned_count, "_max_owned"),
+            (state.badge_count, "_max_badges"),
+        ):
+            if current > getattr(self, name):
+                setattr(self, name, current)
+                useful_progress = True
+        battle = state.battle_state or 0
+        if battle in {1, 2}:
+            if self._last_battle not in {1, 2}:
+                self._enemy_hp_floor = state.enemy_hp
+            elif (
+                state.enemy_hp is not None
+                and self._enemy_hp_floor is not None
+                and state.enemy_hp < self._enemy_hp_floor
+            ):
+                self._enemy_hp_floor = state.enemy_hp
+                useful_progress = True
+        else:
+            self._enemy_hp_floor = None
+        self._last_battle = battle
+
+        # Perceptual signatures ignore tiny animation changes but retain menus and cursor cycles.
+        signature = hashlib.blake2b(
+            (frame[::4, ::4] // 32).astype(np.uint8).tobytes(), digest_size=8
+        ).digest()
+        self._frames.append(signature)
+        if useful_progress:
+            self._stagnant_actions = 0
+            self._frames.clear()
+            self._frames.append(signature)
+            return None
+        self._stagnant_actions += 1
+        if self._stagnant_actions >= self.hard_limit:
+            return "progress_stagnation"
+        if (
+            len(self._frames) == self.cycle_window
+            and len(set(self._frames)) <= self.cycle_unique_limit
+        ):
+            return "visual_cycle"
+        return None
+
+
 def _execute_action(emulator: PokemonRedEmulator, action_index: int) -> bool:
     action = BLIND_ACTIONS[action_index]
     if action == NOOP_ACTION:
@@ -356,7 +454,11 @@ class PokemonPpoFeatures(BaseFeaturesExtractor):
 
     def __init__(self, observation_space: Any) -> None:
         privileged = "state" in observation_space.spaces
-        feature_count = 256 + len(BLIND_ACTIONS) + (PRIVILEGED_STATE_SIZE if privileged else 0)
+        feature_count = (
+            256
+            + ACTION_HISTORY_LENGTH * len(BLIND_ACTIONS)
+            + (PRIVILEGED_STATE_SIZE if privileged else 0)
+        )
         super().__init__(observation_space, features_dim=feature_count)
         self.pixel_encoder = torch.nn.Sequential(
             torch.nn.Conv2d(2, 16, kernel_size=8, stride=4),
@@ -375,7 +477,7 @@ class PokemonPpoFeatures(BaseFeaturesExtractor):
         pixels = observations["pixels"].float()
         if pixels.detach().max() > 1:
             pixels = pixels.div(255)
-        values = [self.pixel_encoder(pixels), observations["previous_action"].float()]
+        values = [self.pixel_encoder(pixels), observations["action_history"].float()]
         if self.privileged:
             values.append(observations["state"].float())
         return torch.cat(values, dim=1)
@@ -392,7 +494,12 @@ class PokemonRedPpoEnvironment(gym.Env):
         self.action_space = spaces.Discrete(len(BLIND_ACTIONS))
         observation: dict[str, Any] = {
             "pixels": spaces.Box(0, 255, shape=(2, 72, 80), dtype=np.uint8),
-            "previous_action": spaces.Box(0, 1, shape=(len(BLIND_ACTIONS),), dtype=np.float32),
+            "action_history": spaces.Box(
+                0,
+                1,
+                shape=(ACTION_HISTORY_LENGTH * len(BLIND_ACTIONS),),
+                dtype=np.float32,
+            ),
         }
         if config.mode == "privileged":
             observation["state"] = spaces.Box(
@@ -409,7 +516,10 @@ class PokemonRedPpoEnvironment(gym.Env):
             )
         )
         self.previous_frame = np.zeros((72, 80), dtype=np.uint8)
-        self.previous_action = -1
+        self.recent_actions: deque[int] = deque(
+            [-1] * ACTION_HISTORY_LENGTH, maxlen=ACTION_HISTORY_LENGTH
+        )
+        self.loop_tracker = VisualStagnationTracker()
         self.steps = 0
         self.episode_number = 0
         self.episode_actions: list[int] = []
@@ -418,11 +528,16 @@ class PokemonRedPpoEnvironment(gym.Env):
         self.episode_best = 0
         self.rng = random.Random(config.seed + config.rank)
 
-    def _observation(self, state: PokemonRedState | None = None) -> dict[str, np.ndarray]:
-        current = preprocess_apprentice_frame(self.emulator.screen_rgb())
+    def _observation(
+        self,
+        state: PokemonRedState | None = None,
+        current: np.ndarray | None = None,
+    ) -> dict[str, np.ndarray]:
+        if current is None:
+            current = preprocess_apprentice_frame(self.emulator.screen_rgb())
         value: dict[str, np.ndarray] = {
             "pixels": np.stack((self.previous_frame, current)),
-            "previous_action": _one_hot_action(self.previous_action),
+            "action_history": _action_history(self.recent_actions),
         }
         if self.config.mode == "privileged":
             value["state"] = _state_vector(state or self.reader.read())
@@ -454,11 +569,14 @@ class PokemonRedPpoEnvironment(gym.Env):
         self.reward_tracker.prime(state, self.start_progress)
         current = preprocess_apprentice_frame(self.emulator.screen_rgb())
         self.previous_frame = current
-        self.previous_action = -1
+        self.recent_actions = deque(
+            [-1] * ACTION_HISTORY_LENGTH, maxlen=ACTION_HISTORY_LENGTH
+        )
         self.steps = 0
         self.episode_actions = []
         self.episode_best = self.start_progress.index
         self.episode_number += 1
+        self.loop_tracker.reset(state, self.start_progress)
         return self._observation(state), {
             "curriculum_entry": self.start_entry["entry_id"],
             "starting_milestone": self.start_progress.key,
@@ -517,14 +635,16 @@ class PokemonRedPpoEnvironment(gym.Env):
         alive = _execute_action(self.emulator, action_index)
         self.steps += 1
         self.episode_actions.append(action_index)
-        self.previous_action = action_index
+        self.recent_actions.append(action_index)
         state = self.reader.read()
         progress = milestone_progress_for_state(state, inherited=self.start_progress)
+        current = preprocess_apprentice_frame(self.emulator.screen_rgb())
+        loop_reason = self.loop_tracker.observe(current, state, progress)
         reward = self.reward_tracker.score(
             state,
             progress,
             action_button=BLIND_ACTIONS[action_index],
-            loop_detected=False,
+            loop_detected=loop_reason is not None,
         )
         info: dict[str, Any] = {
             "rank": self.config.rank,
@@ -537,6 +657,8 @@ class PokemonRedPpoEnvironment(gym.Env):
         }
         if reward.battle_event is not None:
             info["battle_event"] = reward.battle_event
+        if loop_reason is not None:
+            info["loop_event"] = loop_reason
         if progress.index > self.episode_best:
             self.episode_best = progress.index
             manifest = _load_curriculum_manifest(self.curriculum_directory)
@@ -545,11 +667,23 @@ class PokemonRedPpoEnvironment(gym.Env):
                 info["promotion_candidate"] = self._spool_candidate(progress)
         if self.steps % 128 == 0 or progress.index > self.start_progress.index:
             self._write_frame()
-        truncated = self.steps >= self.config.episode_actions or not alive
+        truncated = (
+            self.steps >= self.config.episode_actions
+            or not alive
+            or loop_reason is not None
+        )
         if truncated:
             info["episode_end"] = True
+            info["episode_end_reason"] = (
+                loop_reason
+                or (
+                    "episode_action_limit"
+                    if self.steps >= self.config.episode_actions
+                    else "emulator_stop"
+                )
+            )
         return (
-            self._observation(state),
+            self._observation(state, current),
             reward.total * self.config.reward_scale,
             False,
             truncated,
@@ -701,6 +835,23 @@ def admit_verified_candidate(
     return manifest
 
 
+def _remap_warm_start_lstm_input(destination: Any, source: Any) -> None:
+    """Put the one-action seed weights in Version 4's newest-action history slot."""
+
+    pixel_features = 256
+    action_features = len(BLIND_ACTIONS)
+    expected_source = pixel_features + action_features
+    expected_destination = pixel_features + ACTION_HISTORY_LENGTH * action_features
+    if source.shape[1] != expected_source or destination.shape[1] < expected_destination:
+        raise ValueError("Frontier learner LSTM input is incompatible with PPO Version 4")
+    destination.zero_()
+    destination[:, :pixel_features].copy_(source[:, :pixel_features])
+    newest_action_start = pixel_features + (ACTION_HISTORY_LENGTH - 1) * action_features
+    destination[:, newest_action_start : newest_action_start + action_features].copy_(
+        source[:, pixel_features:]
+    )
+
+
 def _warm_start(model: Any, learner_path: Path, *, privileged: bool) -> dict[str, Any]:
     payload = torch.load(learner_path, map_location="cpu", weights_only=True)
     source = payload.get("model", payload)
@@ -729,8 +880,7 @@ def _warm_start(model: Any, learner_path: Path, *, privileged: bool) -> dict[str
     }
     for key, value in source_recurrent.items():
         if key == "weight_ih_l0" and actor_state[key].shape != value.shape:
-            actor_state[key].zero_()
-            actor_state[key][:, : value.shape[1]].copy_(value)
+            _remap_warm_start_lstm_input(actor_state[key], value)
         else:
             actor_state[key].copy_(value)
     actor.load_state_dict(actor_state)
@@ -746,6 +896,8 @@ def _warm_start(model: Any, learner_path: Path, *, privileged: bool) -> dict[str
         "seed_promotions": int(payload.get("promotions_learned", 0)),
         "privileged_actor": privileged,
         "privileged_lstm_columns_initialized_to_zero": privileged,
+        "older_action_history_lstm_columns_initialized_to_zero": True,
+        "seed_previous_action_mapped_to_newest_history_slot": True,
     }
 
 
@@ -796,6 +948,18 @@ def _render_dashboard(status: Mapping[str, Any]) -> str:
                 "No-progress battle exits",
                 f"{int(status.get('battle_events', {}).get('ended_without_progress', 0)):,}",
             ),
+            (
+                "Opponent-damage credit",
+                f"{float(status.get('reward_components', {}).get('opponent_damage', 0)):,.2f}",
+            ),
+            (
+                "Visual loops cut short",
+                f"{int(status.get('loop_events', {}).get('visual_cycle', 0)):,}",
+            ),
+            (
+                "Long stagnations cut short",
+                f"{int(status.get('loop_events', {}).get('progress_stagnation', 0)):,}",
+            ),
         )
     )
     return f"""<!doctype html><html><head><meta charset="utf-8"/>
@@ -844,6 +1008,8 @@ class PpoRunCallback(BaseCallback):
         self.episodes = 0
         self.reward_components: Counter[str] = Counter()
         self.battle_events: Counter[str] = Counter()
+        self.loop_events: Counter[str] = Counter()
+        self.episode_end_reasons: Counter[str] = Counter()
         self.positions: set[tuple[int, int, int]] = set()
         self.promotion_failures = 0
         self.stop_reason: str | None = None
@@ -921,12 +1087,14 @@ class PpoRunCallback(BaseCallback):
             "unique_positions": len(self.positions),
             "reward_components": dict(sorted(self.reward_components.items())),
             "battle_events": dict(sorted(self.battle_events.items())),
+            "loop_events": dict(sorted(self.loop_events.items())),
+            "episode_end_reasons": dict(sorted(self.episode_end_reasons.items())),
             "reward_protocol": PPO_REWARD_PROTOCOL,
             "novelty_scope": "persistent per worker across episodes and resumes",
             "information_boundary": (
-                "pixels + previous action; trainer-only RAM rewards"
+                "pixels + three recent actions; trainer-only RAM rewards and loop termination"
                 if self.config.mode == "pixels"
-                else "pixels + previous action + disclosed RAM state comparator"
+                else "pixels + three recent actions + disclosed RAM state comparator"
             ),
             "resume_semantics": "exact model/optimizer; fresh environment rollouts",
             "dashboard_url": f"http://127.0.0.1:{self.config.dashboard_port}/index.html",
@@ -961,6 +1129,11 @@ class PpoRunCallback(BaseCallback):
                 f"- Battle successes: {status['battle_events'].get('success', 0):,}\n"
                 "- Battle exits without durable progress: "
                 f"{status['battle_events'].get('ended_without_progress', 0):,}\n\n"
+                f"- Opponent-damage credit: "
+                f"{status['reward_components'].get('opponent_damage', 0):,.2f}\n"
+                f"- Visual loops terminated: {status['loop_events'].get('visual_cycle', 0):,}\n"
+                "- Long stagnations terminated: "
+                f"{status['loop_events'].get('progress_stagnation', 0):,}\n\n"
             )
 
     def _handle_candidate(self, candidate_path: Path) -> None:
@@ -1016,6 +1189,12 @@ class PpoRunCallback(BaseCallback):
             battle_event = info.get("battle_event")
             if isinstance(battle_event, str):
                 self.battle_events[battle_event] += 1
+            loop_event = info.get("loop_event")
+            if isinstance(loop_event, str):
+                self.loop_events[loop_event] += 1
+            end_reason = info.get("episode_end_reason")
+            if isinstance(end_reason, str):
+                self.episode_end_reasons[end_reason] += 1
             candidate = info.get("promotion_candidate")
             if isinstance(candidate, str):
                 self._handle_candidate(Path(candidate))
