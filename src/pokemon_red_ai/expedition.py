@@ -21,10 +21,25 @@ from pokemon_red_ai.emulator import PokemonRedEmulator
 from pokemon_red_ai.milestones import MILESTONE_BY_KEY, MILESTONES
 from pokemon_red_ai.state import PokemonRedState, PokemonRedStateReader
 
-EXPEDITION_PROTOCOL_VERSION = "checkpoint-expedition-v1"
-EXPEDITION_STORE_SCHEMA = 1
+LEGACY_EXPEDITION_PROTOCOL_VERSION = "checkpoint-expedition-v1"
+EXPEDITION_PROTOCOL_VERSION = "checkpoint-expedition-v2"
+EXPEDITION_STORE_SCHEMA = 2
+SUPPORTED_EXPEDITION_STORE_SCHEMAS = frozenset({1, EXPEDITION_STORE_SCHEMA})
 _SHA256_PATTERN = re.compile(r"[0-9a-f]{64}")
 _CELL_ID_PATTERN = re.compile(r"[0-9a-f]{24}")
+_REPLAY_REFEREE_KEYS = (
+    "milestone_id",
+    "milestone_index",
+    "milestone_label",
+    "map_id",
+    "badge_count",
+    "required_events",
+    "party_count",
+    "pokedex_seen",
+    "pokedex_owned",
+    "got_pokedex",
+    "hall_of_fame",
+)
 _CANONICAL_PROGRESS = {
     "power_on": (0, "Power-on"),
     **{
@@ -85,6 +100,19 @@ def _freeze_summary(
     if any(isinstance(item, str) and len(item) > 256 for item in summary.values()):
         raise ValueError("Frontier referee summary value is too long")
     return MappingProxyType(summary)
+
+
+def _replay_referee_projection(
+    value: Mapping[str, int | str | bool | None],
+) -> dict[str, int | str | bool | None]:
+    """Select the deterministic state-derived fields that a replay can reproduce.
+
+    Stored summaries may also contain narrative fields accumulated by the coordinator. Those are
+    useful evidence, but a replay should neither fabricate nor erase them while proving the exact
+    state-derived projection.
+    """
+
+    return {key: value[key] for key in _REPLAY_REFEREE_KEYS if key in value}
 
 
 def _atomic_bytes(path: Path, value: bytes) -> None:
@@ -173,15 +201,31 @@ class FrontierDescriptor:
             raise ValueError("A frontier battle kind is not canonical")
 
     @property
-    def key(self) -> tuple[str, int | None, int | None, int | None, str, int]:
+    def primary_key(self) -> tuple[str, int | None, int | None, int | None, str]:
+        """The semantic/spatial niche, independent of transient screen appearance."""
+
         return (
             self.milestone_id,
             self.map_id,
             self.x_bucket,
             self.y_bucket,
             self.battle_kind,
+        )
+
+    @property
+    def variant_key(self) -> tuple[str, int | None, int | None, int | None, str, int]:
+        """The exact bounded visual variant within :attr:`primary_key`."""
+
+        return (
+            *self.primary_key,
             self.visual_class,
         )
+
+    @property
+    def key(self) -> tuple[str, int | None, int | None, int | None, str, int]:
+        """Compatibility alias for v1 callers and checkpoints."""
+
+        return self.variant_key
 
     def public_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -288,6 +332,7 @@ class ReplayResult:
     cell_id: str
     passed: bool
     action_count: int
+    executed_action_count: int
     expected_snapshot_sha256: str
     actual_snapshot_sha256: str
     expected_screen_sha256: str
@@ -320,9 +365,12 @@ class ExpeditionStore:
         path: Path,
         manifest: Mapping[str, Any],
         cells: Iterable[FrontierCell],
+        *,
+        event_payload: bytes | None = None,
     ) -> None:
         self.path = path
         self.manifest = MappingProxyType(dict(manifest))
+        self.schema_version = int(self.manifest.get("schema_version", -1))
         cell_list = list(cells)
         self.cells = {cell.cell_id: cell for cell in cell_list}
         if len(self.cells) != len(cell_list):
@@ -330,17 +378,31 @@ class ExpeditionStore:
         self._event_sequence = 0
         self._last_event_sha256 = "0" * 64
         self._successful_replay_counts: dict[str, int] = {}
+        self._successful_edge_replay_counts: dict[str, int] = {}
+        self._edge_replay_certificate_ids: dict[str, list[str]] = {}
         self._event_log_recovery: dict[str, Any] | None = None
-        self._load_event_chain()
+        self._load_event_chain(event_payload)
         self._validate_graph()
         if self._event_log_recovery is not None:
             self.audit("audit_log_tail_recovered", **self._event_log_recovery)
 
-    def _load_event_chain(self) -> None:
+    @property
+    def event_sequence(self) -> int:
+        """Return the number of durable events in the validated audit chain."""
+
+        return self._event_sequence
+
+    @property
+    def event_head_sha256(self) -> str:
+        """Return the immutable ID of the current durable audit-chain head."""
+
+        return self._last_event_sha256
+
+    def _load_event_chain(self, event_payload: bytes | None = None) -> None:
         path = self.path / "events.jsonl"
         if not path.is_file():
             raise ValueError("Expedition store is missing its audit event log")
-        payload = path.read_bytes()
+        payload = path.read_bytes() if event_payload is None else event_payload
         lines = payload.splitlines(keepends=True)
         valid_bytes = 0
         repair_missing_newline = False
@@ -366,17 +428,17 @@ class ExpeditionStore:
             expected_hash = _sha256(_canonical_json(event))
             if event_hash != expected_hash:
                 raise ValueError("Expedition audit event hash is invalid")
-            successful_replay_cell_id = self._successful_replay_cell_id(event)
-            if successful_replay_cell_id is not None:
-                self._successful_replay_counts[successful_replay_cell_id] = (
-                    self._successful_replay_counts.get(successful_replay_cell_id, 0) + 1
-                )
+            replay_evidence = self._successful_replay_evidence(event)
+            if replay_evidence is not None:
+                self._record_replay_evidence(*replay_evidence, event_hash)
             self._event_sequence = expected_sequence
             self._last_event_sha256 = event_hash
             valid_bytes += len(raw_line)
             repair_missing_newline = not terminated
 
         if torn_tail is not None:
+            if event_payload is not None:
+                raise ValueError("Expedition event view has an incomplete final event")
             tail_sha256 = _sha256(torn_tail)
             recovery_directory = self.path / "recovery"
             recovery_directory.mkdir(exist_ok=True)
@@ -392,6 +454,8 @@ class ExpeditionStore:
                 "private_recovery_file": recovery_name,
             }
         elif repair_missing_newline:
+            if event_payload is not None:
+                raise ValueError("Expedition event view lacks its final newline")
             _atomic_bytes(path, payload + b"\n")
             self._event_log_recovery = {
                 "recovery_kind": "restored_missing_final_newline",
@@ -400,11 +464,17 @@ class ExpeditionStore:
                 "private_recovery_file": None,
             }
 
-    def _successful_replay_cell_id(self, event: Mapping[str, Any]) -> str | None:
+    def _successful_replay_evidence(
+        self,
+        event: Mapping[str, Any],
+    ) -> tuple[str, str] | None:
         """Validate and classify a replay event for the rebuildable in-memory index."""
 
-        if event.get("kind") != "power_on_replay":
+        kind = str(event.get("kind", ""))
+        if kind not in {"power_on_replay", "edge_replay"}:
             return None
+        if kind == "edge_replay" and self.schema_version != EXPEDITION_STORE_SCHEMA:
+            raise ValueError("Legacy expedition stores cannot contain v2 edge certificates")
         cell_id = event.get("cell_id")
         if not isinstance(cell_id, str) or cell_id not in self.cells:
             raise ValueError("Expedition replay event references an unknown cell")
@@ -426,7 +496,74 @@ class ExpeditionStore:
             or actual_index != cell.descriptor.milestone_index
         ):
             return None
-        return cell_id
+
+        if (
+            event.get("expected_snapshot_sha256") != cell.snapshot_sha256
+            or event.get("actual_snapshot_sha256") != cell.snapshot_sha256
+            or event.get("expected_screen_sha256") != cell.screen_sha256
+            or event.get("actual_screen_sha256") != cell.screen_sha256
+            or event.get("expected_descriptor") != cell.descriptor.public_dict()
+            or event.get("actual_descriptor") != cell.descriptor.public_dict()
+            or event.get("failure_reason") is not None
+        ):
+            return None
+        expected_summary = event.get("expected_referee_summary")
+        actual_summary = event.get("actual_referee_summary")
+        expected_projection = _replay_referee_projection(cell.referee_summary)
+        if (
+            expected_summary != dict(cell.referee_summary)
+            or not isinstance(actual_summary, dict)
+            or actual_summary != expected_projection
+        ):
+            return None
+
+        expected_action_count = cell.depth_actions
+        if kind == "edge_replay":
+            if cell.parent_id is None:
+                raise ValueError("An edge replay cannot target the expedition root")
+            parent = self.cells[cell.parent_id]
+            expected_action_count = cell.depth_actions - parent.depth_actions
+            if (
+                event.get("parent_id") != parent.cell_id
+                or event.get("expected_parent_snapshot_sha256")
+                != parent.snapshot_sha256
+                or event.get("expected_segment_sha256") != cell.segment_sha256
+            ):
+                return None
+
+        action_count = event.get("action_count")
+        if not isinstance(action_count, int) or isinstance(action_count, bool):
+            raise ValueError("Expedition replay action count is invalid")
+        if action_count != expected_action_count:
+            return None
+        executed_action_count = event.get("executed_action_count")
+        if executed_action_count is None and self.schema_version == 1:
+            # ReplayResult v1 did not expose this field. A successful mismatch-free v1 event
+            # represented the complete planned lineage by definition.
+            executed_action_count = action_count
+        if not isinstance(executed_action_count, int) or isinstance(
+            executed_action_count, bool
+        ):
+            raise ValueError("Expedition replay executed action count is invalid")
+        if executed_action_count != action_count:
+            return None
+        return kind, cell_id
+
+    def _record_replay_evidence(
+        self,
+        kind: str,
+        cell_id: str,
+        certificate_id: str,
+    ) -> None:
+        if kind == "power_on_replay":
+            self._successful_replay_counts[cell_id] = (
+                self._successful_replay_counts.get(cell_id, 0) + 1
+            )
+            return
+        self._successful_edge_replay_counts[cell_id] = (
+            self._successful_edge_replay_counts.get(cell_id, 0) + 1
+        )
+        self._edge_replay_certificate_ids.setdefault(cell_id, []).append(certificate_id)
 
     @classmethod
     def create(
@@ -467,9 +604,17 @@ class ExpeditionStore:
         path = path.expanduser().resolve()
         _require_private_output_location(path)
         manifest = json.loads((path / "manifest.json").read_text(encoding="utf-8"))
-        if int(manifest.get("schema_version", -1)) != EXPEDITION_STORE_SCHEMA:
+        if int(manifest.get("schema_version", -1)) not in (
+            SUPPORTED_EXPEDITION_STORE_SCHEMAS
+        ):
             raise ValueError("Unsupported expedition store schema")
-        if manifest.get("protocol_version") != EXPEDITION_PROTOCOL_VERSION:
+        schema_version = int(manifest.get("schema_version", -1))
+        expected_protocol = (
+            LEGACY_EXPEDITION_PROTOCOL_VERSION
+            if schema_version == 1
+            else EXPEDITION_PROTOCOL_VERSION
+        )
+        if manifest.get("protocol_version") != expected_protocol:
             raise ValueError("Expedition store uses a different protocol")
         if not _is_sha256(str(manifest.get("rom_sha256", ""))):
             raise ValueError("Expedition manifest ROM hash is invalid")
@@ -503,6 +648,51 @@ class ExpeditionStore:
             )
             store.audit("orphan_cells_recovered", cell_ids=recovered_ids)
         return store
+
+    @classmethod
+    def open_checkpoint_view(
+        cls,
+        path: Path,
+        *,
+        event_payload: bytes,
+        cell_ids: Iterable[str],
+    ) -> ExpeditionStore:
+        """Validate a checkpoint prefix without repairing or rewriting the live store."""
+
+        path = path.expanduser().resolve()
+        _require_private_output_location(path)
+        manifest = json.loads((path / "manifest.json").read_text(encoding="utf-8"))
+        if int(manifest.get("schema_version", -1)) not in (
+            SUPPORTED_EXPEDITION_STORE_SCHEMAS
+        ):
+            raise ValueError("Unsupported expedition store schema")
+        schema_version = int(manifest.get("schema_version", -1))
+        expected_protocol = (
+            LEGACY_EXPEDITION_PROTOCOL_VERSION
+            if schema_version == 1
+            else EXPEDITION_PROTOCOL_VERSION
+        )
+        if manifest.get("protocol_version") != expected_protocol:
+            raise ValueError("Expedition store uses a different protocol")
+        if not _is_sha256(str(manifest.get("rom_sha256", ""))):
+            raise ValueError("Expedition manifest ROM hash is invalid")
+        if not str(manifest.get("pyboy_version", "")):
+            raise ValueError("Expedition manifest PyBoy version is missing")
+        if manifest.get("milestone_catalog_sha256") != MILESTONE_CATALOG_SHA256:
+            raise ValueError("Expedition store uses different milestone semantics")
+        ordered_ids = [str(cell_id) for cell_id in cell_ids]
+        if len(ordered_ids) != len(set(ordered_ids)):
+            raise ValueError("Expedition checkpoint view contains duplicate cell IDs")
+        cells: list[FrontierCell] = []
+        for cell_id in ordered_ids:
+            cell_path = path / "cells" / f"{cell_id}.json"
+            if not cell_path.is_file():
+                raise ValueError("Expedition checkpoint view references a missing cell file")
+            cell = FrontierCell.from_dict(json.loads(cell_path.read_text(encoding="utf-8")))
+            if cell.cell_id != cell_id:
+                raise ValueError("Expedition cell filename does not match its identity")
+            cells.append(cell)
+        return cls(path, manifest, cells, event_payload=event_payload)
 
     def _validate_graph(self) -> None:
         if not self.cells:
@@ -544,7 +734,7 @@ class ExpeditionStore:
                 expected_lineage = _sha256(
                     _canonical_json(
                         {
-                            "protocol": EXPEDITION_PROTOCOL_VERSION,
+                            "protocol": self.manifest["protocol_version"],
                             "root_snapshot_sha256": snapshot.sha256,
                         }
                     )
@@ -765,7 +955,7 @@ class ExpeditionStore:
         lineage_sha256 = _sha256(
             _canonical_json(
                 {
-                    "protocol": EXPEDITION_PROTOCOL_VERSION,
+                    "protocol": self.manifest["protocol_version"],
                     "root_snapshot_sha256": snapshot.sha256,
                 }
             )
@@ -880,12 +1070,61 @@ class ExpeditionStore:
             raise ValueError("Unknown frontier cell")
         return self._successful_replay_counts.get(cell_id, 0)
 
+    def successful_edge_replay_count(self, cell_id: str) -> int:
+        if cell_id not in self.cells:
+            raise ValueError("Unknown frontier cell")
+        return self._successful_edge_replay_counts.get(cell_id, 0)
+
+    def edge_replay_certificate_ids(self, cell_id: str) -> tuple[str, ...]:
+        """Return event-chain hashes for successful exact-parent edge replays."""
+
+        if cell_id not in self.cells:
+            raise ValueError("Unknown frontier cell")
+        return tuple(self._edge_replay_certificate_ids.get(cell_id, ()))
+
     def required_replay_count(self, cell_id: str) -> int:
+        """Return the number of full power-on claims required for this boundary."""
+
+        if cell_id not in self.cells:
+            raise ValueError("Unknown frontier cell")
         cell = self.cells[cell_id]
         if cell.parent_id is None:
             return 0
         parent = self.cells[cell.parent_id]
-        return 3 if cell.descriptor.milestone_index > parent.descriptor.milestone_index else 1
+        if cell.descriptor.milestone_index > parent.descriptor.milestone_index:
+            return 3
+        # V1 used one complete power-on replay for every ordinary cell. Preserve that historical
+        # reporting rule without converting the evidence into a v2 edge certificate.
+        return 1 if self.schema_version == 1 else 0
+
+    def required_edge_replay_count(self, cell_id: str) -> int:
+        if cell_id not in self.cells:
+            raise ValueError("Unknown frontier cell")
+        if self.schema_version == 1 or self.cells[cell_id].parent_id is None:
+            return 0
+        return 1
+
+    def _effective_edge_replay_count(self, cell_id: str) -> int:
+        return self.successful_edge_replay_count(cell_id)
+
+    def verification_deficits(
+        self,
+        cell_id: str,
+    ) -> tuple[tuple[str, str, int, int], ...]:
+        """Return typed, lineage-wide verification deficits in causal order."""
+
+        deficits: list[tuple[str, str, int, int]] = []
+        for lineage_cell in self.lineage(cell_id):
+            boundary_id = lineage_cell.cell_id
+            edge_required = self.required_edge_replay_count(boundary_id)
+            edge_completed = self._effective_edge_replay_count(boundary_id)
+            if edge_completed < edge_required:
+                deficits.append((boundary_id, "edge", edge_completed, edge_required))
+            full_required = self.required_replay_count(boundary_id)
+            full_completed = self.successful_replay_count(boundary_id)
+            if full_completed < full_required:
+                deficits.append((boundary_id, "power_on", full_completed, full_required))
+        return tuple(deficits)
 
     def replay_deficits(self, cell_id: str) -> tuple[tuple[str, int, int], ...]:
         """Return every unverified lineage boundary from power-on through ``cell_id``.
@@ -898,10 +1137,17 @@ class ExpeditionStore:
 
         deficits: list[tuple[str, int, int]] = []
         for lineage_cell in self.lineage(cell_id):
-            required = self.required_replay_count(lineage_cell.cell_id)
-            completed = self.successful_replay_count(lineage_cell.cell_id)
+            boundary_id = lineage_cell.cell_id
+            edge_required = self.required_edge_replay_count(boundary_id)
+            edge_completed = min(
+                self._effective_edge_replay_count(boundary_id), edge_required
+            )
+            full_required = self.required_replay_count(boundary_id)
+            full_completed = min(self.successful_replay_count(boundary_id), full_required)
+            required = edge_required + full_required
+            completed = edge_completed + full_completed
             if completed < required:
-                deficits.append((lineage_cell.cell_id, completed, required))
+                deficits.append((boundary_id, completed, required))
         return tuple(deficits)
 
     def audit(self, kind: str, **payload: Any) -> None:
@@ -922,23 +1168,28 @@ class ExpeditionStore:
             **payload,
         }
         event_hash = _sha256(_canonical_json(event))
-        successful_replay_cell_id = self._successful_replay_cell_id(event)
+        replay_evidence = self._successful_replay_evidence(event)
         _append_json(
             self.path / "events.jsonl",
             {**event, "event_sha256": event_hash},
         )
         self._event_sequence += 1
         self._last_event_sha256 = event_hash
-        if successful_replay_cell_id is not None:
-            self._successful_replay_counts[successful_replay_cell_id] = (
-                self._successful_replay_counts.get(successful_replay_cell_id, 0) + 1
-            )
+        if replay_evidence is not None:
+            self._record_replay_evidence(*replay_evidence, event_hash)
 
 
 class FrontierArchive:
-    """A bounded active selection set with milestone-aware replacement."""
+    """A bounded archive of semantic niches with limited visual diversity."""
+
+    MAX_VISUAL_VARIANTS_PER_PRIMARY = 3
+    PROMOTION_WARMUP_CREDITS = 1
 
     def __init__(self, store: ExpeditionStore, capacity: int) -> None:
+        if store.schema_version != EXPEDITION_STORE_SCHEMA:
+            raise ValueError(
+                "Legacy expedition stores are read-only and cannot enter a mutable v2 archive"
+            )
         if capacity < 2:
             raise ValueError("A frontier archive must hold at least two cells")
         self.store = store
@@ -947,21 +1198,210 @@ class FrontierArchive:
             tuple[str, int | None, int | None, int | None, str, int], str
         ] = {}
         self.selection_counts: dict[str, int] = {}
+        self.promotion_warmup_credits: dict[str, int] = {}
+        self.selection_total = 0
 
     @property
     def active_cells(self) -> tuple[FrontierCell, ...]:
         return tuple(self.store.cells[cell_id] for cell_id in self.active_by_key.values())
 
+    @staticmethod
+    def _cell_sort_key(cell: FrontierCell) -> tuple[Any, ...]:
+        descriptor = cell.descriptor
+        return (
+            descriptor.milestone_index,
+            descriptor.milestone_id,
+            -1 if descriptor.map_id is None else descriptor.map_id,
+            -1 if descriptor.x_bucket is None else descriptor.x_bucket,
+            -1 if descriptor.y_bucket is None else descriptor.y_bucket,
+            descriptor.battle_kind,
+            descriptor.visual_class,
+            cell.cell_id,
+        )
+
+    def _primary_group(self, descriptor: FrontierDescriptor) -> list[FrontierCell]:
+        return [
+            cell
+            for cell in self.active_cells
+            if cell.descriptor.primary_key == descriptor.primary_key
+        ]
+
+    def _is_promotion(self, cell: FrontierCell) -> bool:
+        if cell.parent_id is None:
+            return False
+        return (
+            cell.descriptor.milestone_index
+            > self.store.cells[cell.parent_id].descriptor.milestone_index
+        )
+
+    def _protected_ids(self) -> set[str]:
+        """Protect the root and the best certificate at the current promotion frontier."""
+
+        protected = {
+            cell.cell_id for cell in self.active_cells if cell.parent_id is None
+        }
+        promotions = [cell for cell in self.active_cells if self._is_promotion(cell)]
+        if promotions:
+            highest = max(cell.descriptor.milestone_index for cell in promotions)
+            representative = max(
+                (cell for cell in promotions if cell.descriptor.milestone_index == highest),
+                key=lambda item: (item.quality, item.cell_id),
+            )
+            protected.add(representative.cell_id)
+        return protected
+
+    def candidate_priority(
+        self,
+        descriptor: FrontierDescriptor,
+        referee_summary: Mapping[str, int | str | bool | None],
+        depth_actions: int,
+    ) -> tuple[int, int, int, int, int, int, int]:
+        """Rank an unpersisted candidate for a runner-side suffix buffer.
+
+        The first fields reward actual semantic progress, then novel semantic/visual niches;
+        the remaining fields match :attr:`FrontierCell.quality`.  No mutation or audit event is
+        produced, so runners can discard weak suffixes before writing private payloads.
+        """
+
+        if depth_actions < 0:
+            raise ValueError("A candidate action depth cannot be negative")
+        self.store._validate_descriptor(descriptor)
+        primary_present = any(
+            cell.descriptor.primary_key == descriptor.primary_key
+            for cell in self.active_cells
+        )
+        variant_present = descriptor.variant_key in self.active_by_key
+        return (
+            descriptor.milestone_index,
+            int(not primary_present),
+            int(not variant_present),
+            int(referee_summary.get("badge_count", 0) or 0),
+            int(referee_summary.get("required_events", 0) or 0),
+            int(referee_summary.get("pokedex_owned", 0) or 0),
+            -depth_actions,
+        )
+
+    @staticmethod
+    def _candidate_quality(
+        descriptor: FrontierDescriptor,
+        referee_summary: Mapping[str, int | str | bool | None],
+        depth_actions: int,
+    ) -> tuple[int, int, int, int, int]:
+        return (
+            descriptor.milestone_index,
+            int(referee_summary.get("badge_count", 0) or 0),
+            int(referee_summary.get("required_events", 0) or 0),
+            int(referee_summary.get("pokedex_owned", 0) or 0),
+            -depth_actions,
+        )
+
+    def _competitiveness_decision(
+        self,
+        descriptor: FrontierDescriptor,
+        quality: tuple[int, int, int, int, int],
+    ) -> ArchiveDecision:
+        existing_id = self.active_by_key.get(descriptor.variant_key)
+        if existing_id is not None:
+            existing = self.store.cells[existing_id]
+            if existing.parent_id is None:
+                return ArchiveDecision(False, "same_niche_root_protected", existing_id)
+            if existing_id in self._protected_ids():
+                return ArchiveDecision(False, "same_niche_promotion_protected", existing_id)
+            if quality <= existing.quality:
+                return ArchiveDecision(False, "same_niche_not_better", existing_id)
+            return ArchiveDecision(True, "same_niche_improved", existing_id)
+
+        primary_group = self._primary_group(descriptor)
+        group_limit = self.MAX_VISUAL_VARIANTS_PER_PRIMARY + 1
+        if len(primary_group) >= group_limit:
+            representative = max(
+                primary_group,
+                key=lambda item: (item.quality, item.cell_id),
+            )
+            protected = self._protected_ids() | {representative.cell_id}
+            variants = [item for item in primary_group if item.cell_id not in protected]
+            if not variants:
+                return ArchiveDecision(False, "primary_variant_cap_protected")
+            worst_variant = min(variants, key=lambda item: (item.quality, item.cell_id))
+            if quality <= worst_variant.quality:
+                return ArchiveDecision(
+                    False,
+                    "primary_variant_cap_not_competitive",
+                    worst_variant.cell_id,
+                )
+            return ArchiveDecision(
+                True,
+                "primary_variant_replacement",
+                worst_variant.cell_id,
+            )
+
+        if len(self.active_by_key) < self.capacity:
+            return ArchiveDecision(True, "unused_capacity")
+
+        protected_ids = self._protected_ids()
+        highest_tier = max(active.descriptor.milestone_index for active in self.active_cells)
+        candidates = [
+            active
+            for active in self.active_cells
+            if active.cell_id not in protected_ids
+            and active.descriptor.milestone_index < highest_tier
+        ]
+        if not candidates:
+            candidates = [
+                active for active in self.active_cells if active.cell_id not in protected_ids
+            ]
+        if not candidates and descriptor.milestone_index > highest_tier:
+            # A strictly newer milestone must be able to supersede the old frontier even when a
+            # tiny archive consists only of the root and its protected promotion anchor.
+            candidates = [active for active in self.active_cells if active.parent_id is not None]
+        if not candidates:
+            return ArchiveDecision(False, "capacity_root_protected")
+        worst = min(candidates, key=lambda active: (active.quality, active.cell_id))
+        if quality <= worst.quality:
+            return ArchiveDecision(False, "capacity_not_competitive", worst.cell_id)
+        return ArchiveDecision(True, "milestone_aware_replacement", worst.cell_id)
+
+    def preflight_ordinary_candidate(
+        self,
+        descriptor: FrontierDescriptor,
+        referee_summary: Mapping[str, int | str | bool | None],
+        depth_actions: int,
+    ) -> ArchiveDecision:
+        """Preview deterministic archive competitiveness without writing or mutating state.
+
+        This preflight deliberately says nothing about replay eligibility. The runner may use a
+        rejection to avoid persisting a certainly uncompetitive ordinary suffix candidate; an
+        admission still requires a durable cell, its exact edge certificate, and the normal
+        :meth:`consider` gate.
+        """
+
+        if depth_actions < 0:
+            raise ValueError("A candidate action depth cannot be negative")
+        self.store._validate_descriptor(descriptor)
+        quality = self._candidate_quality(descriptor, referee_summary, depth_actions)
+        if any(item < 0 for item in quality[1:4]):
+            raise ValueError("Frontier quality fields cannot be negative")
+        return self._competitiveness_decision(descriptor, quality)
+
     def checkpoint_dict(self) -> dict[str, Any]:
-        active_ids = list(self.active_by_key.values())
+        active_ids = [
+            cell.cell_id for cell in sorted(self.active_cells, key=self._cell_sort_key)
+        ]
         return {
-            "schema_version": 1,
+            "schema_version": 2,
             "capacity": self.capacity,
+            "max_visual_variants_per_primary": self.MAX_VISUAL_VARIANTS_PER_PRIMARY,
             "active_cell_ids": active_ids,
             "selection_counts": {
                 cell_id: self.selection_counts.get(cell_id, 0)
                 for cell_id in sorted(active_ids)
             },
+            "promotion_warmup_credits": {
+                cell_id: self.promotion_warmup_credits[cell_id]
+                for cell_id in sorted(active_ids)
+                if self.promotion_warmup_credits.get(cell_id, 0) > 0
+            },
+            "selection_total": self.selection_total,
         }
 
     @classmethod
@@ -970,44 +1410,104 @@ class FrontierArchive:
         store: ExpeditionStore,
         value: Mapping[str, Any],
     ) -> FrontierArchive:
-        if int(value.get("schema_version", -1)) != 1:
+        schema_version = int(value.get("schema_version", -1))
+        if schema_version != 2:
             raise ValueError("Unsupported frontier archive checkpoint schema")
         archive = cls(store, int(value["capacity"]))
         active_ids = [str(cell_id) for cell_id in value.get("active_cell_ids", [])]
         if len(active_ids) != len(set(active_ids)) or len(active_ids) > archive.capacity:
             raise ValueError("Frontier archive checkpoint has invalid active cells")
+        checkpoint_cells: list[FrontierCell] = []
         for cell_id in active_ids:
             if cell_id not in store.cells:
                 raise ValueError("Frontier archive checkpoint references an unknown cell")
             cell = store.cells[cell_id]
-            if cell.descriptor.key in archive.active_by_key:
+            if any(
+                existing.descriptor.variant_key == cell.descriptor.variant_key
+                for existing in checkpoint_cells
+            ):
                 raise ValueError("Frontier archive checkpoint contains duplicate niches")
             if store.replay_deficits(cell_id):
                 raise ValueError(
                     "Frontier archive checkpoint contains an unverified cell or ancestor"
                 )
-            archive.active_by_key[cell.descriptor.key] = cell_id
+            checkpoint_cells.append(cell)
+        if int(value.get("max_visual_variants_per_primary", -1)) != (
+            archive.MAX_VISUAL_VARIANTS_PER_PRIMARY
+        ):
+            raise ValueError("Frontier archive checkpoint visual cap is incompatible")
+        groups: dict[tuple[str, int | None, int | None, int | None, str], int] = {}
+        for cell in checkpoint_cells:
+            key = cell.descriptor.primary_key
+            groups[key] = groups.get(key, 0) + 1
+        if any(
+            count > archive.MAX_VISUAL_VARIANTS_PER_PRIMARY + 1
+            for count in groups.values()
+        ):
+            raise ValueError("Frontier archive checkpoint exceeds its visual variant cap")
+        for cell in sorted(checkpoint_cells, key=archive._cell_sort_key):
+            archive.active_by_key[cell.descriptor.variant_key] = cell.cell_id
         counts = {
             str(cell_id): int(count)
             for cell_id, count in value.get("selection_counts", {}).items()
         }
+        retained_ids = set(archive.active_by_key.values())
         if set(counts) - set(active_ids) or any(count < 0 for count in counts.values()):
             raise ValueError("Frontier archive checkpoint has invalid selection counts")
-        archive.selection_counts = counts
+        archive.selection_counts = {
+            cell_id: count for cell_id, count in counts.items() if cell_id in retained_ids
+        }
+        warmup = {
+            str(cell_id): int(credits)
+            for cell_id, credits in value.get("promotion_warmup_credits", {}).items()
+        }
+        if (
+            set(warmup) - retained_ids
+            or any(
+                credits < 0 or credits > archive.PROMOTION_WARMUP_CREDITS
+                for credits in warmup.values()
+            )
+            or any(not archive._is_promotion(store.cells[cell_id]) for cell_id in warmup)
+        ):
+            raise ValueError("Frontier archive checkpoint has invalid warmup credits")
+        archive.promotion_warmup_credits = warmup
+        archive.selection_total = int(value.get("selection_total", -1))
+        if archive.selection_total < sum(archive.selection_counts.values()):
+            raise ValueError("Frontier archive checkpoint selection total is invalid")
         return archive
+
+    def _remove(self, cell: FrontierCell) -> None:
+        self.active_by_key.pop(cell.descriptor.variant_key)
+        self.selection_counts.pop(cell.cell_id, None)
+        self.promotion_warmup_credits.pop(cell.cell_id, None)
+
+    def _admit(
+        self,
+        cell: FrontierCell,
+        *,
+        highest_tier_before: int,
+        replaced: FrontierCell | None = None,
+    ) -> None:
+        if replaced is not None:
+            self._remove(replaced)
+        self.active_by_key[cell.descriptor.variant_key] = cell.cell_id
+        if self._is_promotion(cell) and cell.descriptor.milestone_index > highest_tier_before:
+            self.promotion_warmup_credits[cell.cell_id] = (
+                self.PROMOTION_WARMUP_CREDITS
+            )
 
     def consider(self, cell: FrontierCell) -> ArchiveDecision:
         stored = self.store.cells.get(cell.cell_id)
         if stored is None or stored != cell:
             raise ValueError("Frontier archive can consider only cells from its own store")
-        deficits = self.store.replay_deficits(cell.cell_id)
+        deficits = self.store.verification_deficits(cell.cell_id)
         if deficits:
-            deficit_id, completed_replays, required_replays = deficits[0]
+            deficit_id, replay_kind, completed_replays, required_replays = deficits[0]
             reason = (
-                f"quarantined_replay_{completed_replays}_of_{required_replays}"
+                f"quarantined_{replay_kind}_{completed_replays}_of_{required_replays}"
                 if deficit_id == cell.cell_id
                 else (
-                    f"quarantined_ancestor_{deficit_id[:12]}_replay_"
+                    f"quarantined_ancestor_{deficit_id[:12]}_{replay_kind}_"
                     f"{completed_replays}_of_{required_replays}"
                 )
             )
@@ -1017,54 +1517,22 @@ class FrontierArchive:
             )
             self.store.audit("archive_decision", cell_id=cell.cell_id, **asdict(decision))
             return decision
-        key = cell.descriptor.key
-        existing_id = self.active_by_key.get(key)
-        if existing_id is not None:
-            existing = self.store.cells[existing_id]
-            if existing.parent_id is None:
-                decision = ArchiveDecision(False, "same_niche_root_protected", existing_id)
-            elif cell.quality <= existing.quality:
-                decision = ArchiveDecision(False, "same_niche_not_better", existing_id)
-            else:
-                self.active_by_key[key] = cell.cell_id
-                self.selection_counts.pop(existing_id, None)
-                decision = ArchiveDecision(True, "same_niche_improved", existing_id)
-            self.store.audit("archive_decision", cell_id=cell.cell_id, **asdict(decision))
-            return decision
-
-        if len(self.active_by_key) < self.capacity:
-            self.active_by_key[key] = cell.cell_id
-            decision = ArchiveDecision(True, "unused_capacity")
-            self.store.audit("archive_decision", cell_id=cell.cell_id, **asdict(decision))
-            return decision
-
-        root_ids = {
-            active.cell_id for active in self.active_cells if active.parent_id is None
-        }
-        highest_tier = max(active.descriptor.milestone_index for active in self.active_cells)
-        candidates = [
-            active
-            for active in self.active_cells
-            if active.cell_id not in root_ids
-            and active.descriptor.milestone_index < highest_tier
-        ]
-        if not candidates:
-            candidates = [
-                active for active in self.active_cells if active.cell_id not in root_ids
-            ]
-        if not candidates:
-            decision = ArchiveDecision(False, "capacity_root_protected")
-            self.store.audit("archive_decision", cell_id=cell.cell_id, **asdict(decision))
-            return decision
-        worst = min(candidates, key=lambda active: (active.quality, active.cell_id))
-        if cell.descriptor.milestone_index < highest_tier and cell.quality <= worst.quality:
-            decision = ArchiveDecision(False, "capacity_not_competitive", worst.cell_id)
-            self.store.audit("archive_decision", cell_id=cell.cell_id, **asdict(decision))
-            return decision
-        self.active_by_key.pop(worst.descriptor.key)
-        self.selection_counts.pop(worst.cell_id, None)
-        self.active_by_key[key] = cell.cell_id
-        decision = ArchiveDecision(True, "milestone_aware_replacement", worst.cell_id)
+        highest_tier_before = max(
+            (active.descriptor.milestone_index for active in self.active_cells),
+            default=-1,
+        )
+        decision = self._competitiveness_decision(cell.descriptor, cell.quality)
+        if decision.admitted:
+            replaced = (
+                None
+                if decision.replaced_cell_id is None
+                else self.store.cells[decision.replaced_cell_id]
+            )
+            self._admit(
+                cell,
+                highest_tier_before=highest_tier_before,
+                replaced=replaced,
+            )
         self.store.audit("archive_decision", cell_id=cell.cell_id, **asdict(decision))
         return decision
 
@@ -1082,18 +1550,31 @@ class FrontierArchive:
         if frontier_probability + rehearsal_probability > 1:
             raise ValueError("Frontier selection probabilities cannot exceed one")
         cells = list(self.active_cells)
-        draw = rng.random()
-        if draw < frontier_probability:
-            highest = max(cell.descriptor.milestone_index for cell in cells)
-            pool = [cell for cell in cells if cell.descriptor.milestone_index == highest]
+        warmup_pool = [
+            cell
+            for cell in cells
+            if self.promotion_warmup_credits.get(cell.cell_id, 0) > 0
+        ]
+        used_warmup = bool(warmup_pool)
+        if warmup_pool:
+            highest = max(cell.descriptor.milestone_index for cell in warmup_pool)
+            pool = [
+                cell for cell in warmup_pool if cell.descriptor.milestone_index == highest
+            ]
             channel = "frontier"
-        elif draw < frontier_probability + rehearsal_probability:
-            lowest = min(cell.descriptor.milestone_index for cell in cells)
-            pool = [cell for cell in cells if cell.descriptor.milestone_index == lowest]
-            channel = "rehearsal"
         else:
-            pool = cells
-            channel = "underexplored"
+            draw = rng.random()
+            if draw < frontier_probability:
+                highest = max(cell.descriptor.milestone_index for cell in cells)
+                pool = [cell for cell in cells if cell.descriptor.milestone_index == highest]
+                channel = "frontier"
+            elif draw < frontier_probability + rehearsal_probability:
+                lowest = min(cell.descriptor.milestone_index for cell in cells)
+                pool = [cell for cell in cells if cell.descriptor.milestone_index == lowest]
+                channel = "rehearsal"
+            else:
+                pool = cells
+                channel = "underexplored"
         selected = min(
             pool,
             key=lambda cell: (
@@ -1103,11 +1584,20 @@ class FrontierArchive:
             ),
         )
         self.selection_counts[selected.cell_id] = self.selection_counts.get(selected.cell_id, 0) + 1
+        self.selection_total += 1
+        if used_warmup:
+            credits = self.promotion_warmup_credits[selected.cell_id] - 1
+            if credits:
+                self.promotion_warmup_credits[selected.cell_id] = credits
+            else:
+                self.promotion_warmup_credits.pop(selected.cell_id)
         self.store.audit(
             "frontier_selected",
             cell_id=selected.cell_id,
             channel=channel,
             selection_count=self.selection_counts[selected.cell_id],
+            selection_total=self.selection_total,
+            promotion_warmup=used_warmup,
         )
         return selected, channel
 
@@ -1116,15 +1606,20 @@ class ReplayEvaluator(Protocol):
     def __call__(self, state: PokemonRedState, pixels: np.ndarray) -> bool: ...
 
 
-def replay_frontier_cell(
+def _replay_actions(
     rom_path: Path,
     store: ExpeditionStore,
     cell_id: str,
     *,
+    actions: Iterable[BlindAction],
+    action_count: int,
+    starting_snapshot: FrozenSnapshot | None,
+    starting_progress: MilestoneProgress | None,
     evaluator: ReplayEvaluator | None = None,
+    cancel_requested: Callable[[], bool] | None = None,
 ) -> ReplayResult:
-    """Replay from fresh power-on and require exact hashes plus canonical semantic progress."""
-
+    if cell_id not in store.cells:
+        raise ValueError("Unknown frontier cell")
     target = store.cells[cell_id]
     mismatch_reasons: list[str] = []
     actual_snapshot_sha256 = ""
@@ -1133,12 +1628,21 @@ def replay_frontier_cell(
     actual_descriptor_dict: dict[str, Any] = {}
     actual_referee_summary: dict[str, int | str | bool | None] = {}
     actual_progress = MilestoneProgress("power_on", 0, "Power-on")
+    executed_action_count = 0
     try:
         with PokemonRedEmulator(rom_path) as emulator:
             reader = PokemonRedStateReader(emulator)
+            if starting_snapshot is not None:
+                emulator.load_state(starting_snapshot.thaw())
             initial_state = reader.read()
-            actual_progress = milestone_progress_for_state(initial_state)
-            for action in store.iter_lineage_actions(cell_id):
+            actual_progress = milestone_progress_for_state(
+                initial_state,
+                inherited=starting_progress,
+            )
+            for action in actions:
+                if cancel_requested is not None and cancel_requested():
+                    mismatch_reasons.append("replay_cancelled")
+                    break
                 alive = (
                     emulator.tick(action.total_frames, render_last=True)
                     if action.button == "noop"
@@ -1148,6 +1652,7 @@ def replay_frontier_cell(
                         release_frames=action.release_frames,
                     )
                 )
+                executed_action_count += 1
                 state = reader.read()
                 actual_progress = milestone_progress_for_state(
                     state,
@@ -1186,12 +1691,9 @@ def replay_frontier_cell(
                 mismatch_reasons.append("canonical_milestone_mismatch")
             if actual_descriptor != target.descriptor:
                 mismatch_reasons.append("full_descriptor_mismatch")
-            canonical_summary_keys = actual_referee_summary.keys()
-            if any(
-                key not in target.referee_summary
-                or target.referee_summary[key] != actual_referee_summary[key]
-                for key in canonical_summary_keys
-            ):
+            if _replay_referee_projection(
+                actual_referee_summary
+            ) != _replay_referee_projection(target.referee_summary):
                 mismatch_reasons.append("canonical_referee_summary_mismatch")
     except Exception as error:  # Every planned verifier failure belongs in the ledger.
         mismatch_reasons.append(f"verifier_exception:{type(error).__name__}")
@@ -1200,7 +1702,8 @@ def replay_frontier_cell(
     result = ReplayResult(
         cell_id=cell_id,
         passed=not mismatch_reasons,
-        action_count=target.depth_actions,
+        action_count=action_count,
+        executed_action_count=executed_action_count,
         expected_snapshot_sha256=target.snapshot_sha256,
         actual_snapshot_sha256=actual_snapshot_sha256,
         expected_screen_sha256=target.screen_sha256,
@@ -1217,7 +1720,84 @@ def replay_frontier_cell(
         mismatch_reasons=tuple(mismatch_reasons),
         failure_reason=failure_reason,
     )
+    return result
+
+
+def replay_frontier_cell(
+    rom_path: Path,
+    store: ExpeditionStore,
+    cell_id: str,
+    *,
+    evaluator: ReplayEvaluator | None = None,
+    cancel_requested: Callable[[], bool] | None = None,
+) -> ReplayResult:
+    """Replay from fresh power-on and require exact hashes plus canonical semantic progress."""
+
+    if cell_id not in store.cells:
+        raise ValueError("Unknown frontier cell")
+    target = store.cells[cell_id]
+    result = _replay_actions(
+        rom_path,
+        store,
+        cell_id,
+        actions=store.iter_lineage_actions(cell_id),
+        action_count=target.depth_actions,
+        starting_snapshot=None,
+        starting_progress=None,
+        evaluator=evaluator,
+        cancel_requested=cancel_requested,
+    )
     store.audit("power_on_replay", **result.public_dict())
+    return result
+
+
+def replay_frontier_edge(
+    rom_path: Path,
+    store: ExpeditionStore,
+    cell_id: str,
+    *,
+    evaluator: ReplayEvaluator | None = None,
+    cancel_requested: Callable[[], bool] | None = None,
+) -> ReplayResult:
+    """Verify exactly one parent-to-child edge from the parent's stored snapshot.
+
+    This cheaper certificate establishes local checkpoint integrity. A named milestone advance
+    still needs three independent :func:`replay_frontier_cell` claims from power-on before it is
+    selectable.
+    """
+
+    if cell_id not in store.cells:
+        raise ValueError("Unknown frontier cell")
+    if store.schema_version != EXPEDITION_STORE_SCHEMA:
+        raise ValueError("Legacy expedition stores cannot issue v2 edge certificates")
+    target = store.cells[cell_id]
+    if target.parent_id is None:
+        raise ValueError("The expedition root does not have a replayable edge")
+    parent = store.cells[target.parent_id]
+    segment = store.read_segment(target.segment_sha256)
+    parent_progress = MilestoneProgress(
+        parent.descriptor.milestone_id,
+        parent.descriptor.milestone_index,
+        _CANONICAL_PROGRESS[parent.descriptor.milestone_id][1],
+    )
+    result = _replay_actions(
+        rom_path,
+        store,
+        cell_id,
+        actions=segment,
+        action_count=len(segment),
+        starting_snapshot=store.read_snapshot(parent.snapshot_sha256),
+        starting_progress=parent_progress,
+        evaluator=evaluator,
+        cancel_requested=cancel_requested,
+    )
+    store.audit(
+        "edge_replay",
+        parent_id=parent.cell_id,
+        expected_parent_snapshot_sha256=parent.snapshot_sha256,
+        expected_segment_sha256=target.segment_sha256,
+        **result.public_dict(),
+    )
     return result
 
 

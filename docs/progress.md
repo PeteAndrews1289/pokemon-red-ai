@@ -7,7 +7,8 @@
 > integrity-bound frontier checkpoints, complete action lineages, and mandatory power-on replay
 > before any checkpoint may become a verified milestone.
 
-- **Current stage:** Q1 concluded at 1/2; replay scaling and matched emitter comparison next
+- **Current stage:** Q1 concluded at 1/2; Archive v2 implementation is checked and staged
+  qualification is next, followed by the Visual Apprentice learning pilot
 - **Status date:** 2026-07-19
 
 **Most important caveat:** Q1 verified one replayable house-exit lineage, but the acting suffix
@@ -71,12 +72,16 @@ flowchart LR
 | Named milestones reach Hall of Fame | ✅ Verified | E2 | Fifty-five ordered outcomes include mandatory keys/HMs; completion requires both the Champion event and Hall-of-Fame map |
 | Frontier evidence is integrity-bound | ✅ Verified | E2 | Cells bind ROM/version snapshots, action segments, frames, ancestry, semantic descriptors, full metadata, and a hash-chained audit log |
 | False semantic replay is rejected | ✅ Verified | E2 | A real-ROM regression reproduces exact hashes for a deliberately false Hall-of-Fame cell and fails its canonical milestone check |
-| Milestone frontiers require replay | ✅ Verified | E2 | Local discoveries require one passing replay and milestone advances require three before active selection |
+| Milestone frontiers require replay | ✅ Verified | E2 | Every v2 non-root cell requires one exact edge replay; a named promotion additionally requires three fresh complete power-on replays before active selection |
 | A resumable expedition runner exists | ✅ Verified | E3 engineering | Bounded real-ROM qualification retained an explicit stop/resume and exact final budget; Q1 performance is reported separately |
+| Replay bookkeeping is indexed and streamed | ✅ Verified | E2 | Replay counts rebuild from the authoritative event hash chain, lineage actions stream by segment, and ancestry validates topologically; the private-ROM suite passed |
+| Disk monitoring is bounded between exact reconciliations | ✅ Verified | E2 | Known writes are counted incrementally, exact tree scans occur only at declared boundaries, and free-space/output limits remain enforced |
+| Archive v2 bounds local verification and frontier arrivals | 🟨 Checked; staged run pending | E2 implementation | Edge verification, three promotion replays, bounded visual alternatives, one persisted ordinary candidate per suffix, preflight drops, and event-head-bound resume pass the 121-test private-ROM suite; no staged run result exists yet |
+| Visual Apprentice v1 has a frozen development design | ✅ Specified | E0 | Pixel inputs, recurrent model, self-generated data, curriculum, hardware bounds, ablations, and evaluation gates are documented; no model has been trained |
 | The Q0 discovery baseline reached a playable milestone | ⬜ Not demonstrated | E0 | It reached Oak's introduction visually but the referee correctly remained at `power_on` |
 | The expedition reached `left_home` | ✅ Verified in one development seed | E3 / H3 | A 419-action lineage passed three promotion replays; the two-seed Q1 result was 1/2 and the emitter was random |
 | The Q1 robustness gate passed | ⬜ Failed | E3 | Seed `20260730` stopped at the ground floor; seed `20260731` stepped outside; both exhausted the frozen 20,000-action budget |
-| The current store is marathon-scale | ⬜ Blocked by profiling | E0 | Q1 spent 954,704 replay actions on 40,000 exploration actions; streaming, indexes, selective verification, and retention are required before a multi-day run |
+| The current expedition is marathon-scale | ⬜ Blocked by Archive v2 qualification | E2 implementation | The known Q1 replay and private-file growth paths are bounded in code; staged continuous and stop/resume runs must measure the real ratios before a multi-day campaign |
 | Long random action sequences remain stable | ⬜ Planned | E0 | Extended stability run has not been reported |
 | A human Oak's Parcel baseline exists | ⬜ Planned | E0 | No baseline action count or completion time is available yet |
 | A trained policy leaves the bedroom | ⬜ Planned | E0 | Development learners have wandered beyond it, but no frozen task evaluation has been run |
@@ -91,7 +96,7 @@ suggest precision that does not exist before the training design and difficulty 
 | Phase | Deliverable | Current state | Exit signal |
 | --- | --- | --- | --- |
 | Q0 — Completion foundation | Reproducible checkpoint runner plus truthful completion referee | **Passed** | Runner, replay, resume, privacy, and corruption checks recorded |
-| 1 — Expedition opening | Replay-verified bedroom, house, starter, and Parcel frontiers | **Q1 concluded 1/2; H3 reached, exit gate failed** | A materially different emitter reaches `left_home` under the same two-seed gate before extending the curriculum |
+| 1 — Expedition opening | Replay-verified bedroom, house, starter, and Parcel frontiers | **Q1 concluded 1/2; Archive v2 active** | Archive v2 passes its bounded scaling gate, then a materially different emitter reaches `left_home` under a frozen matched gate |
 | 2 — Brock | Reusable skills plus planner, memory, and watchdog | **Not started** | Frozen clean-start evaluation defeats Brock under budget |
 | Later — Comparisons | Language-model, RL, and hybrid ablations | **Not started** | Same referee and declared budgets used for all configurations |
 

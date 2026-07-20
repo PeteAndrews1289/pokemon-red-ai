@@ -27,10 +27,13 @@
 8. ✅ Implement the named completion referee and integrity-bound expedition evidence foundation.
 9. ✅ Integrate the single-writer checkpoint expedition, localhost dashboard, exact resume, and
    required power-on lineage replay.
-10. 🟨 Conclude Q1 honestly: H3 `left_home` reached, but the two-seed gate failed 1/2.
-11. ⬜ Bound replay/archive growth and compare optimized/learned emitters under the same Q1 gate.
-12. ⬜ Distill useful self-generated lineages into a richer frozen visual policy.
-13. ✅ Replace Monkey in the four-lane pretrial dashboard.
+10. ✅ Conclude Q1 honestly: H3 `left_home` reached, but the two-seed gate failed 1/2.
+11. ✅ Index replay counts, stream lineages, validate ancestry topologically, and bound disk scans.
+12. 🟨 Qualify the checked Archive v2 edge verification, bounded niches, and suffix buffering on the real ROM.
+13. ⬜ Train and evaluate [Visual Apprentice v1](visual-apprentice.md) under its frozen local gate.
+14. ⬜ Compare qualified optimized/learned emitters under a matched house-exit gate.
+15. ⬜ Distill useful self-generated lineages into a richer frozen visual policy.
+16. ✅ Replace Monkey in the four-lane pretrial dashboard.
 
 ## Later informed-agent roadmap
 
@@ -52,7 +55,9 @@ flowchart TD
     LAB --> REF["✅ Named referee + lineage store"]
     REF --> P1["✅ Q0<br/>Checkpoint expedition runner"]
     P1 --> Q1["🟨 Q1<br/>H3 reached; gate 1/2"]
-    Q1 --> EM["⬜ CURRENT<br/>Scale + emitter comparison"]
+    Q1 --> SC["🟨 CURRENT<br/>Archive v2 qualification"]
+    SC --> VA["⬜ Visual Apprentice<br/>house-exit skill"]
+    VA --> EM["⬜ Matched emitter comparison"]
     EM --> SK["⬜ Reusable navigation and battle behavior"]
     SK --> HY["⬜ PLANNED<br/>Planner + memory + watchdog"]
     HY --> P2["⬜ PLANNED<br/>Phase 2: defeat Brock"]
@@ -125,11 +130,17 @@ than the selected completion mechanism.
 
 ### 1C — Choose and train bounded emitters
 
+- ✅ Index replay counts, stream action lineages, validate ancestry topologically, and bound disk
+  reconciliation without weakening the event hash chain.
+- ✅ Implement Archive v2: one semantic/spatial primary niche with bounded visual alternatives,
+  one ordinary candidate per suffix, exact edge verification for training restores, and three
+  fresh power-on replays for named promotion claims.
 - ⬜ Compare random/action-sequence, recurrent visual, and hybrid emitters under matched gates.
 - ⬜ Train navigation, dialogue/text advance, menu control, and battle behavior as measurable local
   skills from self-generated checkpoint distributions.
 - ⬜ Keep shaped reward and archive quality separate from named success.
-- ⬜ Implement the replay/storage scaling gate before multi-day compute.
+- ⬜ Qualify replay ratio, archive arrivals, exact resume, retention marking, and dashboard privacy
+  under staged real-ROM action counts before multi-day compute.
 
 **Gate:** a frozen learned local policy improves on the random discovery denominator over every
 predeclared attempt; archive search remains labeled separately.
@@ -202,17 +213,21 @@ revealed.
 
 1. **Freeze Q1** — preserve the complete 1/2 result, 419-action successful lineage, and all failed
    branches as the random checkpoint-search denominator.
-2. **Scaling work** — stream lineages, index replay counts, validate ancestry topologically, bound
-   the replay queue, and freeze private-payload retention before any multi-day campaign.
-3. **Selection repair** — keep floods of one-use visual cells from delaying newly advanced
-   frontiers, while retaining diversity and the full failure ledger.
-4. **Emitter comparison** — compare optimized action-sequence, recurrent visual, and hybrid
+2. **Scaling foundation** — ✅ stream lineages, index replay counts, validate ancestry
+   topologically, and replace recursive per-action disk scans with bounded monitoring.
+3. **Archive v2 qualification** — 🟨 edge-verify one buffered ordinary candidate per suffix, bound
+   visual alternatives, prioritize new promotion frontiers, and measure continuous plus resumed
+   real-ROM runs before authorizing retention deletion or multi-day compute.
+4. **Visual Apprentice pilot** — replay the self-generated 419-action route into a deliberate
+   overfit smoke, gather independent/recovery branches, and evaluate one frozen recurrent pixel
+   policy under the gates in [Visual Apprentice v1](visual-apprentice.md).
+5. **Emitter comparison** — compare optimized action-sequence, recurrent visual, and hybrid
    emitters under the unchanged two-seed Q1 gate.
-5. **Dual-frame evidence** — retain the exact semantic event frame and a separately labeled stable
+6. **Dual-frame evidence** — retain the exact semantic event frame and a separately labeled stable
    narrative frame after transitions.
-6. **Opening curriculum** — only after a new emitter passes Q1, extend checkpoint exploration through Oak, starter,
+7. **Opening curriculum** — only after a new emitter passes Q1, extend checkpoint exploration through Oak, starter,
    rival, Parcel, and Pokédex.
-7. **Learned-policy track** — use self-generated successful and recovery traces to train bounded
+8. **Learned-policy track** — use self-generated successful and recovery traces to train bounded
    visual skills before attempting one frozen end-to-end policy.
 
 ## What is deliberately not promised

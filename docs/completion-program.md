@@ -6,6 +6,11 @@
 > exploration actions caused 954,704 replay actions. This earns the narrow H3 claim that the
 > expedition reached a verified milestone, not that a model learned the behavior. Replay/archive
 > scaling and a matched emitter comparison now precede any opening curriculum or multi-day run.
+> The first scaling foundation is complete: replay counts are indexed from the authoritative audit
+> chain, lineage actions stream by segment, ancestry validates topologically, and disk monitoring
+> no longer walks the growing run tree per action. Archive v2 is now the active gate. It replaces
+> ordinary full-lineage replay with exact parent-to-child edge verification, bounds visual variants
+> and suffix admissions, and preserves three fresh power-on replays for every named promotion.
 
 ### Implementation ledger
 
@@ -15,9 +20,12 @@
 | Strict Hall-of-Fame condition | ✅ Implemented and tested | Champion event and Hall-of-Fame map must coincide |
 | Private snapshot/action store | ✅ Implemented and tested | ROM/version/payload, parent, frame, depth, cell, lineage, and audit hashes fail closed |
 | Mandatory power-on replay semantics | ✅ Real-ROM integration checked | A deliberately false Hall-of-Fame cell is rejected even when its snapshot and screen hashes replay exactly |
-| Verified frontier promotion | ✅ Implemented | Every lineage boundary must pass; local cells need one replay and milestone advances need three |
+| Verified frontier promotion | ✅ Implemented | Every v2 lineage boundary needs one exact local edge replay; milestone advances additionally need three complete power-on replays |
 | Single-writer bounded runner and dashboard | ✅ Implemented and checked | Real stop/resume preserved archive, selection/RNG state, and the intervention ledger |
 | First autonomous house-exit qualification | 🟨 H3 reached; Q1 failed 1/2 | One seed replayed `left_home`; both-seed robustness requirement was not met |
+| Bookkeeping/disk scaling foundation | ✅ Implemented and private-ROM checked | Constant-time replay-count lookup, streamed lineages, topological validation, and bounded disk reconciliation; does not reduce emulator replay count by itself |
+| Archive v2 local verification/scheduling | 🟨 Implementation checked; qualification next | Edge certificates may authorize training restores; only three fresh power-on promotion replays authorize named H3/H4 evidence; the private-ROM suite passes, but no staged run result is claimed yet |
+| Visual Apprentice v1 | ⬜ Development design frozen | Self-generated imitation, reverse curriculum, recovery PPO, and held-out gates are specified; no trained model result exists |
 
 ## The destination
 
@@ -280,18 +288,25 @@ These ranges are starting hypotheses, not frozen constants. The calibration reco
 - replay pass rate; and
 - wall time, storage, and emulator actions per worker.
 
-### Scaling gate discovered during Q0
+### Scaling gate discovered during Q0 and Q1
 
-The trustworthy implementation is not yet a 150-million-action implementation. In one 1,024-action
-real-ROM qualification, 75 exact verification replays consumed another 9,280 actions—about 9.1
-replay actions for every exploration action—and still reached no named playable milestone. The
-current store also reconstructs complete action tuples, scans the audit ledger for replay counts,
-validates long ancestry repeatedly, and retains private payloads for rejected evidence.
+The original trustworthy implementation was not a 150-million-action implementation. In one
+1,024-action Q0 real-ROM qualification, 75 exact verification replays consumed another 9,280
+actions—about 9.1 replay actions for every exploration action—and still reached no named playable
+milestone. Q1 later spent 954,704 replay actions on 40,000 exploration actions. Its store also
+materialized complete action tuples, repeatedly scanned replay evidence, and revalidated ancestry
+more often than necessary.
 
-That is useful failure evidence, not permission to buy a larger SSD and ignore algorithmic cost.
-Before Q2 or any multi-day campaign, the runner must stream lineage segments, index replay state,
-validate ancestry topologically, bound the verification queue, and freeze a retention/garbage-
-collection policy that preserves public failure records without keeping every private payload.
+Those measurements were useful failure evidence, not permission to buy a larger SSD and ignore
+algorithmic cost. Replay counts are now indexed, lineages stream by segment, graph validation is
+topological, disk scans are bounded, and Archive v2 limits ordinary persistence and local replay.
+Its runner also preserves complete or torn post-checkpoint crash tails and orphan cell metadata in
+hashed private recovery bundles, and can finish the same rollback after a second interruption. The
+checkpoint's display state is embedded atomically rather than borrowed from the mutable live
+dashboard. The remaining gate is empirical:
+continuous, graceful-resume, and hard-crash real-ROM qualifications must measure the new replay and
+file ratios. Lineage-wide eligibility caching at extreme depths and a safe private-payload
+retention policy remain follow-ups before a multi-day campaign is authorized.
 
 The chosen horizon policy must be recorded before an official training block begins.
 

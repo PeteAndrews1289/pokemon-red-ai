@@ -669,10 +669,10 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
 - **Interpretation:** Search eligibility and public claim eligibility need different certificates.
   Exact edge composition can safely support training restores; H3/H4 authority remains with full
   power-on promotion replay.
-- **Consequence:** Archive v2 reports edge, promotion, and sampled-audit costs separately. The first
-  real-ROM qualification must demonstrate an ordinary edge-replay ratio no greater than 1.0,
-  exact resume, bounded variants, and unchanged three-pass named promotion semantics before a
-  long run is authorized.
+- **Consequence:** Archive v2 reports edge and promotion costs separately; sampled composition
+  auditing remains a follow-up. The first real-ROM qualification must demonstrate an ordinary
+  edge-replay ratio no greater than 1.0, exact resume, bounded variants, and unchanged three-pass
+  named promotion semantics before a long run is authorized.
 - **Revisit when:** Continuous and stop/resume Archive v2 qualifications finish.
 
 ## DR-0035 — Build Visual Apprentice v1 from self-generated routes
@@ -701,6 +701,44 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
   power-on composition gate requires at least 18 of 20 declared attempts. Until then the model is
   described only as implemented, training, or developmental.
 - **Revisit when:** The overfit smoke, multi-lineage dataset gate, or first frozen evaluation fails.
+
+## DR-0036 — Keep Q1 historical and make Archive v2 fail closed
+
+- **Date:** 2026-07-19
+- **Status:** Implemented and private-ROM checked; staged qualification pending
+- **Scope:** Archive v2 trust, restart, interruption, and private-file boundaries
+- **Information label:** Infrastructure for `RANDOM-ACTION-EMITTER / PRIVILEGED-TRAINING-REFEREE`
+- **Decision:** Stamp new expedition stores as v2 and keep v1 stores under their original
+  full-power-on reporting semantics while making them ineligible for v2 resume, mutable archive
+  selection, or edge certificates. Count a v2 replay certificate only when its complete envelope
+  matches the stored cell. Bind each runner checkpoint to the exact durable event sequence and hash
+  head, event byte boundary, ordered cell set, and immutable embedded frame. Preserve every
+  recognized post-checkpoint transaction tail—including orphan cell metadata and a torn final
+  event—in a content-addressed private recovery bundle before exact rollback. Make that rollback
+  an idempotent transaction tied to the full checkpoint hash and revalidate the checkpoint view
+  before applying even a pending rollback. Reject certainly uncompetitive ordinary candidates
+  before persistence, and allow long promotion replays to stop for explicit requests or disk
+  emergencies.
+- **Alternatives considered:** Silently treat a v1 full replay as a v2 edge certificate; accept a
+  passing milestone ID without checking hashes and descriptor; resume an old RNG/archive checkpoint
+  atop a newer event ledger; write every suffix candidate and rely on the 4 GiB limit; ignore STOP
+  until all full-lineage promotion replays finish.
+- **Observation/evidence:** Review found that each alternative could preserve a misleading claim or
+  turn the 150-million-action ceiling into millions of private files. Both Q1 stores reopen with
+  zero historical deficits and are refused by the mutable v2 archive. The complete private-ROM
+  suite passes 121 tests after the boundary changes. Simulated crashes after selection, cell
+  metadata, complete or partial event append, cell index update, event-log rollback, and index
+  rollback preserve the abandoned tail and return to the exact checkpoint. A divergent live
+  dashboard frame resumes from the embedded checkpoint frame; behind or tampered prefixes and
+  invalid checkpoints, frames, or bound pending transactions fail closed.
+- **Interpretation:** Backward compatibility means preserving what old evidence proved, not granting
+  it new authority. Exact resume and bounded storage arrivals are scientific controls as well as
+  operational safeguards.
+- **Consequence:** Archive v2 may enter staged continuous, graceful-resume, and hard-crash
+  qualification. It is not yet authorized for a multi-day campaign, and lineage-wide eligibility
+  caching plus private-payload retention remain explicit scaling follow-ups.
+- **Revisit when:** The staged Archive v2 qualification finishes or measured recovery evidence
+  contradicts the simulated crash tests.
 
 ## Unresolved decisions
 

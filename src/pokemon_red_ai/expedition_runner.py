@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import base64
+import binascii
 import gzip
 import hashlib
 import html
@@ -39,20 +41,25 @@ from pokemon_red_ai.expedition import (
     ExpeditionStore,
     FrontierArchive,
     FrontierCell,
+    FrontierDescriptor,
     MilestoneProgress,
+    ReplayResult,
     descriptor_from_state,
     milestone_progress_for_state,
     referee_summary_for_state,
     replay_frontier_cell,
+    replay_frontier_edge,
 )
 from pokemon_red_ai.milestones import HALL_OF_FAME_KEY, MILESTONES, MilestoneTracker
 from pokemon_red_ai.provenance import detect_source_provenance
 from pokemon_red_ai.rom import RomFingerprint
 from pokemon_red_ai.state import PokemonRedState, PokemonRedStateReader
 
-EXPEDITION_RUNNER_PROTOCOL_VERSION = "checkpoint-expedition-runner-v1"
-EXPEDITION_RUNNER_CHECKPOINT_SCHEMA = 1
+EXPEDITION_RUNNER_PROTOCOL_VERSION = "checkpoint-expedition-runner-v2"
+EXPEDITION_RUNNER_CHECKPOINT_SCHEMA = 2
 POWER_ON_PROGRESS = MilestoneProgress("power_on", 0, "Power-on")
+_CHECKPOINT_FRAME_SHAPE = (144, 160, 3)
+_CHECKPOINT_FRAME_ENCODING = "rgb24-base64-v1"
 
 
 @dataclass(frozen=True, slots=True)
@@ -129,11 +136,18 @@ class ExpeditionCounters:
     cells_created: int = 0
     cells_admitted: int = 0
     cells_rejected: int = 0
+    ordinary_preflight_rejections: int = 0
     loop_stops: int = 0
     emulator_stops: int = 0
     replay_attempts: int = 0
     replay_actions: int = 0
     replay_passes: int = 0
+    edge_replay_attempts: int = 0
+    edge_replay_actions: int = 0
+    edge_replay_passes: int = 0
+    promotion_power_on_replay_attempts: int = 0
+    promotion_power_on_replay_actions: int = 0
+    promotion_power_on_replay_passes: int = 0
     elapsed_seconds: float = 0
     action_counts: Counter[str] = field(default_factory=Counter)
 
@@ -152,15 +166,35 @@ class ExpeditionCounters:
             "cells_created",
             "cells_admitted",
             "cells_rejected",
+            "ordinary_preflight_rejections",
             "loop_stops",
             "emulator_stops",
             "replay_attempts",
             "replay_actions",
             "replay_passes",
+            "edge_replay_attempts",
+            "edge_replay_actions",
+            "edge_replay_passes",
+            "promotion_power_on_replay_attempts",
+            "promotion_power_on_replay_actions",
+            "promotion_power_on_replay_passes",
         )
         integers = {name: int(value.get(name, 0)) for name in names}
         if any(item < 0 for item in integers.values()):
             raise ValueError("Expedition counters cannot be negative")
+        if (
+            integers["edge_replay_passes"] > integers["edge_replay_attempts"]
+            or integers["promotion_power_on_replay_passes"]
+            > integers["promotion_power_on_replay_attempts"]
+            or integers["edge_replay_actions"] > integers["total_actions"]
+            or integers["edge_replay_attempts"] + integers["promotion_power_on_replay_attempts"]
+            > integers["replay_attempts"]
+            or integers["edge_replay_actions"] + integers["promotion_power_on_replay_actions"]
+            > integers["replay_actions"]
+            or integers["edge_replay_passes"] + integers["promotion_power_on_replay_passes"]
+            > integers["replay_passes"]
+        ):
+            raise ValueError("Expedition replay counters are inconsistent")
         counts = Counter(
             {str(key): int(count) for key, count in value.get("action_counts", {}).items()}
         )
@@ -171,6 +205,71 @@ class ExpeditionCounters:
             elapsed_seconds=float(value.get("elapsed_seconds", 0)),
             action_counts=counts,
         )
+
+
+@dataclass(frozen=True, slots=True)
+class BufferedSuffixCandidate:
+    """One private in-memory capture that may become the suffix's sole stored cell."""
+
+    snapshot: FrozenSnapshot
+    actions_from_parent: tuple[BlindAction, ...]
+    descriptor: FrontierDescriptor
+    screen_sha256: str
+    discovered_global_action: int
+    referee_summary: Mapping[str, int | str | bool | None]
+    progress: MilestoneProgress
+    pixels: np.ndarray
+    priority: tuple[Any, ...]
+
+
+class SuffixCandidateBuffer:
+    """Retain only the strongest ordinary capture until a suffix reaches its boundary."""
+
+    def __init__(self) -> None:
+        self.captures_observed = 0
+        self.candidate: BufferedSuffixCandidate | None = None
+
+    def offer(self, candidate: BufferedSuffixCandidate) -> bool:
+        self.captures_observed += 1
+        incumbent = self.candidate
+        candidate_rank = (
+            candidate.priority,
+            -len(candidate.actions_from_parent),
+            candidate.screen_sha256,
+        )
+        incumbent_rank = (
+            (
+                incumbent.priority,
+                -len(incumbent.actions_from_parent),
+                incumbent.screen_sha256,
+            )
+            if incumbent is not None
+            else None
+        )
+        if incumbent_rank is None or candidate_rank > incumbent_rank:
+            self.candidate = candidate
+            return True
+        return False
+
+
+def _record_edge_replay(counters: ExpeditionCounters, replay: ReplayResult) -> None:
+    counters.replay_attempts += 1
+    counters.replay_actions += replay.executed_action_count
+    counters.replay_passes += int(replay.passed)
+    counters.edge_replay_attempts += 1
+    counters.edge_replay_actions += replay.executed_action_count
+    counters.edge_replay_passes += int(replay.passed)
+    if counters.edge_replay_actions > counters.total_actions:
+        raise RuntimeError("Ordinary edge replay actions exceeded exploration actions")
+
+
+def _record_promotion_replay(counters: ExpeditionCounters, replay: ReplayResult) -> None:
+    counters.replay_attempts += 1
+    counters.replay_actions += replay.executed_action_count
+    counters.replay_passes += int(replay.passed)
+    counters.promotion_power_on_replay_attempts += 1
+    counters.promotion_power_on_replay_actions += replay.executed_action_count
+    counters.promotion_power_on_replay_passes += int(replay.passed)
 
 
 @dataclass(frozen=True, slots=True)
@@ -291,19 +390,29 @@ def _write_checkpoint(path: Path, value: Mapping[str, Any]) -> None:
 def _read_checkpoint(path: Path) -> tuple[Path, dict[str, Any]]:
     candidates = (path, path.with_name("checkpoint.previous.json.gz"))
     failures: list[Exception] = []
+    legacy_checkpoint_seen = False
     for candidate in candidates:
         if not candidate.is_file():
             continue
         try:
             with gzip.open(candidate, "rt", encoding="utf-8") as source:
                 value = json.load(source)
-            if int(value.get("schema_version", -1)) != EXPEDITION_RUNNER_CHECKPOINT_SCHEMA:
+            checkpoint_schema = int(value.get("schema_version", -1))
+            if checkpoint_schema == 1:
+                legacy_checkpoint_seen = True
+                raise ValueError("Legacy expedition runner checkpoint")
+            if checkpoint_schema != EXPEDITION_RUNNER_CHECKPOINT_SCHEMA:
                 raise ValueError("Unsupported expedition runner checkpoint schema")
             if value.get("protocol_version") != EXPEDITION_RUNNER_PROTOCOL_VERSION:
                 raise ValueError("Expedition runner checkpoint uses a different protocol")
             return candidate, value
         except (OSError, EOFError, json.JSONDecodeError, ValueError) as error:
             failures.append(error)
+    if legacy_checkpoint_seen:
+        raise ValueError(
+            "Checkpoint Expedition v1 runs are concluded artifacts and cannot resume under "
+            "Archive v2; start a fresh run"
+        )
     if failures:
         raise ValueError("No valid expedition runner checkpoint is available") from failures[0]
     raise ValueError("Expedition runner checkpoint does not exist")
@@ -341,7 +450,11 @@ def _directory_file_sizes(path: Path) -> dict[Path, int]:
     bounded set of files that each operation can touch.
     """
 
-    return {item: item.stat().st_size for item in path.rglob("*") if item.is_file()}
+    return {
+        item: item.stat().st_size
+        for item in path.rglob("*")
+        if item.is_file() and item.name != "RUNNING.lock"
+    }
 
 
 def _directory_size(path: Path) -> int:
@@ -472,9 +585,7 @@ def _acquire_single_writer(output: Path) -> Path:
             except (OSError, ValueError):
                 lock_path.unlink(missing_ok=True)
                 continue
-            raise RuntimeError(
-                f"Expedition already has a live coordinator (PID {owner})"
-            ) from None
+            raise RuntimeError(f"Expedition already has a live coordinator (PID {owner})") from None
         with os.fdopen(descriptor, "w", encoding="ascii") as output_stream:
             output_stream.write(f"{os.getpid()}\n")
             output_stream.flush()
@@ -638,7 +749,7 @@ def _status_payload(
         root is not None and archive.store.successful_replay_count(root.cell_id) >= 1
     )
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "protocol_version": EXPEDITION_RUNNER_PROTOCOL_VERSION,
         "store_protocol_version": EXPEDITION_PROTOCOL_VERSION,
         "run_name": "Checkpoint Expedition — blind suffixes, privileged referee",
@@ -671,11 +782,22 @@ def _status_payload(
         "cells_created": counters.cells_created,
         "cells_admitted": counters.cells_admitted,
         "cells_rejected": counters.cells_rejected,
+        "ordinary_preflight_rejections": counters.ordinary_preflight_rejections,
         "loop_stops": counters.loop_stops,
         "emulator_stops": counters.emulator_stops,
         "replay_attempts": counters.replay_attempts,
         "replay_actions": counters.replay_actions,
         "replay_passes": counters.replay_passes,
+        "edge_replay_attempts": counters.edge_replay_attempts,
+        "edge_replay_actions": counters.edge_replay_actions,
+        "edge_replay_passes": counters.edge_replay_passes,
+        "promotion_power_on_replay_attempts": (counters.promotion_power_on_replay_attempts),
+        "promotion_power_on_replay_actions": counters.promotion_power_on_replay_actions,
+        "promotion_power_on_replay_passes": counters.promotion_power_on_replay_passes,
+        "edge_replay_action_ratio": round(
+            counters.edge_replay_actions / counters.total_actions if counters.total_actions else 0,
+            4,
+        ),
         "power_on_replay_gate_passed": root_gate_passed,
         "action_counts": dict(sorted(counters.action_counts.items())),
         "best_milestone": best_progress.public_dict(),
@@ -786,17 +908,22 @@ their complete input lineage from power-on.</p>
 <section class="grid"><article class="card">
 <img src="latest.png?v={updated}" alt="Latest rendered Game Boy frame" />
 <div class="stats"><div><span>Exploration actions</span>
-<strong>{int(status.get('total_actions', 0)):,}</strong></div>
-<div><span>Attempts</span><strong>{int(status.get('attempts', 0)):,}</strong></div>
-<div><span>Active / stored cells</span>
-<strong>{int(status.get('archive_cells', 0)):,} /
-{int(status.get('stored_evidence_cells', 0)):,}</strong></div>
-<div><span>Loop stops</span><strong>{int(status.get('loop_stops', 0)):,}</strong></div>
-<div><span>Replay passes</span><strong>{int(status.get('replay_passes', 0)):,} /
-{int(status.get('replay_attempts', 0)):,}</strong></div>
+<strong>{int(status.get("total_actions", 0)):,}</strong></div>
+<div><span>Attempts</span><strong>{int(status.get("attempts", 0)):,}</strong></div>
+	<div><span>Active / stored cells</span>
+	<strong>{int(status.get("archive_cells", 0)):,} /
+	{int(status.get("stored_evidence_cells", 0)):,}</strong></div>
+	<div><span>Preflight drops</span>
+	<strong>{int(status.get("ordinary_preflight_rejections", 0)):,}</strong></div>
+	<div><span>Loop stops</span><strong>{int(status.get("loop_stops", 0)):,}</strong></div>
+<div><span>Edge replay passes</span><strong>{int(status.get("edge_replay_passes", 0)):,} /
+{int(status.get("edge_replay_attempts", 0)):,}</strong></div>
+<div><span>Promotion replay passes</span>
+<strong>{int(status.get("promotion_power_on_replay_passes", 0)):,} /
+{int(status.get("promotion_power_on_replay_attempts", 0)):,}</strong></div>
 <div><span>Stop reason</span><strong>{reason}</strong></div></div></article>
 <article class="card"><span>Best verified frontier</span>
-<div class="milestone">{html.escape(str(best.get('label', 'Clean power-on')))}</div>
+<div class="milestone">{html.escape(str(best.get("label", "Clean power-on")))}</div>
 <div class="attempt">{html.escape(current_label)}</div>
 <table><thead><tr><th>Milestone</th><th>Map</th><th>Depth</th><th>Selections</th></tr></thead>
 <tbody>{rows}</tbody></table></article></section>
@@ -827,6 +954,532 @@ class _SignalStop:
         self.reason = "sigint" if event == signal.SIGINT else "sigterm"
 
 
+@dataclass(frozen=True, slots=True)
+class _StoreRecoveryPlan:
+    checkpoint_event_bytes: bytes
+    extra_event_bytes: bytes
+    checkpoint_cell_ids: tuple[str, ...]
+    extra_cells: tuple[tuple[str, bytes], ...]
+    observed_event_sequence: int
+    observed_event_head_sha256: str
+    observed_cell_ids: tuple[str, ...]
+    observed_index_cell_ids: tuple[str, ...]
+
+
+def _parse_event_chain(payload: bytes) -> tuple[int, str, tuple[dict[str, Any], ...]]:
+    """Validate a complete event byte prefix without invoking store recovery behavior."""
+
+    if payload and not payload.endswith(b"\n"):
+        raise ValueError("Expedition store event log has an incomplete tail")
+    sequence = 0
+    event_head = "0" * 64
+    events: list[dict[str, Any]] = []
+    for raw_line in payload.splitlines():
+        try:
+            value = json.loads(raw_line)
+        except (UnicodeDecodeError, json.JSONDecodeError) as error:
+            raise ValueError("Expedition store event JSON is invalid") from error
+        if not isinstance(value, dict):
+            raise ValueError("Expedition store event must be an object")
+        event = dict(value)
+        event_hash = str(event.pop("event_sha256", ""))
+        if int(event.get("event_sequence", -1)) != sequence + 1:
+            raise ValueError("Expedition store event sequence is invalid")
+        if event.get("previous_event_sha256") != event_head:
+            raise ValueError("Expedition store event prefix is not hash chained")
+        expected_hash = hashlib.sha256(
+            _canonical_json(event).encode("utf-8")
+        ).hexdigest()
+        if event_hash != expected_hash:
+            raise ValueError("Expedition store event hash is invalid")
+        sequence += 1
+        event_head = event_hash
+        events.append(value)
+    return sequence, event_head, tuple(events)
+
+
+def _complete_event_prefix(payload: bytes) -> tuple[bytes, bytes]:
+    """Separate durable newline-terminated events from a possibly torn final append."""
+
+    if not payload or payload.endswith(b"\n"):
+        return payload, b""
+    boundary = payload.rfind(b"\n")
+    if boundary < 0:
+        return b"", payload
+    return payload[: boundary + 1], payload[boundary + 1 :]
+
+
+def _valid_cell_id(cell_id: str) -> bool:
+    return len(cell_id) == 24 and all(
+        character in "0123456789abcdef" for character in cell_id
+    )
+
+
+def _checkpoint_cell_ids(checkpoint: Mapping[str, Any]) -> tuple[str, ...]:
+    value = checkpoint.get("store_cell_ids")
+    if not isinstance(value, list):
+        raise ValueError("Expedition checkpoint store cell IDs are missing")
+    cell_ids = tuple(str(cell_id) for cell_id in value)
+    if len(cell_ids) != len(set(cell_ids)) or any(
+        not _valid_cell_id(cell_id) for cell_id in cell_ids
+    ):
+        raise ValueError("Expedition checkpoint store cell IDs are invalid")
+    return cell_ids
+
+
+def _inspect_store_for_resume(
+    store_path: Path,
+    checkpoint: Mapping[str, Any],
+) -> tuple[ExpeditionStore, _StoreRecoveryPlan | None]:
+    """Validate an exact or partially appended store without mutating crash evidence."""
+
+    checkpoint_sequence = checkpoint.get("store_event_sequence")
+    checkpoint_offset = checkpoint.get("store_event_byte_offset")
+    checkpoint_head = str(checkpoint.get("store_event_head_sha256", ""))
+    if (
+        not isinstance(checkpoint_sequence, int)
+        or isinstance(checkpoint_sequence, bool)
+        or checkpoint_sequence < 0
+        or not isinstance(checkpoint_offset, int)
+        or isinstance(checkpoint_offset, bool)
+        or checkpoint_offset < 0
+        or len(checkpoint_head) != 64
+        or any(character not in "0123456789abcdef" for character in checkpoint_head)
+    ):
+        raise ValueError("Expedition checkpoint store event identity is invalid")
+    checkpoint_cells = _checkpoint_cell_ids(checkpoint)
+
+    events_path = store_path / "events.jsonl"
+    event_bytes = events_path.read_bytes()
+    if checkpoint_offset > len(event_bytes):
+        raise ValueError("Expedition store is behind its runner checkpoint")
+    checkpoint_event_bytes = event_bytes[:checkpoint_offset]
+    checkpoint_identity = _parse_event_chain(checkpoint_event_bytes)
+    if checkpoint_identity[:2] != (checkpoint_sequence, checkpoint_head):
+        raise ValueError("Expedition store checkpoint prefix does not match")
+    complete_event_bytes, _torn_event_bytes = _complete_event_prefix(event_bytes)
+    if len(complete_event_bytes) < checkpoint_offset:
+        raise ValueError("Expedition store event log is torn inside its checkpoint prefix")
+    current_sequence, current_head, events = _parse_event_chain(complete_event_bytes)
+
+    index = json.loads((store_path / "index.json").read_text(encoding="utf-8"))
+    if not isinstance(index, dict) or int(index.get("schema_version", -1)) != 1:
+        raise ValueError("Expedition store index is invalid")
+    indexed = index.get("cell_ids")
+    if not isinstance(indexed, list):
+        raise ValueError("Expedition store index cell IDs are invalid")
+    indexed_cells = tuple(str(cell_id) for cell_id in indexed)
+    if len(indexed_cells) != len(set(indexed_cells)) or any(
+        not _valid_cell_id(cell_id) for cell_id in indexed_cells
+    ):
+        raise ValueError("Expedition store index contains duplicate cell IDs")
+    cell_files = {item.stem: item for item in (store_path / "cells").glob("*.json")}
+    if any(not _valid_cell_id(cell_id) for cell_id in cell_files):
+        raise ValueError("Expedition store contains malformed cell metadata filenames")
+    if indexed_cells[: len(checkpoint_cells)] != checkpoint_cells:
+        raise ValueError("Expedition store ordered cell prefix does not match")
+    if any(cell_id not in cell_files for cell_id in indexed_cells):
+        raise ValueError("Expedition store index references missing cell metadata")
+    if any(cell_id not in cell_files for cell_id in checkpoint_cells):
+        raise ValueError("Expedition store is missing checkpoint cell metadata")
+
+    exact = (
+        current_sequence == checkpoint_sequence
+        and current_head == checkpoint_head
+        and len(event_bytes) == checkpoint_offset
+        and indexed_cells == checkpoint_cells
+        and set(cell_files) == set(checkpoint_cells)
+    )
+    if exact:
+        store = ExpeditionStore.open(store_path)
+        if (
+            store.event_sequence != current_sequence
+            or store.event_head_sha256 != current_head
+            or tuple(store.cells) != indexed_cells
+        ):
+            raise ValueError("Expedition store changed during resume validation")
+        return store, None
+
+    tail_events = events[checkpoint_sequence:]
+    added_cell_ids = [
+        str(event.get("cell_id"))
+        for event in tail_events
+        if event.get("kind") == "frontier_cell_added"
+    ]
+    extra_index_cells = indexed_cells[len(checkpoint_cells) :]
+    orphan_cells = tuple(sorted(set(cell_files) - set(indexed_cells)))
+    extra_cell_ids = (*extra_index_cells, *orphan_cells)
+    if len(extra_cell_ids) != len(set(extra_cell_ids)):
+        raise ValueError("Expedition store recovery cell identities overlap")
+    if any(cell_id not in cell_files for cell_id in added_cell_ids):
+        raise ValueError("Expedition event tail references missing cell metadata")
+    if any(cell_id not in added_cell_ids for cell_id in extra_index_cells):
+        raise ValueError("Expedition index contains an unexplained post-checkpoint cell")
+    if any(cell_id in checkpoint_cells for cell_id in added_cell_ids):
+        raise ValueError("Expedition event tail re-adds a checkpoint cell")
+    extra_cells = tuple(
+        (cell_id, cell_files[cell_id].read_bytes()) for cell_id in extra_cell_ids
+    )
+    checkpoint_store = ExpeditionStore.open_checkpoint_view(
+        store_path,
+        event_payload=checkpoint_event_bytes,
+        cell_ids=checkpoint_cells,
+    )
+    return checkpoint_store, _StoreRecoveryPlan(
+        checkpoint_event_bytes=checkpoint_event_bytes,
+        extra_event_bytes=event_bytes[checkpoint_offset:],
+        checkpoint_cell_ids=checkpoint_cells,
+        extra_cells=extra_cells,
+        observed_event_sequence=current_sequence,
+        observed_event_head_sha256=current_head,
+        observed_cell_ids=(*checkpoint_cells, *extra_cell_ids),
+        observed_index_cell_ids=indexed_cells,
+    )
+
+
+def _fsync_directory(path: Path) -> None:
+    descriptor = os.open(path, os.O_RDONLY)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
+def _atomic_binary(path: Path, value: bytes) -> None:
+    temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    with temporary.open("wb") as output:
+        output.write(value)
+        output.flush()
+        os.fsync(output.fileno())
+    os.replace(temporary, path)
+    _fsync_directory(path.parent)
+
+
+def _durable_binary(path: Path, value: bytes) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("wb") as output:
+        output.write(value)
+        output.flush()
+        os.fsync(output.fileno())
+
+
+_RECOVERY_IDENTITY_KEYS = (
+    "checkpoint_event_sequence",
+    "checkpoint_event_head_sha256",
+    "checkpoint_event_byte_offset",
+    "checkpoint_event_sha256",
+    "checkpoint_cell_ids",
+    "observed_event_sequence",
+    "observed_event_head_sha256",
+    "observed_cell_ids",
+    "observed_index_cell_ids",
+    "extra_event_bytes",
+    "extra_event_sha256",
+    "extra_cell_sha256",
+)
+
+
+def _checkpoint_identity_sha256(checkpoint: Mapping[str, Any]) -> str:
+    return hashlib.sha256(_canonical_json(checkpoint).encode("utf-8")).hexdigest()
+
+
+@dataclass(frozen=True, slots=True)
+class _ValidatedRecoveryBundle:
+    recovery_id: str
+    checkpoint_event_bytes: bytes
+    extra_event_bytes: bytes
+    checkpoint_cell_ids: tuple[str, ...]
+    extra_cell_ids: tuple[str, ...]
+    expected_sequence: int
+    expected_head: str
+    observed_sequence: int
+
+    def disclosure(self, store_path: Path, recovery_directory: Path) -> dict[str, Any]:
+        return {
+            "recovery_id": self.recovery_id,
+            "recovery_directory": str(recovery_directory.relative_to(store_path)),
+            "recovered_event_bytes": len(self.extra_event_bytes),
+            "recovered_event_count": self.observed_sequence - self.expected_sequence,
+            "recovered_cell_ids": list(self.extra_cell_ids),
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class _PendingStoreRecovery:
+    recovery_directory: Path
+    pending_path: Path
+
+
+def _validate_recovery_bundle(recovery_directory: Path) -> _ValidatedRecoveryBundle:
+    """Validate every private recovery artifact without changing the live store."""
+
+    manifest = json.loads((recovery_directory / "manifest.json").read_text(encoding="utf-8"))
+    if (
+        not isinstance(manifest, dict)
+        or int(manifest.get("schema_version", -1)) != 1
+        or manifest.get("kind") != "runner_post_checkpoint_recovery"
+    ):
+        raise ValueError("Expedition recovery manifest is invalid")
+    try:
+        identity = {key: manifest[key] for key in _RECOVERY_IDENTITY_KEYS}
+    except KeyError as error:
+        raise ValueError("Expedition recovery manifest is incomplete") from error
+    recovery_id = hashlib.sha256(_canonical_json(identity).encode("utf-8")).hexdigest()
+    if manifest.get("recovery_id") != recovery_id:
+        raise ValueError("Expedition recovery manifest identity is invalid")
+
+    checkpoint_event_bytes = (recovery_directory / "events.checkpoint.jsonl").read_bytes()
+    extra_event_bytes = (recovery_directory / "events.tail.jsonl").read_bytes()
+    if (
+        hashlib.sha256(checkpoint_event_bytes).hexdigest()
+        != identity["checkpoint_event_sha256"]
+        or hashlib.sha256(extra_event_bytes).hexdigest() != identity["extra_event_sha256"]
+        or len(checkpoint_event_bytes) != int(identity["checkpoint_event_byte_offset"])
+        or len(extra_event_bytes) != int(identity["extra_event_bytes"])
+    ):
+        raise ValueError("Expedition recovery event bytes failed integrity checks")
+    expected_sequence, expected_head, _events = _parse_event_chain(checkpoint_event_bytes)
+    if (
+        expected_sequence != int(identity["checkpoint_event_sequence"])
+        or expected_head != identity["checkpoint_event_head_sha256"]
+    ):
+        raise ValueError("Expedition recovery checkpoint event identity is invalid")
+
+    checkpoint_cells = tuple(str(cell_id) for cell_id in identity["checkpoint_cell_ids"])
+    observed_cells = tuple(str(cell_id) for cell_id in identity["observed_cell_ids"])
+    observed_index_cells = tuple(
+        str(cell_id) for cell_id in identity["observed_index_cell_ids"]
+    )
+    if (
+        len(checkpoint_cells) != len(set(checkpoint_cells))
+        or len(observed_cells) != len(set(observed_cells))
+        or len(observed_index_cells) != len(set(observed_index_cells))
+        or any(not _valid_cell_id(cell_id) for cell_id in observed_cells)
+        or observed_cells[: len(checkpoint_cells)] != checkpoint_cells
+        or observed_index_cells[: len(checkpoint_cells)] != checkpoint_cells
+        or not set(observed_index_cells) <= set(observed_cells)
+    ):
+        raise ValueError("Expedition recovery cell identity is invalid")
+    observed_index = json.loads(
+        (recovery_directory / "index.observed.json").read_text(encoding="utf-8")
+    )
+    if observed_index != {"schema_version": 1, "cell_ids": list(observed_index_cells)}:
+        raise ValueError("Expedition recovery observed index is invalid")
+    extra_cell_ids = observed_cells[len(checkpoint_cells) :]
+    extra_hashes = identity["extra_cell_sha256"]
+    if not isinstance(extra_hashes, dict) or set(extra_hashes) != set(extra_cell_ids):
+        raise ValueError("Expedition recovery cell identity is invalid")
+    for cell_id in extra_cell_ids:
+        payload = (recovery_directory / "cells" / f"{cell_id}.json").read_bytes()
+        if hashlib.sha256(payload).hexdigest() != extra_hashes[cell_id]:
+            raise ValueError("Expedition recovery cell metadata failed its integrity check")
+    observed_sequence = int(identity["observed_event_sequence"])
+    observed_head = str(identity["observed_event_head_sha256"])
+    observed_complete_bytes, _observed_torn_tail = _complete_event_prefix(
+        checkpoint_event_bytes + extra_event_bytes
+    )
+    recomputed_observed_sequence, recomputed_observed_head, _observed_events = (
+        _parse_event_chain(observed_complete_bytes)
+    )
+    if (
+        observed_sequence < expected_sequence
+        or len(observed_head) != 64
+        or any(character not in "0123456789abcdef" for character in observed_head)
+        or observed_sequence != recomputed_observed_sequence
+        or observed_head != recomputed_observed_head
+    ):
+        raise ValueError("Expedition recovery observed event identity is invalid")
+    return _ValidatedRecoveryBundle(
+        recovery_id=recovery_id,
+        checkpoint_event_bytes=checkpoint_event_bytes,
+        extra_event_bytes=extra_event_bytes,
+        checkpoint_cell_ids=checkpoint_cells,
+        extra_cell_ids=extra_cell_ids,
+        expected_sequence=expected_sequence,
+        expected_head=expected_head,
+        observed_sequence=observed_sequence,
+    )
+
+
+def _apply_recovery_bundle(
+    store_path: Path,
+    recovery_directory: Path,
+    pending_path: Path,
+) -> tuple[ExpeditionStore, dict[str, Any]]:
+    """Idempotently finish a validated recovery transaction at any mutation boundary."""
+
+    bundle = _validate_recovery_bundle(recovery_directory)
+
+    _atomic_binary(store_path / "events.jsonl", bundle.checkpoint_event_bytes)
+    _atomic_binary(
+        store_path / "index.json",
+        (json.dumps(
+            {"schema_version": 1, "cell_ids": bundle.checkpoint_cell_ids},
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        + "\n").encode("utf-8"),
+    )
+    for cell_id in bundle.extra_cell_ids:
+        (store_path / "cells" / f"{cell_id}.json").unlink(missing_ok=True)
+    _fsync_directory(store_path / "cells")
+
+    restored = ExpeditionStore.open(store_path)
+    if (
+        restored.event_sequence != bundle.expected_sequence
+        or restored.event_head_sha256 != bundle.expected_head
+        or tuple(restored.cells) != bundle.checkpoint_cell_ids
+    ):
+        raise RuntimeError("Expedition store did not restore to the runner checkpoint")
+    return restored, bundle.disclosure(store_path, recovery_directory)
+
+
+def _inspect_pending_store_recovery(
+    store_path: Path,
+    checkpoint: Mapping[str, Any],
+) -> tuple[ExpeditionStore, _PendingStoreRecovery] | None:
+    recovery_root = store_path / "recovery"
+    pending_path = recovery_root / "PENDING.json"
+    if not pending_path.is_file():
+        return None
+    pending = json.loads(pending_path.read_text(encoding="utf-8"))
+    if (
+        not isinstance(pending, dict)
+        or pending.get("checkpoint_sha256") != _checkpoint_identity_sha256(checkpoint)
+    ):
+        raise ValueError("Expedition pending recovery belongs to a different checkpoint")
+    directory_name = str(pending.get("recovery_directory", ""))
+    if not directory_name.startswith("runner-crash-") or "/" in directory_name:
+        raise ValueError("Expedition pending recovery path is invalid")
+    recovery_directory = recovery_root / directory_name
+    if pending.get("recovery_id") != json.loads(
+        (recovery_directory / "manifest.json").read_text(encoding="utf-8")
+    ).get("recovery_id"):
+        raise ValueError("Expedition pending recovery identity is inconsistent")
+    bundle = _validate_recovery_bundle(recovery_directory)
+    if (
+        bundle.recovery_id != pending.get("recovery_id")
+        or bundle.expected_sequence != checkpoint.get("store_event_sequence")
+        or bundle.expected_head != checkpoint.get("store_event_head_sha256")
+        or len(bundle.checkpoint_event_bytes) != checkpoint.get("store_event_byte_offset")
+        or bundle.checkpoint_cell_ids != _checkpoint_cell_ids(checkpoint)
+    ):
+        raise ValueError("Expedition pending recovery does not match its checkpoint")
+    store = ExpeditionStore.open_checkpoint_view(
+        store_path,
+        event_payload=bundle.checkpoint_event_bytes,
+        cell_ids=bundle.checkpoint_cell_ids,
+    )
+    return store, _PendingStoreRecovery(recovery_directory, pending_path)
+
+
+def _recover_store_to_checkpoint(
+    store_path: Path,
+    plan: _StoreRecoveryPlan,
+    checkpoint: Mapping[str, Any],
+) -> tuple[ExpeditionStore, dict[str, Any]]:
+    """Preserve a coherent crash window, then restore the checkpoint's exact store view."""
+
+    expected_sequence, expected_head, _events = _parse_event_chain(
+        plan.checkpoint_event_bytes
+    )
+    extra_cell_hashes = {
+        cell_id: hashlib.sha256(payload).hexdigest() for cell_id, payload in plan.extra_cells
+    }
+    identity = {
+        "checkpoint_event_sequence": expected_sequence,
+        "checkpoint_event_head_sha256": expected_head,
+        "checkpoint_event_byte_offset": len(plan.checkpoint_event_bytes),
+        "checkpoint_event_sha256": hashlib.sha256(plan.checkpoint_event_bytes).hexdigest(),
+        "checkpoint_cell_ids": list(plan.checkpoint_cell_ids),
+        "observed_event_sequence": plan.observed_event_sequence,
+        "observed_event_head_sha256": plan.observed_event_head_sha256,
+        "observed_cell_ids": list(plan.observed_cell_ids),
+        "observed_index_cell_ids": list(plan.observed_index_cell_ids),
+        "extra_event_bytes": len(plan.extra_event_bytes),
+        "extra_event_sha256": hashlib.sha256(plan.extra_event_bytes).hexdigest(),
+        "extra_cell_sha256": extra_cell_hashes,
+    }
+    recovery_id = hashlib.sha256(_canonical_json(identity).encode("utf-8")).hexdigest()
+    recovery_root = store_path / "recovery"
+    recovery_root.mkdir(exist_ok=True)
+    recovery_directory = recovery_root / f"runner-crash-{recovery_id[:24]}"
+    manifest = {
+        "schema_version": 1,
+        "kind": "runner_post_checkpoint_recovery",
+        "recovery_id": recovery_id,
+        **identity,
+        "shared_snapshot_and_segment_payloads_retained": True,
+    }
+    if not recovery_directory.exists():
+        temporary = recovery_root / f".{recovery_directory.name}.{os.urandom(8).hex()}.tmp"
+        temporary.mkdir()
+        _durable_binary(temporary / "events.checkpoint.jsonl", plan.checkpoint_event_bytes)
+        _durable_binary(temporary / "events.tail.jsonl", plan.extra_event_bytes)
+        _durable_binary(
+            temporary / "index.observed.json",
+            (json.dumps(
+                {"schema_version": 1, "cell_ids": plan.observed_index_cell_ids},
+                sort_keys=True,
+            )
+            + "\n").encode("utf-8"),
+        )
+        for cell_id, payload in plan.extra_cells:
+            _durable_binary(temporary / "cells" / f"{cell_id}.json", payload)
+        _durable_binary(
+            temporary / "manifest.json",
+            (json.dumps(manifest, indent=2, sort_keys=True) + "\n").encode("utf-8"),
+        )
+        _fsync_directory(temporary)
+        os.replace(temporary, recovery_directory)
+        _fsync_directory(recovery_root)
+    else:
+        existing_manifest = json.loads(
+            (recovery_directory / "manifest.json").read_text(encoding="utf-8")
+        )
+        if existing_manifest != manifest:
+            raise ValueError("Expedition recovery directory identity does not match")
+
+    pending_path = recovery_root / "PENDING.json"
+    pending = {
+        "schema_version": 1,
+        "checkpoint_sha256": _checkpoint_identity_sha256(checkpoint),
+        "recovery_id": recovery_id,
+        "recovery_directory": recovery_directory.name,
+    }
+    _atomic_binary(
+        pending_path,
+        (json.dumps(pending, indent=2, sort_keys=True) + "\n").encode("utf-8"),
+    )
+    return _apply_recovery_bundle(store_path, recovery_directory, pending_path)
+
+
+def _validated_trace_offset(path: Path, value: Any) -> int:
+    if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+        raise ValueError("Expedition checkpoint trace offset is invalid")
+    size = path.stat().st_size
+    if value > size:
+        raise ValueError("Expedition trace checkpoint is outside the trace")
+    position = 0
+    with path.open("rb") as trace:
+        while position < value:
+            line = trace.readline()
+            if not line or not line.endswith(b"\n"):
+                raise ValueError("Expedition checkpoint trace prefix is incomplete")
+            position += len(line)
+            if position > value:
+                raise ValueError("Expedition checkpoint trace offset splits a record")
+            try:
+                event = json.loads(line)
+            except (UnicodeDecodeError, json.JSONDecodeError) as error:
+                raise ValueError("Expedition checkpoint trace prefix is invalid") from error
+            if not isinstance(event, dict):
+                raise ValueError("Expedition checkpoint trace record is invalid")
+    if position != value:
+        raise ValueError("Expedition checkpoint trace offset is invalid")
+    return value
+
+
 def _checkpoint_payload(
     *,
     config: ExpeditionRunConfig,
@@ -842,7 +1495,15 @@ def _checkpoint_payload(
     completion_cell_id: str | None,
     started_at: str,
     trace_offset: int,
+    latest_frame_pixels: np.ndarray,
 ) -> dict[str, Any]:
+    if latest_frame_pixels.shape != _CHECKPOINT_FRAME_SHAPE:
+        raise ValueError("Expedition checkpoint frame has an invalid shape")
+    if latest_frame_pixels.dtype != np.uint8:
+        raise ValueError("Expedition checkpoint frame must use uint8 RGB values")
+    frame_bytes = latest_frame_pixels.tobytes(order="C")
+    frame_sha256 = hashlib.sha256(frame_bytes).hexdigest()
+    events_path = archive.store.path / "events.jsonl"
     return {
         "schema_version": EXPEDITION_RUNNER_CHECKPOINT_SCHEMA,
         "protocol_version": EXPEDITION_RUNNER_PROTOCOL_VERSION,
@@ -851,6 +1512,16 @@ def _checkpoint_payload(
         "rom_sha256": rom.sha256,
         "source": dict(source),
         "implementation_sha256": implementation_sha256,
+        "store_event_sequence": archive.store.event_sequence,
+        "store_event_head_sha256": archive.store.event_head_sha256,
+        "store_event_byte_offset": events_path.stat().st_size,
+        "store_cell_ids": list(archive.store.cells),
+        "latest_frame_sha256": frame_sha256,
+        "latest_frame": {
+            "encoding": _CHECKPOINT_FRAME_ENCODING,
+            "shape": list(_CHECKPOINT_FRAME_SHAPE),
+            "payload_base64": base64.b64encode(frame_bytes).decode("ascii"),
+        },
         "counters": counters.checkpoint_dict(),
         "rng_state": rng.getstate(),
         "archive": {
@@ -867,6 +1538,32 @@ def _checkpoint_payload(
         "started_at": started_at,
         "trace_offset": trace_offset,
     }
+
+
+def _checkpoint_frame(checkpoint: Mapping[str, Any]) -> np.ndarray:
+    """Decode the immutable frame carried by one atomic runner checkpoint."""
+
+    value = checkpoint.get("latest_frame")
+    if not isinstance(value, Mapping):
+        raise ValueError("Expedition checkpoint frame is missing")
+    if (
+        value.get("encoding") != _CHECKPOINT_FRAME_ENCODING
+        or value.get("shape") != list(_CHECKPOINT_FRAME_SHAPE)
+    ):
+        raise ValueError("Expedition checkpoint frame schema is invalid")
+    payload = value.get("payload_base64")
+    if not isinstance(payload, str):
+        raise ValueError("Expedition checkpoint frame payload is invalid")
+    try:
+        frame_bytes = base64.b64decode(payload, validate=True)
+    except (binascii.Error, ValueError) as error:
+        raise ValueError("Expedition checkpoint frame payload is invalid") from error
+    if len(frame_bytes) != int(np.prod(_CHECKPOINT_FRAME_SHAPE)):
+        raise ValueError("Expedition checkpoint frame has an invalid length")
+    actual_sha256 = hashlib.sha256(frame_bytes).hexdigest()
+    if checkpoint.get("latest_frame_sha256") != actual_sha256:
+        raise ValueError("Expedition checkpoint frame does not match its hash")
+    return np.frombuffer(frame_bytes, dtype=np.uint8).reshape(_CHECKPOINT_FRAME_SHAPE).copy()
 
 
 def _write_live_artifacts(
@@ -887,10 +1584,45 @@ def run_expedition(
     run_directory: Path,
     resume: bool = False,
 ) -> ExpeditionRunResult:
-    """Run a bounded checkpoint expedition; never pass referee state into the actor."""
+    """Run a bounded checkpoint expedition under one lease for every persistent write."""
 
     output = run_directory.expanduser().resolve()
     _validate_output_path(output)
+    if resume:
+        if not output.is_dir():
+            raise ValueError("Expedition resume requires an existing run directory")
+    else:
+        output.mkdir(parents=True, exist_ok=False)
+        (output / "milestones").mkdir()
+
+    writer_lock = _acquire_single_writer(output)
+    try:
+        return _run_expedition_locked(
+            rom_path,
+            rom,
+            config=config,
+            run_directory=output,
+            resume=resume,
+            writer_lock=writer_lock,
+        )
+    finally:
+        _release_single_writer(writer_lock)
+
+
+def _run_expedition_locked(
+    rom_path: Path,
+    rom: RomFingerprint,
+    *,
+    config: ExpeditionRunConfig,
+    run_directory: Path,
+    resume: bool,
+    writer_lock: Path,
+) -> ExpeditionRunResult:
+    """Implementation entered only after the run directory's writer lease is held."""
+
+    output = run_directory.expanduser().resolve()
+    if writer_lock != output / "RUNNING.lock" or not writer_lock.is_file():
+        raise RuntimeError("Expedition writer lease is not held")
     store_path = output / "frontier"
     trace_path = output / "trace.jsonl"
     checkpoint_path = output / "checkpoint.json.gz"
@@ -902,6 +1634,9 @@ def run_expedition(
     ).hexdigest()
     store_metadata = {
         "runner_protocol_version": EXPEDITION_RUNNER_PROTOCOL_VERSION,
+        "verification_protocol": "edge-and-promotion-v2",
+        "ordinary_cell_gate": "one_exact_parent_to_child_edge_replay",
+        "named_promotion_gate": (f"{config.promotion_replay_passes}_exact_fresh_power_on_replays"),
         "actor": SeededRandomSequenceEmitter.policy_id,
         "actor_receives_ram": False,
         "referee_receives_ram": True,
@@ -911,10 +1646,19 @@ def run_expedition(
         "source": source,
     }
     checkpoint: dict[str, Any] | None = None
+    resume_pixels: np.ndarray | None = None
+    rng = random.Random(config.seed)
+    counters = ExpeditionCounters()
+    attempts_by_parent: dict[str, int] = {}
+    reached_milestones: set[str] = set()
+    best_progress = POWER_ON_PROGRESS
+    completion_cell_id: str | None = None
+    started_at = datetime.now(UTC).isoformat()
+    base_elapsed = 0.0
+    recovery_disclosure: dict[str, Any] | None = None
+    pending_recovery_plan: _PendingStoreRecovery | None = None
 
     if resume:
-        if not output.is_dir():
-            raise ValueError("Expedition resume requires an existing run directory")
         _checkpoint_used, checkpoint = _read_checkpoint(checkpoint_path)
         if checkpoint.get("config") != config.public_dict():
             raise ValueError("Expedition resume configuration does not match")
@@ -924,70 +1668,163 @@ def run_expedition(
             raise ValueError("Expedition checkpoint source provenance does not match")
         if checkpoint.get("implementation_sha256") != implementation:
             raise ValueError("Expedition implementation changed since the checkpoint")
+        if checkpoint.get("store_protocol_version") != EXPEDITION_PROTOCOL_VERSION:
+            raise ValueError("Expedition checkpoint store protocol does not match")
+
         previous_status = json.loads((output / "status.json").read_text(encoding="utf-8"))
+        if not isinstance(previous_status, dict):
+            raise ValueError("Expedition status is invalid")
         if previous_status.get("stop_reason") in {
             "action_limit",
             "duration_limit",
             "hall_of_fame_verified",
         }:
             raise ValueError("This expedition already reached a terminal budget or completion")
-        _truncate_trace(trace_path, int(checkpoint["trace_offset"]))
-        stop_marker.unlink(missing_ok=True)
-        store = ExpeditionStore.open(store_path)
-        if dict(store.manifest.get("metadata", {})) != store_metadata:
+        trace_offset = _validated_trace_offset(trace_path, checkpoint.get("trace_offset"))
+
+        resume_pixels = _checkpoint_frame(checkpoint)
+        checkpoint_cell_ids = _checkpoint_cell_ids(checkpoint)
+
+        try:
+            counters = ExpeditionCounters.from_checkpoint_dict(checkpoint["counters"])
+            rng.setstate(_json_tuple(checkpoint["rng_state"]))
+            progress_value = checkpoint["best_progress"]
+            if not isinstance(progress_value, Mapping):
+                raise ValueError("Expedition checkpoint best progress is invalid")
+            best_progress = MilestoneProgress(
+                str(progress_value["key"]),
+                int(progress_value["index"]),
+                str(progress_value["label"]),
+            )
+        except (KeyError, TypeError, ValueError) as error:
+            raise ValueError("Expedition checkpoint state is invalid") from error
+        base_elapsed = counters.elapsed_seconds
+        if not np.isfinite(base_elapsed) or base_elapsed < 0:
+            raise ValueError("Expedition checkpoint elapsed time is invalid")
+
+        attempt_values = checkpoint.get("attempts_by_parent")
+        if not isinstance(attempt_values, Mapping):
+            raise ValueError("Expedition checkpoint attempt counters are invalid")
+        attempts_by_parent = {}
+        for cell_id, count in attempt_values.items():
+            if (
+                not isinstance(count, int)
+                or isinstance(count, bool)
+                or count < 0
+                or str(cell_id) not in checkpoint_cell_ids
+            ):
+                raise ValueError("Expedition checkpoint attempt counters are invalid")
+            attempts_by_parent[str(cell_id)] = count
+        if sum(attempts_by_parent.values()) != counters.attempts:
+            raise ValueError("Expedition checkpoint attempt totals are inconsistent")
+
+        reached_value = checkpoint.get("reached_milestones")
+        if not isinstance(reached_value, list):
+            raise ValueError("Expedition checkpoint reached milestones are invalid")
+        reached_items = [str(key) for key in reached_value]
+        milestone_keys = {milestone.key for milestone in MILESTONES}
+        if (
+            len(reached_items) != len(set(reached_items))
+            or not set(reached_items) <= milestone_keys
+        ):
+            raise ValueError("Expedition checkpoint reached milestones are invalid")
+        reached_milestones = set(reached_items)
+
+        raw_completion = checkpoint.get("completion_cell_id")
+        completion_cell_id = None if raw_completion is None else str(raw_completion)
+        if completion_cell_id is not None and completion_cell_id not in checkpoint_cell_ids:
+            raise ValueError("Expedition checkpoint completion cell is invalid")
+        started_at = str(checkpoint.get("started_at", ""))
+        try:
+            parsed_started_at = datetime.fromisoformat(started_at)
+        except ValueError as error:
+            raise ValueError("Expedition checkpoint start time is invalid") from error
+        if parsed_started_at.tzinfo is None:
+            raise ValueError("Expedition checkpoint start time lacks a timezone")
+
+        if (
+            sum(counters.action_counts.values()) != counters.total_actions
+            or counters.archive_restores != counters.attempts
+            or counters.cells_created != len(checkpoint_cell_ids)
+            or counters.cells_admitted + counters.cells_rejected != counters.cells_created
+            or counters.replay_attempts
+            != 1
+            + counters.edge_replay_attempts
+            + counters.promotion_power_on_replay_attempts
+            or counters.replay_actions
+            != counters.edge_replay_actions + counters.promotion_power_on_replay_actions
+            or counters.replay_passes
+            != 1 + counters.edge_replay_passes + counters.promotion_power_on_replay_passes
+        ):
+            raise ValueError("Expedition checkpoint counters are not internally exact")
+
+        pending_recovery = _inspect_pending_store_recovery(store_path, checkpoint)
+        if pending_recovery is None:
+            current_store, recovery_plan = _inspect_store_for_resume(store_path, checkpoint)
+        else:
+            current_store, pending_recovery_plan = pending_recovery
+            recovery_plan = None
+        if dict(current_store.manifest.get("metadata", {})) != store_metadata:
             raise ValueError("Expedition store provenance does not match this runner")
+
+        archive = FrontierArchive.from_checkpoint_dict(current_store, checkpoint["archive"])
+        if archive.capacity != config.archive_capacity:
+            raise ValueError("Expedition checkpoint archive capacity does not match")
+        roots = [cell for cell in archive.active_cells if cell.parent_id is None]
+        if len(roots) != 1:
+            raise ValueError("Expedition checkpoint must retain exactly one power-on root")
+        if archive.selection_total != counters.attempts:
+            raise ValueError("Expedition checkpoint archive selection count is inconsistent")
+        if any(cell.cell_id not in checkpoint_cell_ids for cell in archive.active_cells):
+            raise ValueError("Expedition checkpoint archive references a later store cell")
+        if best_progress.index < max(
+            cell.descriptor.milestone_index for cell in archive.active_cells
+        ):
+            raise ValueError("Expedition checkpoint best progress is behind its archive")
+        if completion_cell_id is not None:
+            completion = current_store.cells[completion_cell_id]
+            if completion.descriptor.milestone_id != HALL_OF_FAME_KEY:
+                raise ValueError("Expedition checkpoint completion cell is not Hall of Fame")
+
+        if pending_recovery_plan is not None:
+            store, recovery_disclosure = _apply_recovery_bundle(
+                store_path,
+                pending_recovery_plan.recovery_directory,
+                pending_recovery_plan.pending_path,
+            )
+            archive = FrontierArchive.from_checkpoint_dict(store, checkpoint["archive"])
+        elif recovery_plan is not None:
+            store, recovery_disclosure = _recover_store_to_checkpoint(
+                store_path,
+                recovery_plan,
+                checkpoint,
+            )
+            archive = FrontierArchive.from_checkpoint_dict(store, checkpoint["archive"])
+        else:
+            store = current_store
+        if (
+            store.event_sequence != int(checkpoint["store_event_sequence"])
+            or store.event_head_sha256 != checkpoint["store_event_head_sha256"]
+            or tuple(store.cells) != checkpoint_cell_ids
+        ):
+            raise RuntimeError("Expedition store is not exact after resume validation")
+
+        _truncate_trace(trace_path, trace_offset)
+        stop_marker.unlink(missing_ok=True)
+        if recovery_disclosure is not None:
+            store.audit("runner_post_checkpoint_store_recovered", **recovery_disclosure)
     else:
-        output.mkdir(parents=True, exist_ok=False)
-        (output / "milestones").mkdir()
         store = ExpeditionStore.create(
             store_path,
             rom_sha256=rom.sha256,
             pyboy_version=version("pyboy"),
             metadata=store_metadata,
         )
-
-    rng = random.Random(config.seed)
-    counters = ExpeditionCounters()
-    attempts_by_parent: dict[str, int] = {}
-    reached_milestones: set[str] = set()
-    best_progress = POWER_ON_PROGRESS
-    completion_cell_id: str | None = None
-    started_at = datetime.now(UTC).isoformat()
-    base_elapsed = 0.0
-
-    if checkpoint is not None:
-        counters = ExpeditionCounters.from_checkpoint_dict(checkpoint["counters"])
-        base_elapsed = counters.elapsed_seconds
-        rng.setstate(_json_tuple(checkpoint["rng_state"]))
-        attempts_by_parent = {
-            str(cell_id): int(count)
-            for cell_id, count in checkpoint.get("attempts_by_parent", {}).items()
-        }
-        if any(
-            cell_id not in store.cells or count < 0
-            for cell_id, count in attempts_by_parent.items()
-        ):
-            raise ValueError("Expedition checkpoint attempt counters are invalid")
-        progress_value = checkpoint["best_progress"]
-        best_progress = MilestoneProgress(
-            str(progress_value["key"]),
-            int(progress_value["index"]),
-            str(progress_value["label"]),
-        )
-        reached_milestones = {str(key) for key in checkpoint.get("reached_milestones", [])}
-        completion_cell_id = checkpoint.get("completion_cell_id")
-        started_at = str(checkpoint["started_at"])
-        archive = FrontierArchive.from_checkpoint_dict(store, checkpoint["archive"])
-        if archive.capacity != config.archive_capacity:
-            raise ValueError("Expedition checkpoint archive capacity does not match")
-        if not any(cell.parent_id is None for cell in archive.active_cells):
-            raise ValueError("Expedition checkpoint lost its power-on root")
-    else:
         archive = FrontierArchive(store, config.archive_capacity)
 
     manifest = {
         "kind": "manifest",
-        "schema_version": 1,
+        "schema_version": 2,
         "protocol_version": EXPEDITION_RUNNER_PROTOCOL_VERSION,
         "store_protocol_version": EXPEDITION_PROTOCOL_VERSION,
         "created_at": started_at,
@@ -1005,6 +1842,15 @@ def run_expedition(
             "checkpoint_restore": True,
             "writer_model": "single_process_coordinator",
         },
+        "verification": {
+            "protocol": "edge-and-promotion-v2",
+            "root_gate": "one_exact_fresh_power_on_replay",
+            "ordinary_cell_gate": "one_exact_parent_to_child_edge_replay",
+            "named_promotion_gate": (
+                f"{config.promotion_replay_passes}_exact_fresh_power_on_replays"
+            ),
+            "ordinary_cells_persisted_per_suffix_maximum": 1,
+        },
         "human_demonstrations": [],
         "pretrained_components": [],
         "source": source,
@@ -1016,6 +1862,15 @@ def run_expedition(
         _atomic_json(output / "manifest.json", manifest)
         _append_json(trace_path, manifest)
     else:
+        if recovery_disclosure is not None:
+            _append_json(
+                trace_path,
+                {
+                    "kind": "runner_post_checkpoint_store_recovered",
+                    "recorded_at": datetime.now(UTC).isoformat(),
+                    **recovery_disclosure,
+                },
+            )
         _append_json(
             trace_path,
             {
@@ -1024,8 +1879,38 @@ def run_expedition(
                 "checkpoint_total_actions": counters.total_actions,
                 "checkpoint_attempts": counters.attempts,
                 "checkpoint_archive_cells": len(archive.active_cells),
+                "store_recovery_id": (
+                    None
+                    if recovery_disclosure is None
+                    else recovery_disclosure["recovery_id"]
+                ),
             },
         )
+        if recovery_disclosure is not None:
+            assert resume_pixels is not None
+            pending_path = store_path / "recovery" / "PENDING.json"
+            pending_path.unlink(missing_ok=True)
+            _fsync_directory(pending_path.parent)
+            recovery_trace_offset = trace_path.stat().st_size
+            _write_checkpoint(
+                checkpoint_path,
+                _checkpoint_payload(
+                    config=config,
+                    rom=rom,
+                    source=source,
+                    implementation_sha256=implementation,
+                    counters=counters,
+                    rng=rng,
+                    archive=archive,
+                    attempts_by_parent=attempts_by_parent,
+                    best_progress=best_progress,
+                    reached_milestones=reached_milestones,
+                    completion_cell_id=completion_cell_id,
+                    started_at=started_at,
+                    trace_offset=recovery_trace_offset,
+                    latest_frame_pixels=resume_pixels,
+                ),
+            )
 
     disk_monitor = _RunDiskMonitor(
         output,
@@ -1037,12 +1922,13 @@ def run_expedition(
     )
 
     stop_reason = "unknown"
-    latest_pixels: np.ndarray | None = None
+    latest_pixels = resume_pixels
     latest_state: PokemonRedState | None = None
     current_attempt: dict[str, Any] | None = None
     start_clock = monotonic()
     last_status = 0.0
     emitter = SeededRandomSequenceEmitter(rng)
+    active_stopper: _SignalStop | None = None
 
     def elapsed() -> float:
         return base_elapsed + monotonic() - start_clock
@@ -1060,34 +1946,51 @@ def run_expedition(
             return "duration_limit"
         return None
 
+    def verification_cancel_requested() -> bool:
+        """Cancel long promotion replays only for an explicit or storage-safety stop."""
+
+        if active_stopper is not None and active_stopper.reason is not None:
+            return True
+        if stop_marker.exists():
+            return True
+        return disk_monitor.reason(counters.total_actions) in {
+            "low_disk_space",
+            "output_limit",
+        }
+
     def write_status(state: str, reason: str | None) -> None:
         nonlocal latest_pixels
         if latest_pixels is None:
             return
-        disk_monitor.reconcile(counters.total_actions)
-        disk_monitor.check_free(force=True)
-        status = _status_payload(
-            state=state,
-            stop_reason=reason,
-            config=config,
-            counters=counters,
-            archive=archive,
-            best_progress=best_progress,
-            started_at=started_at,
-            elapsed_seconds=elapsed(),
-            run_bytes=disk_monitor.run_bytes,
-            disk_monitor=disk_monitor.status_dict(),
-            current=current_attempt,
-            latest_referee_state=latest_state,
-            reached_milestones=reached_milestones,
-            completion_cell_id=completion_cell_id,
-        )
-        _write_live_artifacts(output, status, latest_pixels)
-        disk_monitor.observe_files(
-            output / "latest.png",
-            output / "status.json",
-            output / "index.html",
-        )
+        attempts = 1 if state == "running" else 16
+        for _attempt in range(attempts):
+            disk_monitor.reconcile(counters.total_actions)
+            disk_monitor.check_free(force=True)
+            status = _status_payload(
+                state=state,
+                stop_reason=reason,
+                config=config,
+                counters=counters,
+                archive=archive,
+                best_progress=best_progress,
+                started_at=started_at,
+                elapsed_seconds=elapsed(),
+                run_bytes=disk_monitor.run_bytes,
+                disk_monitor=disk_monitor.status_dict(),
+                current=current_attempt,
+                latest_referee_state=latest_state,
+                reached_milestones=reached_milestones,
+                completion_cell_id=completion_cell_id,
+            )
+            reported_bytes = disk_monitor.run_bytes
+            _write_live_artifacts(output, status, latest_pixels)
+            disk_monitor.observe_files(
+                output / "latest.png",
+                output / "status.json",
+                output / "index.html",
+            )
+            if state == "running" or disk_monitor.run_bytes == reported_bytes:
+                break
 
     def checkpoint_written() -> None:
         disk_monitor.observe_files(
@@ -1105,8 +2008,106 @@ def run_expedition(
             store.path / "segments" / f"{cell.segment_sha256}.json",
         )
 
-    writer_lock = _acquire_single_writer(output)
-    disk_monitor.observe_files(writer_lock)
+    def persist_and_verify_candidate(
+        candidate: BufferedSuffixCandidate,
+        parent: FrontierCell,
+        *,
+        milestone_advanced: bool,
+    ) -> tuple[FrontierCell, bool]:
+        """Persist one buffered capture, prove its edge, then promote it if eligible."""
+
+        nonlocal best_progress, completion_cell_id
+        before_cells = len(store.cells)
+        cell = store.add_cell(
+            parent_id=parent.cell_id,
+            snapshot=candidate.snapshot,
+            actions_from_parent=candidate.actions_from_parent,
+            descriptor=candidate.descriptor,
+            screen_sha256=candidate.screen_sha256,
+            discovered_global_action=candidate.discovered_global_action,
+            referee_summary=candidate.referee_summary,
+            policy_id=emitter.policy_id,
+        )
+        if len(store.cells) > before_cells:
+            counters.cells_created += 1
+        observe_cell_files(cell)
+
+        semantic_evaluator = None
+        if milestone_advanced:
+            milestone = MILESTONES[candidate.progress.index - 1]
+
+            def semantic_evaluator(
+                replay_state: PokemonRedState,
+                _pixels: np.ndarray,
+                target: Any = milestone,
+            ) -> bool:
+                return bool(target.reached_by(replay_state))
+
+        edge_replay = replay_frontier_edge(
+            rom_path,
+            store,
+            cell.cell_id,
+            evaluator=semantic_evaluator,
+        )
+        _record_edge_replay(counters, edge_replay)
+        disk_monitor.observe_files(store.path / "events.jsonl")
+        verification_passed = edge_replay.passed
+        if not edge_replay.passed:
+            store.audit(
+                "frontier_verification_failed",
+                verification_kind="edge",
+                cell_id=cell.cell_id,
+                milestone_id=candidate.progress.key,
+                reason=edge_replay.failure_reason,
+            )
+
+        if milestone_advanced and edge_replay.passed:
+            promotion_passed = True
+            for replay_number in range(1, config.promotion_replay_passes + 1):
+                replay = replay_frontier_cell(
+                    rom_path,
+                    store,
+                    cell.cell_id,
+                    evaluator=semantic_evaluator,
+                    cancel_requested=verification_cancel_requested,
+                )
+                _record_promotion_replay(counters, replay)
+                disk_monitor.observe_files(store.path / "events.jsonl")
+                if not replay.passed:
+                    promotion_passed = False
+                    store.audit(
+                        "frontier_verification_failed",
+                        verification_kind="promotion_power_on",
+                        cell_id=cell.cell_id,
+                        milestone_id=candidate.progress.key,
+                        replay_number=replay_number,
+                        reason=replay.failure_reason,
+                    )
+                if "replay_cancelled" in replay.mismatch_reasons:
+                    break
+            verification_passed = promotion_passed
+
+        if not verification_passed:
+            counters.cells_rejected += 1
+            disk_monitor.observe_files(store.path / "events.jsonl")
+            return cell, False
+
+        decision = archive.consider(cell)
+        disk_monitor.observe_files(store.path / "events.jsonl")
+        if not decision.admitted:
+            counters.cells_rejected += 1
+            return cell, False
+
+        counters.cells_admitted += 1
+        if candidate.progress.index > best_progress.index:
+            best_progress = candidate.progress
+            filename = f"{best_progress.index:03d}-{best_progress.key}.png"
+            _save_png(candidate.pixels, output / "milestones" / filename)
+            disk_monitor.observe_files(output / "milestones" / filename)
+        if candidate.progress.key == HALL_OF_FAME_KEY:
+            completion_cell_id = cell.cell_id
+        return cell, True
+
     dashboard_server: ThreadingHTTPServer | None = None
     dashboard_thread: threading.Thread | None = None
     try:
@@ -1116,6 +2117,7 @@ def run_expedition(
                 config.dashboard_port,
             )
         with _SignalStop() as stopper, PokemonRedEmulator(rom_path) as emulator:
+            active_stopper = stopper
             actor = PixelsOnlyActor(emulator)
             reader = PokemonRedStateReader(emulator)
 
@@ -1142,7 +2144,7 @@ def run_expedition(
                 )
                 root_replay = replay_frontier_cell(rom_path, store, root.cell_id)
                 counters.replay_attempts += 1
-                counters.replay_actions += root_replay.action_count
+                counters.replay_actions += root_replay.executed_action_count
                 counters.replay_passes += int(root_replay.passed)
                 store.audit(
                     "power_on_replay_gate",
@@ -1195,6 +2197,7 @@ def run_expedition(
                         completion_cell_id=completion_cell_id,
                         started_at=started_at,
                         trace_offset=trace_offset,
+                        latest_frame_pixels=latest_pixels,
                     ),
                 )
                 checkpoint_written()
@@ -1223,9 +2226,11 @@ def run_expedition(
                     config.loop_window_actions,
                     config.loop_repeat_limit,
                 )
-                anchor = parent
                 verified_progress = _progress_for_cell(parent)
                 segment_actions: list[BlindAction] = []
+                candidate_buffer = SuffixCandidateBuffer()
+                committed_cell: FrontierCell | None = None
+                committed_admitted = False
                 attempt_reason = "suffix_budget"
                 current_attempt = {
                     "number": counters.attempts,
@@ -1235,6 +2240,9 @@ def run_expedition(
                     "actions": 0,
                     "adaptive_selection_count": selection_count,
                     "starting_milestone": verified_progress.key,
+                    "candidate_captures": 0,
+                    "ordinary_candidates_persisted": 0,
+                    "ordinary_candidate_preflight": None,
                 }
                 _append_json(
                     trace_path,
@@ -1278,107 +2286,45 @@ def run_expedition(
                         or loop_detected
                     )
 
-                    if capture_frontier and (
-                        descriptor.key not in archive.active_by_key or milestone_advanced
-                    ):
-                        before_cells = len(store.cells)
-                        cell = store.add_cell(
-                            parent_id=anchor.cell_id,
+                    if capture_frontier:
+                        summary = _referee_summary(
+                            latest_state,
+                            candidate_progress,
+                            parent=parent,
+                            tracker=tracker,
+                        )
+                        screen_sha256 = hashlib.sha256(latest_pixels.tobytes()).hexdigest()
+                        candidate = BufferedSuffixCandidate(
                             snapshot=FrozenSnapshot.freeze(emulator.save_state()),
                             actions_from_parent=tuple(segment_actions),
                             descriptor=descriptor,
-                            screen_sha256=hashlib.sha256(latest_pixels.tobytes()).hexdigest(),
+                            screen_sha256=screen_sha256,
                             discovered_global_action=counters.total_actions,
-                            referee_summary=_referee_summary(
-                                latest_state,
-                                candidate_progress,
-                                parent=anchor,
-                                tracker=tracker,
+                            referee_summary=summary,
+                            progress=candidate_progress,
+                            pixels=latest_pixels.copy(),
+                            priority=archive.candidate_priority(
+                                descriptor,
+                                summary,
+                                parent.depth_actions + len(segment_actions),
                             ),
-                            policy_id=emitter.policy_id,
                         )
-                        if len(store.cells) > before_cells:
-                            counters.cells_created += 1
-                        decision = archive.consider(cell)
-                        observe_cell_files(cell)
-                        replay_passed = not decision.reason.startswith("quarantined_replay_")
-                        if decision.reason.startswith("quarantined_replay_"):
-                            replay_passed = True
-                            required_replays = store.required_replay_count(cell.cell_id)
-                            if milestone_advanced:
-                                required_replays = max(
-                                    required_replays,
-                                    config.promotion_replay_passes,
-                                )
-                            completed_replays = store.successful_replay_count(cell.cell_id)
-                            semantic_evaluator = None
-                        if milestone_advanced and config.verify_milestone_replays:
-                            milestone = MILESTONES[candidate_progress.index - 1]
-
-                            def semantic_evaluator(
-                                replay_state: PokemonRedState,
-                                _pixels: np.ndarray,
-                                target: Any = milestone,
-                            ) -> bool:
-                                return bool(target.reached_by(replay_state))
-
-                        if decision.reason.startswith("quarantined_replay_"):
-                            for replay_number in range(
-                                completed_replays + 1,
-                                required_replays + 1,
-                            ):
-                                replay = replay_frontier_cell(
-                                    rom_path,
-                                    store,
-                                    cell.cell_id,
-                                    evaluator=semantic_evaluator,
-                                )
-                                counters.replay_attempts += 1
-                                counters.replay_actions += replay.action_count
-                                counters.replay_passes += int(replay.passed)
-                                disk_monitor.observe_files(store.path / "events.jsonl")
-                                if not replay.passed:
-                                    replay_passed = False
-                                    store.audit(
-                                        "frontier_verification_failed",
-                                        cell_id=cell.cell_id,
-                                        milestone_id=candidate_progress.key,
-                                        replay_number=replay_number,
-                                        reason=replay.failure_reason,
-                                        semantic_predicate=(
-                                            candidate_progress.key
-                                            if milestone_advanced
-                                            else "canonical_lineage_progress"
-                                        ),
-                                    )
-                                    disk_monitor.observe_files(store.path / "events.jsonl")
-                                    break
-                            if replay_passed:
-                                decision = archive.consider(cell)
-                                disk_monitor.observe_files(store.path / "events.jsonl")
-
-                        if replay_passed:
-                            if decision.admitted:
-                                counters.cells_admitted += 1
-                                anchor = cell
-                                segment_actions.clear()
-                                verified_progress = candidate_progress
-                                if verified_progress.index > best_progress.index:
-                                    best_progress = verified_progress
-                                    filename = (
-                                        f"{verified_progress.index:03d}-"
-                                        f"{verified_progress.key}.png"
-                                    )
-                                    _save_png(latest_pixels, output / "milestones" / filename)
-                                    disk_monitor.observe_files(
-                                        output / "milestones" / filename
-                                    )
-                                if verified_progress.key == HALL_OF_FAME_KEY:
-                                    completion_cell_id = cell.cell_id
-                            else:
-                                counters.cells_rejected += 1
-                        else:
-                            counters.cells_rejected += 1
+                        current_attempt["candidate_captures"] = (
+                            candidate_buffer.captures_observed + 1
+                        )
+                        if milestone_advanced:
+                            committed_cell, committed_admitted = persist_and_verify_candidate(
+                                candidate,
+                                parent,
+                                milestone_advanced=True,
+                            )
+                            attempt_reason = (
+                                "named_milestone_promoted"
+                                if committed_admitted
+                                else "named_milestone_rejected"
+                            )
+                            break
+                        candidate_buffer.offer(candidate)
 
                     if loop_detected:
                         counters.loop_stops += 1
@@ -1397,6 +2343,24 @@ def run_expedition(
                         write_status("running", None)
                         last_status = now
 
+                if committed_cell is None and candidate_buffer.candidate is not None:
+                    ordinary_candidate = candidate_buffer.candidate
+                    preflight = archive.preflight_ordinary_candidate(
+                        ordinary_candidate.descriptor,
+                        ordinary_candidate.referee_summary,
+                        parent.depth_actions + len(ordinary_candidate.actions_from_parent),
+                    )
+                    current_attempt["ordinary_candidate_preflight"] = asdict(preflight)
+                    if preflight.admitted:
+                        committed_cell, committed_admitted = persist_and_verify_candidate(
+                            ordinary_candidate,
+                            parent,
+                            milestone_advanced=False,
+                        )
+                        current_attempt["ordinary_candidates_persisted"] = 1
+                    else:
+                        counters.ordinary_preflight_rejections += 1
+
                 counters.elapsed_seconds = elapsed()
                 _append_json(
                     trace_path,
@@ -1405,7 +2369,20 @@ def run_expedition(
                         "recorded_at": datetime.now(UTC).isoformat(),
                         "attempt": counters.attempts,
                         "parent_id": parent.cell_id,
-                        "final_anchor_id": anchor.cell_id,
+                        "final_anchor_id": (
+                            committed_cell.cell_id if committed_admitted else parent.cell_id
+                        ),
+                        "persisted_candidate_id": (
+                            None if committed_cell is None else committed_cell.cell_id
+                        ),
+                        "candidate_admitted": committed_admitted,
+                        "candidate_captures": int(current_attempt["candidate_captures"]),
+                        "ordinary_candidates_persisted": int(
+                            current_attempt["ordinary_candidates_persisted"]
+                        ),
+                        "ordinary_candidate_preflight": current_attempt[
+                            "ordinary_candidate_preflight"
+                        ],
                         "selection_channel": channel,
                         "suffix_budget": suffix_budget,
                         "actions_executed": int(current_attempt["actions"]),
@@ -1432,6 +2409,7 @@ def run_expedition(
                         completion_cell_id=completion_cell_id,
                         started_at=started_at,
                         trace_offset=trace_offset,
+                        latest_frame_pixels=latest_pixels,
                     ),
                 )
                 checkpoint_written()
@@ -1473,6 +2451,7 @@ def run_expedition(
                 completion_cell_id=completion_cell_id,
                 started_at=started_at,
                 trace_offset=resume_trace_offset,
+                latest_frame_pixels=latest_pixels,
             ),
         )
         checkpoint_written()
@@ -1485,7 +2464,6 @@ def run_expedition(
         raise
     finally:
         _stop_dashboard_server(dashboard_server, dashboard_thread)
-        _release_single_writer(writer_lock)
 
     return ExpeditionRunResult(
         run_directory=output,
@@ -1509,6 +2487,16 @@ def show_expedition_status(run_directory: Path) -> int:
     best = status.get("best_milestone", {})
     print(f"Best milestone: {best.get('label', 'Clean power-on')}")
     print(f"Replay passes: {int(status.get('replay_passes', 0)):,}")
+    print(
+        "Edge replay passes: "
+        f"{int(status.get('edge_replay_passes', 0)):,}/"
+        f"{int(status.get('edge_replay_attempts', 0)):,}"
+    )
+    print(
+        "Promotion power-on replay passes: "
+        f"{int(status.get('promotion_power_on_replay_passes', 0)):,}/"
+        f"{int(status.get('promotion_power_on_replay_attempts', 0)):,}"
+    )
     print(f"Stop reason: {status.get('stop_reason') or 'still running'}")
     return 0 if status.get("state") != "failed" else 1
 

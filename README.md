@@ -16,8 +16,13 @@ trials compare learned or optimized emitters under the same checkpoint and repla
 > promotion replays; seed `20260730` stopped at the ground floor. The predeclared Q1 gate therefore
 > failed its two-seed requirement even though the expedition earned the narrower H3 milestone claim.
 > Across both seeds, verification consumed 954,704 actions in addition to 40,000 exploration
-> actions. The next work is replay/archive scaling and a matched emitter comparison—not a larger
-> random run. See the [complete Q1 result](experiments/q1-left-home/README.md).
+> actions. Replay indexing, lineage streaming, topological validation, and bounded disk monitoring
+> are now implemented and private-ROM tested. Archive v2 is the active scaling step: local edge
+> verification, bounded visual variants, one ordinary candidate per suffix, and preflight rejection
+> before uncompetitive private checkpoints reach disk. Its implementation is checked; staged
+> real-ROM qualification still precedes the
+> [Visual Apprentice](docs/visual-apprentice.md) learning pilot and any multi-day run. See the
+> [complete Q1 result](experiments/q1-left-home/README.md).
 
 The current code preserves every historical runner, including Monkey, Archivist, online learners,
 and clean-start neuroevolution, so rejected approaches remain reproducible. See
@@ -39,8 +44,10 @@ attempt. That foundation is Act I of the project, not backstage work to be edite
 The primary completion protocol is the
 [Hall of Fame completion program](docs/completion-program.md). The original
 [game-naive, pixels-only curiosity](docs/blind-curiosity.md) protocol remains the philosophical
-control. The editorial direction lives in [The project narrative](docs/narrative.md), and evidence
-levels remain tracked in [Progress](docs/progress.md).
+control. The next learned-policy design is frozen in
+[Visual Apprentice v1](docs/visual-apprentice.md). The editorial direction lives in
+[The project narrative](docs/narrative.md), and evidence levels remain tracked in
+[Progress](docs/progress.md).
 
 ## At a glance
 
@@ -59,7 +66,7 @@ levels remain tracked in [Progress](docs/progress.md).
 | Preserved random comparison | Monkey vs. pixels-only Archivist under matched budgets |
 | Completed 90-minute pretrial | Evolution reached tier 1; online learners plateaued around Pallet Town and Route 1 |
 | Concluded neural experiment | Six inherited-archive lanes all failed the second-map/party gate under equal fuel |
-| Current completion work | Q1 concluded at 1/2; scale replay and compare learned/optimized emitters under the same house-exit gate |
+| Current completion work | Q1 concluded at 1/2; Archive v2 scaling and qualification, then the Visual Apprentice pilot |
 | North star | First discover a replayable Hall-of-Fame lineage, then train and evaluate one frozen pixel policy |
 
 ## The journey
@@ -72,7 +79,8 @@ flowchart LR
     B1 --> EV["✅ 2 × 3 mechanism lab<br/>no next-map progress"]
     EV --> EX["✅ Q0 checkpoint runner<br/>remember stepping stones"]
     EX --> Q1["🟨 Q1 house exit<br/>H3 reached; gate 1/2"]
-    Q1 --> EM["⬜ Q2 emitter comparison<br/>same frozen target"]
+    Q1 --> SC["🟨 Archive v2<br/>bounded replay + frontier"]
+    SC --> EM["⬜ Visual Apprentice<br/>learn one local skill"]
     EM --> FR["⬜ Complete lineage<br/>then one frozen policy"]
 ```
 
@@ -265,7 +273,7 @@ Run the bounded checkpoint expedition on an external SSD:
 
 ```bash
 pokemon-red-ai expedition-run \
-  --output "/Volumes/External/PokemonRedAI/expeditions/q1-seed-20260730" \
+  --output "/Volumes/External/PokemonRedAI/expeditions/archive-v2-development-seed-20260730" \
   --hours 1 \
   --max-actions 20000 \
   --seed 20260730 \
@@ -273,11 +281,15 @@ pokemon-red-ai expedition-run \
 ```
 
 The localhost dashboard exists only while the command is running; the finished `index.html`
-remains in the run directory. Use `expedition-status PATH`, `expedition-stop PATH`, and repeat the
-identical command with `--resume` after a graceful stop. The initial emitter is explicitly labeled
-`RANDOM-ACTION-EMITTER`; archive selection remembers verified stepping stones, but this is not yet
-one learned policy. Do not schedule a multi-day campaign until the multi-seed Q1 gate passes and
-the replay/store scaling blockers in the completion program are addressed.
+remains in the run directory. Use `expedition-status PATH` and `expedition-stop PATH`. A fresh v2
+run may repeat the identical command with `--resume` after a graceful stop; concluded Q1/v1 stores
+remain historical evidence and are deliberately refused by the v2 runner. The initial emitter is
+explicitly labeled `RANDOM-ACTION-EMITTER`; archive selection remembers verified stepping stones,
+but this is not yet one learned policy. If the process dies after advancing beyond its checkpoint,
+resume privately preserves the abandoned event/cell tail—even a half-written final event—in a
+hashed recovery bundle before exact rollback. The checkpoint carries its own display frame, so a
+newer live dashboard image cannot invalidate it. Do not schedule a multi-day campaign until Archive
+v2 passes its staged scaling qualification and the completion program authorizes the run.
 
 Historical reproducibility only: the command below is the retired 48-hour successor-arena design.
 It is preserved so the earlier protocol can be audited, **not** as the current next run. Do not

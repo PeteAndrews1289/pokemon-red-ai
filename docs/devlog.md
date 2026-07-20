@@ -1,5 +1,73 @@
 # Development log
 
+## 2026-07-19 — From one lucky route toward a learned visual skill
+
+### Restore the publication baseline
+
+- Diagnosed two red GitHub checks as duplicate push/PR executions of one pytest collection error,
+  not two independent experiment failures. The safety guard, documentation check, and Ruff had
+  already passed.
+- Declared the repository root in pytest's import path so the artifact-guard regression can import
+  the standalone check script under the same command contributors and CI use.
+- Re-ran 92 non-integration tests locally and required both GitHub jobs to pass before adding
+  scaling changes.
+
+### Remove bookkeeping that grows with the archive
+
+- Rebuilt successful replay counts once from the validated event hash chain and update the index
+  only after an audit append reaches durable storage. Replay-count lookup is now constant-time.
+- Stream action lineages segment by segment instead of joining every ancestral action into one
+  large tuple. Replaced repeated ancestry walks with one iterative topological validation pass.
+- Replaced recursive run-directory scans on every controller action with incremental file
+  accounting, periodic exact reconciliation, and timed free-space checks. Disk limit observations
+  latch rather than disappearing after a later estimate.
+- Ran the complete private-ROM suite: 109 tests passed. The 1,300-cell successful Q1 store opened
+  in about 1.38 seconds, and all 1,528 successful replay counts were queried in about 0.00013
+  seconds. These are development-machine measurements, not portable performance promises.
+
+### Freeze the next learning design before training
+
+- Selected Archive v2 for bounded qualification: one primary semantic/spatial niche with a few
+  visual alternatives, at most one ordinary candidate per suffix, exact parent-to-child edge
+  verification for training eligibility, and three complete power-on replays for named promotion
+  claims.
+- Wrote [Visual Apprentice v1](visual-apprentice.md): a small recurrent pixel policy warm-started
+  from self-generated action lineages, then trained on recovery states in a backward checkpoint
+  curriculum. The first 419-action route is enough for an intentional overfit smoke, not a
+  generalization claim.
+- Declared the first frozen local-skill gate as at least 45/50 branch-grouped held-out successes,
+  followed later by at least 18/20 snapshot-free power-on attempts. No model result exists yet.
+
+### Implement Archive v2 without rewriting Q1
+
+- Stamped fresh stores and runner checkpoints as v2 while retaining schema-v1 Q1 stores as
+  readable historical evidence. Legacy stores preserve their original full-replay reporting rule,
+  but cannot enter a mutable v2 archive or mint a local edge certificate.
+- Required successful promotion evidence to bind the complete replay envelope: planned and
+  executed action counts, snapshot and screen hashes, descriptor, milestone identity, and the
+  deterministic referee-summary projection. A passing milestone label alone no longer increments
+  the promotion ledger.
+- Bound each semantic/spatial primary niche to one representative plus three visual alternatives.
+  Each suffix may persist at most one ordinary candidate, and a side-effect-free preflight rejects
+  certainly uncompetitive candidates before their snapshots or segments are written.
+- Bound ordinary verification to the exact parent-to-child segment. Cumulative edge-replay actions
+  cannot exceed cumulative exploration actions by construction; named promotions still require
+  three complete fresh power-on replays.
+- Bound resume to the exact store event sequence and hash-chain head, moved the single-writer lease
+  ahead of every resume mutation, made long promotion replays cancellable for explicit or disk
+  safety stops, and made the finished dashboard's disk measurement exact.
+- Bound every runner checkpoint to the store event byte offset, ordered cell IDs, and an immutable
+  embedded RGB frame; the separately mutable dashboard image can no longer invalidate resume. A
+  post-checkpoint crash tail is copied into a content-addressed private recovery bundle before
+  rollback, including orphan cell metadata and incomplete final event bytes. A durable
+  checkpoint-hash-bound transaction marker makes rollback repeatable after another power loss.
+  Simulated interruptions after cell metadata, event append, index update, event-log rollback, and
+  index rollback all resumed exactly. Behind, tampered, corrupt-frame, and invalid checkpoint or
+  pending-recovery states refused without mutating the store, trace, or stop marker.
+- Reopened both Q1 stores under the read-only compatibility path with zero historical deficits and
+  verified that neither can enter a v2 archive. The complete private-ROM suite passed 121 tests.
+  These checks authorize staged qualification, not a multi-day run or a learning claim.
+
 ## 2026-07-19 — Q1 steps outside once, but fails its two-seed gate
 
 ### Complete denominator
