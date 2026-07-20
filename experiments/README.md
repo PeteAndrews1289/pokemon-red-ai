@@ -11,6 +11,8 @@ private paths, credentials, or extracted game assets.
 | Experiment | Run class | Actor | Evidence | Result |
 | --- | --- | --- | ---: | --- |
 | [Phase 0 clean bootstrap](phase-0-bootstrap/README.md) | Calibration | Scripted harness | E3 — Repeated | Two clean boots matched |
+| [Q1 house exit](q1-left-home/README.md) | Checkpoint discovery | Seeded random emitter | E3 / H3 | One of two seeds left the house; Q1 gate failed |
+| [Archive v2 qualification](archive-v2-qualification/README.md) | Engineering qualification | Seeded random emitter | E3 — Repeated | Continuous, graceful-resume, and hard-crash gates passed |
 
 An experiment appearing here is not automatically a model evaluation. Read its run class, actor,
 information boundaries, and limitations before interpreting the result.

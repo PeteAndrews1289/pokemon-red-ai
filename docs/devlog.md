@@ -68,6 +68,27 @@
   verified that neither can enter a v2 archive. The complete private-ROM suite passed 121 tests.
   These checks authorize staged qualification, not a multi-day run or a learning claim.
 
+### Pass the staged Archive v2 qualification
+
+- Published the complete Archive v2 implementation at Git commit `e4e50b1` and required both
+  GitHub Actions jobs to pass before opening any real-ROM result.
+- Completed a 4,096-action continuous seed with 453 edge-replay actions, 831 named-promotion
+  replay actions, 18 stored cells, 14 active cells, four primary niches, and `game_started` as the
+  best named milestone.
+- Preserved a failed stop-timing attempt: the 2,048-action run finished before the separate stop
+  command arrived, so it was not counted as resume evidence. Repeated with a 4,096-action ceiling,
+  stopped at action 1,023, resumed identically, and finished at the exact action limit.
+- Deliberately killed the continuous seed's twin with one `frontier_selected` event beyond its
+  stable checkpoint. Resume preserved all 396 tail bytes in one hashed private recovery bundle,
+  completed at 4,096 actions, and matched the uninterrupted trial's complete non-time counters,
+  RNG, archive, parent attempts, milestones, ordered cell IDs, and checkpoint-frame hash.
+- Reopened all three stores and checked replay certificates, suffix admission bounds, archive
+  grouping, event/checkpoint identity, exact final disk bytes, and public-file privacy. The full
+  gate passed. Published the complete denominator and visual summary in
+  [Archive v2 qualification](../experiments/archive-v2-qualification/README.md).
+- Authorized Archive v2 for the next bounded Visual Apprentice pipeline. Did not relabel the
+  random emitter as learned or authorize an unbounded multi-day random search.
+
 ## 2026-07-19 — Q1 steps outside once, but fails its two-seed gate
 
 ### Complete denominator

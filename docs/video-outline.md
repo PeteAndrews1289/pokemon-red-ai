@@ -8,6 +8,9 @@
 > long-horizon discoveries reproducible, then use them to train and evaluate one frozen policy. Q1
 > now supplies the first payoff and complication: one random-emitter seed replayed a route outside,
 > the other failed, and verification cost almost one million additional controller actions.
+> Archive v2 is the engineering resolution to that cliff: bounded local proof, a preserved failed
+> stop attempt, and a hard-crash twin that returned to the same deterministic terminal state. The
+> next protagonist is the model asked to turn the lucky route into a recoverable visual skill.
 
 This document is a production guide for telling the project's story without getting ahead of the
 evidence. The detailed Episode 0 section preserves the original before-training production plan;
@@ -35,10 +38,11 @@ the next test, and lets the evidence change the plan.
 | 1. Monkeys with controllers | What can true randomness accomplish, and what can it never retain? | Preserved baseline plus the retirement decision |
 | 2. Survival of the luckiest | Can useful accidents accumulate through selection and mutation? | Better retention, no next map, and an honest failed mechanism |
 | 3. Leave home | Can checkpointed search discover and exactly replay one tiny step? | One success, one failure, a verified 419-action lineage, and no false two-seed victory |
-| 4. Meet Oak | Can pixels or a learned action model improve on random suffix search? | Matched emitter comparison and a replayed starter milestone |
-| 5. A real errand | Can a population extend a verified lineage through Oak's Parcel? | Checkpoint-assisted result clearly separated from clean-start policy ability |
-| 6. Nature or nurture? | Which progress came from pixels, rewards, RAM, or selection? | Four-lane successor arena with declared information budgets |
-| 7. Brock | Can an evolved lineage prepare, navigate, and win? | Power-on lineage replay, including every failed branch |
+| 4. The apprentice | Can one lucky route become a reusable pixel-conditioned skill? | Deliberate overfit smoke, recovery failures, and the first frozen local evaluation |
+| 5. Meet Oak | Can pixels or a learned action model improve on random suffix search? | Matched emitter comparison and a replayed starter milestone |
+| 6. A real errand | Can a population extend a verified lineage through Oak's Parcel? | Checkpoint-assisted result clearly separated from clean-start policy ability |
+| 7. Nature or nurture? | Which progress came from pixels, rewards, RAM, or selection? | Successor comparisons with declared information budgets |
+| 8. Brock | Can an evolved lineage prepare, navigate, and win? | Power-on lineage replay, including every failed branch |
 
 Do not promise a full playthrough in the first episode. Promise an investigation with the next
 milestone close enough to be credible.
@@ -105,6 +109,14 @@ Then reveal the second denominator. The two agents spent 40,000 actions explorin
 actions proving local checkpoints from power-on. Animate a short exploration bar beside a replay
 bar almost twenty-four times longer. This turns an implementation bottleneck into the episode's
 next question: can the experiment remember selectively without weakening proof?
+
+Answer that question with the
+[Archive v2 qualification card](../experiments/archive-v2-qualification/replay-cost.svg). First
+replace the `23.87×` replay bar with `0.31× total / 0.11× ordinary edge`. Then show the interruption
+denominator: the first stop command arrived too late and the run is visibly stamped `NOT RESUME
+EVIDENCE`. Finally freeze the crash twin with one selection event in flight, preserve its 396-byte
+tail, and reveal the exact terminal-state match. This is an engineering victory, not model
+learning; use it to open the next act rather than as the episode's gameplay climax.
 
 The exact `left_home` screenshot is a dark transition frame. Keep it on screen as `EXACT EVENT
 FRAME`, then cut to the later clear outdoor frame as `STABLE NARRATIVE FRAME`. Do not substitute the

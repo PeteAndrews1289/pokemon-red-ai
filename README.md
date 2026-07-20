@@ -11,17 +11,18 @@ The original game-naive, pixels-only condition remains a strict control. The Q0/
 baseline deliberately used a seeded random action emitter and a sealed, read-only referee; the next
 trials compare learned or optimized emitters under the same checkpoint and replay rules.
 
-> **Current status: the first two-seed checkpoint search reached `left_home` in one of two seeds.**
+> **Current status: Archive v2 passed its real-ROM scaling and interruption qualification.**
 > Seed `20260731` discovered a 419-action power-on lineage that stepped outside and passed all three
 > promotion replays; seed `20260730` stopped at the ground floor. The predeclared Q1 gate therefore
 > failed its two-seed requirement even though the expedition earned the narrower H3 milestone claim.
 > Across both seeds, verification consumed 954,704 actions in addition to 40,000 exploration
 > actions. Replay indexing, lineage streaming, topological validation, and bounded disk monitoring
-> are now implemented and private-ROM tested. Archive v2 is the active scaling step: local edge
-> verification, bounded visual variants, one ordinary candidate per suffix, and preflight rejection
-> before uncompetitive private checkpoints reach disk. Its implementation is checked; staged
-> real-ROM qualification still precedes the
-> [Visual Apprentice](docs/visual-apprentice.md) learning pilot and any multi-day run. See the
+> are now implemented and private-ROM tested. Archive v2 then completed continuous,
+> graceful-resume, and guarded hard-crash trials at exact action limits. The hard-crash run returned
+> to the same deterministic terminal state as its uninterrupted twin, while ordinary edge replay
+> used 453 actions for 4,096 exploration actions. The next active step is the
+> [Visual Apprentice](docs/visual-apprentice.md) learning pilot—not a longer run of the still-random
+> emitter. See the [Archive v2 qualification](experiments/archive-v2-qualification/README.md) and
 > [complete Q1 result](experiments/q1-left-home/README.md).
 
 The current code preserves every historical runner, including Monkey, Archivist, online learners,
@@ -66,7 +67,7 @@ control. The next learned-policy design is frozen in
 | Preserved random comparison | Monkey vs. pixels-only Archivist under matched budgets |
 | Completed 90-minute pretrial | Evolution reached tier 1; online learners plateaued around Pallet Town and Route 1 |
 | Concluded neural experiment | Six inherited-archive lanes all failed the second-map/party gate under equal fuel |
-| Current completion work | Q1 concluded at 1/2; Archive v2 scaling and qualification, then the Visual Apprentice pilot |
+| Current completion work | Q1 concluded at 1/2; Archive v2 qualified; Visual Apprentice pipeline and pilot next |
 | North star | First discover a replayable Hall-of-Fame lineage, then train and evaluate one frozen pixel policy |
 
 ## The journey
@@ -79,8 +80,8 @@ flowchart LR
     B1 --> EV["✅ 2 × 3 mechanism lab<br/>no next-map progress"]
     EV --> EX["✅ Q0 checkpoint runner<br/>remember stepping stones"]
     EX --> Q1["🟨 Q1 house exit<br/>H3 reached; gate 1/2"]
-    Q1 --> SC["🟨 Archive v2<br/>bounded replay + frontier"]
-    SC --> EM["⬜ Visual Apprentice<br/>learn one local skill"]
+    Q1 --> SC["✅ Archive v2<br/>bounded replay + recovery"]
+    SC --> EM["🟨 Visual Apprentice<br/>learn one local skill"]
     EM --> FR["⬜ Complete lineage<br/>then one frozen policy"]
 ```
 

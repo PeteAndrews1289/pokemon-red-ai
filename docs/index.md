@@ -11,7 +11,8 @@ Pure Monkey completed its role as the random baseline. A 90-minute evolutionary 
 a narrow game-start behavior; the completed six-lane follow-up then failed to extend any treatment
 beyond one map. The checkpoint expedition then reached and replayed `left_home` in one of two
 bounded seeds. That earns a narrow expedition milestone claim while failing the frozen two-seed Q1
-gate. Replay scaling and a materially different emitter comparison are now the active work.
+gate. Archive v2 then passed continuous, graceful-resume, and hard-crash qualification. Turning the
+verified route into a learned visual skill is now the active work.
 
 ## Start here
 
@@ -25,6 +26,7 @@ gate. Replay scaling and a materially different emitter comparison are now the a
 | See the path to completing the game | [Hall of Fame completion program](completion-program.md) | Expedition architecture, information labels, claim ladder, qualification gates, and policy distillation |
 | Understand the next learned model | [Visual Apprentice v1](visual-apprentice.md) | Pixel inputs, self-generated demonstrations, reverse curriculum, recovery training, hardware bounds, and frozen evaluation gates |
 | Inspect the first verified expedition milestone | [Q1 `left_home` result](../experiments/q1-left-home/README.md) | Both seeds, full denominator, lineage hashes, replay cost, and why 1/2 is not a pass |
+| Audit the qualified memory substrate | [Archive v2 qualification](../experiments/archive-v2-qualification/README.md) | Bounded replay, exact resume, crash recovery, deterministic comparison, and the failed stop-timing attempt |
 | Audit every accepted and discarded idea | [Decision register](decision-register.md) | Append-only decisions, failed hypotheses, alternatives, evidence, and consequences |
 | Follow the central story | [Project narrative](narrative.md) | Why the failures and evidence are part of the project |
 | Understand the reward ladder | [Reward architecture](reward-architecture.md) | Actions, milestones, loop controls, and reporting boundaries |
@@ -55,7 +57,8 @@ flowchart LR
     L --> F["✅ Referee + lineage foundation"]
     F --> G["✅ Q0 expedition runner"]
     G --> H["🟨 Q1 house exit<br/>H3 reached; gate 1/2"]
-    H --> I["⬜ Replay scale +<br/>emitter comparison"]
+    H --> I["✅ Archive v2<br/>qualified memory"]
+    I --> J["🟨 Visual Apprentice<br/>learning pipeline"]
 ```
 
 The diagram shows project position, not game progress. Reaching the game-start state is a narrow

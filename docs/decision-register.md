@@ -650,7 +650,7 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
 ## DR-0034 — Trial edge verification and bounded primary niches in Archive v2
 
 - **Date:** 2026-07-19
-- **Status:** Accepted; implementation and qualification in progress
+- **Status:** Accepted and qualified under the bounded staged gate
 - **Scope:** Q2 checkpoint search and training-curriculum generation
 - **Information label:** `RANDOM-ACTION-EMITTER / PRIVILEGED-TRAINING-REFEREE / ARCHIVE-RESTORE / ACTION-LINEAGE`
 - **Decision:** Make ordinary cells training-eligible after an exact parent-snapshot-to-child edge
@@ -673,7 +673,8 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
   auditing remains a follow-up. The first real-ROM qualification must demonstrate an ordinary
   edge-replay ratio no greater than 1.0, exact resume, bounded variants, and unchanged three-pass
   named promotion semantics before a long run is authorized.
-- **Revisit when:** Continuous and stop/resume Archive v2 qualifications finish.
+- **Revisit when:** A deeper run exceeds the measured replay/file envelope or variant starvation
+  appears despite the four-cell primary-niche cap.
 
 ## DR-0035 — Build Visual Apprentice v1 from self-generated routes
 
@@ -705,7 +706,7 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
 ## DR-0036 — Keep Q1 historical and make Archive v2 fail closed
 
 - **Date:** 2026-07-19
-- **Status:** Implemented and private-ROM checked; staged qualification pending
+- **Status:** Implemented, private-ROM checked, and staged qualification passed
 - **Scope:** Archive v2 trust, restart, interruption, and private-file boundaries
 - **Information label:** Infrastructure for `RANDOM-ACTION-EMITTER / PRIVILEGED-TRAINING-REFEREE`
 - **Decision:** Stamp new expedition stores as v2 and keep v1 stores under their original
@@ -734,11 +735,40 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
 - **Interpretation:** Backward compatibility means preserving what old evidence proved, not granting
   it new authority. Exact resume and bounded storage arrivals are scientific controls as well as
   operational safeguards.
-- **Consequence:** Archive v2 may enter staged continuous, graceful-resume, and hard-crash
-  qualification. It is not yet authorized for a multi-day campaign, and lineage-wide eligibility
-  caching plus private-payload retention remain explicit scaling follow-ups.
-- **Revisit when:** The staged Archive v2 qualification finishes or measured recovery evidence
-  contradicts the simulated crash tests.
+- **Consequence:** Archive v2 may support the bounded Visual Apprentice data and curriculum pilot.
+  A multi-day headline run still requires an actual learned/optimized emitter plus explicit
+  extreme-depth eligibility and private-payload retention decisions.
+- **Revisit when:** A measured recovery contradicts the simulated and staged crash evidence.
+
+## DR-0037 — Pass Archive v2 and move the active gate to learning
+
+- **Date:** 2026-07-19
+- **Status:** Passed; bounded engineering qualification complete
+- **Scope:** Archive v2 go/no-go decision and next experiment
+- **Information label:** `RANDOM-ACTION-EMITTER / PRIVILEGED-TRAINING-REFEREE / ARCHIVE-RESTORE / ACTION-LINEAGE`
+- **Decision:** Accept Archive v2 as the substrate for the next bounded Visual Apprentice pilot
+  after one continuous, one graceful-stop/resume, and one guarded hard-crash real-ROM run reach
+  exact 4,096-action limits and pass the post-run invariant audit. Preserve the failed 2,048-action
+  stop-timing attempt in the denominator instead of calling it resume evidence.
+- **Alternatives considered:** Start a two-day random run immediately; omit the hard crash because
+  simulated tests passed; treat a stop request that arrived after the budget as a resume trial;
+  compare only screenshots; discard the recovery tail after rollback.
+- **Observation/evidence:** The continuous and crash twins each finished with 78 attempts, 18
+  stored cells, 14 active cells, four primary niches, 453 edge-replay actions, 831 promotion-replay
+  actions, and `game_started`. Their complete deterministic terminal state matched after excluding
+  elapsed/timestamp and recovery-ledger identity. The crash bundle preserved one 396-byte selection
+  event. The graceful trial stopped at action 1,023 and resumed to 4,096. Every replay passed,
+  ordinary edge ratio stayed at or below 0.111, exact disk totals reconciled, and reviewed public
+  files exposed no ROM filename or private path.
+- **Interpretation:** The project removed the observed Q1 replay explosion without weakening named
+  promotion evidence, and it can now distinguish interruption recovery from an edited highlight.
+  This qualifies memory and verification—not the random button emitter.
+- **Consequence:** Begin the Visual Apprentice data extraction and deliberate overfit smoke. Do
+  not spend the newly available compute budget on a longer copy of the failed random-emitter gate.
+  Retain the [complete result](../experiments/archive-v2-qualification/README.md) as the engineering
+  denominator for later learned-emitter comparisons.
+- **Revisit when:** The overfit smoke finishes, or the learner needs a store behavior that the
+  bounded qualification did not exercise.
 
 ## Unresolved decisions
 

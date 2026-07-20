@@ -29,8 +29,8 @@
    required power-on lineage replay.
 10. ✅ Conclude Q1 honestly: H3 `left_home` reached, but the two-seed gate failed 1/2.
 11. ✅ Index replay counts, stream lineages, validate ancestry topologically, and bound disk scans.
-12. 🟨 Qualify the checked Archive v2 edge verification, bounded niches, and suffix buffering on the real ROM.
-13. ⬜ Train and evaluate [Visual Apprentice v1](visual-apprentice.md) under its frozen local gate.
+12. ✅ Qualify Archive v2 edge verification, bounded niches, suffix buffering, exact resume, and hard-crash recovery on the real ROM.
+13. 🟨 Build, train, and evaluate [Visual Apprentice v1](visual-apprentice.md) under its frozen local gate.
 14. ⬜ Compare qualified optimized/learned emitters under a matched house-exit gate.
 15. ⬜ Distill useful self-generated lineages into a richer frozen visual policy.
 16. ✅ Replace Monkey in the four-lane pretrial dashboard.
@@ -55,8 +55,8 @@ flowchart TD
     LAB --> REF["✅ Named referee + lineage store"]
     REF --> P1["✅ Q0<br/>Checkpoint expedition runner"]
     P1 --> Q1["🟨 Q1<br/>H3 reached; gate 1/2"]
-    Q1 --> SC["🟨 CURRENT<br/>Archive v2 qualification"]
-    SC --> VA["⬜ Visual Apprentice<br/>house-exit skill"]
+    Q1 --> SC["✅ Archive v2<br/>qualified substrate"]
+    SC --> VA["🟨 CURRENT<br/>Visual Apprentice house-exit skill"]
     VA --> EM["⬜ Matched emitter comparison"]
     EM --> SK["⬜ Reusable navigation and battle behavior"]
     SK --> HY["⬜ PLANNED<br/>Planner + memory + watchdog"]
@@ -215,10 +215,10 @@ revealed.
    branches as the random checkpoint-search denominator.
 2. **Scaling foundation** — ✅ stream lineages, index replay counts, validate ancestry
    topologically, and replace recursive per-action disk scans with bounded monitoring.
-3. **Archive v2 qualification** — 🟨 edge-verify one buffered ordinary candidate per suffix, bound
-   visual alternatives, prioritize new promotion frontiers, and measure continuous plus resumed
-   real-ROM runs before authorizing retention deletion or multi-day compute.
-4. **Visual Apprentice pilot** — replay the self-generated 419-action route into a deliberate
+3. **Archive v2 qualification** — ✅ continuous, graceful-resume, and hard-crash real-ROM trials
+   reached exact budgets; ordinary edge replay stayed bounded and the crash twin's deterministic
+   terminal state matched its uninterrupted control.
+4. **Visual Apprentice pilot** — 🟨 replay the self-generated 419-action route into a deliberate
    overfit smoke, gather independent/recovery branches, and evaluate one frozen recurrent pixel
    policy under the gates in [Visual Apprentice v1](visual-apprentice.md).
 5. **Emitter comparison** — compare optimized action-sequence, recurrent visual, and hybrid

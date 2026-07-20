@@ -8,9 +8,11 @@
 > scaling and a matched emitter comparison now precede any opening curriculum or multi-day run.
 > The first scaling foundation is complete: replay counts are indexed from the authoritative audit
 > chain, lineage actions stream by segment, ancestry validates topologically, and disk monitoring
-> no longer walks the growing run tree per action. Archive v2 is now the active gate. It replaces
-> ordinary full-lineage replay with exact parent-to-child edge verification, bounds visual variants
-> and suffix admissions, and preserves three fresh power-on replays for every named promotion.
+> no longer walks the growing run tree per action. Archive v2 now passed continuous,
+> graceful-resume, and hard-crash qualification. It replaces ordinary full-lineage replay with
+> exact parent-to-child edge verification, bounds visual variants and suffix admissions, and
+> preserves three fresh power-on replays for every named promotion. The active gate is now turning
+> the verified self-generated route into a learned visual skill.
 
 ### Implementation ledger
 
@@ -24,8 +26,8 @@
 | Single-writer bounded runner and dashboard | ✅ Implemented and checked | Real stop/resume preserved archive, selection/RNG state, and the intervention ledger |
 | First autonomous house-exit qualification | 🟨 H3 reached; Q1 failed 1/2 | One seed replayed `left_home`; both-seed robustness requirement was not met |
 | Bookkeeping/disk scaling foundation | ✅ Implemented and private-ROM checked | Constant-time replay-count lookup, streamed lineages, topological validation, and bounded disk reconciliation; does not reduce emulator replay count by itself |
-| Archive v2 local verification/scheduling | 🟨 Implementation checked; qualification next | Edge certificates may authorize training restores; only three fresh power-on promotion replays authorize named H3/H4 evidence; the private-ROM suite passes, but no staged run result is claimed yet |
-| Visual Apprentice v1 | ⬜ Development design frozen | Self-generated imitation, reverse curriculum, recovery PPO, and held-out gates are specified; no trained model result exists |
+| Archive v2 local verification/scheduling | ✅ Staged real-ROM qualification passed | Continuous, graceful-resume, and hard-crash trials reached exact limits; edge cost stayed bounded and the crash twin matched deterministic terminal state |
+| Visual Apprentice v1 | 🟨 Development design frozen; pipeline next | Self-generated imitation, reverse curriculum, recovery PPO, and held-out gates are specified; no trained model result exists |
 
 ## The destination
 
@@ -527,12 +529,12 @@ evidence that changed course.
 5. ✅ Quarantine unverified discoveries and use milestone-aware active-archive replacement.
 6. ✅ Complete the single-writer runner, loop classification, bounded adaptive suffixes, exact
    resume, storage ceilings, ancestry quarantine, and dashboard.
-7. 🟨 Record Q1 as H3 reached but robustness failed: one of two 20,000-action seeds replayed
+7. ✅ Record Q1 as H3 reached but robustness failed: one of two 20,000-action seeds replayed
    the exact `left_home` milestone.
-8. ⬜ Bound replay and archive-selection growth, then compare discovery emitters at Q2 using the
-   unchanged Q1 target and budgets; select on replayed milestone progress per action and seed.
-9. ⬜ Begin richer visual-policy skill training only after the expedition produces a useful
-   curriculum.
+8. ✅ Bound replay and archive-selection growth and pass continuous, graceful-resume, and
+   hard-crash Archive v2 qualification.
+9. 🟨 Build the Visual Apprentice data/overfit pipeline, then compare discovery emitters at Q2
+   under the unchanged target and budgets.
 
 The [experiment protocol](experiment-protocol.md) remains authoritative for official attempts. The
 [Evolutionary Explorer](neuroevolution.md) document describes the predecessor mechanism in more

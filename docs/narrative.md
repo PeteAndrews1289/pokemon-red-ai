@@ -6,7 +6,9 @@
 > that can remember verified stepping stones without pretending those checkpoints are one learned
 > policy. Its Q0 machinery worked, and one of two Q1 seeds assembled and replayed a 419-action route
 > outside. The failed companion seed and nearly one million verification actions keep that moment
-> from becoming a false victory. Its destination and strict claims are defined in the
+> from becoming a false victory. Archive v2 has now made that memory bounded and survived both a
+> graceful interruption and a deliberate hard crash. The next question is whether the verified
+> accident can teach a visual model. Its destination and strict claims are defined in the
 > [Hall of Fame completion program](completion-program.md).
 
 ## The question
@@ -55,12 +57,13 @@ test sequence used to prove that the laboratory works.
 | Does Pure Monkey learn? | No; it is now a preserved and retired random baseline. |
 | Has neuroevolution begun? | Yes. It inherited game-start behavior, but all six follow-up lanes failed the second-map gate. |
 | Has the checkpoint expedition left the house? | Once in two bounded random-emitter seeds; the lineage replayed, but the Q1 robustness gate failed. |
+| Can its checkpoint memory survive a crash? | Yes in the staged Archive v2 gate; a hard-crash twin recovered and matched the uninterrupted deterministic terminal state. |
 | Can the software boot and control the game reproducibly? | Yes. |
 | Can it verify the intended game revision? | Yes. |
 | Can it record controller actions and selected state without leaking the ROM path? | Yes. |
 | Can it reach the first playable state twice with identical results? | Yes. |
 | Is the current test sequence an autonomous playthrough? | No; it is test infrastructure. |
-| What comes next? | Make replay and selection scale, then compare better action emitters against the preserved 1/2 house-exit baseline. |
+| What comes next? | Build the Visual Apprentice pipeline, then compare a learned visual emitter against the preserved 1/2 random house-exit baseline. |
 
 Keeping this table current is part of the project. A small true claim is more valuable than a large
 ambiguous one.
