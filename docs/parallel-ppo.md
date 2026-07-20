@@ -1,8 +1,9 @@
 # Parallel recurrent PPO
 
-> **Status:** implemented and exercised in pixels-only and privileged-input canaries on
-> 2026-07-20. The first long pixels-only development campaign is the next evidence step. A canary
-> proves that the machinery updates; it does not prove that the policy has learned Pokémon Red.
+> **Status:** Version 4 ended cleanly after 1,776,644 actions and produced the project's first PPO
+> promotion, a replay-verified arrival in Viridian City. Version 5 is the current assisted-teacher
+> experiment. It adds an episodic map memory, a declared current lesson, and bounded micro-rewards,
+> while reserving the eventual power-on, assistance-free frozen student as the completion test.
 
 ## Why this lane exists
 
@@ -47,12 +48,13 @@ This is an influence record, not a claim that the implementations or results are
 
 ## Information boundaries
 
-The code supports two actors so the project can measure the value of privileged state without
-quietly mixing it into the pixels-only claim.
+The code supports three actors so the project can measure the value of assistance and privileged
+state without quietly mixing either into the pixels-only claim.
 
 | Lane | Actor receives | Trainer/referee may inspect | Honest label |
 | --- | --- | --- | --- |
 | Pixels | Two 72 × 80 grayscale frames and three recent actions | Documented RAM for reward, termination, curriculum, and replay | `PIXEL-ACTOR / PRIVILEGED-TRAINING-REFEREE / PPO / ARCHIVE-RESTORE` |
+| Assisted teacher | The pixel input above, an episodic 64 × 64 visited-position map, next-milestone one-hot, coarse navigation/interaction/battle lesson, and normalized map/goal context | The same referee fields | `PIXEL+TRAINER-MAP+GOAL-ACTOR / PPO / ARCHIVE-RESTORE / TEACHER` |
 | Privileged comparator | The pixel input above plus 24 normalized state values | The same referee fields | `PIXEL+RAM-ACTOR / PPO / ARCHIVE-RESTORE / COMPARATOR` |
 
 The 24-value comparator vector contains game-start state, map and coordinates, party size, battle
@@ -60,9 +62,12 @@ kind, individual badge bits, maximum party level, Pokédex counts, event count, 
 ownership state, and party diversity. It is intentionally small, versioned by the PPO protocol,
 and never described as pixels-only.
 
-Neither actor receives a milestone name, checkpoint identity, target action, walkthrough, reward
-component, or replay result. Trainer-owned RAM can change learning signals and starting-state
-selection; it cannot directly choose a button.
+The assisted teacher receives the identity of the *next* canonical lesson as a one-hot value, but
+not a target action, route, walkthrough, reward component, or replay result. Its map marks only
+positions visited during the current episode and the current position; it is rebuilt by the
+trainer and resets with the episode. Pixels and privileged-comparator modes receive no lesson ID.
+Trainer-owned state can change learning signals and starting-state selection; it never presses a
+button.
 
 ## The shared recurrent policy
 
@@ -237,10 +242,81 @@ five visual cycles, one long stagnation, 16 PPO updates, and no promotion-verifi
 manifest records the corrected mapping, and the final model plus all four worker memories matched
 their checkpoint hashes.
 
-Together these checks pass the Version-4 engineering gate: real HP deltas reach the reward ledger, partial damage
-and durable victory remain separate outcomes, loops end with named reasons, all workers update one
-policy, and terminal artifacts are internally consistent. It is not evidence of later-game
-learning. The next evidence step is a fresh long run under a declared budget.
+Together these checks passed the Version-4 engineering gate: real HP deltas reach the reward
+ledger, partial damage and durable victory remain separate outcomes, loops end with named reasons,
+all workers update one policy, and terminal artifacts are internally consistent.
+
+### Version-4 result: the first PPO promotion
+
+Version 4 was stopped deliberately after 6,033.643 seconds. It completed 1,776,644 actions, 1,735
+PPO updates, and 968 episodes at 294.46 actions per second. At action 790,900 it produced a
+2,109-action suffix from the Route 1 checkpoint that entered Viridian City. The suffix passed one
+parent-edge replay and three complete power-on lineage replays before admission. That raised the
+verified frontier from Route 1 to Viridian City and the curriculum from 18 to 19 entries.
+
+The same run began 718 battles, credited 49 durable successes, classified 563 exits without
+durable progress, and observed 50 blackouts. It terminated 499 visual cycles and 469 longer
+stagnations. The final model and all four worker novelty memories matched their checkpoint hashes.
+This is real checkpoint-assisted progress and the first recurrent-PPO promotion; it is not a claim
+that one policy can travel from power-on to Viridian City without checkpoint restores.
+
+The promotion also sharpened the bottleneck. A named milestone pays only after the agent has
+already solved a long behavior chain. Version 4 could learn from movement, battle damage, and
+durable outcomes, but its actor had no external memory of which city tiles it had already searched
+and no way to distinguish “find the Mart” from the eventual goals that use the same visual world.
+Waiting longer would increase the number of chances, but would not change that representation
+problem.
+
+## Version 5: micro-curriculum assisted teacher
+
+Version 5 makes the training ladder explicit. The final ambition remains a frozen power-on agent,
+but the current question is narrower: **can an assisted teacher reliably acquire one composable
+skill at a time, and can those skills later be distilled into an unassisted student?**
+
+The first lesson inserted after Viridian City is `entered_viridian_mart`. This leaves every earlier
+milestone number unchanged, so Version 4's verified Viridian state remains milestone 8. Entering
+the Mart becomes milestone 9; receiving Oak's Parcel moves to milestone 10. Later lessons still
+come from the full canonical Hall-of-Fame catalogue rather than ending at the first errand.
+
+Version 5 changes five connected mechanisms:
+
+1. **Verified curriculum migration.** A finished Version-4 run may seed Version 5 only if its final
+   state is clean, model hash matches, four novelty hashes match, every curriculum entry and
+   progress ordinal remains canonical, and exactly one power-on root exists. Private snapshots and
+   action lineages are copied and re-hashed; Version-4 PPO weights are not resumed under the new
+   observation and reward objective.
+2. **Episodic map memory.** The teacher receives two 64 × 64 planes: tiles visited on the current
+   map during this episode and the current position. This answers “where have I already looked?”
+   without exposing collision maps, doors, routes, or future tiles.
+3. **Goal and skill context.** A one-hot goal identifies the next canonical milestone. A three-way
+   hint labels the current lesson as navigation, interaction, or battle. The network still chooses
+   every individual button from experience.
+4. **Bounded local lessons.** While Viridian Mart is the frontier, each newly closest Manhattan
+   distance to the documented Mart doorway pays 0.25 once per improved tile per episode. Moving
+   away and returning cannot repay it. Advancing the Mart's trainer-only script stage pays five
+   points per new stage during that episode. Entering the Mart still provides the ordinary named
+   milestone and must pass the unchanged replay gate.
+5. **Frontier concentration.** Ninety percent of resets sample the furthest verified checkpoint;
+   ten percent rehearse the broader lineage. A promotion changes the current lesson automatically
+   rather than terminating the run.
+
+The teacher is intentionally more assisted than the Version-4 headline lane. Its result must be
+reported as checkpoint-assisted curriculum learning. The intended later handoff is teacher-to-
+student distillation: record verified teacher trajectories, train a pixels-plus-action-history
+student, fine-tune without map/goal aids, then freeze it for restore-free power-on evaluations.
+Until that succeeds, the project may claim that the curriculum or teacher reached a milestone,
+but not that an autonomous pixels-only model completed it.
+
+### Version-5 engineering canary
+
+The first real-ROM canary imported all 19 Version-4 curriculum entries, retained Viridian City as
+milestone 8, and ran four assisted workers for 16,384 actions. It completed 16 PPO updates in 65.8
+seconds, retained 266 unique worker-reported positions, and paid 14.5 points of non-farmable Mart-
+approach credit. It did not enter the Mart. It recorded 18 battle starts, two durable successes,
+11 no-progress exits, four blackouts, two visual cycles, and three long stagnations, with zero
+promotion-verification failures. The terminal model and all four novelty files matched the hashes
+in the checkpoint. This qualifies the migration, observation, reward, optimizer, dashboard, and
+checkpoint wiring—not the lesson itself.
 
 Primary implementation references: the reference
 [Version-2 environment](https://github.com/PWhiddy/PokemonRedExperiments/blob/master/v2/red_gym_env_v2.py),

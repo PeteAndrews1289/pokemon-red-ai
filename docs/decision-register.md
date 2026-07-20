@@ -1149,6 +1149,53 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
 - **Supersedes / superseded by:** Extends DR-0046 while keeping durable success classification and
   explicitly changing the local observation history and episode horizon.
 
+## DR-0048 — Replace passive frontier waiting with an assisted micro-curriculum
+
+- **Date:** 2026-07-20
+- **Status:** Implemented; real-ROM engineering canary passed, long lesson trial authorized
+- **Scope:** Parallel PPO Version 5 curriculum, observation boundary, local lesson reward, and
+  eventual student handoff
+- **Information label:** `PIXEL+TRAINER-MAP+GOAL-ACTOR / PPO / ARCHIVE-RESTORE / TEACHER`; this is
+  not the pixels-only headline or final evaluation lane
+- **Decision:** Preserve Version 4's verified curriculum and begin Version 5 from uncontaminated
+  Frontier Apprentice weights. Give the teacher an episode-local visited-position map, the next
+  canonical goal, a coarse navigation/interaction/battle hint, and map/goal context. Concentrate
+  90 percent of resets at the furthest frontier. Insert `entered_viridian_mart` after Viridian
+  City, pay bounded new-best-distance credit toward its doorway, and pay bounded progress through
+  its trainer-only dialogue script. Keep exact replay admission unchanged. Treat later
+  teacher-to-student distillation and restore-free power-on evaluation as mandatory separate gates.
+- **Alternatives considered:** Merely run Version 4 longer; resume Version-4 PPO weights under a
+  changed objective; provide the full collision map or a scripted path; expose target buttons;
+  jump directly to one end-to-end Hall-of-Fame reward; train independent skill networks now; call
+  checkpoint-assisted teacher success autonomous completion.
+- **Observation/evidence:** Version 4 finished after 1,776,644 actions, 1,735 updates, and 968
+  episodes. Its action-790,900 Viridian City candidate passed the one-edge/three-power-on replay
+  gate, creating the first PPO promotion. The final hashes matched, but the run recorded 499 visual
+  loops and 469 long stagnations. Its actor had neither episodic spatial memory nor a task identity.
+  The Version-5 canary imported all 19 verified entries, ran four workers for 16,384 actions and 16
+  updates, exercised 14.5 points of bounded Mart-approach credit, recorded zero verification
+  failures, and ended with matching model plus worker-memory hashes. It did not enter the Mart.
+- **Interpretation:** Version 4 proved that chance plus PPO can eventually extend the archive, but
+  did not show a convincing trend toward reliably composing the remaining game. The missing
+  structure is better treated as curriculum and representation design than as a request for more
+  identical lottery tickets. An assisted teacher can answer whether explicit memory and task
+  decomposition make the local skill learnable, provided its help remains visible and its result
+  is not relabeled as pixels-only autonomy.
+- **Consequence:** Protocol identifiers become `parallel-recurrent-ppo-v5` and
+  `microcurriculum-map-memory-v1`. Version-4 PPO weights cannot resume. A completed Version-4 run
+  may seed curriculum only after clean-terminal, hash, canonical-ordinal, entry-integrity, and
+  unique-root validation. The dashboard names the current lesson and separates approach/dialogue
+  credit from verified promotion. A promotion advances the lesson rather than ending the campaign.
+- **Narrative value:** Version 4 supplies the first genuine breakthrough and the next complication:
+  it reached the city, but could not remember where it had searched or what it was trying to do.
+  Version 5 turns a distant command—“beat Pokémon”—into a visible school syllabus. The later reveal
+  is equally important: passing with a map and lesson card is the teacher phase, not graduation.
+- **Revisit when:** The teacher verifies entry into Viridian Mart, exhausts the declared long-run
+  budget without doing so, exploits either local lesson, or accumulates enough verified teacher
+  trajectories to start a pixels-only student ablation.
+- **Supersedes / superseded by:** Extends DR-0047. It preserves Version 4 as the pixels-only result
+  and explicitly changes the Version-5 actor boundary rather than retroactively redefining it.
+
 ## Unresolved decisions
 
 These are questions, not hidden commitments. Each becomes a numbered entry when evidence supports

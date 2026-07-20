@@ -314,7 +314,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--curriculum-source",
         type=Path,
         required=True,
-        help="Verified checkpoint expedition that seeds the private curriculum",
+        help="Verified expedition or finished PPO run that seeds the private curriculum",
     )
     ppo.add_argument(
         "--learner",
@@ -322,7 +322,9 @@ def build_parser() -> argparse.ArgumentParser:
         required=True,
         help="Frontier learner checkpoint used to warm-start the visual policy",
     )
-    ppo.add_argument("--mode", choices=("pixels", "privileged"), default="pixels")
+    ppo.add_argument(
+        "--mode", choices=("pixels", "assisted", "privileged"), default="pixels"
+    )
     ppo.add_argument("--hours", type=float, default=8)
     ppo.add_argument("--max-actions", type=int, default=20_000_000)
     ppo.add_argument("--seed", type=int, default=20_260_752)
@@ -342,6 +344,7 @@ def build_parser() -> argparse.ArgumentParser:
     ppo.add_argument("--port", type=int, default=8_773)
     ppo.add_argument("--max-output-mib", type=int, default=102_400)
     ppo.add_argument("--min-free-gib", type=float, default=50)
+    ppo.add_argument("--frontier-probability", type=float, default=0.90)
     ppo.add_argument("--resume", action="store_true")
 
     ppo_status = subparsers.add_parser(
@@ -833,6 +836,7 @@ def run_parallel_ppo_command(args: argparse.Namespace) -> int:
         dashboard_port=args.port,
         max_output_bytes=args.max_output_mib * 1024 * 1024,
         min_free_bytes=int(args.min_free_gib * 1024**3),
+        frontier_probability=args.frontier_probability,
     )
     if args.port:
         print(

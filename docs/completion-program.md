@@ -1,6 +1,6 @@
 # The Hall of Fame completion program
 
-> **Status, 2026-07-19:** Q0 passed; the concluded Q1 trial reached `left_home` in one of two seeds
+> **Status, 2026-07-20:** Q0 passed; the concluded Q1 trial reached `left_home` in one of two seeds
 > and therefore failed its predeclared two-seed gate. The successful seed preserved a 419-action
 > power-on lineage and passed all three semantic promotion replays. Across both seeds, 40,000
 > exploration actions caused 954,704 replay actions. This earns the narrow H3 claim that the
@@ -11,8 +11,11 @@
 > no longer walks the growing run tree per action. Archive v2 now passed continuous,
 > graceful-resume, and hard-crash qualification. It replaces ordinary full-lineage replay with
 > exact parent-to-child edge verification, bounds visual variants and suffix admissions, and
-> preserves three fresh power-on replays for every named promotion. The active gate is now turning
-> the verified self-generated route into a learned visual skill.
+> preserves three fresh power-on replays for every named promotion. Frontier Apprentice and four
+> generations of recurrent PPO then extended the curriculum through Route 1. Version 4 produced
+> the first PPO promotion into Viridian City. The active gate is now Version 5's explicitly
+> assisted lesson `entered_viridian_mart`, followed by student distillation and an unassisted
+> power-on exam.
 
 ### Implementation ledger
 
@@ -28,7 +31,9 @@
 | Bookkeeping/disk scaling foundation | ✅ Implemented and private-ROM checked | Constant-time replay-count lookup, streamed lineages, topological validation, and bounded disk reconciliation; does not reduce emulator replay count by itself |
 | Archive v2 local verification/scheduling | ✅ Staged real-ROM qualification passed | Continuous, graceful-resume, and hard-crash trials reached exact limits; edge cost stayed bounded and the crash twin matched deterministic terminal state |
 | Visual Apprentice v1 | ✅ Local development curriculum complete | Stage 0 replayed the exact route; the adaptive reverse curriculum then completed seven rungs and two final 29/30 windows; no held-out H2 claim |
-| Apprentice-guided full-game expedition | 🟨 Active development campaign | Frozen pixel policy plus disclosed seeded exploration feeds Archive v2; `left_home` is a frontier and only verified Hall of Fame is terminal |
+| Recurrent PPO curriculum | ✅ Viridian City verified | Version 4 promoted a 2,109-action suffix after one edge and three power-on replays; this is checkpoint-assisted H3 evidence |
+| Version 5 assisted teacher | 🟨 Current long lesson | Episodic map memory, next-goal/skill hints, and bounded local lessons are disclosed training aids; only verified Hall of Fame is terminal |
+| Pixels-only student and clean exam | ⬜ Not started | Teacher trajectories may become self-generated demonstrations, but H5 requires frozen restore-free power-on attempts without the aids |
 
 ## The destination
 
@@ -388,6 +393,12 @@ materially different scheduler/emitter comparison.
 - demonstrate that loop termination saves actions without hiding ordinary failures;
 - compare action-suffix, recurrent-policy, and hybrid emitters under matched action budgets; and
 - freeze the first useful scheduler, archive admission rule, and adaptive horizon policy.
+
+**Current result:** the verified lineage now reaches Viridian City. Version 4's promotion occurred
+at action 790,900 and survived all required replays. Version 5 subdivides the remaining G2 chain,
+starting with entering Viridian Mart before collecting the Parcel. Its assisted teacher is allowed
+episode-local map memory and a lesson identity; those aids make its result curriculum evidence,
+not an H5 policy result. Q2 remains open through Oak's Parcel, Pokédex, and the rest of G2.
 
 ### Q3 — first badge
 

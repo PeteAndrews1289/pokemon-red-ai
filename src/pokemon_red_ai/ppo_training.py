@@ -39,16 +39,20 @@ from pokemon_red_ai.expedition import (
     referee_summary_for_state,
 )
 from pokemon_red_ai.frontier_learning import FullGameRewardTracker
-from pokemon_red_ai.milestones import HALL_OF_FAME_KEY, MILESTONES
+from pokemon_red_ai.milestones import HALL_OF_FAME_KEY, MILESTONE_BY_KEY, MILESTONES
 from pokemon_red_ai.provenance import detect_source_provenance
 from pokemon_red_ai.rom import verify_rom
 from pokemon_red_ai.state import PokemonRedState, PokemonRedStateReader
 
-PPO_PROTOCOL = "parallel-recurrent-ppo-v4"
-PPO_REWARD_PROTOCOL = "battle-local-credit-and-stagnation-v1"
-PPO_MODES = frozenset({"pixels", "privileged"})
+PPO_PROTOCOL = "parallel-recurrent-ppo-v5"
+PPO_REWARD_PROTOCOL = "microcurriculum-map-memory-v1"
+PPO_MODES = frozenset({"pixels", "assisted", "privileged"})
 PRIVILEGED_STATE_SIZE = 24
 ACTION_HISTORY_LENGTH = 3
+MAP_MEMORY_SIZE = 64
+MAP_MEMORY_FEATURES = 64
+SKILL_COUNT = 3
+GOAL_COUNT = len(MILESTONES) + 1
 
 
 def _require_rl() -> tuple[Any, Any, Any, Any, Any, Any]:
@@ -124,10 +128,11 @@ class ParallelPpoConfig:
     dashboard_port: int = 8_773
     max_output_bytes: int = 100 * 1024**3
     min_free_bytes: int = 50 * 1024**3
+    frontier_probability: float = 0.90
 
     def __post_init__(self) -> None:
         if self.mode not in PPO_MODES:
-            raise ValueError("PPO mode must be pixels or privileged")
+            raise ValueError("PPO mode must be pixels, assisted, or privileged")
         if self.duration_seconds <= 0 or self.max_actions < 1:
             raise ValueError("PPO budgets must be positive")
         if not 1 <= self.environments <= 16:
@@ -149,6 +154,8 @@ class ParallelPpoConfig:
             raise ValueError("PPO dashboard port is invalid")
         if self.max_output_bytes < 1024**2 or self.min_free_bytes < 0:
             raise ValueError("PPO disk limits are invalid")
+        if not 0 <= self.frontier_probability <= 1:
+            raise ValueError("PPO frontier probability must be between zero and one")
 
     def public_dict(self) -> dict[str, object]:
         return asdict(self)
@@ -164,6 +171,7 @@ class PpoEnvironmentConfig:
     reward_scale: float
     seed: int
     rank: int
+    frontier_probability: float
     novelty_checkpoint_file: str | None = None
 
 
@@ -190,10 +198,129 @@ def _checkpoint_view(run_directory: Path) -> tuple[ExpeditionStore, dict[str, An
     raise ValueError("No valid expedition checkpoint can seed PPO") from error
 
 
-def freeze_verified_curriculum(expedition_run: Path, curriculum_directory: Path) -> dict[str, Any]:
-    """Copy a stable, read-only curriculum out of a verified Archive-v2 checkpoint."""
+def _canonical_progress(key: str) -> MilestoneProgress:
+    if key == "power_on":
+        return MilestoneProgress("power_on", 0, "Power-on")
+    milestone = MILESTONE_BY_KEY.get(key)
+    if milestone is None:
+        raise ValueError(f"Curriculum uses unknown milestone {key!r}")
+    return MilestoneProgress(milestone.key, milestone.ordinal + 1, milestone.label)
 
-    store, checkpoint = _checkpoint_view(expedition_run.expanduser().resolve())
+
+def _import_verified_ppo_curriculum(
+    source_run: Path, curriculum_directory: Path
+) -> dict[str, Any]:
+    """Import only the replay-admitted curriculum from a finished Version-4 run."""
+
+    source_manifest_path = source_run / "curriculum" / "manifest.json"
+    source_manifest = json.loads(source_manifest_path.read_text(encoding="utf-8"))
+    if source_manifest.get("protocol") != "parallel-recurrent-ppo-v4":
+        raise ValueError("Version 5 can import only a verified Version-4 PPO curriculum")
+    source_status = json.loads((source_run / "status.json").read_text(encoding="utf-8"))
+    source_checkpoint = json.loads(
+        (source_run / "checkpoint.json").read_text(encoding="utf-8")
+    )
+    if source_status.get("state") != "finished" or source_status.get("stop_reason") not in {
+        "stop_requested",
+        "duration_limit",
+        "action_limit",
+        "hall_of_fame_verified",
+    }:
+        raise ValueError("PPO curriculum source is not a cleanly finished run")
+    if source_checkpoint.get("protocol") != "parallel-recurrent-ppo-v4":
+        raise ValueError("PPO curriculum source checkpoint has the wrong protocol")
+    if source_checkpoint.get("best_milestone") != source_manifest.get("best_milestone"):
+        raise ValueError("PPO curriculum source best milestone is inconsistent")
+    if source_checkpoint.get("total_actions") != source_status.get("total_actions"):
+        raise ValueError("PPO curriculum source terminal action counts disagree")
+    if _sha256_file(source_run / "ppo-latest.zip") != source_checkpoint.get(
+        "model_file_sha256"
+    ):
+        raise ValueError("PPO curriculum source model failed its checkpoint hash")
+    novelty_files = source_checkpoint.get("novelty_files")
+    expected_environments = int(source_checkpoint.get("config", {}).get("environments", 0))
+    if not isinstance(novelty_files, list) or len(novelty_files) != expected_environments:
+        raise ValueError("PPO curriculum source lacks one novelty memory per worker")
+    novelty_ranks: set[int] = set()
+    for metadata in novelty_files:
+        rank = int(metadata.get("rank", -1))
+        if rank < 0 or rank >= expected_environments or rank in novelty_ranks:
+            raise ValueError("PPO curriculum source novelty ranks are invalid")
+        novelty_ranks.add(rank)
+        filename = str(metadata.get("file", ""))
+        if Path(filename).name != filename:
+            raise ValueError("PPO curriculum source novelty filename is unsafe")
+        if _sha256_file(source_run / filename) != metadata.get("file_sha256"):
+            raise ValueError("PPO curriculum source novelty memory failed its hash")
+
+    source_entries = source_manifest.get("entries")
+    if not isinstance(source_entries, list) or not source_entries:
+        raise ValueError("PPO curriculum source has no entries")
+    validated: list[tuple[dict[str, Any], Path, Path, MilestoneProgress]] = []
+    for metadata in source_entries:
+        relative = Path(str(metadata.get("file", "")))
+        if len(relative.parts) != 2 or relative.parts[0] != "entries":
+            raise ValueError("PPO curriculum entry path is unsafe")
+        source_path = source_run / "curriculum" / relative
+        if _sha256_file(source_path) != metadata.get("file_sha256"):
+            raise ValueError("PPO curriculum entry failed its source hash")
+        payload = _read_gzip_json(source_path)
+        progress = _canonical_progress(str(payload.get("progress", {}).get("key", "")))
+        source_progress = _progress_from_value(payload["progress"])
+        if progress.key != source_progress.key or progress.index != source_progress.index:
+            raise ValueError("PPO curriculum entry changed ordinal across protocols")
+        validated.append((dict(metadata), relative, source_path, progress))
+    source_best = max(validated, key=lambda item: item[3].index)[3].public_dict()
+    if source_best != source_manifest.get("best_milestone"):
+        raise ValueError("PPO curriculum source entries disagree with its best milestone")
+
+    curriculum_directory.mkdir(parents=True, exist_ok=False)
+    target_entries = curriculum_directory / "entries"
+    target_entries.mkdir()
+    entries: list[dict[str, Any]] = []
+    for metadata, relative, source_path, progress in validated:
+        target_path = target_entries / relative.name
+        shutil.copy2(source_path, target_path)
+        entry = metadata
+        entry.update(
+            {
+                "file": f"entries/{relative.name}",
+                "file_sha256": _sha256_file(target_path),
+                "milestone_id": progress.key,
+                "milestone_index": progress.index,
+                "milestone_label": progress.label,
+            }
+        )
+        entries.append(entry)
+    if sum(int(item["milestone_index"]) == 0 for item in entries) != 1:
+        raise ValueError("PPO curriculum import requires one power-on root")
+    best = max(entries, key=lambda item: int(item["milestone_index"]))
+    manifest = {
+        "schema_version": 1,
+        "protocol": PPO_PROTOCOL,
+        "source_protocol": source_manifest["protocol"],
+        "source_run": source_run.name,
+        "entries": entries,
+        "best_milestone": {
+            "key": best["milestone_id"],
+            "index": best["milestone_index"],
+            "label": best["milestone_label"],
+        },
+        "verified_promotions": int(source_manifest.get("verified_promotions", 0)),
+        "updated_at": datetime.now(UTC).isoformat(),
+    }
+    _atomic_json(curriculum_directory / "manifest.json", manifest)
+    return manifest
+
+
+def freeze_verified_curriculum(expedition_run: Path, curriculum_directory: Path) -> dict[str, Any]:
+    """Copy a verified Archive-v2 or completed PPO curriculum into a private run."""
+
+    expedition_run = expedition_run.expanduser().resolve()
+    if (expedition_run / "curriculum" / "manifest.json").is_file():
+        return _import_verified_ppo_curriculum(expedition_run, curriculum_directory)
+
+    store, checkpoint = _checkpoint_view(expedition_run)
     curriculum_directory.mkdir(parents=True, exist_ok=False)
     (curriculum_directory / "entries").mkdir()
     active_ids = [str(value) for value in checkpoint["archive"]["active_cell_ids"]]
@@ -341,6 +468,64 @@ def _action_history(actions: deque[int]) -> np.ndarray:
     return np.concatenate([_one_hot_action(action) for action in actions])
 
 
+def _goal_observation(progress: MilestoneProgress) -> np.ndarray:
+    value = np.zeros(GOAL_COUNT, dtype=np.float32)
+    value[min(progress.index + 1, GOAL_COUNT - 1)] = 1
+    return value
+
+
+def _skill_observation(state: PokemonRedState, progress: MilestoneProgress) -> np.ndarray:
+    value = np.zeros(SKILL_COUNT, dtype=np.float32)
+    if state.battle_state in {1, 2}:
+        index = 2  # battle
+    elif progress.index < len(MILESTONES) and MILESTONES[progress.index].kind == "landmark":
+        index = 0  # navigation
+    else:
+        index = 1  # interaction/dialogue/menu
+    value[index] = 1
+    return value
+
+
+@dataclass(slots=True)
+class EpisodeMapMemory:
+    """Trainer-built visited map disclosed only to the assisted actor."""
+
+    visited: dict[int, set[tuple[int, int]]] = field(default_factory=dict)
+
+    def reset(self, state: PokemonRedState) -> None:
+        self.visited = {}
+        self.observe(state)
+
+    def observe(self, state: PokemonRedState) -> None:
+        if None in (state.map_id, state.player_x, state.player_y):
+            return
+        x, y = int(state.player_x), int(state.player_y)
+        if 0 <= x < MAP_MEMORY_SIZE and 0 <= y < MAP_MEMORY_SIZE:
+            self.visited.setdefault(int(state.map_id), set()).add((x, y))
+
+    def observation(self, state: PokemonRedState) -> np.ndarray:
+        value = np.zeros((2, MAP_MEMORY_SIZE, MAP_MEMORY_SIZE), dtype=np.uint8)
+        if state.map_id is None:
+            return value
+        for x, y in self.visited.get(state.map_id, set()):
+            value[0, y, x] = 255
+        if state.player_x is not None and state.player_y is not None:
+            x, y = int(state.player_x), int(state.player_y)
+            if 0 <= x < MAP_MEMORY_SIZE and 0 <= y < MAP_MEMORY_SIZE:
+                value[1, y, x] = 255
+        return value
+
+
+def _map_context(state: PokemonRedState, progress: MilestoneProgress) -> np.ndarray:
+    return np.asarray(
+        [
+            (state.map_id or 0) / 255,
+            min(progress.index + 1, GOAL_COUNT - 1) / max(1, GOAL_COUNT - 1),
+        ],
+        dtype=np.float32,
+    )
+
+
 @dataclass(slots=True)
 class VisualStagnationTracker:
     """Trainer-only loop watchdog; none of this state enters the actor observation."""
@@ -357,6 +542,7 @@ class VisualStagnationTracker:
     _max_badges: int = 0
     _enemy_hp_floor: int | None = None
     _last_battle: int = 0
+    _max_mart_script: int = 0
     _stagnant_actions: int = 0
 
     def reset(self, state: PokemonRedState, progress: MilestoneProgress) -> None:
@@ -371,6 +557,7 @@ class VisualStagnationTracker:
         self._max_badges = state.badge_count
         self._enemy_hp_floor = state.enemy_hp
         self._last_battle = state.battle_state or 0
+        self._max_mart_script = state.viridian_mart_script or 0
         self._stagnant_actions = 0
 
     def observe(
@@ -394,6 +581,7 @@ class VisualStagnationTracker:
             (state.event_flags_count, "_max_events"),
             (state.pokedex_owned_count, "_max_owned"),
             (state.badge_count, "_max_badges"),
+            (state.viridian_mart_script or 0, "_max_mart_script"),
         ):
             if current > getattr(self, name):
                 setattr(self, name, current)
@@ -454,9 +642,11 @@ class PokemonPpoFeatures(BaseFeaturesExtractor):
 
     def __init__(self, observation_space: Any) -> None:
         privileged = "state" in observation_space.spaces
+        assisted = "map_memory" in observation_space.spaces
         feature_count = (
             256
             + ACTION_HISTORY_LENGTH * len(BLIND_ACTIONS)
+            + (MAP_MEMORY_FEATURES + GOAL_COUNT + SKILL_COUNT + 2 if assisted else 0)
             + (PRIVILEGED_STATE_SIZE if privileged else 0)
         )
         super().__init__(observation_space, features_dim=feature_count)
@@ -472,12 +662,35 @@ class PokemonPpoFeatures(BaseFeaturesExtractor):
             torch.nn.ReLU(),
         )
         self.privileged = privileged
+        self.assisted = assisted
+        if assisted:
+            self.map_encoder = torch.nn.Sequential(
+                torch.nn.Conv2d(2, 8, kernel_size=8, stride=4),
+                torch.nn.ReLU(),
+                torch.nn.Conv2d(8, 16, kernel_size=4, stride=2),
+                torch.nn.ReLU(),
+                torch.nn.Flatten(),
+                torch.nn.Linear(16 * 6 * 6, MAP_MEMORY_FEATURES),
+                torch.nn.ReLU(),
+            )
 
     def forward(self, observations: Mapping[str, Any]) -> Any:
         pixels = observations["pixels"].float()
         if pixels.detach().max() > 1:
             pixels = pixels.div(255)
         values = [self.pixel_encoder(pixels), observations["action_history"].float()]
+        if self.assisted:
+            memory = observations["map_memory"].float()
+            if memory.detach().max() > 1:
+                memory = memory.div(255)
+            values.extend(
+                (
+                    self.map_encoder(memory),
+                    observations["goal"].float(),
+                    observations["skill"].float(),
+                    observations["map_context"].float(),
+                )
+            )
         if self.privileged:
             values.append(observations["state"].float())
         return torch.cat(values, dim=1)
@@ -505,6 +718,20 @@ class PokemonRedPpoEnvironment(gym.Env):
             observation["state"] = spaces.Box(
                 0, 1, shape=(PRIVILEGED_STATE_SIZE,), dtype=np.float32
             )
+        if config.mode == "assisted":
+            observation.update(
+                {
+                    "map_memory": spaces.Box(
+                        0,
+                        255,
+                        shape=(2, MAP_MEMORY_SIZE, MAP_MEMORY_SIZE),
+                        dtype=np.uint8,
+                    ),
+                    "goal": spaces.Box(0, 1, shape=(GOAL_COUNT,), dtype=np.float32),
+                    "skill": spaces.Box(0, 1, shape=(SKILL_COUNT,), dtype=np.float32),
+                    "map_context": spaces.Box(0, 1, shape=(2,), dtype=np.float32),
+                }
+            )
         self.observation_space = spaces.Dict(observation)
         self.emulator = PokemonRedEmulator(Path(config.rom_path)).start()
         self.reader = PokemonRedStateReader(self.emulator)
@@ -520,11 +747,13 @@ class PokemonRedPpoEnvironment(gym.Env):
             [-1] * ACTION_HISTORY_LENGTH, maxlen=ACTION_HISTORY_LENGTH
         )
         self.loop_tracker = VisualStagnationTracker()
+        self.map_memory = EpisodeMapMemory()
         self.steps = 0
         self.episode_number = 0
         self.episode_actions: list[int] = []
         self.start_entry: dict[str, Any] | None = None
         self.start_progress = MilestoneProgress("power_on", 0, "Power-on")
+        self.current_progress = self.start_progress
         self.episode_best = 0
         self.rng = random.Random(config.seed + config.rank)
 
@@ -541,6 +770,17 @@ class PokemonRedPpoEnvironment(gym.Env):
         }
         if self.config.mode == "privileged":
             value["state"] = _state_vector(state or self.reader.read())
+        if self.config.mode == "assisted":
+            observed_state = state or self.reader.read()
+            self.map_memory.observe(observed_state)
+            value.update(
+                {
+                    "map_memory": self.map_memory.observation(observed_state),
+                    "goal": _goal_observation(self.current_progress),
+                    "skill": _skill_observation(observed_state, self.current_progress),
+                    "map_context": _map_context(observed_state, self.current_progress),
+                }
+            )
         self.previous_frame = current
         return value
 
@@ -549,7 +789,9 @@ class PokemonRedPpoEnvironment(gym.Env):
         entries = list(manifest["entries"])
         best_index = max(int(item["milestone_index"]) for item in entries)
         frontier = [item for item in entries if int(item["milestone_index"]) == best_index]
-        metadata = self.rng.choice(frontier if self.rng.random() < 0.70 else entries)
+        metadata = self.rng.choice(
+            frontier if self.rng.random() < self.config.frontier_probability else entries
+        )
         return _load_curriculum_entry(self.curriculum_directory, metadata)
 
     def reset(
@@ -565,6 +807,7 @@ class PokemonRedPpoEnvironment(gym.Env):
         snapshot = FrozenSnapshot.from_checkpoint_dict(self.start_entry["snapshot"])
         self.emulator.load_state(snapshot.thaw())
         self.start_progress = _progress_from_value(self.start_entry["progress"])
+        self.current_progress = self.start_progress
         state = self.reader.read()
         self.reward_tracker.prime(state, self.start_progress)
         current = preprocess_apprentice_frame(self.emulator.screen_rgb())
@@ -577,6 +820,7 @@ class PokemonRedPpoEnvironment(gym.Env):
         self.episode_best = self.start_progress.index
         self.episode_number += 1
         self.loop_tracker.reset(state, self.start_progress)
+        self.map_memory.reset(state)
         return self._observation(state), {
             "curriculum_entry": self.start_entry["entry_id"],
             "starting_milestone": self.start_progress.key,
@@ -638,6 +882,7 @@ class PokemonRedPpoEnvironment(gym.Env):
         self.recent_actions.append(action_index)
         state = self.reader.read()
         progress = milestone_progress_for_state(state, inherited=self.start_progress)
+        self.current_progress = progress
         current = preprocess_apprentice_frame(self.emulator.screen_rgb())
         loop_reason = self.loop_tracker.observe(current, state, progress)
         reward = self.reward_tracker.score(
@@ -852,7 +1097,9 @@ def _remap_warm_start_lstm_input(destination: Any, source: Any) -> None:
     )
 
 
-def _warm_start(model: Any, learner_path: Path, *, privileged: bool) -> dict[str, Any]:
+def _warm_start(
+    model: Any, learner_path: Path, *, privileged: bool, assisted: bool
+) -> dict[str, Any]:
     payload = torch.load(learner_path, map_location="cpu", weights_only=True)
     source = payload.get("model", payload)
     encoder_state = {
@@ -898,11 +1145,14 @@ def _warm_start(model: Any, learner_path: Path, *, privileged: bool) -> dict[str
         "privileged_lstm_columns_initialized_to_zero": privileged,
         "older_action_history_lstm_columns_initialized_to_zero": True,
         "seed_previous_action_mapped_to_newest_history_slot": True,
+        "assisted_memory_and_goal_columns_initialized_to_zero": assisted,
     }
 
 
 def _render_dashboard(status: Mapping[str, Any]) -> str:
     best = status.get("best_milestone", {})
+    focus = status.get("training_focus", {})
+    rewards = status.get("reward_components", {})
     mode = html.escape(str(status.get("mode", "unknown")))
     frame_cards = "".join(
         f'<figure><img src="env-{rank}.png?v={status.get("updated_at", "")}" '
@@ -921,6 +1171,10 @@ def _render_dashboard(status: Mapping[str, Any]) -> str:
             (
                 "Best verified milestone",
                 html.escape(str(best.get("label", "Power-on"))),
+            ),
+            (
+                "Current lesson",
+                html.escape(str(focus.get("label", "Finish the game"))),
             ),
             ("PPO updates", f"{int(status.get('ppo_updates', 0)):,}"),
             (
@@ -950,7 +1204,15 @@ def _render_dashboard(status: Mapping[str, Any]) -> str:
             ),
             (
                 "Opponent-damage credit",
-                f"{float(status.get('reward_components', {}).get('opponent_damage', 0)):,.2f}",
+                f"{float(rewards.get('opponent_damage', 0)):,.2f}",
+            ),
+            (
+                "New-best Mart approach credit",
+                f"{float(rewards.get('mart_approach', 0)):,.2f}",
+            ),
+            (
+                "Mart dialogue-stage credit",
+                f"{float(rewards.get('mart_dialogue_progress', 0)):,.2f}",
             ),
             (
                 "Visual loops cut short",
@@ -1057,6 +1319,8 @@ class PpoRunCallback(BaseCallback):
         refresh_disk: bool = True,
     ) -> dict[str, Any]:
         manifest = _load_curriculum_manifest(self.curriculum_directory)
+        best_index = int(manifest["best_milestone"]["index"])
+        next_milestone = MILESTONES[best_index] if best_index < len(MILESTONES) else None
         elapsed = self.elapsed()
         rollout_size = self.config.rollout_steps * self.config.environments
         if refresh_disk:
@@ -1081,6 +1345,16 @@ class PpoRunCallback(BaseCallback):
             "ppo_updates": self.model.num_timesteps // max(1, rollout_size),
             "episodes": self.episodes,
             "best_milestone": manifest["best_milestone"],
+            "training_focus": (
+                {
+                    "key": next_milestone.key,
+                    "label": next_milestone.label,
+                    "chapter": next_milestone.chapter,
+                    "kind": next_milestone.kind,
+                }
+                if next_milestone is not None
+                else {"key": HALL_OF_FAME_KEY, "label": "Hall of Fame complete"}
+            ),
             "curriculum_entries": len(manifest["entries"]),
             "verified_promotions": manifest.get("verified_promotions", 0),
             "promotion_failures": self.promotion_failures,
@@ -1094,7 +1368,12 @@ class PpoRunCallback(BaseCallback):
             "information_boundary": (
                 "pixels + three recent actions; trainer-only RAM rewards and loop termination"
                 if self.config.mode == "pixels"
-                else "pixels + three recent actions + disclosed RAM state comparator"
+                else (
+                    "pixels + three recent actions + trainer-built visited map + goal/skill hint; "
+                    "assisted teacher lane"
+                    if self.config.mode == "assisted"
+                    else "pixels + three recent actions + disclosed RAM state comparator"
+                )
             ),
             "resume_semantics": "exact model/optimizer; fresh environment rollouts",
             "dashboard_url": f"http://127.0.0.1:{self.config.dashboard_port}/index.html",
@@ -1121,6 +1400,7 @@ class PpoRunCallback(BaseCallback):
             output.write(
                 f"## {datetime.now(UTC).isoformat()} — {event}\n\n"
                 f"- Best verified milestone: **{status['best_milestone']['label']}**\n"
+                f"- Current lesson: **{status['training_focus']['label']}**\n"
                 f"- Combined actions: {status['total_actions']:,}\n"
                 f"- PPO updates: {status['ppo_updates']:,}\n"
                 f"- Verified promotions: {status['verified_promotions']:,}\n"
@@ -1131,6 +1411,10 @@ class PpoRunCallback(BaseCallback):
                 f"{status['battle_events'].get('ended_without_progress', 0):,}\n\n"
                 f"- Opponent-damage credit: "
                 f"{status['reward_components'].get('opponent_damage', 0):,.2f}\n"
+                f"- New-best Mart approach credit: "
+                f"{status['reward_components'].get('mart_approach', 0):,.2f}\n"
+                f"- Mart dialogue-stage credit: "
+                f"{status['reward_components'].get('mart_dialogue_progress', 0):,.2f}\n"
                 f"- Visual loops terminated: {status['loop_events'].get('visual_cycle', 0):,}\n"
                 "- Long stagnations terminated: "
                 f"{status['loop_events'].get('progress_stagnation', 0):,}\n\n"
@@ -1324,6 +1608,7 @@ def run_parallel_ppo(
                 reward_scale=config.reward_scale,
                 seed=config.seed,
                 rank=rank,
+                frontier_probability=config.frontier_probability,
                 novelty_checkpoint_file=novelty_by_rank.get(rank),
             ),
         )
@@ -1357,7 +1642,12 @@ def run_parallel_ppo(
             verbose=0,
             tensorboard_log=str(run_directory / "tensorboard"),
         )
-        seed_info = _warm_start(model, learner_path, privileged=config.mode == "privileged")
+        seed_info = _warm_start(
+            model,
+            learner_path,
+            privileged=config.mode == "privileged",
+            assisted=config.mode == "assisted",
+        )
         manifest = json.loads((run_directory / "manifest.json").read_text(encoding="utf-8"))
         manifest["warm_start"] = seed_info
         _atomic_json(run_directory / "manifest.json", manifest)

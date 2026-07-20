@@ -175,6 +175,23 @@ def test_early_game_observations_become_named_monotonic_milestones() -> None:
     assert tracker.first_observed["left_home"] == 3
 
 
+def test_viridian_mart_is_a_dense_checkpoint_before_oaks_parcel() -> None:
+    tracker = MilestoneTracker()
+    tracker.observe(state(map_id=PokemonRedMap.VIRIDIAN_CITY, party_count=1))
+    newly_reached = tracker.observe(state(map_id=PokemonRedMap.VIRIDIAN_MART, party_count=1))
+    assert [milestone.key for milestone in newly_reached][-1] == "entered_viridian_mart"
+
+    parcel = tracker.observe(
+        state(
+            map_id=PokemonRedMap.VIRIDIAN_MART,
+            party_count=1,
+            events=(PokemonRedEvent.GOT_OAKS_PARCEL,),
+            items=(PokemonRedItem.OAKS_PARCEL,),
+        )
+    )
+    assert [milestone.key for milestone in parcel][-1] == "obtained_oaks_parcel"
+
+
 def test_badges_are_named_individually_without_inventing_missing_badges() -> None:
     tracker = MilestoneTracker()
     tracker.observe(state(badges=Badge.EARTH))

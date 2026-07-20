@@ -1,15 +1,21 @@
 # Architecture
 
-> **Primary-track update:** the active system is one recurrent pixel policy trained by PPO across
-> four emulator environments. Existing random, quality-diversity, checkpoint, and verify-only
-> learners remain reproducible comparisons. See [Parallel recurrent PPO](parallel-ppo.md).
+> **Primary-track update:** the active Version-5 system is one assisted recurrent teacher trained
+> by PPO across four emulator environments. Its training aids are explicit and will be removed in
+> a later pixels-only student and power-on evaluation. Existing pixels-only, random,
+> quality-diversity, checkpoint, and verify-only learners remain reproducible comparisons. See
+> [Parallel recurrent PPO](parallel-ppo.md).
 
 ## Active parallel-learning boundary
 
 ```mermaid
 flowchart LR
     Games["Four private game runtimes"] --> Pixels["Pixels + three recent actions"]
+    Games --> Memory["Episode visited-map memory"]
+    Curriculum --> Lesson["Next goal + coarse skill hint"]
     Pixels --> Policy["One shared CNN-LSTM actor"]
+    Memory --> Policy
+    Lesson --> Policy
     Policy --> Buttons["Eight deterministic actions"]
     Buttons --> Games
     Games --> Referee["Trainer-only RAM referee"]
@@ -21,10 +27,13 @@ flowchart LR
     Curriculum -. "episode reset only" .-> Games
 ```
 
-The primary actor receives only pixels and its three most recent actions. The referee computes reward and
-checks named outcomes but cannot choose buttons. The separately labeled privileged comparator adds
-a fixed 24-value state vector to the actor; its results cannot be presented as pixels-only. A
-checkpoint restore resets actor memory and pixel history with emulator state.
+The current teacher receives pixels, its three most recent actions, a trainer-built map of positions
+visited during this episode, and the next goal/skill lesson. The map exposes no future tiles,
+collision data, or scripted buttons and resets with the episode. The referee computes reward and
+checks named outcomes but cannot choose buttons. This lane cannot be presented as pixels-only. The
+historical pixels-only actor omits both training aids; the separately labeled privileged comparator
+instead adds a fixed 24-value state vector. A checkpoint restore resets actor memory, episode map,
+and pixel history with emulator state.
 
 ## Historical evolutionary authority boundary
 
@@ -116,9 +125,11 @@ measurements for maps, party, Pokédex, events, items, moves, badges, and blacko
 boundaries remain separately declared for every lane. See
 [reward-architecture.md](reward-architecture.md) for the current catalogue.
 
-The current pixels-only PPO schema contains two processed 72 × 80 grayscale frames plus a one-hot
-three previous actions. The privileged comparator appends 24 normalized values described in
-[Parallel recurrent PPO](parallel-ppo.md). Reward-only fields remain on the referee side.
+The pixels-only PPO schema contains two processed 72 × 80 grayscale frames plus one-hot encodings
+of three previous actions. Version 5's assisted teacher appends a two-plane 64 × 64 visited/current
+map, next-goal one-hot, three-way skill hint, and normalized map/goal context. The privileged
+comparator appends 24 normalized values instead. All three are described in
+[Parallel recurrent PPO](parallel-ppo.md); reward-only fields remain on the referee side.
 
 ### Planner
 

@@ -1,5 +1,34 @@
 # Development log
 
+## 2026-07-20 — Viridian becomes a classroom, not another lottery
+
+- Stopped Version 4 cleanly after 1,776,644 actions, 1,735 PPO updates, 968 episodes, and 6,033.643
+  seconds. Its final model and all four novelty memories matched the checkpoint hashes.
+- Preserved its first PPO promotion: a 2,109-action suffix reached Viridian City at action 790,900
+  and passed one exact parent replay plus three complete power-on lineage replays. Version 4 ended
+  with 19 curriculum entries, 986 unique positions, 49 durable battle successes, 563 no-progress
+  battle exits, 50 blackouts, 499 visual loops, and 469 long stagnations.
+- Rejected “wait longer under the identical setup” as the only response. The promotion proves that
+  useful chance can be retained; the loop denominator shows that chance alone is still an expensive
+  way to discover each long behavior chain.
+- Added the Version-5 assisted-teacher lane. Its recurrent policy receives pixels, three recent
+  self-actions, an episodic two-plane visited map, a one-hot current lesson, a coarse skill hint,
+  and normalized map/goal context. The dashboard and artifacts label this boundary explicitly.
+- Inserted `entered_viridian_mart` as milestone 9 without renumbering the eight achievements already
+  verified by Version 4. Added a new-best-only approach reward toward the Mart door and bounded
+  trainer-only dialogue-stage progress; walking away and returning cannot repay either lesson.
+- Added fail-closed migration from a completed Version-4 run. It validates the clean terminal state,
+  final model and all novelty hashes, each entry hash and canonical ordinal, the best milestone,
+  and one power-on root before copying the private curriculum. Version-4 PPO weights are preserved
+  but do not resume under Version 5's changed objective.
+- Passed the first real-ROM Version-5 canary: four workers, 16,384 actions, 16 PPO updates, 19
+  imported entries, 14.5 Mart-approach credit, 266 reported positions, zero verification failures,
+  and matching terminal model/worker hashes. It did not enter the Mart, so only the engineering
+  path—not the behavioral lesson—is qualified.
+- Made the eventual claim ladder explicit: assisted teacher, verified trajectory, pixels-only
+  student distillation, aid removal, then frozen restore-free power-on evaluation. Teacher progress
+  will never be relabeled as an unassisted full-game solution.
+
 ## 2026-07-20 — Version 3 closes; Version 4 learns from the middle of a battle
 
 - Stopped Version 3 gracefully after 1,147,988 actions, 1,121 updates, and 280 episodes. It retained

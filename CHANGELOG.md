@@ -2,6 +2,23 @@
 
 ## Unreleased — parallel recurrent PPO
 
+- Closed Version 4 cleanly at 1,776,644 actions and 1,735 updates. Its 2,109-action Route 1 suffix
+  reached Viridian City at action 790,900 and passed one edge replay plus three complete power-on
+  replays, producing the first PPO curriculum promotion.
+- Added Version 5's separately labeled assisted teacher: a 64 × 64 episodic visited-position map,
+  next-milestone goal, coarse navigation/interaction/battle hint, and map/goal context.
+- Inserted the replay-verifiable `entered_viridian_mart` micro-milestone without changing any
+  earlier ordinal; Oak's Parcel and later milestones shift by one.
+- Added bounded new-best-distance shaping toward the Viridian Mart door and map-scoped Mart script
+  progress. Neither reward can be harvested by simply walking away and returning.
+- Added fail-closed migration from a completed Version-4 curriculum, including terminal model and
+  worker-memory hashes, entry hashes, canonical milestone checks, and one-root validation. Version-4
+  weights remain ineligible under the changed observation and reward objective.
+- Increased furthest-frontier reset sampling to 90 percent and added the current lesson plus both
+  lesson rewards to the live dashboard and hourly narrative.
+- Passed a 16,384-action four-worker real-ROM Version-5 canary with 16 PPO updates, 14.5 bounded
+  Mart-approach credit, zero verification failures, and matching terminal model/memory hashes.
+
 - Added four-worker recurrent PPO so every rollout can update one shared CNN-LSTM instead of
   teaching only from rare verified named promotions.
 - Added pixels-only and separately labeled 24-value privileged actor modes, with exact warm-start

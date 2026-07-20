@@ -103,6 +103,20 @@ def test_state_reader_exposes_enemy_health_only_during_battle() -> None:
     assert outside.enemy_max_hp is None
 
 
+def test_state_reader_exposes_viridian_mart_lesson_stage_only_inside_mart() -> None:
+    values = {
+        RamAddress.STATUS_FLAGS_6: 1,
+        RamAddress.CURRENT_MAP: 0x2A,
+        RamAddress.VIRIDIAN_MART_SCRIPT: 1,
+    }
+    inside = PokemonRedStateReader(RecordingMemory(values)).read()
+    assert inside.viridian_mart_script == 1
+
+    values[RamAddress.CURRENT_MAP] = 1
+    outside = PokemonRedStateReader(RecordingMemory(values)).read()
+    assert outside.viridian_mart_script is None
+
+
 def test_unknown_battle_state_is_preserved() -> None:
     state = PokemonRedState(True, 0, 0, 0, 0, 17)
     assert state.battle_kind == "unknown"

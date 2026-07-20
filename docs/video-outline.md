@@ -18,6 +18,12 @@
 > learn a replay-verified victory, but almost every ordinary failed attempt taught the network
 > nothing. Four-worker recurrent PPO is the new protagonist because every rollout can now change
 > the shared policy. The verifier still decides whether any apparent progress is real.
+> Version 4 now supplies the payoff: at action 790,900 a worker reached Viridian City and survived
+> all four replay tests. It also supplies the next complication. Across the completed run, 968
+> episodes produced 499 visual loops and 469 long stagnations; arriving once did not make the next
+> errand reliably learnable. Version 5 turns Viridian into a visible classroom. The teacher gets a
+> map of where it has looked and a lesson card saying “enter the Mart.” The future student must
+> eventually take the exam without either aid.
 
 This document is a production guide for telling the project's story without getting ahead of the
 evidence. The detailed Episode 0 section preserves the original before-training production plan;
@@ -181,6 +187,25 @@ victory. Version 4 adds a visible opponent-HP bar that pays only while it falls.
 stamp the frame `VISUAL CYCLE` or `STAGNATION` and recycle its episode budget. Keep Route 1 on the
 proof meter throughout; the sequence explains why the design changed without pretending Version 4
 has already solved the game.
+
+Then let Version 4 finally move the proof meter. Put `790,900 ACTIONS` beside the 2,109-action
+candidate suffix, play its parent-edge replay once, and stack three full power-on replay checks
+behind it. Only after the fourth check lands should `ROUTE 1` change to `VIRIDIAN CITY`. Follow the
+celebration with the complete denominator: 1,776,644 actions, 968 episodes, 499 visual loops, and
+469 long stagnations.
+
+Version 5 should look like school. Put one card above all four workers: `CURRENT LESSON: ENTER THE
+VIRIDIAN MART`. Draw their episode-local explored tiles onto a tiny fog-of-war map. Each time a
+worker reaches a new closest distance, illuminate one small step; erase the map at reset so the
+audience understands that it is short-term working memory, not a supplied world map. Keep three
+meters visible and distinct: `GETTING WARMER` for bounded lesson reward, `LEARNING` for PPO updates,
+and `PROOF` for replay-verified milestones.
+
+The honesty beat is essential. When the teacher succeeds, do not say “the AI can now do it from the
+beginning.” Place the map and lesson card into a tray labeled `TRAINING AIDS`, use the successful
+trajectories to teach a new pixels-only student, then remove the tray for the restore-free power-on
+exam. That separation is the central narrative: scaffolding can create competence, but graduation
+requires doing without the scaffold.
 
 ### Suggested beats
 

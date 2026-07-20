@@ -38,6 +38,14 @@ uses the generated `wEnemyMonHP` (`0xCFE6`) and `wEnemyMonMaxHP` (`0xCFF4`) symb
 are returned only while `wIsInBattle` denotes a wild or trainer battle, avoiding stale battle
 scratch data outside combat. These fields remain trainer-only in pixels mode.
 
+Parallel PPO version 5 adds one narrowly scoped lesson instrument:
+`wViridianMartCurScript` at `0xD60D`. It is read only while the current map is Viridian Mart
+(`0x2A`), so stale script scratch data cannot appear outside that map. Stages 0, 1, and 2 represent
+the default clerk sequence, the Oak's Parcel handoff sequence, and the completed/no-op stage. The
+field is trainer-only and supplies bounded dialogue-progress reward; it is not part of the pixel
+actor or the teacher's observation. The public milestone `entered_viridian_mart` depends only on
+the current map ID, while Oak's Parcel still depends on its canonical item/event evidence.
+
 ## Boundaries and caveats
 
 - The adapter has a read-one-byte interface and no memory-writing method.
@@ -49,7 +57,8 @@ scratch data outside combat. These fields remain trainer-only in pixels mode.
 - A party count of zero is valid before the player chooses a starter.
 - Menu and text scratch variables are deliberately excluded because they can remain stale.
 - Opponent identity, moves, text identifiers, arbitrary raw memory, and memory mutation remain
-  excluded. Only active opponent HP and maximum HP are exposed for Version-4 battle credit.
+  excluded. Only active opponent HP/maximum HP and the map-scoped Viridian Mart script stage are
+  exposed for their declared Version-4/Version-5 trainer rewards.
 
 Instrumentation fields should be sampled at controller action boundaries. A future policy
 observation schema may select carefully justified fields, but it receives its own version and must

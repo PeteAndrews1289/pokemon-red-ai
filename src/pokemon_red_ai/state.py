@@ -35,6 +35,7 @@ class RamAddress(IntEnum):
     PLAYER_X = 0xD362
     STATUS_FLAGS_6 = 0xD732
     EVENT_FLAGS = 0xD747
+    VIRIDIAN_MART_SCRIPT = 0xD60D
 
 
 GAME_TIMER_COUNTING_MASK = 0x01
@@ -77,6 +78,7 @@ class PokemonRedState:
     party_max_hp: tuple[int, ...] | None = None
     enemy_hp: int | None = None
     enemy_max_hp: int | None = None
+    viridian_mart_script: int | None = None
 
     @property
     def badge_count(self) -> int:
@@ -152,6 +154,7 @@ class PokemonRedState:
             "party_hp_fraction": self.party_hp_fraction,
             "enemy_hp": self.enemy_hp,
             "enemy_max_hp": self.enemy_max_hp,
+            "viridian_mart_script": self.viridian_mart_script,
             "pokedex_seen_count": self.pokedex_seen_count,
             "pokedex_owned_count": self.pokedex_owned_count,
             "event_flags_count": self.event_flags_count,
@@ -251,11 +254,12 @@ class PokemonRedStateReader:
             self._memory.read_u8(int(RamAddress.BAG_ITEMS) + index * 2)
             for index in range(bag_item_count)
         )
+        current_map = self._memory.read_u8(RamAddress.CURRENT_MAP)
         battle_state = self._memory.read_u8(RamAddress.IS_IN_BATTLE)
         in_battle = battle_state in {1, 2}
         return PokemonRedState(
             game_started=True,
-            map_id=self._memory.read_u8(RamAddress.CURRENT_MAP),
+            map_id=current_map,
             player_y=self._memory.read_u8(RamAddress.PLAYER_Y),
             player_x=self._memory.read_u8(RamAddress.PLAYER_X),
             party_count=party_count,
@@ -275,6 +279,10 @@ class PokemonRedStateReader:
             enemy_hp=(self._read_u16_be(RamAddress.ENEMY_MON_HP) if in_battle else None),
             enemy_max_hp=(
                 self._read_u16_be(RamAddress.ENEMY_MON_MAX_HP) if in_battle else None
+            ),
+            viridian_mart_script=(
+                self._memory.read_u8(RamAddress.VIRIDIAN_MART_SCRIPT)
+                if current_map == 0x2A else None
             ),
         )
 

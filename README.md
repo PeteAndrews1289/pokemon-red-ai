@@ -11,7 +11,8 @@ The original game-naive, pixels-only condition remains a strict control. The Q0/
 baseline deliberately used a seeded random action emitter and a sealed, read-only referee; the next
 trials compare learned or optimized emitters under the same checkpoint and replay rules.
 
-> **Current status: the project has moved from rare-success imitation to parallel recurrent PPO.**
+> **Current status: recurrent PPO produced its first verified promotion, and Version 5 is turning
+> that frontier into a sequence of learnable lessons.**
 > Stage 0 memorized and exactly replayed its one 419-action house-exit route. Reverse curriculum
 > completed that opening in development, and Frontier Apprentice proved that network updates can be
 > gated behind replay-verified milestones. Its limitation was equally important: almost every
@@ -24,11 +25,13 @@ trials compare learned or optimized emitters under the same checkpoint and repla
 > pixels-only run then exposed episode-reset novelty farming. Version 2 fixed that loophole but paid
 > for ending battles whether or not the agent won. Version 3 required durable battle results and
 > ended cleanly at 1,147,988 actions with nine successful battles, but still no promotion beyond
-> Route 1. Version 4 now adds bounded opponent-HP credit, three-action history, longer episodes, and
-> classified loop termination. A 65,536-action stress canary exercised the mechanisms; review then
-> caught and corrected a warm-start action-history mapping error. The corrected four-worker build
-> passed a fresh 16,384-action real-ROM qualification—not yet a claim that the model can complete
-> Pokémon Red.
+> Route 1. Version 4 added bounded opponent-HP credit, three-action history, longer episodes, and
+> classified loop termination. Its completed 1,776,644-action run produced a replay-verified
+> Viridian City promotion at action 790,900. Version 5 imports that verified curriculum—not the
+> old PPO weights—and gives a separately labeled assisted teacher episodic map memory, a current
+> lesson, and bounded micro-rewards. The first four-worker real-ROM canary completed 16,384 actions
+> and 16 updates with matching terminal hashes. This is a curriculum-learning experiment, not yet
+> a claim that one unassisted model can complete Pokémon Red from power-on.
 
 The current code preserves every historical runner, including Monkey, Archivist, online learners,
 and clean-start neuroevolution, so rejected approaches remain reproducible. See
@@ -72,7 +75,7 @@ control. The next learned-policy design is frozen in
 | Preserved random comparison | Monkey vs. pixels-only Archivist under matched budgets |
 | Completed 90-minute pretrial | Evolution reached tier 1; online learners plateaued around Pallet Town and Route 1 |
 | Concluded neural experiment | Six inherited-archive lanes all failed the second-map/party gate under equal fuel |
-| Current completion work | Four-worker pixels-only recurrent PPO using a replay-verified Archive-v2 curriculum; long-run performance is pending |
+| Current completion work | Four-worker assisted-teacher PPO learning micro-milestones from the replay-verified Viridian frontier; later distillation and power-on evaluation remain mandatory |
 | North star | First discover a replayable Hall-of-Fame lineage, then train and evaluate one frozen pixel policy |
 
 ## The journey
@@ -139,12 +142,14 @@ trainer-owned and disclosed; they are disabled when evaluating one frozen model 
 [the experiment protocol](docs/experiment-protocol.md) and
 [the completion program](docs/completion-program.md).
 
-The current parallel-PPO reward protocol is version 4. It does not pay merely because a battle
+The current parallel-PPO reward protocol is version 5. It does not pay merely because a battle
 ended: trainer-only evidence must show experience or capture progress for a durable success. It
 also supplies bounded intermediate credit when opponent HP falls and explicitly terminates visual
-cycles or prolonged stagnation. The pixels-only actor still sees only rendered frames and its three
-most recent self-actions. The dashboard reports damage credit, successful and no-progress battles,
-and loop exits separately so local activity cannot masquerade as story progress.
+cycles or prolonged stagnation. Its assisted-teacher lane additionally receives an episodic visited
+map plus the current milestone/skill lesson and is never labeled pixels-only. The first Viridian
+lesson pays only for a new closest distance to the Mart and new Mart dialogue stages; neither can be
+farmed by oscillation. The dashboard reports this lesson credit, damage credit, battle outcomes,
+and loop exits separately so local activity cannot masquerade as verified story progress.
 
 ## What will count as progress?
 

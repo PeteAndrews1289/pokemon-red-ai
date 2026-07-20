@@ -1,14 +1,14 @@
 # Progress and evidence
 
-> **Current research direction:** Frontier Apprentice established a verify-before-update baseline,
-> but its network changed only after rare replay-verified named milestones. The new
-> [parallel recurrent PPO lane](parallel-ppo.md) lets four simultaneous games teach one shared
-> pixel policy from every rollout while preserving the same verified curriculum and replay referee.
-> This is a change in learning mechanism, not yet evidence of later game progress.
+> **Current research direction:** Parallel PPO Version 4 produced the first replay-verified PPO
+> promotion, from Route 1 into Viridian City. Version 5 now tests a micro-curriculum assisted
+> teacher: four simultaneous games share one recurrent policy, an episodic map memory, and an
+> explicit next lesson. The eventual pixels-only, restore-free power-on evaluation remains a
+> separate and harder claim.
 
-- **Current stage:** four-worker pixels-only recurrent PPO is implemented and production-canary
-  checked; the first long development campaign is being launched from the current verified
-  Archive-v2 frontier, with the next named milestone and Hall of Fame as unchanged outcome gates
+- **Current stage:** Version 4 is closed with Viridian City verified; Version 5's four-worker
+  assisted teacher has passed its real-ROM engineering canary and is ready for a long run whose
+  current lesson is entering Viridian Mart
 - **Status date:** 2026-07-20
 
 **Most important caveat:** Q1 verified one replayable house-exit lineage, but the acting suffix
@@ -78,6 +78,8 @@ flowchart LR
 | Disk monitoring is bounded between exact reconciliations | ✅ Verified | E2 | Known writes are counted incrementally, exact tree scans occur only at declared boundaries, and free-space/output limits remain enforced |
 | Archive v2 bounds local verification and frontier arrivals | ✅ Qualified | E3 engineering | Three 4,096-action real-ROM trials passed continuous, graceful-resume, and hard-crash gates; edge replay stayed at or below 0.111× and the crash twin matched deterministic terminal state exactly |
 | Visual Apprentice Stage 0 connects end to end | ✅ Qualified in its one-route scope | E3 pipeline | Two independent captures matched; one 468,312-parameter CNN-LSTM reached 419/419 offline and after reload, then selected the exact 419-action route to `left_home` once from clean power-on; no recovery, generalization, or H2 claim |
+| Recurrent PPO can extend the verified curriculum | ✅ Verified once | E3 checkpoint-assisted | Version 4 promoted Route 1 to Viridian City at action 790,900; the suffix passed one edge and three complete power-on replays, but one policy has not reproduced that lineage from power-on |
+| Version 5 assisted-teacher wiring is real-ROM checked | ✅ Qualified engineering | E3 pipeline | Four workers imported 19 verified entries, completed 16,384 actions and 16 PPO updates, exercised bounded Mart guidance, and ended with matching hashes; the Mart lesson itself remains unpassed |
 | Reverse curriculum reaches the complete opening horizon | ✅ Completed in development scope | E3 development | Seven adaptive rungs completed in 480 attempts with 451 successes; the final full-horizon rung passed 29/30 twice, but weights changed between attempts and no held-out H2 evaluation exists |
 | The apprentice-guided expedition continues beyond `left_home` | 🟨 Active | E1 | Frozen pixel-policy actions and seeded exploration now feed Archive v2's full 55-milestone search; no later verified milestone is claimed before run evidence exists |
 | Frontier Apprentice learns only replay-verified promotions | ✅ Checked | E2 / E3 engineering | A real-ROM canary learned five promotions through `chose_starter`, made 38 updates, passed 49/49 replay checks, and resumed at the exact learner hash after an intentional stop; Forest performance remains untested |
@@ -196,14 +198,15 @@ A compact future update can use this table:
 
 The immediate goal is not a flashy success clip. It is a trustworthy first remembered step.
 
-1. Preserve Frontier Apprentice as the verify-only learning baseline, including its plateaus and
-   the exact curriculum checkpoint used for the PPO handoff.
-2. Run the four-worker pixels-only PPO campaign with the 150-million-action safety ceiling,
-   hourly narrative entries, live worker frames, and automatic disk/heartbeat limits.
-3. Report PPO updates, reward, coverage, and replay-verified promotions as separate quantities.
-4. If pixels-only plateaus, freeze the result before running the separately labeled privileged
-   comparator under a matched action and wall-clock budget.
-5. Freeze periodic policies for clean-power-on evaluation before making any autonomous-play claim.
+1. Run Version 5 from Version 4's frozen, hash-validated Viridian curriculum with the
+   150-million-action safety ceiling, hourly narrative entries, live frames, and storage guards.
+2. Require `entered_viridian_mart` and every later milestone to pass the unchanged replay gate;
+   reward, PPO updates, and proximity alone remain diagnostics.
+3. Preserve the Version-5 teacher trajectory and failure denominator for later skill distillation.
+4. Add micro-lessons only when a measured frontier plateau identifies a missing behavior; record
+   every intervention and reject any renewable reward loop before resuming.
+5. Distill verified teacher behavior into a pixels-plus-action-history student, remove training
+   aids, and evaluate frozen policies from power-on before making an autonomous-play claim.
 
 See [Roadmap](roadmap.md) for acceptance gates and [Visual storytelling](visual-storytelling.md) for
 how those results should be shown.

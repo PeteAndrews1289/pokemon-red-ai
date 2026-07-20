@@ -27,6 +27,8 @@ from pokemon_red_ai.state import PokemonRedState
 
 FRONTIER_LEARNER_POLICY_ID = "visual-frontier-self-imitation-v1"
 FRONTIER_LEARNER_SCHEMA = 1
+VIRIDIAN_CITY_MAP_ID = 0x01
+VIRIDIAN_MART_DOOR = (29, 19)
 
 
 def _sha256_file(path: Path) -> str:
@@ -73,6 +75,8 @@ class FullGameRewardConfig:
     battle_success: float = 2.0
     opponent_damage: float = 2.0
     opponent_damage_cap: float = 4.0
+    lesson_navigation: float = 0.25
+    lesson_progress: float = 5.0
     blackout: float = -20.0
     visual_loop: float = -2.0
     repeated_action: float = -0.02
@@ -143,6 +147,8 @@ class FullGameRewardTracker:
     _enemy_hp_floor: int | None = None
     _last_enemy_hp: int | None = None
     _battle_damage_credit: float = 0.0
+    _episode_mart_distance: int | None = None
+    _episode_mart_script: int = 0
     _last_action: str | None = None
     _action_streak: int = 0
 
@@ -168,6 +174,8 @@ class FullGameRewardTracker:
         self._last_party_experience = state.total_party_experience
         self._battle_progressed = False
         self._prime_enemy_health(state)
+        self._episode_mart_distance = self._mart_distance(state)
+        self._episode_mart_script = state.viridian_mart_script or 0
         self._last_action = None
         self._action_streak = 0
 
@@ -223,6 +231,23 @@ class FullGameRewardTracker:
             delta = progress.index - self.best_milestone_index
             components["named_milestone"] = c.milestone * delta
             self.best_milestone_index = progress.index
+
+        mart_distance = self._mart_distance(state)
+        if mart_distance is not None:
+            if self._episode_mart_distance is None:
+                self._episode_mart_distance = mart_distance
+            elif mart_distance < self._episode_mart_distance:
+                components["mart_approach"] = c.lesson_navigation * (
+                    self._episode_mart_distance - mart_distance
+                )
+                self._episode_mart_distance = mart_distance
+
+        mart_script = state.viridian_mart_script
+        if mart_script is not None and mart_script > self._episode_mart_script:
+            components["mart_dialogue_progress"] = c.lesson_progress * (
+                mart_script - self._episode_mart_script
+            )
+            self._episode_mart_script = mart_script
 
         if state.map_id is not None:
             if state.map_id not in self.seen_maps:
@@ -333,6 +358,17 @@ class FullGameRewardTracker:
             self.reward_events += 1
             self.component_totals.update(components)
         return RewardStep(total, components, battle_event)
+
+    @staticmethod
+    def _mart_distance(state: PokemonRedState) -> int | None:
+        if (
+            state.map_id != VIRIDIAN_CITY_MAP_ID
+            or state.player_x is None
+            or state.player_y is None
+        ):
+            return None
+        door_x, door_y = VIRIDIAN_MART_DOOR
+        return abs(state.player_x - door_x) + abs(state.player_y - door_y)
 
     def _prime_enemy_health(self, state: PokemonRedState) -> None:
         self._enemy_hp_floor = state.enemy_hp

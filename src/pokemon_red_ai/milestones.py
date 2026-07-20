@@ -21,6 +21,7 @@ class PokemonRedMap(IntEnum):
     ROUTE_1 = 0x0C
     ROUTE_23 = 0x22
     REDS_HOUSE_1F = 0x25
+    VIRIDIAN_MART = 0x2A
     VIRIDIAN_FOREST = 0x33
     MT_MOON_1F = 0x3B
     MT_MOON_B1F = 0x3C
@@ -299,6 +300,13 @@ _UNORDERED_MILESTONES = (
         "Oak's Errand",
         "landmark",
         _condition(maps=(PokemonRedMap.VIRIDIAN_CITY,)),
+    ),
+    _definition(
+        "entered_viridian_mart",
+        "Entered the Viridian Poke Mart",
+        "Oak's Errand",
+        "landmark",
+        _condition(maps=(PokemonRedMap.VIRIDIAN_MART,)),
     ),
     _definition(
         "obtained_oaks_parcel",
