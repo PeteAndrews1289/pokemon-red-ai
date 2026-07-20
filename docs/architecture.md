@@ -1,10 +1,32 @@
 # Architecture
 
-> **Primary-track update:** the next system is a game-naive recurrent pixel policy evolved through
-> a quality-diversity population. Existing random, archive, and online Q-learning systems remain
-> reproducible comparisons. See [Evolutionary Explorer](neuroevolution.md).
+> **Primary-track update:** the active system is one recurrent pixel policy trained by PPO across
+> four emulator environments. Existing random, quality-diversity, checkpoint, and verify-only
+> learners remain reproducible comparisons. See [Parallel recurrent PPO](parallel-ppo.md).
 
-## Planned evolutionary authority boundary
+## Active parallel-learning boundary
+
+```mermaid
+flowchart LR
+    Games["Four private game runtimes"] --> Pixels["Pixels + previous action"]
+    Pixels --> Policy["One shared CNN-LSTM actor"]
+    Policy --> Buttons["Eight deterministic actions"]
+    Buttons --> Games
+    Games --> Referee["Trainer-only RAM referee"]
+    Referee --> Reward["Dense PPO reward"]
+    Reward --> Update["Shared recurrent PPO update"]
+    Update --> Policy
+    Referee --> Replay["Exact promotion replay"]
+    Replay --> Curriculum["Verified private curriculum"]
+    Curriculum -. "episode reset only" .-> Games
+```
+
+The primary actor receives only pixels and its previous action. The referee computes reward and
+checks named outcomes but cannot choose buttons. The separately labeled privileged comparator adds
+a fixed 24-value state vector to the actor; its results cannot be presented as pixels-only. A
+checkpoint restore resets actor memory and pixel history with emulator state.
+
+## Historical evolutionary authority boundary
 
 ```mermaid
 flowchart LR
@@ -94,9 +116,9 @@ measurements for maps, party, Pokédex, events, items, moves, badges, and blacko
 boundaries remain separately declared for every lane. See
 [reward-architecture.md](reward-architecture.md) for the current catalogue.
 
-Phase 1 will define a separate policy observation schema: exactly which pixels and instrumentation
-fields cross into an acting agent, how they are transformed, and when they are sampled. That schema
-does not exist until the agent-facing environment and its tests are implemented.
+The current pixels-only PPO schema contains two processed 72 × 80 grayscale frames plus a one-hot
+previous action. The privileged comparator appends 24 normalized values described in
+[Parallel recurrent PPO](parallel-ppo.md). Reward-only fields remain on the referee side.
 
 ### Planner
 
@@ -106,8 +128,8 @@ directly to the emulator.
 
 ### Skills
 
-Execute bounded navigation and battle tasks. The first learned baseline will use PPO, but the
-interface should permit deterministic and alternative learned implementations.
+Execute bounded navigation and battle tasks. Recurrent PPO is now the active shared-policy
+baseline; the interface still permits deterministic and alternative learned implementations.
 
 ### Memory
 

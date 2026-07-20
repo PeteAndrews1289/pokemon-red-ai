@@ -304,6 +304,55 @@ def build_parser() -> argparse.ArgumentParser:
     )
     expedition_stop.add_argument("run_directory", type=Path)
 
+    ppo = subparsers.add_parser(
+        "ppo-run",
+        help="Train one recurrent PPO policy across several verified Pokémon Red environments.",
+    )
+    ppo.add_argument("--rom", type=Path, help="Private path to Pokemon Red.gb")
+    ppo.add_argument("--output", type=Path, required=True)
+    ppo.add_argument(
+        "--curriculum-source",
+        type=Path,
+        required=True,
+        help="Verified checkpoint expedition that seeds the private curriculum",
+    )
+    ppo.add_argument(
+        "--learner",
+        type=Path,
+        required=True,
+        help="Frontier learner checkpoint used to warm-start the visual policy",
+    )
+    ppo.add_argument("--mode", choices=("pixels", "privileged"), default="pixels")
+    ppo.add_argument("--hours", type=float, default=8)
+    ppo.add_argument("--max-actions", type=int, default=20_000_000)
+    ppo.add_argument("--seed", type=int, default=20_260_752)
+    ppo.add_argument("--environments", type=int, default=4)
+    ppo.add_argument("--episode-actions", type=int, default=4_096)
+    ppo.add_argument("--rollout-steps", type=int, default=256)
+    ppo.add_argument("--batch-size", type=int, default=256)
+    ppo.add_argument("--epochs", type=int, default=4)
+    ppo.add_argument("--learning-rate", type=float, default=0.00025)
+    ppo.add_argument("--gamma", type=float, default=0.997)
+    ppo.add_argument("--entropy", type=float, default=0.01)
+    ppo.add_argument("--reward-scale", type=float, default=0.01)
+    ppo.add_argument("--promotion-replays", type=int, default=3)
+    ppo.add_argument("--checkpoint-actions", type=int, default=16_384)
+    ppo.add_argument("--status-seconds", type=float, default=2)
+    ppo.add_argument("--narrative-minutes", type=float, default=60)
+    ppo.add_argument("--port", type=int, default=8_773)
+    ppo.add_argument("--max-output-mib", type=int, default=102_400)
+    ppo.add_argument("--min-free-gib", type=float, default=50)
+    ppo.add_argument("--resume", action="store_true")
+
+    ppo_status = subparsers.add_parser(
+        "ppo-status", help="Show the current parallel PPO learning status."
+    )
+    ppo_status.add_argument("run_directory", type=Path)
+    ppo_stop = subparsers.add_parser(
+        "ppo-stop", help="Request a checkpoint and graceful stop for parallel PPO."
+    )
+    ppo_stop.add_argument("run_directory", type=Path)
+
     arena = subparsers.add_parser(
         "arena-run",
         help="Run the four declared agents together with a live local dashboard.",
@@ -756,6 +805,77 @@ def run_expedition_command(args: argparse.Namespace) -> int:
     return 0 if result.stop_reason in healthy else 1
 
 
+def run_parallel_ppo_command(args: argparse.Namespace) -> int:
+    from pokemon_red_ai.ppo_training import ParallelPpoConfig, run_parallel_ppo
+
+    rom_path = resolve_rom_path(args.rom)
+    learner = args.learner.expanduser().resolve()
+    if not learner.is_file():
+        raise ValueError("PPO learner checkpoint does not exist")
+    config = ParallelPpoConfig(
+        mode=args.mode,
+        duration_seconds=args.hours * 3_600,
+        max_actions=args.max_actions,
+        seed=args.seed,
+        environments=args.environments,
+        episode_actions=args.episode_actions,
+        rollout_steps=args.rollout_steps,
+        batch_size=args.batch_size,
+        epochs=args.epochs,
+        learning_rate=args.learning_rate,
+        gamma=args.gamma,
+        entropy_coefficient=args.entropy,
+        reward_scale=args.reward_scale,
+        promotion_replays=args.promotion_replays,
+        checkpoint_actions=args.checkpoint_actions,
+        status_seconds=args.status_seconds,
+        narrative_seconds=args.narrative_minutes * 60,
+        dashboard_port=args.port,
+        max_output_bytes=args.max_output_mib * 1024 * 1024,
+        min_free_bytes=int(args.min_free_gib * 1024**3),
+    )
+    if args.port:
+        print(
+            f"Live parallel PPO dashboard: http://127.0.0.1:{args.port}/index.html",
+            flush=True,
+        )
+    status = run_parallel_ppo(
+        rom_path,
+        args.output,
+        args.curriculum_source.expanduser().resolve(),
+        learner,
+        config,
+        resume=args.resume,
+    )
+    print(f"Parallel PPO stopped: {status['stop_reason']}")
+    print(f"Combined actions: {status['total_actions']:,}")
+    print(f"PPO updates: {status['ppo_updates']:,}")
+    print(f"Best verified milestone: {status['best_milestone']['label']}")
+    print(f"Verified promotions: {status['verified_promotions']:,}")
+    return 0 if status["state"] != "failed" else 1
+
+
+def show_parallel_ppo_command(run_directory: Path) -> int:
+    from pokemon_red_ai.ppo_training import show_parallel_ppo_status
+
+    status = show_parallel_ppo_status(run_directory)
+    print(f"State: {status['state']}")
+    print(f"Combined actions: {status['total_actions']:,}")
+    print(f"Actions/second: {status['actions_per_second']:,.2f}")
+    print(f"Best verified milestone: {status['best_milestone']['label']}")
+    print(f"Verified promotions: {status['verified_promotions']:,}")
+    print(f"Stop reason: {status.get('stop_reason') or 'still running'}")
+    return 0 if status["state"] != "failed" else 1
+
+
+def request_parallel_ppo_stop_command(run_directory: Path) -> int:
+    from pokemon_red_ai.ppo_training import request_parallel_ppo_stop
+
+    request_parallel_ppo_stop(run_directory)
+    print("Graceful stop requested; PPO will checkpoint after the current vector step.")
+    return 0
+
+
 def run_apprentice_extract(args: argparse.Namespace) -> int:
     rom_path = resolve_rom_path(args.rom)
     expedition = args.expedition.expanduser().resolve()
@@ -1017,6 +1137,12 @@ def main(argv: list[str] | None = None) -> int:
             return show_expedition_status(args.run_directory)
         if args.command == "expedition-stop":
             return request_expedition_stop(args.run_directory)
+        if args.command == "ppo-run":
+            return run_parallel_ppo_command(args)
+        if args.command == "ppo-status":
+            return show_parallel_ppo_command(args.run_directory)
+        if args.command == "ppo-stop":
+            return request_parallel_ppo_stop_command(args.run_directory)
         if args.command == "arena-run":
             return run_agent_arena(args)
         if args.command == "arena-status":

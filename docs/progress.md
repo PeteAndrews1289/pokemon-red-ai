@@ -1,15 +1,14 @@
 # Progress and evidence
 
-> **Current research direction:** the completed
-> [six-lane mechanism lab](selection-mutation-lab.md) failed its second-map gate in every condition.
-> The clean-start mutation population remains the historical inheritance control. Primary work has
-> moved to the [Hall of Fame completion program](completion-program.md): a named semantic referee,
-> integrity-bound frontier checkpoints, complete action lineages, and mandatory power-on replay
-> before any checkpoint may become a verified milestone.
+> **Current research direction:** Frontier Apprentice established a verify-before-update baseline,
+> but its network changed only after rare replay-verified named milestones. The new
+> [parallel recurrent PPO lane](parallel-ppo.md) lets four simultaneous games teach one shared
+> pixel policy from every rollout while preserving the same verified curriculum and replay referee.
+> This is a change in learning mechanism, not yet evidence of later game progress.
 
-- **Current stage:** the frozen apprentice handoff ended at 3.54 million actions and the Pokédex;
-  the first fresh eight-hour Frontier Apprentice campaign is now active from clean power-on, with
-  Viridian Forest as its first performance gate and Hall of Fame as its unchanged terminal goal
+- **Current stage:** four-worker pixels-only recurrent PPO is implemented and production-canary
+  checked; the first long development campaign is being launched from the current verified
+  Archive-v2 frontier, with the next named milestone and Hall of Fame as unchanged outcome gates
 - **Status date:** 2026-07-20
 
 **Most important caveat:** Q1 verified one replayable house-exit lineage, but the acting suffix
@@ -82,6 +81,9 @@ flowchart LR
 | Reverse curriculum reaches the complete opening horizon | ✅ Completed in development scope | E3 development | Seven adaptive rungs completed in 480 attempts with 451 successes; the final full-horizon rung passed 29/30 twice, but weights changed between attempts and no held-out H2 evaluation exists |
 | The apprentice-guided expedition continues beyond `left_home` | 🟨 Active | E1 | Frozen pixel-policy actions and seeded exploration now feed Archive v2's full 55-milestone search; no later verified milestone is claimed before run evidence exists |
 | Frontier Apprentice learns only replay-verified promotions | ✅ Checked | E2 / E3 engineering | A real-ROM canary learned five promotions through `chose_starter`, made 38 updates, passed 49/49 replay checks, and resumed at the exact learner hash after an intentional stop; Forest performance remains untested |
+| Parallel recurrent PPO updates from every rollout | ✅ Checked | E2 / E3 engineering | Pixels-only and privileged canaries completed optimizer updates and hash-bound checkpoints; a production-shaped four-worker run completed two full updates and wrote all dashboard frames |
+| Four emulator workers fit the current M1 host | ✅ Checked | E2 local benchmark | Under the prior learner's one-core load, 2/4/6 workers measured 178.06/419.34/351.39 actions/s; the four-worker production shape measured 218.65 actions/s with four optimizer epochs |
+| Parallel PPO advances beyond its frozen curriculum | 🟨 Active | E1 | The machinery begins from 18 replay-verified niches through Route 1; no later verified promotion is claimed before long-run evidence exists |
 | The Q0 discovery baseline reached a playable milestone | ⬜ Not demonstrated | E0 | It reached Oak's introduction visually but the referee correctly remained at `power_on` |
 | The expedition reached `left_home` | ✅ Verified in one development seed | E3 / H3 | A 419-action lineage passed three promotion replays; the two-seed Q1 result was 1/2 and the emitter was random |
 | The Q1 robustness gate passed | ⬜ Failed | E3 | Seed `20260730` stopped at the ground floor; seed `20260731` stepped outside; both exhausted the frozen 20,000-action budget |
@@ -194,14 +196,14 @@ A compact future update can use this table:
 
 The immediate goal is not a flashy success clip. It is a trustworthy first remembered step.
 
-1. Preserve the [complete 1/2 Q1 result](../experiments/q1-left-home/README.md) as the random
-   checkpoint-search baseline.
-2. Implement streaming replay, replay indexes, topological validation, selective local-cell
-   verification, and bounded private-payload retention.
-3. Prevent a growing queue of one-use visual cells from starving newly advanced frontiers.
-4. Compare an optimized action-sequence emitter and learned visual emitter under the unchanged
-   two-seed, 20,000-action `left_home` gate.
-5. Advance toward Oak and the starter only after one materially different emitter passes that gate.
+1. Preserve Frontier Apprentice as the verify-only learning baseline, including its plateaus and
+   the exact curriculum checkpoint used for the PPO handoff.
+2. Run the four-worker pixels-only PPO campaign with the 150-million-action safety ceiling,
+   hourly narrative entries, live worker frames, and automatic disk/heartbeat limits.
+3. Report PPO updates, reward, coverage, and replay-verified promotions as separate quantities.
+4. If pixels-only plateaus, freeze the result before running the separately labeled privileged
+   comparator under a matched action and wall-clock budget.
+5. Freeze periodic policies for clean-power-on evaluation before making any autonomous-play claim.
 
 See [Roadmap](roadmap.md) for acceptance gates and [Visual storytelling](visual-storytelling.md) for
 how those results should be shown.

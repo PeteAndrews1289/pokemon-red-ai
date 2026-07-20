@@ -14,7 +14,10 @@
 > Its Stage-0 audition has now passed: after fitting the one 419-action route, the frozen model
 > reproduced that route exactly from power-on. The dramatic question is no longer whether the
 > wires connect; it is what happens when the apprentice starts midway with no remembered context
-> or makes its first mistake.
+> or makes its first mistake. Frontier Apprentice supplied the next honest limitation: it could
+> learn a replay-verified victory, but almost every ordinary failed attempt taught the network
+> nothing. Four-worker recurrent PPO is the new protagonist because every rollout can now change
+> the shared policy. The verifier still decides whether any apparent progress is real.
 
 This document is a production guide for telling the project's story without getting ahead of the
 evidence. The detailed Episode 0 section preserves the original before-training production plan;
@@ -43,7 +46,7 @@ the next test, and lets the evidence change the plan.
 | 2. Survival of the luckiest | Can useful accidents accumulate through selection and mutation? | Better retention, no next map, and an honest failed mechanism |
 | 3. Leave home | Can checkpointed search discover and exactly replay one tiny step? | One success, one failure, a verified 419-action lineage, and no false two-seed victory |
 | 4. The apprentice | Can one lucky route become a reusable pixel-conditioned skill? | Deliberate overfit smoke, recovery failures, and the first frozen local evaluation |
-| 5. Meet Oak | Can pixels or a learned action model improve on random suffix search? | Matched emitter comparison and a replayed starter milestone |
+| 5. Four games, one memory | Can failures teach one shared recurrent policy? | PPO learning curves, complete denominator, and a replay-verified milestone result or plateau |
 | 6. A real errand | Can a population extend a verified lineage through Oak's Parcel? | Checkpoint-assisted result clearly separated from clean-start policy ability |
 | 7. Nature or nurture? | Which progress came from pixels, rewards, RAM, or selection? | Successor comparisons with declared information budgets |
 | 8. Brock | Can an evolved lineage prepare, navigate, and win? | Power-on lineage replay, including every failed branch |
@@ -139,6 +142,34 @@ The next visual should literally cut the route into a backward staircase: 8, 16,
 256, and 419 actions remaining. Reset the model's memory at each stair. Show successes moving into
 the training tray and failures remaining visibly counted. This makes the distinction between
 memorization and learning understandable without pretending that a high loss curve is the story.
+
+### Episode 5 turn: “The failures were being thrown away”
+
+Begin with the Frontier Apprentice rule as a physical sorting table. A verified named milestone
+enters the training tray; every other attempt falls through a trapdoor. This was a deliberate trust
+decision, not a coding accident—but it makes the limitation visible in one shot.
+
+Then split the screen into four live Game Boy frames feeding one shared brain. Each worker gathers
+a different experience; after one rollout, draw a single optimizer pulse back into all four. Put
+the privileged referee outside the actor loop and label its two jobs: `REWARD` and `VERIFY`. The
+actor side should remain visibly labeled `PIXELS + PREVIOUS ACTION`.
+
+Use the worker benchmark as a short comic beat. Two games leave empty CPU seats. Six games crowd
+the machine and slow down. Four wins at 419.34 collection actions per second in the setup test.
+Then immediately replace that number with the production-shaped 218.65 actions/s figure and explain
+why four optimizer epochs do more work per rollout. This prevents a microbenchmark from becoming a
+misleading headline.
+
+The result reveal needs three meters that can disagree:
+
+1. **Learning:** PPO updates and loss/entropy curves;
+2. **Behavior:** map positions, reward components, loops, battles, and episodes; and
+3. **Proof:** the furthest milestone that passed exact local replay plus three power-on replays.
+
+If reward rises but the proof meter does not move, that is the episode's result. If a new milestone
+passes, show the replay four times before celebrating it. If the archive-assisted system eventually
+reaches the Hall of Fame, end on the next harder question: can one frozen policy do it from power-on
+without checkpoint help?
 
 ### Suggested beats
 

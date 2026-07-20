@@ -1,5 +1,31 @@
 # Development log
 
+## 2026-07-20 — Parallel PPO turns failures into training data
+
+- Reviewed Peter Whidden's Pokémon Red PPO project and video as an influence, then documented the
+  parts adopted and the evidence rules deliberately retained here.
+- Added one shared recurrent-PPO learner over several PyBoy environments, with pixels-only and
+  separately labeled 24-value privileged actor modes.
+- Reused the Visual/Frontier Apprentice convolution, actor LSTM, and action-head weights; the PPO
+  value head starts new, and privileged-only LSTM columns start at zero.
+- Froze 18 replay-verified curriculum starts from one atomic Archive-v2 checkpoint instead of
+  reading a changing live store or choosing an undocumented save state.
+- Kept named progress stricter than reward: a candidate needs an exact parent-edge replay and three
+  exact complete power-on replays before admission.
+- Added atomic latest/previous model archives, hash-bound checkpoint validation, stop requests,
+  bounded storage checks, hourly Markdown chapters, TensorBoard metrics, and a multi-frame live
+  dashboard.
+- Preserved the honest resume boundary: model and optimizer state resume exactly, while partial
+  emulator rollouts restart.
+- Ran pixels-only canaries at 1, 2, 4, and 6 environments plus a privileged-input canary. All
+  completed real PPO updates. Four workers produced the best measured collection rate on the 8 GB
+  M1: 419.34 actions/s, versus 178.06 with two and 351.39 with six.
+- Ran the production-shaped four-worker canary with 256-step rollouts, batch size 256, four epochs,
+  and 4,096-action episodes. It completed 2,048 actions, two updates, all four live frames, and a
+  hash-matched final checkpoint at 218.65 actions/s.
+- Retained the still-running Frontier Apprentice as the baseline until the PPO replacement passed
+  this gate. The benchmark and canaries are mechanism evidence, not later-game progress.
+
 ## 2026-07-20 — From a frozen handoff to a full-game learning ratchet
 
 - At the 6-hour-41-minute interruption observation, the apprentice-guided expedition had reached

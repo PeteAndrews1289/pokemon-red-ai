@@ -979,6 +979,50 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
 - **Supersedes / superseded by:** Supersedes DR-0041's frozen post-house actor as the primary
   learning direction; retains DR-0041 and DR-0042 as baseline evidence.
 
+## DR-0044 — Let failures teach through parallel recurrent PPO
+
+- **Date:** 2026-07-20
+- **Status:** Implemented; pixels and privileged canaries passed, long pixels trial authorized
+- **Scope:** Full-game learner successor and Whidden-inspired comparison lane
+- **Information label:** Primary lane is `PIXEL-ACTOR / PRIVILEGED-TRAINING-REFEREE / PPO /
+  ARCHIVE-RESTORE`; comparator is `PIXEL+RAM-ACTOR / PPO / ARCHIVE-RESTORE`
+- **Decision:** Add a shared recurrent-PPO policy collecting from four simultaneous emulator
+  environments. Warm-start the exact Visual/Frontier Apprentice pixel encoder, actor LSTM, and
+  action head. Train from every rollout using the existing dense full-game reward ledger, but let
+  only one exact parent-edge replay plus three exact power-on replays add a new named-milestone
+  curriculum state. Freeze that starting curriculum from one atomic Archive-v2 checkpoint. Keep
+  pixels-only and 24-value privileged actor modes separately labeled. Preserve model/optimizer
+  resume while disclosing that partially collected environment rollouts restart.
+- **Alternatives considered:** Continue verify-only self-imitation indefinitely; replace the
+  referee with reward-only milestone claims; run the privileged actor without labeling its RAM;
+  start every episode from one hand-selected save; copy another repository wholesale; run six or
+  more workers because more windows look more impressive; discard the earlier campaign rather
+  than use it as a baseline and verified curriculum source.
+- **Observation/evidence:** The frozen handoff selected 18 replay-verified starting niches through
+  Route 1. A one-environment pixels canary completed 256 actions and eight PPO updates with a
+  hash-matched checkpoint. Two-, four-, and six-environment benchmarks measured 178.06, 419.34,
+  and 351.39 combined actions/s while the earlier learner still occupied one core. A privileged
+  two-environment canary also completed real optimizer updates. The production-shaped four-worker
+  canary used 256-step rollouts, batch size 256, four epochs, and 4,096-action episodes; it
+  completed 2,048 actions and two updates at 218.65 actions/s, wrote all worker frames, and
+  finalized status correctly. These are mechanism checks, not gameplay-performance evidence.
+- **Interpretation:** The Frontier Apprentice's causal teaching rule was auditable but too sparse:
+  it ignored almost every failure. PPO is the appropriate next ablation because it changes the
+  learning rule while retaining the verified archive, canonical referee, action cadence, initial
+  neural prior, and narrative instrumentation. Four workers use the M1 efficiently; six reduce
+  throughput once emulator and optimizer contention are included.
+- **Consequence:** Finish the active Frontier Apprentice run as a baseline only until the PPO
+  replacement passes its production canary, then stop it cleanly and launch the long pixels-only
+  PPO campaign with four environments and the unchanged 150-million-action safety ceiling. Keep
+  the privileged mode available for a later matched comparator rather than mixing both information
+  regimes into one headline run. Report rewards, coverage, updates, and verified promotions as
+  different facts.
+- **Revisit when:** The first long campaign reaches a later milestone, plateaus at its starting
+  frontier, stops unexpectedly, or accumulates enough data for a matched privileged comparator.
+- **Supersedes / superseded by:** Does not erase DR-0043; turns its deferred recurrent-PPO ablation
+  into the primary long-run learning trial while preserving Frontier Apprentice as the verify-only
+  baseline.
+
 ## Unresolved decisions
 
 These are questions, not hidden commitments. Each becomes a numbered entry when evidence supports

@@ -13,8 +13,10 @@ beyond one map. The checkpoint expedition then reached and replayed `left_home` 
 bounded seeds. That earns a narrow expedition milestone claim while failing the frozen two-seed Q1
 gate. Archive v2 then passed continuous, graceful-resume, and hard-crash qualification. Turning the
 verified route into a learned visual skill is now the active work.
-The Stage-0 immutable extractor, recurrent cloning trainer, frozen reload check, and clean-power-on
-evaluator are implemented and unit checked; their first real-ROM result is still pending.
+Stage 0 then reproduced its sole route exactly, reverse curriculum completed the opening in
+development, and Frontier Apprentice established a replay-gated self-imitation baseline. The active
+successor is four-worker recurrent PPO: every rollout can now update one shared policy while the
+same verifier controls named curriculum promotion.
 
 ## Start here
 
@@ -28,6 +30,7 @@ evaluator are implemented and unit checked; their first real-ROM result is still
 | See the path to completing the game | [Hall of Fame completion program](completion-program.md) | Expedition architecture, information labels, claim ladder, qualification gates, and policy distillation |
 | Understand the next learned model | [Visual Apprentice v1](visual-apprentice.md) | Pixel inputs, self-generated demonstrations, reverse curriculum, recovery training, hardware bounds, and frozen evaluation gates |
 | Follow learning through the remainder of the game | [Frontier Apprentice](frontier-apprentice.md) | Verify-before-update milestone ratchet, adaptive exploration, full-game rewards, crash safety, and evaluation limits |
+| Understand the active shared-policy learner | [Parallel recurrent PPO](parallel-ppo.md) | Four-worker PPO, pixels/RAM boundaries, verified curriculum, dense rewards, checkpoints, dashboard, and benchmark evidence |
 | Inspect the first verified expedition milestone | [Q1 `left_home` result](../experiments/q1-left-home/README.md) | Both seeds, full denominator, lineage hashes, replay cost, and why 1/2 is not a pass |
 | Audit the qualified memory substrate | [Archive v2 qualification](../experiments/archive-v2-qualification/README.md) | Bounded replay, exact resume, crash recovery, deterministic comparison, and the failed stop-timing attempt |
 | Audit every accepted and discarded idea | [Decision register](decision-register.md) | Append-only decisions, failed hypotheses, alternatives, evidence, and consequences |
@@ -61,7 +64,9 @@ flowchart LR
     F --> G["✅ Q0 expedition runner"]
     G --> H["🟨 Q1 house exit<br/>H3 reached; gate 1/2"]
     H --> I["✅ Archive v2<br/>qualified memory"]
-    I --> J["🟨 Visual Apprentice<br/>learning pipeline"]
+    I --> J["✅ Visual Apprentice<br/>one-route pipeline"]
+    J --> K["✅ Frontier Apprentice<br/>verify-only baseline"]
+    K --> P["🟨 Parallel recurrent PPO<br/>every rollout teaches"]
 ```
 
 The diagram shows project position, not game progress. Reaching the game-start state is a narrow

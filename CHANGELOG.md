@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased — parallel recurrent PPO
+
+- Added four-worker recurrent PPO so every rollout can update one shared CNN-LSTM instead of
+  teaching only from rare verified named promotions.
+- Added pixels-only and separately labeled 24-value privileged actor modes, with exact warm-start
+  of the existing visual encoder, actor LSTM, and action head.
+- Added a frozen private curriculum built only from one atomic checkpoint's replay-verified
+  Archive-v2 cells.
+- Kept named curriculum advancement behind one exact parent-edge replay and three exact complete
+  power-on replays; reward remains diagnostic rather than completion evidence.
+- Added hash-bound latest/previous model checkpoints, explicit partial-rollout restart semantics,
+  stop/status commands, storage guards, TensorBoard output, hourly Markdown chapters, and a live
+  multi-environment dashboard.
+- Benchmarked 2, 4, and 6 workers on the target 8 GB M1 and selected four. Pixels-only, privileged,
+  and production-shaped canaries completed real optimizer updates and correct final checkpoints.
+- Documented the influence of PWhiddy's Pokémon Red PPO experiments, the differences in observation
+  and evidence rules, and a video narrative that keeps learning, behavior, and verified proof as
+  separate meters.
+
 ## Unreleased — Visual Apprentice Stage 0
 
 - Added immutable extraction of the certified 419-action Q1 promotion into 420 processed private

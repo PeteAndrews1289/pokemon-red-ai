@@ -1,10 +1,10 @@
 # Roadmap
 
-> **Direction update:** Pure Monkey and clean-start mutation remain preserved controls. The
-> completed 2 × 3 lab changed selection and mutation but every lane still failed the second-map
-> gate. The primary track is now the [Hall of Fame completion program](completion-program.md): a
-> currently random discovery emitter, privileged read-only training referee, verified frontier
-> checkpoints, complete action lineages, and eventual distillation into one frozen visual policy.
+> **Direction update:** Pure Monkey, clean-start mutation, and verify-only Frontier Apprentice
+> remain preserved controls. The active track is now
+> [parallel recurrent PPO](parallel-ppo.md): four simultaneous games teach one shared pixel policy
+> from every rollout, while the Hall-of-Fame referee and replay-verified Archive-v2 curriculum
+> remain unchanged.
 
 ## Completed blind-discovery arc
 
@@ -34,15 +34,21 @@
     offline/reload fit, and the exact 419-action route selected once from clean power-on.
 14. ✅ Complete the adaptive reverse checkpoint curriculum while preserving every failed attempt;
     continue withholding H2 until a frozen policy passes held-out local starts.
-15. 🟨 Use the completed local model as a frozen visual prior in a full-game Archive v2 campaign;
-    continue after `left_home` and stop only at Hall of Fame or declared resource boundaries.
+15. ✅ Use the completed local model as a frozen visual prior in a full-game Archive v2 campaign;
+    preserve its Pokédex plateau and later fresh-run evidence as the fixed-handoff baseline.
 16. ✅ Implement [Frontier Apprentice](frontier-apprentice.md): adaptive exploration,
     map-balanced scheduling, loop-escape bursts, full-game reward accounting, and self-imitation
     only after verified named promotions; pass its real-ROM mechanism and exact-resume canary.
-17. ⬜ Qualify the learner on the Viridian-Forest gate against the frozen handoff baseline.
-18. ⬜ Compare verified self-imitation with recurrent PPO under the same reward and archive rules.
-19. ⬜ Distill useful self-generated lineages into a richer frozen visual policy.
-20. ✅ Replace Monkey in the four-lane pretrial dashboard.
+17. ✅ Implement [parallel recurrent PPO](parallel-ppo.md), exact warm-start, frozen verified
+    curriculum, replay-gated promotion, resumable model checkpoints, and the four-frame dashboard.
+18. ✅ Benchmark 2/4/6 emulator workers on the target M1 and select four; pass pixels-only,
+    privileged-input, and production-shaped optimizer canaries.
+19. 🟨 Run the first long pixels-only PPO development campaign under the 150-million-action safety
+    ceiling; compare later named milestones with the verify-only baseline.
+20. ⬜ Run the privileged comparator only under a matched declared budget if it remains useful.
+21. ⬜ Distill useful self-generated lineages into a richer frozen visual policy and evaluate it
+    separately from power-on.
+22. ✅ Replace Monkey in the four-lane pretrial dashboard.
 
 ## Later informed-agent roadmap
 

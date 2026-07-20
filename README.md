@@ -11,22 +11,18 @@ The original game-naive, pixels-only condition remains a strict control. The Q0/
 baseline deliberately used a seeded random action emitter and a sealed, read-only referee; the next
 trials compare learned or optimized emitters under the same checkpoint and replay rules.
 
-> **Current status: Archive v2 passed; the first Visual Apprentice pipeline is implemented.**
-> Seed `20260731` discovered a 419-action power-on lineage that stepped outside and passed all three
-> promotion replays; seed `20260730` stopped at the ground floor. The predeclared Q1 gate therefore
-> failed its two-seed requirement even though the expedition earned the narrower H3 milestone claim.
-> Across both seeds, verification consumed 954,704 actions in addition to 40,000 exploration
-> actions. Replay indexing, lineage streaming, topological validation, and bounded disk monitoring
-> are now implemented and private-ROM tested. Archive v2 then completed continuous,
-> graceful-resume, and guarded hard-crash trials at exact action limits. The hard-crash run returned
-> to the same deterministic terminal state as its uninterrupted twin, while ordinary edge replay
-> used 453 actions for 4,096 exploration actions. The next active step is the
-> [Visual Apprentice](docs/visual-apprentice.md) learning pilot—not a longer run of the still-random
-> emitter. The new Stage-0 path immutably extracts the certified 419-action demonstration, trains a
-> 468,312-parameter CNN-LSTM on CPU, proves save/reload identity, and gives the frozen model a
-> snapshot-free power-on exam. Its real-ROM result is still pending. See the
-> [Archive v2 qualification](experiments/archive-v2-qualification/README.md) and
-> [complete Q1 result](experiments/q1-left-home/README.md).
+> **Current status: the project has moved from rare-success imitation to parallel recurrent PPO.**
+> Stage 0 memorized and exactly replayed its one 419-action house-exit route. Reverse curriculum
+> completed that opening in development, and Frontier Apprentice proved that network updates can be
+> gated behind replay-verified milestones. Its limitation was equally important: almost every
+> failed suffix produced no gradient update. The new
+> [parallel PPO lane](docs/parallel-ppo.md) runs four simultaneous games into one shared recurrent
+> pixel policy so every rollout can teach, while Archive v2 still requires exact local replay and
+> three complete power-on replays before admitting a named milestone. Pixels-only and separately
+> labeled privileged-input canaries pass; a four-worker production-shaped canary completed two
+> optimizer updates, wrote all live frames, and saved a hash-bound checkpoint. The first long
+> pixels-only development campaign is now the active evidence step—not yet a claim that the model
+> can complete Pokémon Red.
 
 The current code preserves every historical runner, including Monkey, Archivist, online learners,
 and clean-start neuroevolution, so rejected approaches remain reproducible. See
@@ -57,7 +53,7 @@ control. The next learned-policy design is frozen in
 
 | Question | Current answer |
 | --- | --- |
-| Is there a trained neural Pokémon-playing model yet? | A neural population inherited game-start behavior, but there is no evaluated successful Pokémon-playing policy yet |
+| Is there a trained neural Pokémon-playing model yet? | Yes, several development policies now update from gameplay; no evaluated full-game policy or Hall-of-Fame result exists |
 | Can a game-naive agent explore from power-on? | Yes: random, archive, and online pixels-only runners have been exercised |
 | Why retire Pure Monkey? | Its action distribution never changes; lucky outcomes cannot become future behavior |
 | What replaced it? | A quality-diversity neuroevolution population proved narrow inheritance, then failed to extend it beyond the opening |
@@ -70,7 +66,7 @@ control. The next learned-policy design is frozen in
 | Preserved random comparison | Monkey vs. pixels-only Archivist under matched budgets |
 | Completed 90-minute pretrial | Evolution reached tier 1; online learners plateaued around Pallet Town and Route 1 |
 | Concluded neural experiment | Six inherited-archive lanes all failed the second-map/party gate under equal fuel |
-| Current completion work | Q1 concluded at 1/2; Archive v2 qualified; Visual Apprentice Stage 0 implemented and awaiting its real-ROM gate |
+| Current completion work | Four-worker pixels-only recurrent PPO using a replay-verified Archive-v2 curriculum; long-run performance is pending |
 | North star | First discover a replayable Hall-of-Fame lineage, then train and evaluate one frozen pixel policy |
 
 ## The journey
@@ -85,7 +81,9 @@ flowchart LR
     EX --> Q1["🟨 Q1 house exit<br/>H3 reached; gate 1/2"]
     Q1 --> SC["✅ Archive v2<br/>bounded replay + recovery"]
     SC --> EM["🟨 Visual Apprentice<br/>learn one local skill"]
-    EM --> FR["⬜ Complete lineage<br/>then one frozen policy"]
+    EM --> FR["✅ Frontier Apprentice<br/>verify-only updates"]
+    FR --> PPO["🟨 Parallel PPO<br/>learn from every rollout"]
+    PPO --> HF["⬜ Complete lineage<br/>then one frozen policy"]
 ```
 
 GitHub issues and experiment records will attach evidence to this roadmap. A checked engineering
@@ -162,6 +160,7 @@ Start with [the documentation hub](docs/index.md), or jump directly to:
 - [Selection × mutation lab](docs/selection-mutation-lab.md) — the concluded 90-minute evidence, completed six-lane fork, and failed next-map gate
 - [Q1 `left_home` result](experiments/q1-left-home/README.md) — both seeds, the verified successful lineage, replay cost, and failed robustness gate
 - [Hall of Fame completion program](docs/completion-program.md) — the checkpoint expedition, claim ladder, qualification gates, and path to one learned policy
+- [Parallel recurrent PPO](docs/parallel-ppo.md) — four-worker learning, information boundaries, rewards, replay admission, benchmarks, and long-run interpretation
 - [Append-only decision register](docs/decision-register.md) — accepted, rejected, retired, superseded, and failed ideas with their evidence
 - [Progress](docs/progress.md) — current evidence, status, and reporting rules
 - [Roadmap](docs/roadmap.md) — engineering, learning, and storytelling milestones

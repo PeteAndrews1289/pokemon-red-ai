@@ -29,3 +29,14 @@ jobs:
           cache: pip
       - run: python -m pip install -e ".[dev,apprentice]"
       - run: pytest -q tests/test_apprentice_model.py tests/test_apprentice_stage0.py
+
+  recurrent-ppo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: python -m pip install -e ".[dev,apprentice,rl]"
+      - run: pytest -q tests/test_ppo_training.py

@@ -135,10 +135,10 @@ trainer:
 5. clips gradients and writes an atomic learner checkpoint; and
 6. binds the learner file and parameter hashes into the runner checkpoint.
 
-The current version deliberately waits for verified successes instead of updating neural weights
-from dense rewards. This gives the first full-game ratchet a causal, auditable update rule. A later
-recurrent-PPO ablation can use the same reward ledger and archive while testing whether learning
-from failures improves time-to-milestone.
+This version deliberately waits for verified successes instead of updating neural weights from
+dense rewards. That gave the first full-game ratchet a causal, auditable baseline. The active
+[parallel recurrent-PPO successor](parallel-ppo.md) now uses the same reward ledger and verified
+archive to test whether learning from failures improves time-to-milestone.
 
 ## Crash and restart behavior
 
