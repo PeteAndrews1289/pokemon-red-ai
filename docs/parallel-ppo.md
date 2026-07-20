@@ -202,6 +202,20 @@ entries, and model weights must not enter Git.
 
 ## First long-run interpretation rules
 
+### Launch record
+
+The first 24-hour command was detached from its terminal with a generic shell wrapper. The Codex
+app cleaned up that process group after four actions, before any PPO checkpoint existed. Its
+private directory was preserved as a failed launch. The replacement uses the managed long-running
+session that supported the earlier campaigns. It was not accepted as healthy merely because its
+dashboard opened: the launch gate required all four worker frames, several complete PPO rollouts,
+zero verification failures, and a model archive whose SHA-256 matched its checkpoint record.
+
+The managed run passed that gate at 21,508 observed actions with 21 PPO updates, 278 unique
+positions, and its first hash-matched checkpoint at action 16,384. The episode outcome remains
+unknown. This operational failure belongs in the narrative because a visible dashboard alone can
+outlive the process that was supposed to update it.
+
 The first campaign is a development trial, not a frozen policy evaluation. Its useful outcomes are:
 
 | Outcome | What it would support | What it would not support |

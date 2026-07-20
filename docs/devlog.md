@@ -25,6 +25,15 @@
   hash-matched final checkpoint at 218.65 actions/s.
 - Retained the still-running Frontier Apprentice as the baseline until the PPO replacement passed
   this gate. The benchmark and canaries are mechanism evidence, not later-game progress.
+- Gracefully stopped that baseline at 493,127 actions, Route 1, and 773/773 replay passes. The first
+  detached PPO launch was then terminated by the app's shell process-group cleanup after only four
+  actions and before its first model checkpoint. Preserved that directory as a failed launch rather
+  than overwriting it, switched to the managed long-running session used by earlier campaigns, and
+  required multiple PPO updates plus a hash-matched checkpoint before calling the relaunch healthy.
+- The 24-hour managed pixels run crossed 21,508 actions, 21 PPO updates, 278 unique positions, all
+  four live frames, zero promotion-verification failures, and its first hash-matched checkpoint at
+  action 16,384 during launch observation. It began from the baseline's frozen 18-entry verified
+  curriculum through Route 1. These are launch-health facts; later progress remains open.
 
 ## 2026-07-20 — From a frozen handoff to a full-game learning ratchet
 
