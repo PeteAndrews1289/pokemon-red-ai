@@ -203,6 +203,24 @@ episodes were excluded as designed.
 
 This qualifies wiring and accounting, not robust combined competence.
 
+### First declared long run
+
+V5.2 closed cleanly at 5,354,500 actions, 5,229 PPO updates, 3,146 episodes, and eight verified
+promotions with zero replay failures. It had promoted Route 1 at action 707,472, so more than four
+million subsequent actions failed to reach Viridian City. Its terminal model and four worker
+novelty memories matched their checkpoint hashes. This is the predecessor denominator, not a
+hand-picked early checkpoint.
+
+The first declared V6 campaign began from that exact policy and optimizer with four simultaneous
+workers, a 24-hour duration, a 150-million-action ceiling, a 50/50 frontier-to-consolidation episode
+split, and the production 8/10 rolling gate. Its initial target is Route 1 and its first earlier
+start is `left_oaks_lab_with_pokedex`.
+
+The first heartbeat at 20,484 new actions reported 20 PPO updates at 222.49 combined actions per
+second, all four live frames, six completed episodes, and zero replay failures. Three episodes
+entered the consolidation window; none reached Route 1. This is not called regression or success
+yet. It is the first direct measurement of the exact capability earlier versions never required.
+
 ## Production questions
 
 The first long consolidation run should answer:

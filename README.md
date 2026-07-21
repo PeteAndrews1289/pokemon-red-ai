@@ -42,7 +42,9 @@ trials compare learned or optimized emitters under the same checkpoint and repla
 > rehearsal, and moves its start backward only after a rolling competence gate passes. See
 > [Make one policy remember the journey](docs/version-6-consolidation.md). This is a
 > curriculum-learning experiment, not yet a claim that one unassisted model can complete Pokémon
-> Red from power-on.
+> Red from power-on. The first declared V6 run is now live from V5.2's clean 5,354,500-action
+> terminal policy; its initial gate asks that one retained model repeatedly connect leaving Oak's
+> Lab to Route 1 before training begins farther back.
 
 The current code preserves every historical runner, including Monkey, Archivist, online learners,
 and clean-start neuroevolution, so rejected approaches remain reproducible. See

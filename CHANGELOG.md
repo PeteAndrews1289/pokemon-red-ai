@@ -22,6 +22,13 @@
   Pokédex; the shortened 3/4 gate correctly remained closed.
 - Passed 180 tests with the private supported ROM and documented the architecture, evidence ladder,
   limitations, production questions, and video narrative in `docs/version-6-consolidation.md`.
+- Closed V5.2 cleanly at 5,354,500 actions, 5,229 PPO updates, 3,146 episodes, and eight verified
+  promotions with zero replay failures. It reached Route 1 at action 707,472, then spent more than
+  four million additional actions without reaching Viridian City. Its model and four terminal
+  novelty memories matched their recorded hashes.
+- Launched the first declared 24-hour V6 run with V5.2's exact policy and optimizer, four workers,
+  a 50/50 frontier-to-consolidation split, an 8/10 rolling gate, and the 150-million-action safety
+  ceiling. The initial gate connects `left_oaks_lab_with_pokedex` to Route 1.
 
 - Closed Version 5.1 cleanly after 3,437,572 actions, 3,357 PPO updates, 1,900 episodes, and six
   verified promotions. It reached the Pokédex at action 402,320 with a 10,819-action complete

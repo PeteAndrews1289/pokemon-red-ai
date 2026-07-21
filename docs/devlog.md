@@ -31,6 +31,17 @@
 - Documented that Stage 1 rehearses accumulated spans with retained PPO but does not yet apply an
   offline imitation loss to every lineage action. That is the next compatible ablation, not a
   capability silently claimed by this version.
+- Closed the V5.2 denominator cleanly at 5,354,500 actions, 5,229 updates, 3,146 episodes, 1,099
+  positions, eight verified promotions, and zero replay failures after 23,717.317 seconds. Its
+  model and all four terminal novelty memories matched their recorded hashes.
+- Preserved the scale of the failure: after Route 1 promoted at action 707,472, V5.2 consumed more
+  than four million additional actions without reaching Viridian City. Of 3,146 episodes, 2,249
+  ended in progress stagnation and 897 in a visual cycle.
+- Launched the first declared V6 run from that exact policy and optimizer with four workers, a
+  50/50 discovery-to-consolidation episode split, an 8/10 rolling gate, a 24-hour duration, and a
+  150-million-action ceiling. At the first 20,484-action heartbeat it had completed 20 new PPO
+  updates at 222.49 actions/s, written all four frames, and recorded three honest failures from
+  `left_oaks_lab_with_pokedex` to Route 1.
 
 ## 2026-07-20 — One solved errand is not yet the idea of an errand
 

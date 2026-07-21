@@ -9,9 +9,9 @@
 > from one-policy composition. The eventual pixels-only, restore-free power-on evaluation remains a
 > separate and harder claim.
 
-- **Current stage:** Version 5.2's declared run remains active as the predecessor denominator;
-  Version 6 retained-policy consolidation passed implementation, private-ROM, and canary gates
-- **Status date:** 2026-07-20
+- **Current stage:** Version 5.2 closed cleanly as the predecessor denominator; the first declared
+  Version 6 retained-policy consolidation run is active from its exact terminal policy and optimizer
+- **Status date:** 2026-07-21
 
 **Most important caveat:** Q1 verified one replayable house-exit lineage, but the acting suffix
 emitter was uniformly random and only one of two seeds reached the target. This is expedition
@@ -87,9 +87,10 @@ flowchart LR
 | Version 5.1 exposed the post-Pokédex plateau | ✅ Preserved negative result | E3 training | It ran 3,035,252 more actions without Forest progress; all 1,900 episodes ended in 1,241 stagnations or 659 visual cycles |
 | Version 5.2 represents the road to Brock as a chapter curriculum | ✅ Implemented and checked | E2 | Seven new milestones create ten visible steps through Route 2, both Forest gates, Pewter, and its Gym; 174 private-ROM tests and the V5.1 migration audit pass |
 | Version 5.2 production path runs on the real ROM | ✅ Qualified engineering | E3 pipeline | Four workers completed 8,192 actions and eight updates at 256.18 actions/s, wrote all frames, exercised the recovery cap, and ended with matching model plus four novelty hashes |
-| Version 5.2 reached Route 1 with the Pokédex | ✅ Replay verified | E3 checkpoint-assisted | Oak's Lab exit promoted at action 52,728 and Route 1 at 707,472; the complete lineage reached 12,812 actions, but later Viridian progress plateaued |
+| Version 5.2 reached Route 1 with the Pokédex | ✅ Replay verified | E3 checkpoint-assisted | Oak's Lab exit promoted at action 52,728 and Route 1 at 707,472; the run closed cleanly at 5,354,500 actions and 5,229 updates with eight promotions, zero replay failures, and matching terminal hashes, but spent more than four million later actions without Viridian progress |
 | Version 6 retains one PPO policy across lessons | ✅ Qualified engineering | E2 / E3 pipeline | A compatible predecessor policy and optimizer load with hash and shape checks; the corrected canary completed eight updates under a fresh action budget |
 | Version 6 measures backward composition | ✅ Qualified engineering | E2 / E3 pipeline | Frontier episodes are excluded; one of two earlier-start canary attempts reached Pokédex, the shortened 3/4 rolling gate stayed closed, and scheduler state matched its checkpoint hash |
+| Version 6 long consolidation run is active | 🟨 In progress | E3 training | Four workers began from V5.2's exact 5,354,500-action policy and optimizer with a 50/50 episode split and 8/10 gate; initial telemetry confirmed new PPO updates, all four frames, and separate failed consolidation attempts |
 | One retained model composes the route from power-on | ⬜ Not demonstrated | E0 | Backward training and frozen evaluation gates must expand to power-on before this claim exists |
 | Reverse curriculum reaches the complete opening horizon | ✅ Completed in development scope | E3 development | Seven adaptive rungs completed in 480 attempts with 451 successes; the final full-horizon rung passed 29/30 twice, but weights changed between attempts and no held-out H2 evaluation exists |
 | The apprentice-guided expedition continues beyond `left_home` | 🟨 Active | E1 | Frozen pixel-policy actions and seeded exploration now feed Archive v2's full 66-milestone search; no later verified milestone is claimed before run evidence exists |
