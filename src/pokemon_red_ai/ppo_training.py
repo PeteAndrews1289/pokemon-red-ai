@@ -11,7 +11,7 @@ import threading
 import time
 import uuid
 from collections import Counter, deque
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from functools import partial
@@ -55,6 +55,11 @@ from pokemon_red_ai.self_taught import (
     choose_self_taught_episode,
     choose_v8_self_taught_episode,
 )
+from pokemon_red_ai.skill_graph import (
+    ObservedMilestoneFirstHit,
+    StableStateIdentity,
+    normalize_first_hit_replay,
+)
 from pokemon_red_ai.state import (
     MAX_BAG_ITEMS,
     PARTY_LENGTH,
@@ -63,8 +68,14 @@ from pokemon_red_ai.state import (
     PokemonRedStateReader,
     RamAddress,
 )
+from pokemon_red_ai.student_practice import (
+    ReversePracticeConfig,
+    StudentPracticeLedger,
+    SuccessfulRolloutMetadata,
+)
 from pokemon_red_ai.student_training import (
     BalancedSkillReplay,
+    SelfGeneratedSkillDataset,
     SequenceAwareStudentTrainer,
     SequenceTrainingConfig,
     load_self_generated_datasets,
@@ -80,7 +91,18 @@ PPO_PROTOCOL = "parallel-recurrent-ppo-v7"
 PPO_REWARD_PROTOCOL = "self-generated-visual-skills-v1"
 PPO_V8_PROTOCOL = "parallel-recurrent-ppo-v8"
 PPO_V8_REWARD_PROTOCOL = "distilled-self-generated-skills-v1"
-PPO_MODES = frozenset({"pixels", "assisted", "privileged", "self_taught", "self_taught_v8"})
+PPO_V9_PROTOCOL = "parallel-recurrent-ppo-v9"
+PPO_V9_REWARD_PROTOCOL = "self-correcting-student-v1"
+PPO_MODES = frozenset(
+    {
+        "pixels",
+        "assisted",
+        "privileged",
+        "self_taught",
+        "self_taught_v8",
+        "self_taught_v9",
+    }
+)
 V8_CONFIG_FIELDS = frozenset(
     {
         "distillation_attempts",
@@ -93,6 +115,22 @@ V8_CONFIG_FIELDS = frozenset(
         "frozen_exam_attempts",
         "frozen_exam_action_multiplier",
     }
+)
+V9_CONFIG_FIELDS = frozenset(
+    {
+        "student_practice_interval",
+        "student_practice_attempts",
+        "student_practice_window",
+        "student_practice_required",
+        "student_practice_confirmations",
+        "student_practice_retention",
+        "student_practice_rollout_multiplier",
+        "student_practice_rollout_slack",
+        "student_practice_reservoir",
+    }
+)
+V9_PRACTICE_TERMINAL_REASONS = frozenset(
+    {"exact_target", "timeout", "emulator_stopped", "milestone_wrong_state"}
 )
 PRIVILEGED_STATE_SIZE = 24
 ACTION_HISTORY_LENGTH = 3
@@ -107,19 +145,63 @@ class CompositionReplayRejected(RuntimeError):
     """A verified skill chain did not compose continuously from power-on."""
 
 
+def _v9_practice_signature_outcome(
+    observed_index: int,
+    target_index: int,
+    observed_signature: tuple[Any, ...],
+    target_signature: tuple[Any, ...],
+) -> str | None:
+    """Classify a target crossing without admitting an ordinal-only match."""
+
+    if observed_index < target_index:
+        return None
+    return "exact_target" if observed_signature == target_signature else "milestone_wrong_state"
+
+
+def _v9_practice_terminal_reason_counts(value: object) -> Counter[str]:
+    """Load the bounded public V9 attempt denominator fail-closed."""
+
+    if value is None:
+        return Counter()
+    if not isinstance(value, Mapping):
+        raise ValueError("V9 Student practice terminal reasons must be a mapping")
+    counts: Counter[str] = Counter()
+    for raw_reason, raw_count in value.items():
+        reason = str(raw_reason)
+        if reason not in V9_PRACTICE_TERMINAL_REASONS:
+            raise ValueError("V9 Student practice terminal reason is unsupported")
+        if isinstance(raw_count, bool) or not isinstance(raw_count, int) or raw_count < 0:
+            raise ValueError("V9 Student practice terminal reason count is invalid")
+        if raw_count:
+            counts[reason] = raw_count
+    return counts
+
+
 def _is_self_taught_mode(mode: str) -> bool:
-    return mode in {"self_taught", "self_taught_v8"}
+    return mode in {"self_taught", "self_taught_v8", "self_taught_v9"}
 
 
 def _is_v8_mode(mode: str) -> bool:
     return mode == "self_taught_v8"
 
 
+def _is_v9_mode(mode: str) -> bool:
+    return mode == "self_taught_v9"
+
+
+def _is_distilled_student_mode(mode: str) -> bool:
+    return mode in {"self_taught_v8", "self_taught_v9"}
+
+
 def _ppo_protocol(mode: str) -> str:
+    if _is_v9_mode(mode):
+        return PPO_V9_PROTOCOL
     return PPO_V8_PROTOCOL if _is_v8_mode(mode) else PPO_PROTOCOL
 
 
 def _ppo_reward_protocol(mode: str) -> str:
+    if _is_v9_mode(mode):
+        return PPO_V9_REWARD_PROTOCOL
     return PPO_V8_REWARD_PROTOCOL if _is_v8_mode(mode) else PPO_REWARD_PROTOCOL
 
 
@@ -128,7 +210,7 @@ def _hall_of_fame_stop_is_verified(
     status: Mapping[str, Any],
     library: SelfTaughtSkillLibrary | None,
 ) -> bool:
-    if _is_v8_mode(mode):
+    if _is_distilled_student_mode(mode):
         return library is not None and library.hall_of_fame_completions > 0
     return status.get("best_milestone", {}).get("key") == HALL_OF_FAME_KEY
 
@@ -248,10 +330,7 @@ def _snapshot_v7_denominator(run_directory: Path) -> dict[str, Any]:
     if not manifest_path.is_file() or not checkpoint_path.is_file():
         raise ValueError("V7 denominator has no complete manifest and checkpoint")
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    if (
-        manifest.get("protocol") != PPO_PROTOCOL
-        or manifest.get("actor_mode") != "self_taught"
-    ):
+    if manifest.get("protocol") != PPO_PROTOCOL or manifest.get("actor_mode") != "self_taught":
         raise ValueError("Denominator must be a Version-7 self-taught run")
 
     # The denominator may still be running. Its checkpoint and model generations
@@ -284,9 +363,7 @@ def _snapshot_v7_denominator(run_directory: Path) -> dict[str, Any]:
         if not isinstance(best, Mapping):
             raise ValueError("V7 denominator checkpoint has no milestone evidence")
         status = (
-            json.loads(status_path.read_text(encoding="utf-8"))
-            if status_path.is_file()
-            else {}
+            json.loads(status_path.read_text(encoding="utf-8")) if status_path.is_file() else {}
         )
         return {
             "locked": True,
@@ -402,6 +479,9 @@ def _checkpoint_self_skill_state(run_directory: Path) -> dict[str, str]:
             str(skill["dataset_sha256"]),
             str(skill.get("distillation_audit_file")),
             str(skill.get("distillation_audit_sha256")),
+            str(skill.get("skill_graph_audit_file")),
+            str(skill.get("skill_graph_audit_sha256")),
+            str(skill.get("graph_edge_id")),
             int(skill.get("replay_shard_example_cap", 0)),
             int(skill.get("replay_shard_burn_in", 0)),
             tuple(
@@ -427,10 +507,7 @@ def _checkpoint_self_skill_state(run_directory: Path) -> dict[str, str]:
         )
 
     committed_skills = (
-        {
-            str(skill["skill_id"]): skill_seal(skill)
-            for skill in committed_library.skills
-        }
+        {str(skill["skill_id"]): skill_seal(skill) for skill in committed_library.skills}
         if committed_library is not None
         else {}
     )
@@ -441,6 +518,7 @@ def _checkpoint_self_skill_state(run_directory: Path) -> dict[str, str]:
             ("target_frame_file", "target_frame_sha256"),
             ("dataset_file", "dataset_sha256"),
             ("distillation_audit_file", "distillation_audit_sha256"),
+            ("skill_graph_audit_file", "skill_graph_audit_sha256"),
         ):
             if skill.get(file_key) is None:
                 continue
@@ -528,6 +606,110 @@ def _restore_self_skill_state(
     return library
 
 
+def _validate_student_practice_state(
+    run_directory: Path,
+    value: Mapping[str, Any],
+) -> tuple[StudentPracticeLedger, ...]:
+    if value.get("schema_version") != 1 or value.get("protocol") != (
+        "v9-student-closed-loop-practice-state-v1"
+    ):
+        raise ValueError("V9 Student practice state has the wrong protocol")
+    raw_ledgers = value.get("ledgers")
+    if not isinstance(raw_ledgers, list):
+        raise ValueError("V9 Student practice state has no ledgers")
+    ledgers = tuple(StudentPracticeLedger.from_dict(item) for item in raw_ledgers)
+    identifiers = [ledger.skill_id for ledger in ledgers]
+    if len(identifiers) != len(set(identifiers)):
+        raise ValueError("V9 Student practice state repeats a skill ledger")
+    terminal_reasons = _v9_practice_terminal_reason_counts(value.get("terminal_reasons"))
+    if "terminal_reasons" in value and (
+        sum(terminal_reasons.values()) != sum(ledger.attempts for ledger in ledgers)
+        or terminal_reasons["exact_target"] != sum(ledger.successes for ledger in ledgers)
+    ):
+        raise ValueError("V9 Student practice terminal reasons disagree with its ledgers")
+    for ledger in ledgers:
+        for rung in ledger.rungs:
+            for rollout in rung.successful_rollouts:
+                _validate_hashed_run_artifact(
+                    run_directory,
+                    rollout.dataset_file,
+                    rollout.dataset_sha256,
+                    label="V9 successful Student rollout",
+                )
+                if not rollout.replay_shards:
+                    raise ValueError("V9 successful Student rollout has no bounded replay shards")
+                if len(rollout.replay_shards) != int(rollout.replay_shards[0]["shard_count"]):
+                    raise ValueError("V9 successful Student rollout shard set is incomplete")
+                for expected_index, shard in enumerate(rollout.replay_shards):
+                    path = _validate_hashed_run_artifact(
+                        run_directory,
+                        shard["file"],
+                        shard["sha256"],
+                        label="V9 successful Student replay shard",
+                    )
+                    if (
+                        path.stat().st_size != int(shard["stored_bytes"])
+                        or int(shard["shard_index"]) != expected_index
+                        or int(shard["source_action_count"]) != rollout.action_count
+                        or str(shard["source_dataset_sha256"]) != rollout.dataset_sha256
+                    ):
+                        raise ValueError("V9 successful Student replay shard is inconsistent")
+    return ledgers
+
+
+def _checkpoint_student_practice_state(run_directory: Path) -> dict[str, str]:
+    """Bind mutable V9 practice scheduling to the same Student generation."""
+
+    live = run_directory / "student-practice.json"
+    snapshot = run_directory / "student-practice.checkpoint.json"
+    previous = run_directory / "student-practice.checkpoint.previous.json"
+    value = json.loads(live.read_text(encoding="utf-8"))
+    _validate_student_practice_state(run_directory, value)
+    committed_path: Path | None = None
+    checkpoint_path = run_directory / "checkpoint.json"
+    if checkpoint_path.is_file():
+        checkpoint = json.loads(checkpoint_path.read_text(encoding="utf-8"))
+        expected = str(checkpoint.get("student_practice_file_sha256", ""))
+        if len(expected) == 64:
+            committed_path = next(
+                (
+                    candidate
+                    for candidate in (snapshot, previous)
+                    if candidate.is_file() and _sha256_file(candidate) == expected
+                ),
+                None,
+            )
+    if committed_path == snapshot or (not checkpoint_path.is_file() and snapshot.is_file()):
+        os.replace(snapshot, previous)
+    _atomic_json(snapshot, value)
+    return {
+        "student_practice_file": snapshot.name,
+        "student_practice_file_sha256": _sha256_file(snapshot),
+    }
+
+
+def _restore_student_practice_state(
+    run_directory: Path,
+    checkpoint: Mapping[str, Any],
+) -> tuple[StudentPracticeLedger, ...]:
+    filename = checkpoint.get("student_practice_file")
+    if filename != "student-practice.checkpoint.json":
+        raise ValueError("V9 checkpoint has no Student practice snapshot")
+    try:
+        snapshot = _resolve_checkpoint_artifact(
+            run_directory,
+            latest_name=filename,
+            previous_name="student-practice.checkpoint.previous.json",
+            expected_sha256=checkpoint.get("student_practice_file_sha256"),
+        )
+    except ValueError as error:
+        raise ValueError("V9 Student practice snapshot does not match its checkpoint") from error
+    value = json.loads(snapshot.read_text(encoding="utf-8"))
+    ledgers = _validate_student_practice_state(run_directory, value)
+    _atomic_json(run_directory / "student-practice.json", value)
+    return ledgers
+
+
 def _atomic_gzip_json(path: Path, value: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".tmp")
@@ -582,6 +764,15 @@ class ParallelPpoConfig:
     frozen_exam_interval_actions: int = 16_384
     frozen_exam_attempts: int = 1
     frozen_exam_action_multiplier: float = 2.0
+    student_practice_interval: int = 4
+    student_practice_attempts: int = 2
+    student_practice_window: int = 30
+    student_practice_required: int = 27
+    student_practice_confirmations: int = 2
+    student_practice_retention: float = 0.25
+    student_practice_rollout_multiplier: float = 2.0
+    student_practice_rollout_slack: int = 16
+    student_practice_reservoir: int = 32
 
     def __post_init__(self) -> None:
         if self.mode not in PPO_MODES:
@@ -623,12 +814,28 @@ class ParallelPpoConfig:
             raise ValueError("Student learning rate must be positive")
         if self.frozen_exam_interval_actions < 1 or self.frozen_exam_attempts < 1:
             raise ValueError("Frozen Student exam settings must be positive")
-        if _is_v8_mode(self.mode) and self.frozen_exam_attempts != 1:
+        if _is_distilled_student_mode(self.mode) and self.frozen_exam_attempts != 1:
             raise ValueError(
-                "V8 runs exactly one deterministic frozen attempt per Student checkpoint"
+                "Distilled-Student runs exactly one deterministic frozen attempt per checkpoint"
             )
         if self.frozen_exam_action_multiplier < 1:
             raise ValueError("Frozen Student exam multiplier must be at least one")
+        if self.student_practice_interval < 1 or self.student_practice_attempts < 1:
+            raise ValueError("Student practice cadence must be positive")
+        if (
+            self.student_practice_window < 2
+            or not 1 <= self.student_practice_required <= self.student_practice_window
+            or self.student_practice_confirmations < 1
+        ):
+            raise ValueError("Student practice requires a valid success window")
+        if not 0.20 <= self.student_practice_retention <= 0.25:
+            raise ValueError("Student practice retention must remain between 20% and 25%")
+        if (
+            self.student_practice_rollout_multiplier < 1
+            or self.student_practice_rollout_slack < 0
+            or self.student_practice_reservoir < 1
+        ):
+            raise ValueError("Student practice rollout and reservoir settings are invalid")
         if _is_self_taught_mode(self.mode) and (
             not self.random_initialization or not self.power_on_only or self.consolidation
         ):
@@ -638,10 +845,13 @@ class ParallelPpoConfig:
 
     def public_dict(self) -> dict[str, object]:
         value = asdict(self)
-        if not _is_v8_mode(self.mode):
+        if not _is_distilled_student_mode(self.mode):
             # Keep the serialized V7 configuration compatible with campaigns that
             # began before V8-only Student controls existed.
             for name in V8_CONFIG_FIELDS:
+                value.pop(name)
+        if not _is_v9_mode(self.mode):
+            for name in V9_CONFIG_FIELDS:
                 value.pop(name)
         return value
 
@@ -721,6 +931,7 @@ def _import_verified_ppo_curriculum(
         "parallel-recurrent-ppo-v6",
         "parallel-recurrent-ppo-v7",
         "parallel-recurrent-ppo-v8",
+        "parallel-recurrent-ppo-v9",
     }:
         raise ValueError("Version 7 can import only a verified Version-4-or-later curriculum")
     source_status = json.loads((source_run / "status.json").read_text(encoding="utf-8"))
@@ -1007,9 +1218,11 @@ def _retain_power_on_only(curriculum_directory: Path) -> dict[str, Any]:
 
 def _load_curriculum_manifest(directory: Path) -> dict[str, Any]:
     value = json.loads((directory / "manifest.json").read_text(encoding="utf-8"))
-    if value.get("protocol") not in {PPO_PROTOCOL, PPO_V8_PROTOCOL} or not isinstance(
-        value.get("entries"), list
-    ):
+    if value.get("protocol") not in {
+        PPO_PROTOCOL,
+        PPO_V8_PROTOCOL,
+        PPO_V9_PROTOCOL,
+    } or not isinstance(value.get("entries"), list):
         raise ValueError("PPO curriculum manifest is invalid")
     return value
 
@@ -1493,7 +1706,7 @@ class PokemonRedPpoEnvironment(gym.Env):
                 }
             )
         if _is_self_taught_mode(config.mode):
-            target_channels = 3 if _is_v8_mode(config.mode) else 1
+            target_channels = 3 if _is_distilled_student_mode(config.mode) else 1
             observation["target_pixels"] = spaces.Box(
                 0, 255, shape=(target_channels, 72, 80), dtype=np.uint8
             )
@@ -1518,7 +1731,7 @@ class PokemonRedPpoEnvironment(gym.Env):
         # V8's blind Explorer must not receive authored quest information through
         # episode length. V7 keeps its historical behavior for denominator compatibility.
         self.loop_tracker = VisualStagnationTracker(
-            use_authored_guidance=not _is_v8_mode(config.mode)
+            use_authored_guidance=not _is_distilled_student_mode(config.mode)
         )
         self.map_memory = EpisodeMapMemory()
         self.steps = 0
@@ -1531,7 +1744,10 @@ class PokemonRedPpoEnvironment(gym.Env):
         self.start_mode = "frontier"
         self.episode_target_index = 0
         self.self_skill_id: str | None = None
-        self.target_frame = np.zeros((3 if _is_v8_mode(config.mode) else 1, 72, 80), dtype=np.uint8)
+        self.target_frame = np.zeros(
+            (3 if _is_distilled_student_mode(config.mode) else 1, 72, 80),
+            dtype=np.uint8,
+        )
         self.rng = random.Random(config.seed + config.rank)
 
     def _observation(
@@ -1571,7 +1787,7 @@ class PokemonRedPpoEnvironment(gym.Env):
         manifest = _load_curriculum_manifest(self.curriculum_directory)
         entries = list(manifest["entries"])
         best_index = max(int(item["milestone_index"]) for item in entries)
-        if self.config.mode == "self_taught_v8":
+        if _is_distilled_student_mode(self.config.mode):
             metadata = self.rng.choice(
                 [item for item in entries if int(item["milestone_index"]) == best_index]
             )
@@ -1651,7 +1867,8 @@ class PokemonRedPpoEnvironment(gym.Env):
             self.target_frame = frame[None, :, :]
         else:
             self.target_frame = np.zeros(
-                (3 if _is_v8_mode(self.config.mode) else 1, 72, 80), dtype=np.uint8
+                (3 if _is_distilled_student_mode(self.config.mode) else 1, 72, 80),
+                dtype=np.uint8,
             )
         snapshot = FrozenSnapshot.from_checkpoint_dict(self.start_entry["snapshot"])
         self.emulator.load_state(snapshot.thaw())
@@ -1914,6 +2131,95 @@ def _stable_semantic_state_signature(
         status_blob,
         visual,
     )
+
+
+@dataclass(frozen=True, slots=True)
+class _V9FirstHit:
+    observed: ObservedMilestoneFirstHit
+    progress: MilestoneProgress
+    snapshot: FrozenSnapshot
+    referee_summary: dict[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
+class _PreparedV9Skills:
+    skills: tuple[dict[str, Any], ...]
+    graph: Any
+    hits: tuple[_V9FirstHit, ...]
+    source_entry_id: str
+    final_entry_id: str
+    full_actions: tuple[int, ...]
+    source_prefix_length: int
+
+
+def _v9_stable_state_sha256(
+    emulator: PokemonRedEmulator,
+    state: PokemonRedState,
+) -> str:
+    signature = _stable_semantic_state_signature(emulator, state)
+    return hashlib.sha256(repr(signature).encode("utf-8")).hexdigest()
+
+
+def _collect_v9_first_hit_graph(
+    rom_path: Path,
+    start_snapshot: FrozenSnapshot,
+    actions: list[int],
+    inherited: MilestoneProgress,
+    target: MilestoneProgress,
+    *,
+    replay_id: str,
+) -> tuple[Any, tuple[_V9FirstHit, ...]]:
+    """Replay one verified discovery and capture every concrete adjacent milestone edge."""
+
+    hits: list[_V9FirstHit] = []
+    with PokemonRedEmulator(rom_path) as emulator:
+        emulator.load_state(start_snapshot.thaw())
+        reader = PokemonRedStateReader(emulator)
+
+        def capture(progress: MilestoneProgress, offset: int) -> None:
+            state = reader.read()
+            snapshot = FrozenSnapshot.freeze(emulator.save_state())
+            stable = _v9_stable_state_sha256(emulator, state)
+            verification_id = hashlib.sha256(
+                f"{replay_id}:{progress.index}:{offset}:{snapshot.sha256}:{stable}".encode()
+            ).hexdigest()
+            hits.append(
+                _V9FirstHit(
+                    observed=ObservedMilestoneFirstHit(
+                        milestone_id=progress.key,
+                        milestone_index=progress.index,
+                        action_offset=offset,
+                        state_identity=StableStateIdentity(
+                            stable_state_sha256=stable,
+                            snapshot_sha256=snapshot.sha256,
+                        ),
+                        verification_id=verification_id,
+                    ),
+                    progress=progress,
+                    snapshot=snapshot,
+                    referee_summary=referee_summary_for_state(state, progress),
+                )
+            )
+
+        current = milestone_progress_for_state(reader.read(), inherited=inherited)
+        capture(current, 0)
+        for offset, action in enumerate(actions, start=1):
+            if not _execute_action(emulator, action):
+                raise RuntimeError("V9 first-hit replay emulator stopped")
+            progress = milestone_progress_for_state(reader.read(), inherited=current)
+            if progress.index > current.index:
+                if progress.index != current.index + 1:
+                    raise ValueError("V9 replay skipped an unobserved milestone boundary")
+                current = progress
+                capture(current, offset)
+        if current.index != target.index or hits[-1].observed.action_offset != len(actions):
+            raise ValueError("V9 verified replay did not terminate on its target first hit")
+    graph = normalize_first_hit_replay(
+        actions,
+        tuple(hit.observed for hit in hits),
+        replay_id=replay_id,
+    )
+    return graph, tuple(hits)
 
 
 def _distillation_state_signature(
@@ -2402,9 +2708,9 @@ def _write_v8_replay_shards(
             "replay_shard_count": np.asarray(shard_count, dtype=np.int64),
         }
         if "compressed_to_original" in dataset:
-            payload["compressed_to_original"] = np.asarray(
-                dataset["compressed_to_original"]
-            )[context_start:stop]
+            payload["compressed_to_original"] = np.asarray(dataset["compressed_to_original"])[
+                context_start:stop
+            ]
         _atomic_self_imitation_dataset(path, payload)
         metadata.append(
             {
@@ -2717,7 +3023,7 @@ def _render_dashboard_legacy(status: Mapping[str, Any]) -> str:
             ("State", html.escape(str(status.get("state")))),
             (
                 "Explorer actions"
-                if status.get("mode") == "self_taught_v8"
+                if _is_distilled_student_mode(str(status.get("mode", "")))
                 else "Combined actions",
                 f"{int(status.get('total_actions', 0)):,}",
             ),
@@ -2878,8 +3184,8 @@ class PpoRunCallback(BaseCallback):
         self.started_at = started_at
         self.student_model = student_model
         self.student_trainer = student_trainer
-        if _is_v8_mode(config.mode) != (student_model is not None):
-            raise ValueError("V8 requires one separate Student model")
+        if _is_distilled_student_mode(config.mode) != (student_model is not None):
+            raise ValueError("Distilled-Student mode requires one separate Student model")
         if (student_model is None) != (student_trainer is None):
             raise ValueError("Student model and optimizer must be configured together")
         self.clock_started = time.monotonic()
@@ -2928,6 +3234,32 @@ class PpoRunCallback(BaseCallback):
         if self.self_skills is not None and self.self_skills.exam_rng_state is not None:
             self.exam_rng.setstate(_random_state_from_json(self.self_skills.exam_rng_state))
         self.last_exam_skill_label: str | None = None
+        self.student_practice_ledgers: dict[str, StudentPracticeLedger] = {}
+        self.student_practice_actions = 0
+        self.student_practice_verification_actions = 0
+        self.student_practice_training_updates = 0
+        self.student_practice_terminal_reasons: Counter[str] = Counter()
+        self.last_student_practice_rollout = -1
+        practice_path = self.run_directory / "student-practice.json"
+        if _is_v9_mode(config.mode) and practice_path.is_file():
+            practice = json.loads(practice_path.read_text(encoding="utf-8"))
+            if practice.get("schema_version") != 1 or practice.get("protocol") != (
+                "v9-student-closed-loop-practice-state-v1"
+            ):
+                raise ValueError("V9 Student practice state has the wrong protocol")
+            self.student_practice_ledgers = {
+                str(item["skill_id"]): StudentPracticeLedger.from_dict(item)
+                for item in practice.get("ledgers", [])
+            }
+            self.student_practice_actions = int(practice.get("emulator_actions", 0))
+            self.student_practice_verification_actions = int(
+                practice.get("verification_actions", 0)
+            )
+            self.student_practice_training_updates = int(practice.get("training_updates", 0))
+            self.student_practice_terminal_reasons = _v9_practice_terminal_reason_counts(
+                practice.get("terminal_reasons")
+            )
+            self.last_student_practice_rollout = int(practice.get("last_explorer_rollout", -1))
 
     def _write_consolidation(self) -> None:
         if self.consolidation is not None:
@@ -2962,6 +3294,27 @@ class PpoRunCallback(BaseCallback):
                 self.self_skills.public_dict(),
             )
 
+    def _write_student_practice(self) -> None:
+        if not _is_v9_mode(self.config.mode):
+            return
+        _atomic_json(
+            self.run_directory / "student-practice.json",
+            {
+                "schema_version": 1,
+                "protocol": "v9-student-closed-loop-practice-state-v1",
+                "updated_at": datetime.now(UTC).isoformat(),
+                "last_explorer_rollout": self.last_student_practice_rollout,
+                "emulator_actions": self.student_practice_actions,
+                "verification_actions": self.student_practice_verification_actions,
+                "training_updates": self.student_practice_training_updates,
+                "terminal_reasons": dict(sorted(self.student_practice_terminal_reasons.items())),
+                "ledgers": [
+                    ledger.public_dict()
+                    for _skill_id, ledger in sorted(self.student_practice_ledgers.items())
+                ],
+            },
+        )
+
     def _self_taught_status(self) -> dict[str, Any]:
         if self.self_skills is None:
             return {"enabled": False}
@@ -2974,9 +3327,7 @@ class PpoRunCallback(BaseCallback):
             for skill in self.self_skills.skills
         )
         distilled_actions = sum(int(skill["action_count"]) for skill in self.self_skills.skills)
-        sharded_skills = [
-            skill for skill in self.self_skills.skills if skill.get("replay_shards")
-        ]
+        sharded_skills = [skill for skill in self.self_skills.skills if skill.get("replay_shards")]
         replay_cursors = [int(skill.get("replay_cursor", 0)) for skill in sharded_skills]
         coverage_cycles = [
             int(skill.get("replay_cursor", 0)) // len(skill["replay_shards"])
@@ -2994,11 +3345,7 @@ class PpoRunCallback(BaseCallback):
             default=None,
         )
         deepest_competent = max(
-            (
-                skill
-                for skill in self.self_skills.skills
-                if bool(skill.get("competent", False))
-            ),
+            (skill for skill in self.self_skills.skills if bool(skill.get("competent", False))),
             key=lambda skill: int(skill["target_index"]),
             default=None,
         )
@@ -3026,9 +3373,7 @@ class PpoRunCallback(BaseCallback):
                     distilled_actions / original_actions if original_actions else 1.0
                 ),
                 "best_index": (
-                    None
-                    if deepest_distilled is None
-                    else int(deepest_distilled["target_index"])
+                    None if deepest_distilled is None else int(deepest_distilled["target_index"])
                 ),
                 "best_label": (
                     None if deepest_distilled is None else deepest_distilled["target_label"]
@@ -3053,7 +3398,7 @@ class PpoRunCallback(BaseCallback):
             "student": {
                 "state": (
                     "not_applicable"
-                    if not _is_v8_mode(self.config.mode)
+                    if not _is_distilled_student_mode(self.config.mode)
                     else (
                         "training_from_self_discoveries"
                         if self.self_skills.skills
@@ -3073,17 +3418,13 @@ class PpoRunCallback(BaseCallback):
                         report.get("max_examples_per_individual_skill", 0)
                     ),
                     "retained_example_ceiling": int(report.get("replay_example_ceiling", 0)),
-                    "train_example_ceiling": int(
-                        report.get("replay_train_example_ceiling", 0)
-                    ),
+                    "train_example_ceiling": int(report.get("replay_train_example_ceiling", 0)),
                     "sampling_cycle_size": int(report.get("sampling_cycle_size", 0)),
                     "skill_shards_total": sum(
                         len(skill["replay_shards"]) for skill in sharded_skills
                     ),
                     "skill_shards_loaded": int(report.get("replay_shards_loaded", 0)),
-                    "shard_examples_loaded": int(
-                        report.get("replay_shard_examples_loaded", 0)
-                    ),
+                    "shard_examples_loaded": int(report.get("replay_shard_examples_loaded", 0)),
                     "shard_train_examples_loaded": int(
                         report.get("replay_shard_train_examples_loaded", 0)
                     ),
@@ -3096,12 +3437,8 @@ class PpoRunCallback(BaseCallback):
                     ),
                     "cursor_min": min(replay_cursors, default=0),
                     "cursor_max": max(replay_cursors, default=0),
-                    "minimum_completed_coverage_cycles": int(
-                        min(coverage_cycles, default=0)
-                    ),
-                    "shard_selections": list(
-                        report.get("replay_shard_selections", [])
-                    ),
+                    "minimum_completed_coverage_cycles": int(min(coverage_cycles, default=0)),
+                    "shard_selections": list(report.get("replay_shard_selections", [])),
                 },
             },
             "frozen_exams": {
@@ -3116,9 +3453,7 @@ class PpoRunCallback(BaseCallback):
                 "current_skill": self.last_exam_skill_label,
                 "competence_losses": competence_losses,
                 "best_competent_index": (
-                    None
-                    if deepest_competent is None
-                    else int(deepest_competent["target_index"])
+                    None if deepest_competent is None else int(deepest_competent["target_index"])
                 ),
                 "best_competent_label": (
                     None if deepest_competent is None else deepest_competent["target_label"]
@@ -3144,6 +3479,57 @@ class PpoRunCallback(BaseCallback):
                     for outcome in self.self_skills.composition_build_outcomes.values()
                 ),
             },
+        }
+
+    def _student_practice_status(self) -> dict[str, Any]:
+        if not _is_v9_mode(self.config.mode):
+            return {"enabled": False}
+        ledgers = list(self.student_practice_ledgers.values())
+        active = next((ledger for ledger in ledgers if not ledger.curriculum_complete), None)
+        attempts = sum(ledger.attempts for ledger in ledgers)
+        successes = sum(ledger.successes for ledger in ledgers)
+        retained = sum(len(rung.successful_rollouts) for ledger in ledgers for rung in ledger.rungs)
+        completed = sum(ledger.curriculum_complete for ledger in ledgers)
+        report = (
+            {}
+            if self.self_skills is None or self.self_skills.last_student_report is None
+            else self.self_skills.last_student_report
+        )
+        return {
+            "enabled": True,
+            "protocol": "v9-student-closed-loop-practice-state-v1",
+            "skills_with_ladders": len(ledgers),
+            "skills_completed": completed,
+            "attempts": attempts,
+            "successes": successes,
+            "success_rate": successes / attempts if attempts else 0.0,
+            "emulator_actions": self.student_practice_actions,
+            "verification_actions": self.student_practice_verification_actions,
+            "training_updates": self.student_practice_training_updates,
+            "terminal_reasons": dict(sorted(self.student_practice_terminal_reasons.items())),
+            "promotion_window": self.config.student_practice_window,
+            "promotion_required_successes": self.config.student_practice_required,
+            "promotion_confirmations": self.config.student_practice_confirmations,
+            "retention_fraction": self.config.student_practice_retention,
+            "retained_success_rollouts": retained,
+            "aggregated_datasets_loaded_last_round": int(
+                report.get("practice_replay_datasets_loaded", 0)
+            ),
+            "aggregated_train_examples_last_round": int(
+                report.get("practice_replay_train_examples_loaded", 0)
+            ),
+            "aggregated_bytes_read_last_round": int(report.get("practice_replay_bytes_read", 0)),
+            "active_skill_id": None if active is None else active.skill_id,
+            "active_rung_index": None if active is None else active.active_rung_index,
+            "active_remaining_actions": (
+                None
+                if active is None or active.active_rung is None
+                else active.active_rung.remaining_actions
+            ),
+            "closed_loop": True,
+            "success_only_gradient": True,
+            "recurrent_state_reset_each_attempt": True,
+            "recovery_ppo": "gated_future_escalation_not_active",
         }
 
     def elapsed(self) -> float:
@@ -3214,6 +3600,9 @@ class PpoRunCallback(BaseCallback):
         if self.self_skills is not None:
             self._write_self_skills()
             checkpoint.update(_checkpoint_self_skill_state(self.run_directory))
+        if _is_v9_mode(self.config.mode):
+            self._write_student_practice()
+            checkpoint.update(_checkpoint_student_practice_state(self.run_directory))
         checkpoint.update(
             _checkpoint_curriculum_state(
                 self.run_directory,
@@ -3292,12 +3681,9 @@ class PpoRunCallback(BaseCallback):
             "episode_end_reasons": dict(sorted(self.episode_end_reasons.items())),
             "consolidation": self._consolidation_status(),
             "self_taught": self._self_taught_status(),
+            "student_practice": self._student_practice_status(),
             "checkpoints": checkpoint_hashes,
-            **(
-                {"v7_denominator": self.v7_denominator}
-                if self.v7_denominator is not None
-                else {}
-            ),
+            **({"v7_denominator": self.v7_denominator} if self.v7_denominator is not None else {}),
             "policy_roles": (
                 {
                     "explorer": "online PPO discovery",
@@ -3305,7 +3691,7 @@ class PpoRunCallback(BaseCallback):
                     "shared_parameters": False,
                     "competence_source": "frozen Student exams",
                 }
-                if _is_v8_mode(self.config.mode)
+                if _is_distilled_student_mode(self.config.mode)
                 else {"explorer_and_student": "one shared policy"}
             ),
             "reward_protocol": _ppo_reward_protocol(self.config.mode),
@@ -3319,7 +3705,7 @@ class PpoRunCallback(BaseCallback):
                     "replays, and exams and switches among self-generated goal clips at declared "
                     "milestone endpoints during composition; no imported actions, route graph, "
                     "coordinates, or authored quest plan"
-                    if _is_v8_mode(self.config.mode)
+                    if _is_distilled_student_mode(self.config.mode)
                     else (
                         "pixels + three recent actions + a self-discovered target screen; "
                         "trainer-only RAM retains V7's historical route/Mart/milestone watchdog "
@@ -3338,7 +3724,7 @@ class PpoRunCallback(BaseCallback):
             ),
             "resume_semantics": (
                 "exact Explorer PPO and separate Student optimizer; fresh environment rollouts"
-                if _is_v8_mode(self.config.mode)
+                if _is_distilled_student_mode(self.config.mode)
                 else "exact model/optimizer; fresh environment rollouts"
             ),
             "dashboard_url": f"http://127.0.0.1:{self.config.dashboard_port}/index.html",
@@ -3366,7 +3752,9 @@ class PpoRunCallback(BaseCallback):
         path = self.run_directory / "NARRATIVE.md"
         first = not path.exists()
         action_label = (
-            "Explorer actions" if self.config.mode == "self_taught_v8" else "Combined actions"
+            "Explorer actions"
+            if _is_distilled_student_mode(self.config.mode)
+            else "Combined actions"
         )
         with path.open("a", encoding="utf-8") as output:
             if first:
@@ -3426,12 +3814,239 @@ class PpoRunCallback(BaseCallback):
                 f"{status['loop_events'].get('progress_stagnation', 0):,}\n\n"
             )
 
+    def _admit_v9_split_boundaries(
+        self,
+        graph: Any,
+        hits: tuple[_V9FirstHit, ...],
+        *,
+        source_entry_id: str,
+        final_entry_id: str,
+        full_actions: Sequence[int],
+        source_prefix_length: int,
+    ) -> tuple[str, ...]:
+        manifest = _load_curriculum_manifest(self.curriculum_directory)
+        existing = {str(item["entry_id"]): item for item in manifest["entries"]}
+        if source_entry_id not in existing or final_entry_id not in existing:
+            raise ValueError("V9 split commit requires admitted source and final entries")
+        entry_ids = [source_entry_id]
+        split_metadata: list[dict[str, Any]] = []
+        for node, hit in zip(graph.nodes[1:-1], hits[1:-1], strict=True):
+            entry_id = node.node_id
+            if entry_id in existing:
+                raise ValueError("V9 split boundary already exists in the curriculum")
+            path = self.curriculum_directory / "entries" / f"{entry_id}.json.gz"
+            payload = {
+                "schema_version": 1,
+                "entry_id": entry_id,
+                "source_cell_id": None,
+                "progress": hit.progress.public_dict(),
+                "snapshot": hit.snapshot.checkpoint_dict(),
+                "stable_state_identity": hit.observed.state_identity.public_dict(),
+                "lineage_actions": [
+                    BlindAction(
+                        BLIND_ACTIONS[index], ACTION_HOLD_FRAMES, ACTION_RELEASE_FRAMES
+                    ).public_dict()
+                    for index in full_actions[: source_prefix_length + hit.observed.action_offset]
+                ],
+            }
+            _atomic_gzip_json(path, payload)
+            split_metadata.append(
+                {
+                    "entry_id": entry_id,
+                    "file": f"entries/{path.name}",
+                    "file_sha256": _sha256_file(path),
+                    "milestone_id": hit.progress.key,
+                    "milestone_index": hit.progress.index,
+                    "milestone_label": hit.progress.label,
+                    "map_id": hit.referee_summary.get("map_id"),
+                    "depth_actions": source_prefix_length + hit.observed.action_offset,
+                    "source": "v9_replay_local_first_hit",
+                    "stable_state_sha256": hit.observed.state_identity.stable_state_sha256,
+                    "snapshot_sha256": hit.observed.state_identity.snapshot_sha256,
+                }
+            )
+            entry_ids.append(entry_id)
+        entry_ids.append(final_entry_id)
+        final_metadata = existing[final_entry_id]
+        split_ids = set(entry_ids[1:-1])
+        manifest["entries"] = [
+            item
+            for item in manifest["entries"]
+            if str(item["entry_id"]) != final_entry_id and str(item["entry_id"]) not in split_ids
+        ]
+        manifest["entries"].extend(split_metadata)
+        manifest["entries"].append(final_metadata)
+        manifest["updated_at"] = datetime.now(UTC).isoformat()
+        _atomic_json(self.curriculum_directory / "manifest.json", manifest)
+        return tuple(entry_ids)
+
+    def _prepare_v9_normalized_skills(
+        self,
+        verification: Mapping[str, Any],
+        progress: MilestoneProgress,
+    ) -> _PreparedV9Skills:
+        if self.student_trainer is None:
+            raise RuntimeError("V9 edge normalization has no Student trainer")
+        candidate = verification["candidate"]
+        replay_id = str(candidate["candidate_id"])
+        full_actions = [int(value) for value in verification["full_actions"]]
+        source_metadata, source_entry, prefix_length = _nearest_verified_lineage_prefix(
+            self.curriculum_directory,
+            full_actions,
+            target_index=progress.index,
+        )
+        source_actions = full_actions[prefix_length:]
+        source_progress = _progress_from_value(source_entry["progress"])
+        source_snapshot = FrozenSnapshot.from_checkpoint_dict(source_entry["snapshot"])
+        graph, hits = _collect_v9_first_hit_graph(
+            self.rom_path,
+            source_snapshot,
+            source_actions,
+            source_progress,
+            progress,
+            replay_id=replay_id,
+        )
+        candidate_snapshot = FrozenSnapshot.from_checkpoint_dict(candidate["terminal_snapshot"])
+        if hits[0].progress != source_progress or hits[0].snapshot.sha256 != source_snapshot.sha256:
+            raise ValueError("V9 graph source is not the selected concrete curriculum state")
+        if (
+            hits[-1].progress != progress
+            or hits[-1].snapshot.sha256 != candidate_snapshot.sha256
+            or candidate_snapshot.sha256 != str(candidate["terminal_snapshot_sha256"])
+        ):
+            raise ValueError("V9 graph target is not the verified candidate terminal state")
+        graph_relative = f"self-skills/{replay_id}.skill-graph.json"
+        graph_path = self.run_directory / graph_relative
+        _atomic_json(graph_path, graph.public_audit())
+        graph_sha256 = _sha256_file(graph_path)
+        entry_ids = (
+            str(source_metadata["entry_id"]),
+            *(node.node_id for node in graph.nodes[1:-1]),
+            replay_id,
+        )
+        prepared: list[dict[str, Any]] = []
+        for edge_index, edge in enumerate(graph.edges):
+            source_hit = hits[edge_index]
+            target_hit = hits[edge_index + 1]
+            skill_id = edge.edge_id
+            original_actions = [int(value) for value in edge.actions]
+            distilled = _distill_verified_actions(
+                self.rom_path,
+                source_hit.snapshot,
+                original_actions,
+                source_hit.progress,
+                target_hit.progress,
+                verification_id=skill_id,
+                successful_replays=(
+                    int(verification["edge_replays"]) + int(verification["power_on_replays"])
+                ),
+                max_attempts=self.config.distillation_attempts,
+            )
+            compressed_actions = [int(value) for value in distilled.actions]
+            dataset, target_clip = _collect_v8_student_dataset(
+                self.rom_path,
+                source_hit.snapshot,
+                compressed_actions,
+                compressed_to_original=distilled.compressed_to_original,
+            )
+            target_relative = f"self-skills/{skill_id}.png"
+            dataset_relative = f"self-skills/{skill_id}.npz"
+            audit_relative = f"self-skills/{skill_id}.distillation.json"
+            target_path = self.run_directory / target_relative
+            dataset_path = self.run_directory / dataset_relative
+            audit_path = self.run_directory / audit_relative
+            temporary_target = target_path.with_suffix(".tmp.png")
+            Image.fromarray(target_clip[-1]).save(temporary_target, format="PNG")
+            os.replace(temporary_target, target_path)
+            _atomic_self_imitation_dataset(dataset_path, dataset)
+            dataset_sha256 = _sha256_file(dataset_path)
+            replay_shards = _write_v8_replay_shards(
+                self.run_directory,
+                skill_id=skill_id,
+                dataset=dataset,
+                source_dataset_sha256=dataset_sha256,
+                max_examples=self.student_trainer.config.max_examples_per_dataset,
+                burn_in=self.student_trainer.config.burn_in,
+            )
+            _atomic_json(
+                audit_path,
+                {
+                    "schema_version": 1,
+                    "protocol": PPO_V9_REWARD_PROTOCOL,
+                    "verification_id": skill_id,
+                    "source_entry_id": entry_ids[edge_index],
+                    "source_milestone": source_hit.progress.public_dict(),
+                    "target_entry_id": entry_ids[edge_index + 1],
+                    "target_milestone": target_hit.progress.public_dict(),
+                    "expected_target_snapshot_sha256": target_hit.snapshot.sha256,
+                    "skill_graph_audit_file": graph_relative,
+                    "skill_graph_audit_sha256": graph_sha256,
+                    "graph_edge_id": edge.edge_id,
+                    "graph_start_action_offset": edge.start_action_offset,
+                    "graph_end_action_offset": edge.end_action_offset,
+                    "full_self_generated_action_count": len(full_actions),
+                    "source_lineage_action_count": (prefix_length + edge.start_action_offset),
+                    "compressed_to_original": list(distilled.compressed_to_original),
+                    "original_to_compressed": list(distilled.original_to_compressed),
+                    "distillation": distilled.audit.as_dict(),
+                    "human_actions": [],
+                },
+            )
+            prepared.append(
+                {
+                    "skill_id": skill_id,
+                    "source_entry_id": entry_ids[edge_index],
+                    "source_index": source_hit.progress.index,
+                    "target_entry_id": entry_ids[edge_index + 1],
+                    "target_index": target_hit.progress.index,
+                    "target_label": target_hit.progress.label,
+                    "target_frame_file": target_relative,
+                    "target_frame_sha256": _sha256_file(target_path),
+                    "dataset_file": dataset_relative,
+                    "dataset_sha256": dataset_sha256,
+                    "action_count": len(compressed_actions),
+                    "original_action_count": len(original_actions),
+                    "distillation_audit_file": audit_relative,
+                    "distillation_audit_sha256": _sha256_file(audit_path),
+                    "skill_graph_audit_file": graph_relative,
+                    "skill_graph_audit_sha256": graph_sha256,
+                    "graph_edge_id": edge.edge_id,
+                    "distillation_oracle_calls": distilled.audit.total_oracle_calls,
+                    "distillation_oracle_actions_replayed": (
+                        distilled.audit.oracle_actions_replayed
+                    ),
+                    "distillation_edits_accepted": (
+                        distilled.audit.loop_deletions_accepted
+                        + distilled.audit.chunk_deletions_accepted
+                    ),
+                    "distillation_edits_rejected": (
+                        distilled.audit.loop_deletions_rejected
+                        + distilled.audit.chunk_deletions_rejected
+                    ),
+                    "target_clip_channels": int(target_clip.shape[0]),
+                    "replay_shards": replay_shards,
+                    "replay_shard_example_cap": (
+                        self.student_trainer.config.max_examples_per_dataset
+                    ),
+                    "replay_shard_burn_in": self.student_trainer.config.burn_in,
+                }
+            )
+        return _PreparedV9Skills(
+            skills=tuple(prepared),
+            graph=graph,
+            hits=hits,
+            source_entry_id=str(source_metadata["entry_id"]),
+            final_entry_id=replay_id,
+            full_actions=tuple(full_actions),
+            source_prefix_length=prefix_length,
+        )
+
     def _prepare_self_generated_skill(
         self,
         verification: Mapping[str, Any],
         progress: MilestoneProgress,
         source_png: Path,
-    ) -> dict[str, Any] | None:
+    ) -> dict[str, Any] | list[dict[str, Any]] | _PreparedV9Skills | None:
         if self.self_skills is None:
             return None
         if not source_png.is_file():
@@ -3445,7 +4060,10 @@ class PpoRunCallback(BaseCallback):
         dataset_path = self.run_directory / dataset_relative
         target_path.parent.mkdir(parents=True, exist_ok=True)
 
-        if _is_v8_mode(self.config.mode):
+        if _is_v9_mode(self.config.mode):
+            return self._prepare_v9_normalized_skills(verification, progress)
+
+        if _is_distilled_student_mode(self.config.mode):
             full_actions = [int(value) for value in verification["full_actions"]]
             source_metadata, source_entry, prefix_length = _nearest_verified_lineage_prefix(
                 self.curriculum_directory,
@@ -3497,7 +4115,7 @@ class PpoRunCallback(BaseCallback):
                 audit_path,
                 {
                     "schema_version": 1,
-                    "protocol": PPO_V8_REWARD_PROTOCOL,
+                    "protocol": _ppo_reward_protocol(self.config.mode),
                     "verification_id": skill_id,
                     "source_entry_id": str(source_entry["entry_id"]),
                     "source_milestone": source_progress.public_dict(),
@@ -3532,9 +4150,7 @@ class PpoRunCallback(BaseCallback):
                 "distillation_audit_file": audit_relative,
                 "distillation_audit_sha256": _sha256_file(audit_path),
                 "distillation_oracle_calls": distilled.audit.total_oracle_calls,
-                "distillation_oracle_actions_replayed": (
-                    distilled.audit.oracle_actions_replayed
-                ),
+                "distillation_oracle_actions_replayed": (distilled.audit.oracle_actions_replayed),
                 "distillation_edits_accepted": (
                     distilled.audit.loop_deletions_accepted
                     + distilled.audit.chunk_deletions_accepted
@@ -3545,9 +4161,7 @@ class PpoRunCallback(BaseCallback):
                 ),
                 "target_clip_channels": int(target_clip.shape[0]),
                 "replay_shards": replay_shards,
-                "replay_shard_example_cap": (
-                    self.student_trainer.config.max_examples_per_dataset
-                ),
+                "replay_shard_example_cap": (self.student_trainer.config.max_examples_per_dataset),
                 "replay_shard_burn_in": self.student_trainer.config.burn_in,
             }
 
@@ -3580,13 +4194,52 @@ class PpoRunCallback(BaseCallback):
             "action_count": len(edge_actions),
         }
 
-    def _commit_self_generated_skill(self, prepared: Mapping[str, Any] | None) -> None:
+    def _commit_self_generated_skill(
+        self,
+        prepared: Mapping[str, Any] | list[dict[str, Any]] | None,
+    ) -> None:
         if self.self_skills is None or prepared is None:
             return
-        admitted = self.self_skills.add_verified_skill(**prepared)
+        skills = prepared if isinstance(prepared, list) else [prepared]
+        admitted = False
+        for skill in skills:
+            admitted = self.self_skills.add_verified_skill(**skill) or admitted
         if admitted:
             self.self_imitation_pending = self.self_skills.imitation_pending
             self._write_self_skills()
+
+    def _commit_v9_candidate(
+        self,
+        verification: Mapping[str, Any],
+        prepared: _PreparedV9Skills,
+    ) -> None:
+        if self.self_skills is None:
+            raise RuntimeError("V9 promotion has no Student skill library")
+        previous_manifest = _load_curriculum_manifest(self.curriculum_directory)
+        previous_library = self.self_skills.public_dict()
+        proposed_library = SelfTaughtSkillLibrary.from_dict(previous_library)
+        for skill in prepared.skills:
+            if not proposed_library.add_verified_skill(**skill):
+                raise ValueError("V9 normalized skill batch contains a duplicate edge")
+        try:
+            admit_verified_candidate(self.curriculum_directory, verification)
+            self._admit_v9_split_boundaries(
+                prepared.graph,
+                prepared.hits,
+                source_entry_id=prepared.source_entry_id,
+                final_entry_id=prepared.final_entry_id,
+                full_actions=prepared.full_actions,
+                source_prefix_length=prepared.source_prefix_length,
+            )
+            self.self_skills = proposed_library
+            self.self_imitation_pending = proposed_library.imitation_pending
+            self._write_self_skills()
+        except Exception:
+            _atomic_json(self.curriculum_directory / "manifest.json", previous_manifest)
+            self.self_skills = SelfTaughtSkillLibrary.from_dict(previous_library)
+            self.self_imitation_pending = self.self_skills.imitation_pending
+            self._write_self_skills()
+            raise
 
     def _refresh_v8_composition_replay(self) -> bool:
         """Build one new replay-verified continuous chain when competence advances."""
@@ -3701,9 +4354,63 @@ class PpoRunCallback(BaseCallback):
             self._write_self_skills()
         return admitted
 
-    def _load_v8_student_datasets(self) -> tuple[tuple[Any, ...], list[dict[str, Any]]]:
+    def _selected_v9_practice_replays(
+        self,
+    ) -> tuple[dict[str, Path], list[dict[str, Any]]]:
+        if not _is_v9_mode(self.config.mode) or self.self_skills is None:
+            return {}, []
+        paths: dict[str, Path] = {}
+        selections: list[dict[str, Any]] = []
+        round_index = self.self_skills.student_training_rounds
+        for skill_id, ledger in sorted(self.student_practice_ledgers.items()):
+            for rung in ledger.rungs:
+                rollouts = rung.successful_rollouts
+                if not rollouts:
+                    continue
+                offset = int.from_bytes(
+                    hashlib.sha256(f"{skill_id}:{rung.rung.index}".encode()).digest()[:8],
+                    "big",
+                )
+                rollout = rollouts[(round_index + offset) % len(rollouts)]
+                if not rollout.replay_shards:
+                    raise ValueError("V9 retained success has no bounded replay shards")
+                shard = rollout.replay_shards[
+                    (round_index // len(rollouts) + offset) % len(rollout.replay_shards)
+                ]
+                dataset_id = f"practice-{rollout.rollout_id}"
+                if dataset_id in paths:
+                    raise ValueError("V9 practice replay selection repeats a rollout")
+                shard_path = _validate_hashed_run_artifact(
+                    self.run_directory,
+                    shard["file"],
+                    shard["sha256"],
+                    label="V9 bounded successful-practice replay shard",
+                )
+                if shard_path.stat().st_size != int(shard["stored_bytes"]):
+                    raise ValueError("V9 practice replay shard size disagrees with its ledger")
+                paths[dataset_id] = shard_path
+                selections.append(
+                    {
+                        "dataset_id": dataset_id,
+                        "source_skill_id": skill_id,
+                        "rung_index": rung.rung.index,
+                        "rollout_id": rollout.rollout_id,
+                        "rollout_reservoir_size": len(rollouts),
+                        "shard_index": int(shard["shard_index"]),
+                        "shard_count": int(shard["shard_count"]),
+                        "context_examples": int(shard["context_example_count"]),
+                        "train_examples": int(shard["train_example_count"]),
+                        "stored_examples": int(shard["example_count"]),
+                        "stored_bytes": int(shard["stored_bytes"]),
+                    }
+                )
+        return paths, selections
+
+    def _load_v8_student_datasets(
+        self,
+    ) -> tuple[tuple[Any, ...], list[dict[str, Any]], list[dict[str, Any]]]:
         if self.self_skills is None or not self.self_skills.skills:
-            return (), []
+            return (), [], []
         paths: dict[str, Path] = {}
         selections: list[dict[str, Any]] = []
         for skill in self.self_skills.skills:
@@ -3762,6 +4469,10 @@ class PpoRunCallback(BaseCallback):
             if composition_id in paths:
                 raise ValueError("V8 composition identifier collides with an individual skill")
             paths[composition_id] = dataset_path
+        practice_paths, practice_selections = self._selected_v9_practice_replays()
+        if set(paths).intersection(practice_paths):
+            raise ValueError("V9 practice replay identifier collides with a verified lesson")
+        paths.update(practice_paths)
         datasets = load_self_generated_datasets(
             paths,
         )
@@ -3800,7 +4511,26 @@ class PpoRunCallback(BaseCallback):
                 or dataset.excerpt_offsets != tuple(composition["excerpt_offsets"])
             ):
                 raise ValueError("V8 composition dataset disagrees with its verified ledger")
-        return datasets, selections
+        for selection in practice_selections:
+            dataset = by_id[str(selection["dataset_id"])]
+            rollout_id = str(selection["rollout_id"])
+            rollout = next(
+                item
+                for ledger in self.student_practice_ledgers.values()
+                for rung in ledger.rungs
+                for item in rung.successful_rollouts
+                if item.rollout_id == rollout_id
+            )
+            if (
+                dataset.dataset_kind != "skill"
+                or dataset.source_action_count != rollout.action_count
+                or dataset.source_dataset_sha256 != rollout.dataset_sha256
+                or dataset.replay_shard_index != int(selection["shard_index"])
+                or dataset.replay_shard_count != int(selection["shard_count"])
+                or dataset.target_pixels.shape != (3, 72, 80)
+            ):
+                raise ValueError("V9 practice dataset disagrees with its verified ledger")
+        return datasets, selections, practice_selections
 
     def _train_v8_student(self) -> None:
         if self.self_skills is None or self.student_trainer is None or not self.self_skills.skills:
@@ -3813,7 +4543,7 @@ class PpoRunCallback(BaseCallback):
         ):
             return
         self._refresh_v8_composition_replay()
-        datasets, shard_selections = self._load_v8_student_datasets()
+        datasets, shard_selections, practice_selections = self._load_v8_student_datasets()
         replay = BalancedSkillReplay(
             datasets,
             self.student_trainer.config,
@@ -3855,14 +4585,10 @@ class PpoRunCallback(BaseCallback):
         recorded["max_examples_per_individual_skill"] = (
             self.student_trainer.config.max_examples_per_dataset
         )
-        recorded["replay_example_ceiling"] = recorded[
-            "individual_skill_datasets"
-        ] * (
+        recorded["replay_example_ceiling"] = recorded["individual_skill_datasets"] * (
             self.student_trainer.config.max_examples_per_dataset
             + self.student_trainer.config.burn_in
-        ) + sum(
-            len(dataset) for dataset in datasets if dataset.dataset_kind == "composition"
-        )
+        ) + sum(len(dataset) for dataset in datasets if dataset.dataset_kind == "composition")
         recorded["replay_train_example_ceiling"] = recorded[
             "individual_skill_datasets"
         ] * self.student_trainer.config.max_examples_per_dataset + sum(
@@ -3887,6 +4613,17 @@ class PpoRunCallback(BaseCallback):
         recorded["replay_shard_bytes_read"] = sum(
             int(item["stored_bytes"]) for item in shard_selections
         )
+        recorded["practice_replay_datasets_loaded"] = len(practice_selections)
+        recorded["practice_replay_train_examples_loaded"] = sum(
+            int(item["train_examples"]) for item in practice_selections
+        )
+        recorded["practice_replay_context_examples_loaded"] = sum(
+            int(item["context_examples"]) for item in practice_selections
+        )
+        recorded["practice_replay_bytes_read"] = sum(
+            int(item["stored_bytes"]) for item in practice_selections
+        )
+        recorded["practice_replay_selections"] = practice_selections
         recorded["replay_full_skill_artifacts_opened"] = 0
         recorded["replay_shard_selections"] = shard_selections
         recorded["replay_cursor_min"] = min(
@@ -3934,6 +4671,7 @@ class PpoRunCallback(BaseCallback):
         recurrent_state: Any | None,
         *,
         episode_start: bool,
+        deterministic: bool = True,
     ) -> tuple[int, Any]:
         if self.student_model is None:
             raise RuntimeError("Frozen Student exam has no Student model")
@@ -3941,9 +4679,313 @@ class PpoRunCallback(BaseCallback):
             observation,
             state=recurrent_state,
             episode_start=np.asarray([episode_start], dtype=np.bool_),
-            deterministic=True,
+            deterministic=deterministic,
         )
         return int(np.asarray(action).reshape(-1)[0]), next_state
+
+    def _sync_v9_practice_ledgers(self) -> None:
+        if not _is_v9_mode(self.config.mode) or self.self_skills is None:
+            return
+        settings = ReversePracticeConfig(
+            first_rung_actions=8,
+            promotion_window=self.config.student_practice_window,
+            promotion_required_successes=self.config.student_practice_required,
+            promotion_confirmations=self.config.student_practice_confirmations,
+            retention_fraction=self.config.student_practice_retention,
+            success_reservoir_capacity=self.config.student_practice_reservoir,
+            action_history_length=ACTION_HISTORY_LENGTH,
+        )
+        changed = False
+        for skill in self.self_skills.skills:
+            skill_id = str(skill["skill_id"])
+            if skill_id in self.student_practice_ledgers:
+                continue
+            self.student_practice_ledgers[skill_id] = StudentPracticeLedger.initialize(
+                skill_id=skill_id,
+                source_action_count=int(skill["action_count"]),
+                seed=self.config.seed + int(skill["target_index"]) * 10_007,
+                config=settings,
+            )
+            changed = True
+        if changed:
+            self._write_student_practice()
+
+    def _v9_practice_skill(self) -> tuple[dict[str, Any], StudentPracticeLedger] | None:
+        if self.self_skills is None:
+            return None
+        self._sync_v9_practice_ledgers()
+        skills = sorted(self.self_skills.skills, key=lambda item: int(item["target_index"]))
+        choices = [
+            (skill, self.student_practice_ledgers[str(skill["skill_id"])]) for skill in skills
+        ]
+        unfinished = [item for item in choices if not item[1].curriculum_complete]
+        if unfinished:
+            return min(unfinished, key=lambda item: (item[1].active_rung_index, item[1].attempts))
+        if not choices:
+            return None
+        return min(choices, key=lambda item: item[1].attempts)
+
+    def _train_v9_success_rollout(self, path: Path, rollout_id: str, seed: int) -> None:
+        if self.student_trainer is None or self.self_skills is None:
+            raise RuntimeError("V9 success replay has no Student trainer")
+        dataset = SelfGeneratedSkillDataset.load(path, skill_id=f"practice-{rollout_id}")
+        replay = BalancedSkillReplay((dataset,), self.student_trainer.config, seed=seed)
+        report = self.student_trainer.train(
+            replay,
+            updates=self.config.student_replay_epochs,
+        ).public_dict()
+        report["training_kind"] = "closed_loop_success_only"
+        self.self_skills.record_student_training(report)
+        self.student_practice_training_updates += int(report["updates"])
+
+    def _run_v9_practice_attempt(
+        self,
+        skill: Mapping[str, Any],
+        ledger: StudentPracticeLedger,
+    ) -> bool:
+        if self.student_model is None:
+            raise RuntimeError("V9 closed-loop practice has no Student model")
+        choice = ledger.next_choice()
+        # Persist the deterministic choice before touching the emulator. If the
+        # attempt is interrupted, resume repeats this exact seed and rung.
+        self._write_student_practice()
+        skill_path = _validate_hashed_run_artifact(
+            self.run_directory,
+            skill["dataset_file"],
+            skill["dataset_sha256"],
+            label="V9 practice source skill",
+        )
+        with np.load(skill_path, allow_pickle=False) as archive:
+            demonstrated_actions = np.asarray(archive["actions"], dtype=np.int64)
+            target_clip = np.asarray(archive["target_pixels"], dtype=np.uint8)
+        if len(demonstrated_actions) != ledger.source_action_count:
+            raise ValueError("V9 practice ladder no longer matches its source skill")
+        manifest = _load_curriculum_manifest(self.curriculum_directory)
+        metadata_by_id = {str(entry["entry_id"]): entry for entry in manifest["entries"]}
+        source_metadata = metadata_by_id.get(str(skill["source_entry_id"]))
+        if source_metadata is None:
+            raise ValueError("V9 practice source curriculum entry is missing")
+        target_metadata = metadata_by_id.get(str(skill["target_entry_id"]))
+        if target_metadata is None:
+            raise ValueError("V9 practice target curriculum entry is missing")
+        source = _load_curriculum_entry(self.curriculum_directory, source_metadata)
+        source_progress = _progress_from_value(source["progress"])
+        target_index = int(skill["target_index"])
+        target = _load_curriculum_entry(self.curriculum_directory, target_metadata)
+        target_progress = _progress_from_value(target["progress"])
+        if target_progress.index != target_index:
+            raise ValueError("V9 practice target entry disagrees with its normalized skill")
+        target_signature = _curriculum_snapshot_signature(self.rom_path, target)
+        target_signature_sha256 = hashlib.sha256(repr(target_signature).encode()).hexdigest()
+        pixels: list[np.ndarray] = []
+        histories: list[np.ndarray] = []
+        student_actions: list[int] = []
+        recent: deque[int] = deque([-1] * ACTION_HISTORY_LENGTH, maxlen=ACTION_HISTORY_LENGTH)
+        success = False
+        terminal_reason = "timeout"
+        practice_snapshot: FrozenSnapshot | None = None
+        practice_progress = source_progress
+        previous_mode = bool(self.student_model.policy.training)
+        python_state = random.getstate()
+        numpy_state = np.random.get_state()
+        try:
+            import torch
+
+            torch_state = torch.random.get_rng_state()
+            self.student_model.set_random_seed(choice.attempt_seed)
+            self.student_model.policy.set_training_mode(False)
+            with PokemonRedEmulator(self.rom_path) as emulator:
+                emulator.load_state(FrozenSnapshot.from_checkpoint_dict(source["snapshot"]).thaw())
+                reader = PokemonRedStateReader(emulator)
+                for action in demonstrated_actions[: choice.start_action]:
+                    if not _execute_action(emulator, int(action)):
+                        raise RuntimeError("V9 practice ladder replay stopped")
+                    self.student_practice_actions += 1
+                practice_progress = milestone_progress_for_state(
+                    reader.read(), inherited=source_progress
+                )
+                practice_snapshot = FrozenSnapshot.freeze(emulator.save_state())
+                current = preprocess_apprentice_frame(emulator.screen_rgb())
+                previous = current
+                recurrent_state: Any | None = None
+                limit = max(
+                    1,
+                    int(
+                        np.ceil(
+                            choice.remaining_actions
+                            * self.config.student_practice_rollout_multiplier
+                        )
+                    )
+                    + self.config.student_practice_rollout_slack,
+                )
+                for step in range(limit):
+                    observation = {
+                        "pixels": np.stack((previous, current)),
+                        "action_history": _action_history(recent),
+                        "target_pixels": target_clip,
+                    }
+                    action, recurrent_state = self._predict_student_action(
+                        observation,
+                        recurrent_state,
+                        episode_start=step == 0,
+                        deterministic=False,
+                    )
+                    pixels.append(observation["pixels"])
+                    histories.append(observation["action_history"])
+                    student_actions.append(action)
+                    self.student_practice_actions += 1
+                    if not _execute_action(emulator, action):
+                        terminal_reason = "emulator_stopped"
+                        break
+                    recent.append(action)
+                    previous = current
+                    current = preprocess_apprentice_frame(emulator.screen_rgb())
+                    state = reader.read()
+                    progress = milestone_progress_for_state(state, inherited=practice_progress)
+                    signature_outcome = _v9_practice_signature_outcome(
+                        progress.index,
+                        target_index,
+                        _composition_state_signature(emulator, state, progress),
+                        target_signature,
+                    )
+                    if signature_outcome is not None:
+                        terminal_reason = signature_outcome
+                        success = signature_outcome == "exact_target"
+                        break
+        finally:
+            self.student_model.policy.set_training_mode(previous_mode)
+            random.setstate(python_state)
+            np.random.set_state(numpy_state)
+            if "torch_state" in locals():
+                torch.random.set_rng_state(torch_state)
+
+        metadata: SuccessfulRolloutMetadata | None = None
+        dataset_path: Path | None = None
+        if success:
+            if practice_snapshot is None or not student_actions:
+                raise RuntimeError("V9 successful practice has no replayable actions")
+            replay_snapshot, replay_progress, _summary, _screen = _replay_sequence(
+                self.rom_path,
+                practice_snapshot,
+                student_actions,
+                practice_progress,
+            )
+            self.student_practice_verification_actions += len(student_actions)
+            replay_signature = _curriculum_snapshot_signature(
+                self.rom_path,
+                {
+                    "progress": replay_progress.public_dict(),
+                    "snapshot": replay_snapshot.checkpoint_dict(),
+                },
+            )
+            replay_outcome = _v9_practice_signature_outcome(
+                replay_progress.index,
+                target_index,
+                replay_signature,
+                target_signature,
+            )
+            if replay_outcome != "exact_target":
+                success = False
+                terminal_reason = "milestone_wrong_state"
+        if success:
+            identity = {
+                "skill_id": ledger.skill_id,
+                "decision": choice.decision,
+                "attempt_seed": choice.attempt_seed,
+                "actions": student_actions,
+                "practice_snapshot_sha256": practice_snapshot.sha256,
+                "target_entry_id": str(skill["target_entry_id"]),
+                "target_signature_sha256": target_signature_sha256,
+            }
+            rollout_id = hashlib.sha256(_canonical_json(identity)).hexdigest()
+            relative = (
+                f"student-practice/{ledger.skill_id}/"
+                f"success-{choice.decision:08d}-{rollout_id[:16]}.npz"
+            )
+            dataset_path = self.run_directory / relative
+            rollout_dataset = {
+                "pixels": np.stack(pixels).astype(np.uint8, copy=False),
+                "action_history": np.stack(histories).astype(np.float32, copy=False),
+                "target_pixels": target_clip,
+                "actions": np.asarray(student_actions, dtype=np.int64),
+                "weights": np.ones(len(student_actions), dtype=np.float32),
+                "episode_starts": np.asarray(
+                    [True, *([False] * (len(student_actions) - 1))],
+                    dtype=np.bool_,
+                ),
+            }
+            _atomic_self_imitation_dataset(dataset_path, rollout_dataset)
+            dataset_sha256 = _sha256_file(dataset_path)
+            replay_shards = _write_v8_replay_shards(
+                self.run_directory,
+                skill_id=f"practice-{rollout_id}",
+                dataset=rollout_dataset,
+                source_dataset_sha256=dataset_sha256,
+                max_examples=self.student_trainer.config.max_examples_per_dataset,
+                burn_in=self.student_trainer.config.burn_in,
+            )
+            metadata = SuccessfulRolloutMetadata(
+                rollout_id=rollout_id,
+                skill_id=ledger.skill_id,
+                rung_index=choice.rung_index,
+                remaining_actions=choice.remaining_actions,
+                attempt_seed=choice.attempt_seed,
+                action_count=len(student_actions),
+                dataset_file=relative,
+                dataset_sha256=dataset_sha256,
+                verification_id=hashlib.sha256(
+                    _canonical_json(
+                        {
+                            "rollout_id": rollout_id,
+                            "target_entry_id": str(skill["target_entry_id"]),
+                            "target_signature_sha256": target_signature_sha256,
+                            "replay_snapshot_sha256": replay_snapshot.sha256,
+                        }
+                    )
+                ).hexdigest(),
+                replay_shards=tuple(replay_shards),
+            )
+        outcome = ledger.record_attempt(choice, success=success, rollout=metadata)
+        self.student_practice_terminal_reasons[terminal_reason] += 1
+        if metadata is not None and dataset_path is not None:
+            if outcome.rollout_retained:
+                first_shard = self.run_directory / str(metadata.replay_shards[0]["file"])
+                self._train_v9_success_rollout(
+                    first_shard,
+                    metadata.rollout_id,
+                    choice.attempt_seed,
+                )
+            else:
+                dataset_path.unlink(missing_ok=True)
+                for shard in metadata.replay_shards:
+                    (self.run_directory / str(shard["file"])).unlink(missing_ok=True)
+        # An evicted rollout may still be referenced by the previous committed
+        # checkpoint generation. Its immutable files are therefore left in place
+        # for crash rollback; a later storage compactor may remove unreachable data.
+        self._write_student_practice()
+        self._write_self_skills()
+        return outcome.promoted
+
+    def _run_v9_practice_round(self) -> bool:
+        if not _is_v9_mode(self.config.mode):
+            return False
+        rollout_size = self.config.rollout_steps * self.config.environments
+        explorer_rollout = self.model.num_timesteps // max(1, rollout_size)
+        if (
+            explorer_rollout == self.last_student_practice_rollout
+            or explorer_rollout % self.config.student_practice_interval
+        ):
+            return False
+        self.last_student_practice_rollout = explorer_rollout
+        promoted = False
+        for _ in range(self.config.student_practice_attempts):
+            selected = self._v9_practice_skill()
+            if selected is None:
+                break
+            skill, ledger = selected
+            promoted |= self._run_v9_practice_attempt(skill, ledger)
+        self._write_student_practice()
+        return promoted
 
     def _run_frozen_skill_attempt(
         self,
@@ -4150,8 +5192,10 @@ class PpoRunCallback(BaseCallback):
         return competence_passed
 
     def _on_rollout_start(self) -> None:
-        if _is_v8_mode(self.config.mode):
+        if _is_distilled_student_mode(self.config.mode):
             self._train_v8_student()
+            if self._run_v9_practice_round():
+                self._narrative("closed-loop Student practice expanded one rung backward")
             return
         if self.self_skills is None or not self.self_imitation_pending:
             return
@@ -4199,8 +5243,11 @@ class PpoRunCallback(BaseCallback):
             )
             source_png = candidate_path.with_suffix("").with_suffix(".png")
             prepared_skill = self._prepare_self_generated_skill(verification, progress, source_png)
-            admit_verified_candidate(self.curriculum_directory, verification)
-            self._commit_self_generated_skill(prepared_skill)
+            if isinstance(prepared_skill, _PreparedV9Skills):
+                self._commit_v9_candidate(verification, prepared_skill)
+            else:
+                admit_verified_candidate(self.curriculum_directory, verification)
+                self._commit_self_generated_skill(prepared_skill)
             if self.consolidation is not None:
                 updated_manifest = _load_curriculum_manifest(self.curriculum_directory)
                 self.consolidation.sync_curriculum(updated_manifest["entries"])
@@ -4275,7 +5322,7 @@ class PpoRunCallback(BaseCallback):
                 self._handle_candidate(Path(candidate))
 
         if (
-            _is_v8_mode(self.config.mode)
+            _is_distilled_student_mode(self.config.mode)
             and self.self_skills is not None
             and self.model.num_timesteps - self.self_skills.last_frozen_exam_actions
             >= self.config.frozen_exam_interval_actions
@@ -4340,15 +5387,15 @@ def run_parallel_ppo(
     v7_denominator: Path | None = None,
 ) -> dict[str, Any]:
     rom = verify_rom(rom_path).public_dict()
-    source = detect_source_provenance(include_untracked=_is_v8_mode(config.mode)).public_dict()
-    if _is_v8_mode(config.mode):
+    source = detect_source_provenance(
+        include_untracked=_is_distilled_student_mode(config.mode)
+    ).public_dict()
+    if _is_distilled_student_mode(config.mode):
         _require_reproducible_v8_source(source)
     if v7_denominator is not None and (not _is_v8_mode(config.mode) or resume):
         raise ValueError("A V7 denominator may be locked only when a fresh V8 run begins")
     denominator_snapshot = (
-        _snapshot_v7_denominator(v7_denominator)
-        if v7_denominator is not None
-        else None
+        _snapshot_v7_denominator(v7_denominator) if v7_denominator is not None else None
     )
     if policy_source is not None and not config.consolidation:
         raise ValueError("A retained policy source requires consolidation mode")
@@ -4358,7 +5405,7 @@ def run_parallel_ppo(
     if run_directory.exists() and not resume:
         raise ValueError("PPO output directory already exists")
     run_directory.mkdir(parents=True, exist_ok=resume)
-    for name in ("candidate-spool", "milestones", "self-skills"):
+    for name in ("candidate-spool", "milestones", "self-skills", "student-practice"):
         (run_directory / name).mkdir(exist_ok=True)
     curriculum_directory = run_directory / "curriculum"
     if not curriculum_directory.exists():
@@ -4406,11 +5453,9 @@ def run_parallel_ppo(
             checkpoint,
             source=source,
             rom=rom,
-            required=_is_v8_mode(config.mode),
+            required=_is_distilled_student_mode(config.mode),
         )
-        run_manifest = json.loads(
-            (run_directory / "manifest.json").read_text(encoding="utf-8")
-        )
+        run_manifest = json.loads((run_directory / "manifest.json").read_text(encoding="utf-8"))
         if _is_v8_mode(config.mode) and checkpoint.get("v7_denominator") != (
             run_manifest.get("v7_denominator")
         ):
@@ -4422,8 +5467,8 @@ def run_parallel_ppo(
                 checkpoint,
                 protocol=_ppo_protocol(config.mode),
             )
-        elif _is_v8_mode(config.mode):
-            raise ValueError("V8 checkpoint has no bound curriculum snapshot")
+        elif _is_distilled_student_mode(config.mode):
+            raise ValueError("Distilled-Student checkpoint has no bound curriculum snapshot")
         else:
             legacy_curriculum = _load_curriculum_manifest(curriculum_directory)
             if legacy_curriculum.get("best_milestone") != checkpoint.get("best_milestone"):
@@ -4451,6 +5496,7 @@ def run_parallel_ppo(
                     ("target_frame_file", "target_frame_sha256"),
                     ("dataset_file", "dataset_sha256"),
                     ("distillation_audit_file", "distillation_audit_sha256"),
+                    ("skill_graph_audit_file", "skill_graph_audit_sha256"),
                 ):
                     if skill.get(file_key) is None:
                         continue
@@ -4480,9 +5526,9 @@ def run_parallel_ppo(
                         composition.get(hash_key),
                         label="PPO composition replay artifact",
                     )
-        if _is_v8_mode(config.mode):
+        if _is_distilled_student_mode(config.mode):
             if checkpoint.get("student_model_file") != "student-latest.zip":
-                raise ValueError("V8 checkpoint has no separate Student model")
+                raise ValueError("Checkpoint has no separate Student model")
             try:
                 student_model_path = _resolve_checkpoint_artifact(
                     run_directory,
@@ -4491,9 +5537,9 @@ def run_parallel_ppo(
                     expected_sha256=checkpoint.get("student_model_file_sha256"),
                 )
             except ValueError as error:
-                raise ValueError("V8 Student model does not match its checkpoint") from error
+                raise ValueError("Student model does not match its checkpoint") from error
             if checkpoint.get("student_optimizer_file") != "student-optimizer.pt":
-                raise ValueError("V8 checkpoint has no separate Student optimizer")
+                raise ValueError("Checkpoint has no separate Student optimizer")
             try:
                 student_optimizer_path = _resolve_checkpoint_artifact(
                     run_directory,
@@ -4502,7 +5548,9 @@ def run_parallel_ppo(
                     expected_sha256=checkpoint.get("student_optimizer_file_sha256"),
                 )
             except ValueError as error:
-                raise ValueError("V8 Student optimizer does not match its checkpoint") from error
+                raise ValueError("Student optimizer does not match its checkpoint") from error
+        if _is_v9_mode(config.mode):
+            _restore_student_practice_state(run_directory, checkpoint)
         novelty_files = checkpoint.get("novelty_files")
         if not isinstance(novelty_files, list):
             raise ValueError("PPO checkpoint has no persistent novelty memory")
@@ -4648,7 +5696,7 @@ def run_parallel_ppo(
             _atomic_json(run_directory / "manifest.json", manifest)
     student_model: Any | None = None
     student_trainer: SequenceAwareStudentTrainer | None = None
-    if _is_v8_mode(config.mode):
+    if _is_distilled_student_mode(config.mode):
         if resume:
             student_model = RecurrentPPO.load(student_model_path, device="cpu")
         else:
@@ -4678,14 +5726,22 @@ def run_parallel_ppo(
             student_trainer.load_optimizer_state_dict(optimizer_state)
         else:
             manifest = json.loads((run_directory / "manifest.json").read_text(encoding="utf-8"))
-            manifest["v8_architecture"] = {
+            architecture_key = "v9_architecture" if _is_v9_mode(config.mode) else "v8_architecture"
+            manifest[architecture_key] = {
                 "explorer": "PPO policy updated only from online blind exploration",
-                "student": "independent recurrent policy updated only from self-generated replay",
+                "student": (
+                    "independent recurrent policy updated from distilled replay and closed-loop "
+                    "success-only self-practice"
+                    if _is_v9_mode(config.mode)
+                    else "independent recurrent policy updated only from self-generated replay"
+                ),
                 "initial_parameters_identical": True,
                 "shared_parameters_after_initialization": False,
                 "human_demonstrations": [],
                 "goal_observation": "three self-observed terminal frames",
                 "competence_authority": "frozen deterministic Student exams",
+                "closed_loop_practice": _is_v9_mode(config.mode),
+                "recovery_ppo": "gated_future_escalation" if _is_v9_mode(config.mode) else None,
             }
             _atomic_json(run_directory / "manifest.json", manifest)
     callback = PpoRunCallback(

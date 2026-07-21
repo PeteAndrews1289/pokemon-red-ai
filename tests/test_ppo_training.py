@@ -36,6 +36,7 @@ from pokemon_red_ai.ppo_training import (
     _atomic_gzip_json,
     _checkpoint_curriculum_state,
     _checkpoint_self_skill_state,
+    _checkpoint_student_practice_state,
     _copy_retained_ppo_policy,
     _ensure_run_manifest_identity,
     _hall_of_fame_stop_is_verified,
@@ -45,17 +46,26 @@ from pokemon_red_ai.ppo_training import (
     _resolve_checkpoint_artifact,
     _restore_curriculum_state,
     _restore_self_skill_state,
+    _restore_student_practice_state,
     _sha256_file,
     _snapshot_v7_denominator,
     _state_vector,
     _train_self_imitation_policy,
     _v8_composition_fingerprint,
     _v8_composition_training_weights,
+    _v9_practice_signature_outcome,
+    _v9_practice_terminal_reason_counts,
     _validate_checkpoint_identity,
+    _validate_student_practice_state,
     _write_v8_replay_shards,
 )
 from pokemon_red_ai.self_taught import SelfTaughtSkillLibrary
 from pokemon_red_ai.state import PokemonRedState
+from pokemon_red_ai.student_practice import (
+    ReversePracticeConfig,
+    StudentPracticeLedger,
+    SuccessfulRolloutMetadata,
+)
 from pokemon_red_ai.student_training import (
     SelfGeneratedSkillDataset,
     SequenceTrainingConfig,
@@ -83,6 +93,12 @@ def test_parallel_config_enforces_vector_batch_boundary() -> None:
     assert v8.distillation_attempts == 32
     assert v8.frozen_exam_attempts == 1
     assert len(MILESTONES) * v8.competence_window * v8.frozen_exam_interval_actions < v8.max_actions
+    v9 = ParallelPpoConfig(mode="self_taught_v9", random_initialization=True, power_on_only=True)
+    assert v9.student_practice_window == 30
+    assert v9.student_practice_required == 27
+    assert v9.student_practice_confirmations == 2
+    assert v9.student_practice_retention == 0.25
+    assert "student_practice_window" in v9.public_dict()
     with pytest.raises(ValueError, match="one deterministic frozen attempt"):
         ParallelPpoConfig(
             mode="self_taught_v8",
@@ -90,6 +106,63 @@ def test_parallel_config_enforces_vector_batch_boundary() -> None:
             power_on_only=True,
             frozen_exam_attempts=2,
         )
+
+
+def test_v9_practice_requires_exact_target_signature() -> None:
+    protected = ("target", b"stable-state", 4)
+
+    assert _v9_practice_signature_outcome(3, 4, protected, protected) is None
+    assert _v9_practice_signature_outcome(4, 4, protected, protected) == "exact_target"
+    assert (
+        _v9_practice_signature_outcome(4, 4, ("other-state", b"stable-state", 4), protected)
+        == "milestone_wrong_state"
+    )
+    assert (
+        _v9_practice_signature_outcome(5, 4, ("later-milestone", b"stable-state", 5), protected)
+        == "milestone_wrong_state"
+    )
+
+
+def test_v9_practice_terminal_reasons_persist_and_are_public(tmp_path: Path) -> None:
+    ledger = StudentPracticeLedger.initialize(
+        skill_id="edge-a",
+        source_action_count=8,
+        seed=7,
+    )
+    for _ in range(2):
+        ledger.record_attempt(ledger.next_choice(), success=False)
+
+    callback = object.__new__(PpoRunCallback)
+    callback.config = ParallelPpoConfig(
+        mode="self_taught_v9",
+        random_initialization=True,
+        power_on_only=True,
+    )
+    callback.run_directory = tmp_path
+    callback.student_practice_ledgers = {ledger.skill_id: ledger}
+    callback.student_practice_actions = 12
+    callback.student_practice_verification_actions = 0
+    callback.student_practice_training_updates = 0
+    callback.student_practice_terminal_reasons = _v9_practice_terminal_reason_counts(
+        {"timeout": 1, "milestone_wrong_state": 1}
+    )
+    callback.last_student_practice_rollout = 4
+    callback.self_skills = None
+
+    PpoRunCallback._write_student_practice(callback)
+    state = json.loads((tmp_path / "student-practice.json").read_text(encoding="utf-8"))
+
+    assert state["terminal_reasons"] == {"milestone_wrong_state": 1, "timeout": 1}
+    assert len(_validate_student_practice_state(tmp_path, state)) == 1
+    assert (
+        PpoRunCallback._student_practice_status(callback)["terminal_reasons"]
+        == state["terminal_reasons"]
+    )
+
+    with pytest.raises(ValueError, match="unsupported"):
+        _v9_practice_terminal_reason_counts({"mystery": 1})
+    with pytest.raises(ValueError, match="invalid"):
+        _v9_practice_terminal_reason_counts({"timeout": -1})
 
 
 def test_v8_can_lock_a_path_free_hash_bound_v7_denominator(tmp_path: Path) -> None:
@@ -333,6 +406,33 @@ def test_self_taught_resume_can_recover_previous_atomic_generation(
     assert (tmp_path / "self-skills.checkpoint.previous.json").is_file()
 
 
+def test_v9_practice_resume_rolls_back_to_the_student_checkpoint_generation(
+    tmp_path: Path,
+) -> None:
+    first = {
+        "schema_version": 1,
+        "protocol": "v9-student-closed-loop-practice-state-v1",
+        "emulator_actions": 0,
+        "verification_actions": 0,
+        "training_updates": 0,
+        "ledgers": [],
+    }
+    (tmp_path / "student-practice.json").write_text(json.dumps(first), encoding="utf-8")
+    checkpoint = _checkpoint_student_practice_state(tmp_path)
+    (tmp_path / "checkpoint.json").write_text(json.dumps(checkpoint), encoding="utf-8")
+
+    advanced = dict(first, emulator_actions=999)
+    (tmp_path / "student-practice.json").write_text(json.dumps(advanced), encoding="utf-8")
+    _checkpoint_student_practice_state(tmp_path)
+
+    restored = _restore_student_practice_state(tmp_path, checkpoint)
+
+    assert restored == ()
+    live = json.loads((tmp_path / "student-practice.json").read_text(encoding="utf-8"))
+    assert live["emulator_actions"] == 0
+    assert (tmp_path / "student-practice.checkpoint.previous.json").is_file()
+
+
 def test_recovered_previous_artifact_survives_a_second_interrupted_rotation(
     tmp_path: Path,
 ) -> None:
@@ -479,6 +579,53 @@ def test_individual_skill_artifacts_are_hash_bound_before_ledger_checkpoint(
         _checkpoint_self_skill_state(tmp_path)
 
 
+def test_v9_graph_audit_is_sealed_and_hash_bound_before_checkpoint(tmp_path: Path) -> None:
+    library = SelfTaughtSkillLibrary.initialize(
+        [{"entry_id": "root", "milestone_index": 0}],
+        window_size=2,
+        threshold=1,
+    )
+    artifacts = tmp_path / "self-skills"
+    artifacts.mkdir()
+    target = artifacts / "first.png"
+    dataset = artifacts / "first.npz"
+    graph = artifacts / "first.skill-graph.json"
+    target.write_bytes(b"target")
+    dataset.write_bytes(b"dataset")
+    graph.write_bytes(b"first graph")
+    assert library.add_verified_skill(
+        skill_id="first",
+        source_entry_id="root",
+        source_index=0,
+        target_entry_id="middle",
+        target_index=1,
+        target_label="middle",
+        target_frame_file="self-skills/first.png",
+        target_frame_sha256=_sha256_file(target),
+        dataset_file="self-skills/first.npz",
+        dataset_sha256=_sha256_file(dataset),
+        action_count=2,
+        skill_graph_audit_file="self-skills/first.skill-graph.json",
+        skill_graph_audit_sha256=_sha256_file(graph),
+        graph_edge_id="d" * 64,
+    )
+    ledger = tmp_path / "self-skills.json"
+    ledger.write_text(json.dumps(library.public_dict()), encoding="utf-8")
+    committed = _checkpoint_self_skill_state(tmp_path)
+    (tmp_path / "checkpoint.json").write_text(json.dumps(committed), encoding="utf-8")
+
+    replacement = artifacts / "replacement.skill-graph.json"
+    replacement.write_bytes(b"replacement graph")
+    skill = library.skill("first")
+    skill["skill_graph_audit_file"] = "self-skills/replacement.skill-graph.json"
+    skill["skill_graph_audit_sha256"] = _sha256_file(replacement)
+    ledger.write_text(json.dumps(library.public_dict()), encoding="utf-8")
+    replacement.write_bytes(b"tampered replacement graph")
+
+    with pytest.raises(ValueError, match="Self-taught skill artifact before checkpoint"):
+        _checkpoint_self_skill_state(tmp_path)
+
+
 def test_skill_checkpoint_rejects_artifact_path_outside_run(tmp_path: Path) -> None:
     library = SelfTaughtSkillLibrary.initialize(
         [{"entry_id": "root", "milestone_index": 0}],
@@ -576,6 +723,7 @@ def test_v8_training_opens_only_one_bounded_hash_bound_shard_per_skill(
     callback = object.__new__(PpoRunCallback)
     callback.run_directory = tmp_path
     callback.self_skills = library
+    callback.config = SimpleNamespace(mode="self_taught_v8")
     callback.student_trainer = SimpleNamespace(
         config=SequenceTrainingConfig(burn_in=2, max_examples_per_dataset=4)
     )
@@ -596,13 +744,14 @@ def test_v8_training_opens_only_one_bounded_hash_bound_shard_per_skill(
     monkeypatch.setattr(ppo_training_module, "_sha256_file", recording_hash)
     monkeypatch.setattr(ppo_training_module.np, "load", recording_load)
 
-    datasets, selections = PpoRunCallback._load_v8_student_datasets(callback)
+    datasets, selections, practice_selections = PpoRunCallback._load_v8_student_datasets(callback)
 
     selected_path = tmp_path / str(shards[0]["file"])
     assert len(datasets) == 1
     assert len(datasets[0]) == 4
     assert datasets[0].source_action_count == 9
     assert selections[0]["shard_index"] == 0
+    assert practice_selections == []
     assert hashed == [selected_path]
     assert opened == [selected_path]
     assert full_source not in hashed
@@ -618,6 +767,91 @@ def test_v8_training_opens_only_one_bounded_hash_bound_shard_per_skill(
     assert second.trainable_examples == 4
     assert (windows[0].burn_start, windows[0].train_start) == (0, 2)
     assert all(window.train_start >= second.train_offset for window in windows)
+
+
+def test_v9_retained_success_rotates_into_bounded_student_replay(tmp_path: Path) -> None:
+    library, _full_source, _source_shards = _admit_sharded_v8_skill(tmp_path)
+    rollout_id = "f" * 64
+    relative = Path("student-practice") / "bounded-skill" / "success.npz"
+    full_path = tmp_path / relative
+    full_path.parent.mkdir(parents=True)
+    action_count = 6
+    dataset = {
+        "pixels": np.zeros((action_count, 2, 72, 80), dtype=np.uint8),
+        "action_history": np.zeros(
+            (action_count, ACTION_HISTORY_LENGTH * len(BLIND_ACTIONS)), dtype=np.float32
+        ),
+        "target_pixels": np.zeros((3, 72, 80), dtype=np.uint8),
+        "actions": np.arange(action_count, dtype=np.int64) % len(BLIND_ACTIONS),
+        "weights": np.ones(action_count, dtype=np.float32),
+        "episode_starts": np.asarray(
+            [True, *([False] * (action_count - 1))],
+            dtype=np.bool_,
+        ),
+    }
+    with full_path.open("wb") as output:
+        np.savez_compressed(output, **dataset)
+    full_sha256 = _sha256_file(full_path)
+    shards = _write_v8_replay_shards(
+        tmp_path,
+        skill_id=f"practice-{rollout_id}",
+        dataset=dataset,
+        source_dataset_sha256=full_sha256,
+        max_examples=4,
+        burn_in=2,
+    )
+    ledger = StudentPracticeLedger.initialize(
+        skill_id="bounded-skill",
+        source_action_count=9,
+        seed=123,
+        config=ReversePracticeConfig(
+            promotion_window=30,
+            promotion_required_successes=27,
+            promotion_confirmations=2,
+        ),
+    )
+    choice = ledger.next_choice()
+    ledger.record_attempt(
+        choice,
+        success=True,
+        rollout=SuccessfulRolloutMetadata(
+            rollout_id=rollout_id,
+            skill_id=ledger.skill_id,
+            rung_index=choice.rung_index,
+            remaining_actions=choice.remaining_actions,
+            attempt_seed=choice.attempt_seed,
+            action_count=action_count,
+            dataset_file=relative.as_posix(),
+            dataset_sha256=full_sha256,
+            verification_id="verified-exact-target",
+            replay_shards=tuple(shards),
+        ),
+    )
+    callback = object.__new__(PpoRunCallback)
+    callback.run_directory = tmp_path
+    callback.self_skills = library
+    callback.student_practice_ledgers = {ledger.skill_id: ledger}
+    callback.config = SimpleNamespace(mode="self_taught_v9")
+    callback.student_trainer = SimpleNamespace(
+        config=SequenceTrainingConfig(burn_in=2, max_examples_per_dataset=4)
+    )
+
+    datasets, source_selections, practice_selections = PpoRunCallback._load_v8_student_datasets(
+        callback
+    )
+
+    assert len(source_selections) == 1
+    assert len(practice_selections) == 1
+    assert practice_selections[0]["rollout_id"] == rollout_id
+    assert {dataset.skill_id for dataset in datasets} == {
+        "bounded-skill",
+        f"practice-{rollout_id}",
+    }
+    practice_dataset = next(
+        dataset for dataset in datasets if dataset.skill_id == f"practice-{rollout_id}"
+    )
+    assert practice_dataset.source_dataset_sha256 == full_sha256
+    assert practice_dataset.trainable_examples <= 4
 
 
 def test_v8_replay_cursor_rotates_all_shards_and_survives_round_trip(tmp_path: Path) -> None:
@@ -690,23 +924,17 @@ def test_routine_checkpoint_skips_committed_inactive_composition_but_checks_acti
         excerpt_offsets=(0, 4),
         successful_replays=1,
     )
-    (tmp_path / "self-skills.json").write_text(
-        json.dumps(library.public_dict()), encoding="utf-8"
-    )
+    (tmp_path / "self-skills.json").write_text(json.dumps(library.public_dict()), encoding="utf-8")
     committed = _checkpoint_self_skill_state(tmp_path)
     (tmp_path / "checkpoint.json").write_text(json.dumps(committed), encoding="utf-8")
 
     library.activate_verified_composition(None)
-    (tmp_path / "self-skills.json").write_text(
-        json.dumps(library.public_dict()), encoding="utf-8"
-    )
+    (tmp_path / "self-skills.json").write_text(json.dumps(library.public_dict()), encoding="utf-8")
     audit.write_bytes(b"tampered archived audit")
     _checkpoint_self_skill_state(tmp_path)
 
     library.activate_verified_composition("f" * 64)
-    (tmp_path / "self-skills.json").write_text(
-        json.dumps(library.public_dict()), encoding="utf-8"
-    )
+    (tmp_path / "self-skills.json").write_text(json.dumps(library.public_dict()), encoding="utf-8")
     with pytest.raises(ValueError, match="composition replay artifact before checkpoint"):
         _checkpoint_self_skill_state(tmp_path)
 
@@ -890,7 +1118,8 @@ def test_privileged_state_vector_is_fixed_and_bounded() -> None:
 
 
 @pytest.mark.parametrize(
-    "mode", ["pixels", "assisted", "privileged", "self_taught", "self_taught_v8"]
+    "mode",
+    ["pixels", "assisted", "privileged", "self_taught", "self_taught_v8", "self_taught_v9"],
 )
 def test_feature_extractor_preserves_declared_information_boundary(mode: str) -> None:
     spaces = {
@@ -915,11 +1144,11 @@ def test_feature_extractor_preserves_declared_information_boundary(mode: str) ->
                 "map_context": gym.spaces.Box(0, 1, shape=(MAP_CONTEXT_SIZE,), dtype=np.float32),
             }
         )
-    if mode in {"self_taught", "self_taught_v8"}:
+    if mode in {"self_taught", "self_taught_v8", "self_taught_v9"}:
         spaces["target_pixels"] = gym.spaces.Box(
             0,
             255,
-            shape=(3 if mode == "self_taught_v8" else 1, 72, 80),
+            shape=(3 if mode in {"self_taught_v8", "self_taught_v9"} else 1, 72, 80),
             dtype=np.uint8,
         )
     extractor = PokemonPpoFeatures(gym.spaces.Dict(spaces))
@@ -938,9 +1167,9 @@ def test_feature_extractor_preserves_declared_information_boundary(mode: str) ->
                 "map_context": torch.zeros((2, MAP_CONTEXT_SIZE)),
             }
         )
-    if mode in {"self_taught", "self_taught_v8"}:
+    if mode in {"self_taught", "self_taught_v8", "self_taught_v9"}:
         observations["target_pixels"] = torch.zeros(
-            (2, 3 if mode == "self_taught_v8" else 1, 72, 80)
+            (2, 3 if mode in {"self_taught_v8", "self_taught_v9"} else 1, 72, 80)
         )
 
     features = extractor(observations)
@@ -952,7 +1181,7 @@ def test_feature_extractor_preserves_declared_information_boundary(mode: str) ->
             if mode == "assisted"
             else 0
         )
-        + (128 if mode in {"self_taught", "self_taught_v8"} else 0)
+        + (128 if mode in {"self_taught", "self_taught_v8", "self_taught_v9"} else 0)
         + (PRIVILEGED_STATE_SIZE if mode == "privileged" else 0)
     )
     assert features.shape == (2, expected)

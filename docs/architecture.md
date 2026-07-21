@@ -1,15 +1,40 @@
 # Architecture
 
 > **Primary-track update:** the running Version 7 trial remains unchanged as the denominator.
-> Version 8 preserves its random, no-demonstration, self-generated boundary while separating four
+> Version 8 preserved its random, no-demonstration, self-generated boundary while separating four
 > PPO Explorers from a recurrent Student. Only replay-verified and replay-distilled discoveries may
 > train the Student; frozen exams, not training reward, grade competence. A clean source-bound
 > canary qualified the mechanism, two resumes, four-skill library, and bounded replay through Oak's
-> lab. It passed 0/7 frozen exams, so it did not establish causal learning, multi-skill retention,
-> or later-game progress. See
-> [Version 8](version-8-distilled-student.md).
+> lab. It passed 0/7 frozen exams and remains the qualification canary. The final longer V8 run
+> reached Route 1 with seven skills but passed only 1/47, leaving zero competent skills. Version 9
+> now implements consecutive edges and replay-verified successes produced by the Student in reverse
+> closed-loop practice, including graph/checkpoint binding, terminal counts, bounded rotating
+> replay, and the 27/30×2 gate. PPO recovery is deferred and disabled; no V9 real-ROM canary or
+> live result is claimed. See [Version 9](version-9-self-correcting-student.md).
 
-## Active Version-8 boundary
+## Active Version-9 implementation boundary
+
+```mermaid
+flowchart LR
+    Explore["V8-compatible Explorer"] --> Lineage["Verified self-generated lineage"]
+    Lineage --> Normalize["Consecutive edge normalization"]
+    Normalize --> BC["Canonical Student BC warm start"]
+    BC --> Practice["Reverse closed-loop Student practice"]
+    Practice --> Referee["Trainer-only exact referee"]
+    Referee -->|"verified success only"| Aggregate["Bounded success aggregation"]
+    Aggregate --> BC
+    Referee -->|"every failure"| Attempts["Complete attempt ledger"]
+    Attempts -. "future conditional trigger" .-> PPO["Canonical-Student PPO recovery<br/>deferred"]
+    BC --> Exam["Unchanged strict frozen exams"]
+```
+
+The actor observation keys are exactly `pixels`, `action_history`, and `target_pixels`. Practice
+may restore a snapshot reached by the same run and schedule a reverse rung, but skill identity,
+rung, horizon, attempt seed, RAM, coordinates, and milestone labels remain trainer-only. Closed-
+loop means the Student chooses every practice button. Failed attempts are evidence but never BC
+targets. This boundary is implemented and engineering-checked, not qualified real-ROM behavior.
+
+## Closed Version-8 boundary
 
 ```mermaid
 flowchart LR

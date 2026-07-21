@@ -1458,8 +1458,8 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
   may trust unchanged inactive composition seals only when the last atomic `checkpoint.json`
   already commits them; new or active compositions and all new skill shards are validated, and
   resume/full audit validates every artifact. After the final schema tweak, the focused
-  replay/Student/PPO/dashboard suite passed 61 tests, and the full private-ROM suite passed 246.
-  This is mechanism evidence, not multi-skill behavioral evidence.
+  replay/Student/PPO/dashboard suite passed 61 tests, and the final supported-ROM suite passed
+  245/245 in 24.80 seconds. This is mechanism evidence, not multi-skill behavioral evidence.
   Restore-free composition remains goal-conditioned hierarchical control: one frozen Student
   chooses every button, while a trainer-side RAM referee switches an ordered playlist of the
   run's self-generated target clips at declared milestones. This provides no authored quest
@@ -1483,6 +1483,154 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
 - **Supersedes / superseded by:** Extends DR-0052's self-generated-data decision. It supersedes V7's
   shared Explorer/imitator as the proposed successor, but V7 remains the live denominator and
   cannot be retroactively changed. Not yet superseded.
+
+## DR-0054 — Train on successful states created by the Student itself
+
+- **Date:** 2026-07-21
+- **Status:** Accepted; Version 9 implementation in progress. No V9 automated qualification,
+  real-ROM canary, frozen-exam success, or live progress is claimed
+- **Scope:** Consecutive edge construction, canonical Student warm start, reverse closed-loop
+  practice, success-only aggregation, automatic PPO recovery design, information boundary, frozen
+  evaluation, checkpointing, and narrative
+- **Information label:** `SELF-TAUGHT / PIXELS + SELF-DISCOVERED TEMPORAL VISUAL GOAL`, with
+  trainer-only self-generated practice restores, exact success verification, and scheduling; no
+  trainer button authority
+- **Decision:** Close V8 as a qualified mechanism with a negative behavioral result, then preserve
+  it rather than silently increasing cloning updates. Normalize each self-generated verified
+  lineage into exact consecutive source-to-next-target edges. Warm-start the one canonical
+  recurrent Student with V8-style bounded sequence behavioral cloning. Then practice each edge in
+  closed loop, beginning near its protected target and moving the start backward only after a
+  declared success gate. Admit only exact replay-verified successful Student rollouts to the
+  aggregated imitation set; retain every failure in the denominator without teaching its actions.
+  Predeclare a bounded recurrent PPO recovery trigger for rungs that produce no success, using the
+  same canonical Student and actor information boundary. Keep that PPO lane disabled and unclaimed
+  during initial qualification until closed-loop plumbing and a matched BC-only ablation pass.
+  Continue to grant competence only through strict frozen, checkpoint-separated local exams and
+  restore-free composition exams.
+- **Alternatives considered:** Run V8 longer unchanged; increase BC epochs or model size without a
+  causal comparison; lower the 8/10 exam gate; count reverse-rung success as competence; aggregate
+  failed Student trajectories; use recorded suffix actions after the Student deviates; import the
+  reference repository's demonstrations; provide an oracle correction for off-trace states; train
+  PPO immediately before the closed-loop data path is qualified; let a human decide when to rescue
+  a rung; or restore a different disposable expert and copy its actions into the Student.
+- **Observation/evidence:** The clean V8 canary at commit `4c3c1fc` ran 3,584 Explorer actions,
+  reached `met_professor_oak`, admitted four replay-distilled skills, completed 51 Student rounds
+  and 134 optimizer updates, and survived two resumes. Final action NLL was 2.07149 and accuracy
+  13.7795%, near the 12.5% uniform eight-action reference. The Student passed 0/7 strict frozen
+  exams; zero skills became competent and composition correctly remained ineligible. Bounded shard
+  replay and provenance behaved as designed. The final V8 supported-ROM suite passed 245/245 in
+  24.80 seconds. These are V8 facts and motivation for V9, not V9 evidence.
+- **Interpretation:** V8 taught from successful recorded state distributions but evaluated on
+  states produced by the Student's own actions. One wrong prediction could move the emulator to a
+  screen absent from the lesson and cause later errors to compound. This exposure-bias hypothesis
+  fits the gap between a valid lesson library and 0/7 frozen behavior, but it is not established as
+  the sole cause. V9 tests it by collecting new labels only from closed-loop successes produced by
+  the Student, while a BC-only matched lane separates self-correction from normalization and extra
+  updates.
+- **Consequence:** Protocol and artifact identity must distinguish V9 from V8. Reports must expose
+  normalized source/target identities, reverse-rung start, all practice attempts and terminal
+  reasons, replay-verified Student successes, aggregated examples by edge/rung, Student checkpoint,
+  BC-only comparator, practice/verification/exam budgets, and PPO fallback state. Success-only
+  refers only to supervised admission; failures remain public evidence, and a future PPO optimizer
+  may use complete rollouts. Reverse snapshots are disclosed training assistance. The actor still
+  sees only processed pixels, its own recent actions/recurrent state, and a self-generated visual
+  goal clip. RAM, coordinates, milestone names, route graphs, edge offsets, and correct-next-action
+  labels remain trainer-only or prohibited. The initial qualification must show PPO fallback as
+  disabled; enabling it later requires a new predeclared configuration and matched report. The
+  implementation-in-progress normalizer uses `self-generated-consecutive-skill-graph-v1`, exact
+  replay-local first-hit offsets, stable-state plus private-snapshot hashes, and provenance-derived
+  node IDs; it rejects missing intermediate hits, ordinal-only reuse, duplicate concrete states,
+  non-monotonic offsets, and incomplete action coverage. The reverse core uses
+  `v9-student-closed-loop-reverse-practice-v1`, rung horizons 8/16/32/64 through full edge, two
+  consecutive non-overlapping 27/30 promotion windows, deterministic 25% retention, and at most 32
+  deterministic-reservoir success records per rung under
+  `v9-student-successful-rollout-v1`. Its only actor keys are `pixels`, `action_history`, and
+  `target_pixels`; reset protocol `zero-recurrent-sentinel-history-duplicate-frame-v1` excludes
+  skill/checkpoint/rung/horizon identities. Pending scheduling choice and attempt seed must survive
+  resume exactly. These are implementation declarations, not passed V9 evidence. PPO recovery is
+  not implemented in this scope.
+- **Failed/useful decisions preserved:** V8 is not relabeled as a success or deleted. Its 0/7
+  result is what revealed the difference between building lessons and acting from them. Stage 0's
+  exact route memorization and the earlier reverse curriculum remain useful evidence that backward
+  practice can make a fixed path tractable, while their supplied route and moving-policy gates
+  prevent them from serving as V9 competence evidence. V7 remains the unchanged raw-trace/shared-
+  policy denominator.
+- **Narrative value:** Open with four perfect lesson cards and seven failed exam tiles. Draw the
+  recorded trajectory as a narrow rail; one Student mistake falls off it into an unlabeled state.
+  Snap overlapping traces into consecutive edges, move a visibly assisted practice start backward,
+  and let only a green replay-verified Student success write the next lesson. Show the automatic PPO
+  lever behind glass and leave it disabled. End at the same frozen exam door beside a matched
+  BC-only Student.
+- **Revisit when:** Consecutive normalization cannot preserve every protected edge; the closed-loop
+  actor receives a recorded or trainer-selected action; successful attempts do not replay; reverse
+  practice improves only near-target rungs; aggregation grows while frozen success remains flat;
+  BC-only matches V9; competence is repeatedly forgotten; a PPO trigger leaks privileged actor
+  input or becomes a hidden route reward; checkpoint/resume changes practice history; or later
+  quests still require bespoke human corrections.
+- **Supersedes / superseded by:** Extends DR-0053 rather than rewriting it. V8 remains the closed
+  replay-distilled-BC result and engineering substrate; V9 supersedes behavioral cloning alone as
+  the active Student-training hypothesis. Not yet superseded.
+
+## DR-0055 — Close V8 on the longer 1/47 result and advance V9 to engineering-checked
+
+- **Date:** 2026-07-21
+- **Status:** Accepted; V8 closed, V9 real-ROM canary pending
+- **Scope:** Final V8 evidence, preservation of the clean canary, V9 runner integration, practice
+  verification, bounded replay, checkpoint recovery, evidence language, and video narrative
+- **Decision:** Treat the stopped longer V8 run as the final V8 behavioral result without erasing
+  the earlier clean qualification canary. Advance V9's consecutive graph, closed-loop practice,
+  success-only replay, and recovery state from design/integration-in-progress to engineering-
+  checked E2. Continue withholding any V9 learned-behavior claim until a V9 real-ROM canary and
+  strict frozen evaluation run. Keep recurrent PPO recovery disabled and unimplemented.
+- **Alternatives considered:** Continue calling the 3,584-action 0/7 canary V8's final result;
+  replace the canary with the longer run and lose its clean-source/resume qualification context;
+  treat one success among 47 exams as a competent skill; call 53.0817% imitation accuracy proof of
+  learning; count the 283-check suite as a V9 behavioral canary; enable PPO recovery immediately;
+  or omit the stopped run because it did not consume the eight-hour ceiling in its name.
+- **Observation/evidence:** Run
+  `parallel-ppo-v8-distilled-student-8h-20260721-seed20260793` began at
+  `2026-07-21T18:52:49.997984Z` and ended `stop_requested` at
+  `2026-07-21T20:27:21.139277Z`, after 5,668.623 seconds. It completed 784,386 Explorer actions at
+  138.373 actions/second and 1,532 PPO updates. Seven verified promotions reached milestone index
+  7, `reached_route_1`. Seven skills compressed 13,011 original actions to 8,582 through 238
+  oracle calls and 373,639 replay actions. The Student completed 387 rounds, 2,513 optimizer
+  updates, and 137,437 examples. Final action accuracy was 53.0817% and NLL was 1.295676. Frozen
+  exams ended 1/47, with zero competent skills and zero composition attempts. The earlier clean
+  canary remains separately recorded at 3,584 actions, four skills, 134 Student updates, 13.7795%
+  accuracy, NLL 2.07149, and 0/7 frozen exams; its then-current suite passed 245/245 in 24.80
+  seconds.
+- **Interpretation:** More discovery, more Student updates, and far better teacher-forced action fit
+  did not produce reliable checkpoint-separated execution. The isolated 1/47 success prevents the
+  stronger statement that the Student could never reach a target, but it remains far below the
+  declared 8/10 gate. This strengthens the motivation to test exposure bias while leaving capacity,
+  optimization, visual ambiguity, and recurrent-state handling as live alternatives.
+- **V9 implementation evidence:** The V9 runner now derives exact consecutive skills under
+  `self-generated-consecutive-skill-graph-v1` and hash-binds each graph audit into skill and
+  checkpoint validation. Closed-loop practice accepts success only when milestone depth and the
+  sealed target signature both match; all attempts enter one of `exact_target`, `timeout`,
+  `emulator_stopped`, or `milestone_wrong_state`. Replay-verified successes alone may enter a
+  deterministic per-rung reservoir; immutable bounded shards rotate through Student replay.
+  Practice checkpoint snapshots preserve the pending choice/seed, 27/30×2 windows, retention
+  decisions, terminal denominator, reservoirs, and provenance, and roll live state back to the
+  same recovered Student generation. The current engineering suite passes 271 non-integration plus
+  12 integration checks, 283 total. This is not a real-ROM V9 canary.
+- **Consequence:** Headlines, progress tables, and video material must show both V8 records: 0/7 is
+  the clean canary, while 1/47 is the final longer-run result. Fit charts must be paired with frozen
+  exam denominators. V9 may be called implemented and engineering-checked, but not behaviorally
+  qualified, learned, or live. The next gate is a bounded V9 real-ROM mechanism canary, followed by
+  the matched BC-only ablation and strict frozen exams.
+- **Narrative value:** The strongest cut now has two reveals. First, four lessons and seven red exam
+  tiles prove the measurement catches failure. Then the timeline accelerates to seven lessons,
+  2,513 Student updates, and 53.08% fit—only to stop at one green tile among 47 and zero competent
+  skills. The audience can see why “it fit the demonstrations” and “it can recover while playing”
+  are different claims before V9's closed-loop practice appears.
+- **Revisit when:** A V9 real-ROM canary fails the graph, exact-target, aggregation, terminal-count,
+  shard-rotation, or rollback contract; the matched BC-only lane explains the same gains; a frozen
+  skill crosses 8/10; PPO recovery becomes eligible under a new declaration; or a later V8 artifact
+  audit changes one of the terminal counts above.
+- **Supersedes / superseded by:** Extends DR-0054 without rewriting its then-current canary evidence
+  or implementation status. DR-0054 remains the V9 design decision; this entry records the later V8
+  run and engineering integration. Not yet superseded.
 
 ## Unresolved decisions
 

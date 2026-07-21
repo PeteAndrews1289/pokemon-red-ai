@@ -336,7 +336,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     ppo.add_argument(
         "--mode",
-        choices=("pixels", "assisted", "privileged", "self_taught", "self_taught_v8"),
+        choices=(
+            "pixels",
+            "assisted",
+            "privileged",
+            "self_taught",
+            "self_taught_v8",
+            "self_taught_v9",
+        ),
         default="pixels",
     )
     ppo.add_argument("--hours", type=float, default=8)
@@ -374,6 +381,15 @@ def build_parser() -> argparse.ArgumentParser:
     ppo.add_argument("--frozen-exam-interval-actions", type=int, default=16_384)
     ppo.add_argument("--frozen-exam-attempts", type=int, default=1)
     ppo.add_argument("--frozen-exam-action-multiplier", type=float, default=2.0)
+    ppo.add_argument("--student-practice-interval", type=int, default=4)
+    ppo.add_argument("--student-practice-attempts", type=int, default=2)
+    ppo.add_argument("--student-practice-window", type=int, default=30)
+    ppo.add_argument("--student-practice-required", type=int, default=27)
+    ppo.add_argument("--student-practice-confirmations", type=int, default=2)
+    ppo.add_argument("--student-practice-retention", type=float, default=0.25)
+    ppo.add_argument("--student-practice-rollout-multiplier", type=float, default=2.0)
+    ppo.add_argument("--student-practice-rollout-slack", type=int, default=16)
+    ppo.add_argument("--student-practice-reservoir", type=int, default=32)
     ppo.add_argument("--resume", action="store_true")
 
     ppo_status = subparsers.add_parser(
@@ -868,9 +884,12 @@ def run_parallel_ppo_command(args: argparse.Namespace) -> int:
         competence_window=args.competence_window,
         competence_threshold=args.competence_threshold,
         random_initialization=(
-            args.random_initialization or args.mode in {"self_taught", "self_taught_v8"}
+            args.random_initialization
+            or args.mode in {"self_taught", "self_taught_v8", "self_taught_v9"}
         ),
-        power_on_only=(args.power_on_only or args.mode in {"self_taught", "self_taught_v8"}),
+        power_on_only=(
+            args.power_on_only or args.mode in {"self_taught", "self_taught_v8", "self_taught_v9"}
+        ),
         self_imitation_epochs=args.self_imitation_epochs,
         distillation_attempts=args.distillation_attempts,
         student_replay_interval=args.student_replay_interval,
@@ -881,6 +900,15 @@ def run_parallel_ppo_command(args: argparse.Namespace) -> int:
         frozen_exam_interval_actions=args.frozen_exam_interval_actions,
         frozen_exam_attempts=args.frozen_exam_attempts,
         frozen_exam_action_multiplier=args.frozen_exam_action_multiplier,
+        student_practice_interval=args.student_practice_interval,
+        student_practice_attempts=args.student_practice_attempts,
+        student_practice_window=args.student_practice_window,
+        student_practice_required=args.student_practice_required,
+        student_practice_confirmations=args.student_practice_confirmations,
+        student_practice_retention=args.student_practice_retention,
+        student_practice_rollout_multiplier=args.student_practice_rollout_multiplier,
+        student_practice_rollout_slack=args.student_practice_rollout_slack,
+        student_practice_reservoir=args.student_practice_reservoir,
     )
     if args.port:
         print(
@@ -899,7 +927,9 @@ def run_parallel_ppo_command(args: argparse.Namespace) -> int:
     )
     print(f"Parallel PPO stopped: {status['stop_reason']}")
     action_label = (
-        "Explorer actions" if status.get("mode") == "self_taught_v8" else "Combined actions"
+        "Explorer actions"
+        if status.get("mode") in {"self_taught_v8", "self_taught_v9"}
+        else "Combined actions"
     )
     print(f"{action_label}: {status['total_actions']:,}")
     print(f"PPO updates: {status['ppo_updates']:,}")
@@ -914,7 +944,9 @@ def show_parallel_ppo_command(run_directory: Path) -> int:
     status = show_parallel_ppo_status(run_directory)
     print(f"State: {status['state']}")
     action_label = (
-        "Explorer actions" if status.get("mode") == "self_taught_v8" else "Combined actions"
+        "Explorer actions"
+        if status.get("mode") in {"self_taught_v8", "self_taught_v9"}
+        else "Combined actions"
     )
     print(f"{action_label}: {status['total_actions']:,}")
     print(f"Actions/second: {status['actions_per_second']:,.2f}")

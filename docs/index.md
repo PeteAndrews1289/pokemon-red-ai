@@ -29,8 +29,12 @@ and replay-verified bounded handoffs between locally competent skills. It earns 
 checkpoint-separated frozen exams. Its first 5,248-action real-ROM canary passed the
 mechanism and clean-resume gate on `game_started`; it did not test causal learning or useful later
 gameplay. The later clean-commit canary discovered four skills through Oak's lab and exercised
-bounded replay across two resumes, but passed 0/7 frozen Student exams. The mechanism is qualified;
-useful learning is not.
+bounded replay across two resumes, but passed 0/7 frozen Student exams. That mechanism record is
+preserved. V8's final longer run reached Route 1 with seven skills and 53.0817% action accuracy, but
+passed only 1/47 frozen exams; zero skills became competent and no composition ran. Version 9 now
+has engineering-checked consecutive edges, exact-target reverse closed-loop practice, success-only
+bounded replay, terminal counters, and checkpoint rollback. It has no real-ROM canary or live
+result yet; the future PPO recovery lane remains disabled.
 
 ## Start here
 
@@ -48,7 +52,8 @@ useful learning is not.
 | Audit the current curriculum | [Version 5.2: the road to Brock](version-5-2-northbound.md) | V5.1's completed result, ten northbound lessons, recovery reward, evidence limits, and run questions |
 | Understand the composition pivot | [Version 6: remember the journey](version-6-consolidation.md) | Retained weights, backward rolling gates, canary evidence, claim boundaries, and the next imitation ablation |
 | Understand the game-naive reset | [Version 7: let a new player teach itself](version-7-self-taught.md) | Random power-on start, strict information rules, self-generated visual skills, self-imitation, canary evidence, and falsification gates |
-| Understand the current architecture change | [Version 8: separate discovery from learning](version-8-distilled-student.md) | Why V7 remains the denominator; how replay-backed compression, immutable bounded shards, composition handoffs, save/load-stable verification, a separate Student, checkpoint-separated grading, and fail-closed resume work; what would falsify them |
+| Understand the closed V8 result | [Version 8: separate discovery from learning](version-8-distilled-student.md) | Why V7 remains the denominator; how the 0/7 canary qualified the mechanism; why the longer seven-skill run still ended at 1/47 and zero competent skills |
+| Understand the current architecture change | [Version 9: let the Student practice being wrong](version-9-self-correcting-student.md) | Exposure bias, consecutive edges, reverse closed-loop practice, success-only aggregation, deferred PPO recovery, strict exams, falsifiers, and video narrative |
 | Inspect the first verified expedition milestone | [Q1 `left_home` result](../experiments/q1-left-home/README.md) | Both seeds, full denominator, lineage hashes, replay cost, and why 1/2 is not a pass |
 | Audit the qualified memory substrate | [Archive v2 qualification](../experiments/archive-v2-qualification/README.md) | Bounded replay, exact resume, crash recovery, deterministic comparison, and the failed stop-timing attempt |
 | Audit every accepted and discarded idea | [Decision register](decision-register.md) | Append-only decisions, failed hypotheses, alternatives, evidence, and consequences |
@@ -87,7 +92,8 @@ flowchart LR
     K --> P["✅ Parallel recurrent PPO<br/>verified slices"]
     P --> V6["✅ Version 6<br/>composition failure measured"]
     V6 --> V7["🟨 Version 7<br/>live denominator"]
-    V7 --> V8["🟨 Version 8<br/>distilled Student implementation"]
+    V7 --> V8["✅ Version 8<br/>0/7 canary; 1/47 final"]
+    V8 --> V9["🟨 Version 9<br/>engineering checked; canary next"]
 ```
 
 The diagram shows project position, not game progress. Reaching the game-start state is a narrow

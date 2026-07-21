@@ -22,8 +22,10 @@
 > discoveries. Its active long run remains unchanged as the denominator. Version 8 is implemented
 > beside it: separate PPO Explorers, replay-backed self-trajectory distillation, a
 > recurrent Student, prerequisites, and frozen exams. The clean source-bound canary reached Oak's
-> lab, created four distilled skills, and survived two resumes, but passed 0/7 frozen exams; no
-> causal-learning, production competence, later-game, or Hall-of-Fame policy result is claimed.
+> lab, created four distilled skills, and survived two resumes, but passed 0/7 frozen exams. The
+> final longer run reached Route 1 with seven skills and better fit, but passed only 1/47; no skill
+> became competent and no composition ran. No causal-learning, production competence, later-game,
+> or Hall-of-Fame policy result is claimed.
 
 ### Implementation ledger
 
@@ -45,11 +47,13 @@
 | Version 5.2 northbound chapter curriculum | 🟨 Current qualification | Ten map-level steps lead from the Pokédex through Pewter Gym, with bounded trap-recovery credit and no pixels-only claim |
 | Version 6 retained-policy consolidation | ✅ Engineering canary passed | One continuing PPO policy alternates discovery with backward rehearsal; its ledger separates verified frontier from rolling training competence |
 | Version 7 self-taught hierarchy | ✅ Engineering canary passed | Random power-on policy imported no actions or parameters, discovered two verified opening skills, and applied direct self-imitation; 8/10 and clean-start composition remain unproved |
-| Version 8 distilled Student | ✅ Mechanism and clean resume qualified | The clean 3,584-action canary reached Oak's lab, created four distilled skills, ran 134 Student updates, exercised bounded replay, and survived two resumes; 0/7 frozen exams leave causality and useful competence unproved |
+| Version 8 distilled Student | ✅ Closed: mechanism qualified, behavior failed | The clean 3,584-action canary reached Oak's lab, created four skills, survived two resumes, and passed 0/7 exams. The final longer run reached Route 1 with seven skills, 2,513 Student updates, and 53.0817% fit, but finished at 1/47, zero competent skills, and zero compositions |
 | Version 8 checkpoint-separated grading | ✅ Implemented and checked | One deterministic grade per Student checkpoint every 16,384 Explorer actions; 8/10 spans ten versions. The canary's duplicate 2/2 and 14/14 are superseded mechanism history, not robustness evidence |
 | Version 8 comparison denominator lock | ✅ Implemented and checked | Fresh V8 can read-only pair a running/finished V7 checkpoint with its latest/previous model hash, seal a path-free baseline in its manifest, and refuse to move it on resume |
 | Version 8 self-generated composition training | ✅ Implemented and checked | A full competent chain must replay continuously from power-on before bounded goal-switch excerpts enter the Student. Active-prefix, replay-balance, admission-time immutable shards, persistent coverage cursors, provenance, and failure-ledger controls are checked; learned multi-skill behavior is not |
 | Version 8 real-ROM composition verifier | ✅ Mechanism checked | A stored 289-action two-skill opening and a four-noop save/load fixture pass exact stable visual-plus-RAM endpoint checks; wrong endpoints fail closed. This repaired a save/load-volatile PyBoy game-area hash and does not show Student competence |
+| Version 9 self-correcting Student | 🟨 Engineering checked; canary pending | Consecutive graph binding, canonical-Student BC, exact-target reverse practice, terminal counters, success-only bounded rotating replay, checkpoint rollback, and the 27/30×2 gate pass the 283-check engineering suite. No V9 real-ROM canary, frozen success, or live progress is claimed |
+| Version 9 recurrent PPO recovery | ⬜ Deferred and disabled | A future automatic no-success escalation would update the canonical Student under the same actor boundary. It is not implemented and remains ineligible until closed-loop plumbing plus a matched BC-only ablation qualify |
 | Goal-conditioned Student clean composition | ⬜ Not demonstrated | Historical repeated power-on checks reached only `game_started`; no valid multi-skill chain or H5-relevant later gameplay has been graded under the corrected protocol. V8's RAM-triggered self-generated goal playlist must remain disclosed |
 
 ## The destination

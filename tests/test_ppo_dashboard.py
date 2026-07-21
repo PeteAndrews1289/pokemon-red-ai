@@ -220,6 +220,58 @@ def test_version_8_dashboard_accepts_flat_status_counters() -> None:
     assert "1/1" in page
 
 
+def test_version_9_dashboard_explains_closed_loop_reverse_practice() -> None:
+    page = render_ppo_dashboard(
+        {
+            "state": "running",
+            "mode": "self_taught_v9",
+            "protocol": "parallel-recurrent-ppo-v9",
+            "reward_protocol": "self-correcting-student-v1",
+            "student_practice": {
+                "enabled": True,
+                "skills_with_ladders": 3,
+                "skills_completed": 1,
+                "promotion_window": 30,
+                "promotion_required_successes": 27,
+                "promotion_confirmations": 2,
+                "attempts": 20,
+                "successes": 16,
+                "terminal_reasons": {
+                    "exact_target": 16,
+                    "timeout": 2,
+                    "emulator_stopped": 1,
+                    "milestone_wrong_state": 1,
+                },
+                "retained_success_rollouts": 11,
+                "emulator_actions": 2_400,
+                "verification_actions": 310,
+                "training_updates": 16,
+                "active_rung_index": 2,
+                "active_remaining_actions": 32,
+                "success_only_gradient": True,
+                "recurrent_state_reset_each_attempt": True,
+                "recovery_ppo": "gated_future_escalation_not_active",
+            },
+        }
+    )
+
+    assert "Closed-loop practice: can it recover from its own mistakes?" in page
+    assert "Practice ladders completed" in page and "1/3" in page
+    assert "Practice promotion gate" in page and "27/30 × 2" in page
+    assert "Verified practice record" in page and "16/20" in page
+    assert "80%" in page
+    assert "Exact-target attempts" in page and ">16<" in page
+    assert "Wrong-state milestone hits" in page and ">1<" in page
+    assert "Practice timeouts" in page and ">2<" in page
+    assert "Practice emulator stops" in page and ">1<" in page
+    assert "rung 3 · last 32 actions" in page
+    assert "Successful rollouts retained" in page and ">11<" in page
+    assert "Closed-loop practice actions" in page and ">2,400<" in page
+    assert "Replay-verification actions" in page and ">310<" in page
+    assert "Failed attempts enter gradient" in page and ">no<" in page
+    assert "Recovery PPO escalation" in page and ">not active<" in page
+
+
 def test_dashboard_escapes_public_labels_and_survives_missing_v8_metrics() -> None:
     page = render_ppo_dashboard(
         {

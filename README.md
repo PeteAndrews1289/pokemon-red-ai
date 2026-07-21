@@ -11,7 +11,8 @@ The original game-naive, pixels-only condition remains a strict control. The Q0/
 baseline deliberately used a seeded random action emitter and a sealed, read-only referee; the next
 trials compare learned or optimized emitters under the same checkpoint and replay rules.
 
-> **Current status: V7 is the live denominator; V8 separates the discoverer from the student.**
+> **Current status: V8 closes with a qualified pipeline and a final 1/47 frozen-exam result;
+> Version 9's self-correction mechanics are implemented, but its real-ROM canary has not run.**
 > Stage 0 memorized and exactly replayed its one 419-action house-exit route. Reverse curriculum
 > completed that opening in development, and Frontier Apprentice proved that network updates can be
 > gated behind replay-verified milestones. Its limitation was equally important: almost every
@@ -59,15 +60,36 @@ trials compare learned or optimized emitters under the same checkpoint and repla
 > denominator. The first 5,248-action real-ROM canary qualified the basic mechanism and clean
 > resume on one trivial `game_started` edge. A second, source-bound canary from clean commit
 > `4c3c1fc` began from random power-on, survived two more stop/resume cycles, and independently
-> discovered and distilled four transitions through Oak's lab in 3,584 Explorer actions. It also
-> passed 0/7 frozen Student exams: action accuracy ended at 13.78%, no skill became competent, and
-> composition correctly remained ineligible. That split result is the current headline—the V8
-> machinery can build bounded, auditable lessons, but useful Student learning is still unproved.
+> discovered and distilled four transitions through Oak's lab in 3,584 Explorer actions. It passed
+> 0/7 frozen Student exams: action accuracy ended at 13.78%, no skill became competent, and
+> composition correctly remained ineligible. That clean canary remains qualification evidence; it
+> is not the final V8 behavioral run.
 > Current V8 records exactly one deterministic grade per Student checkpoint, every 16,384 Explorer
 > actions, and builds its 8/10 window across ten distinct Student versions. The clean canary locked
 > an unchanged V7 snapshot at 7,442,496 actions and Viridian City; it is a provenance anchor, not a
 > matched-budget result. See
 > [Separate discovery from learning](docs/version-8-distilled-student.md).
+> The longer run `parallel-ppo-v8-distilled-student-8h-20260721-seed20260793` then ran for
+> 5,668.623 seconds before an explicit stop request. It processed 784,386 Explorer actions at
+> 138.373 actions/second, made 1,532 PPO updates, reached milestone 7 on Route 1, and distilled
+> seven skills from 13,011 to 8,582 actions using 238 oracle calls and 373,639 replay actions. The
+> Student completed 387 rounds and 2,513 updates over 137,437 examples; fit rose to 53.0817%
+> accuracy with NLL 1.295676. Yet it passed only 1/47 frozen exams, leaving zero competent skills
+> and zero composition attempts. That is the final V8 behavioral result: far better imitation fit,
+> but still no reliable learned skill.
+> V8's final contradiction now defines Version 9: the Explorer could create valid lessons, but
+> behavioral cloning exposed the Student only to successful recorded states. In a frozen exam, one
+> wrong button could produce a screen absent from the lesson and make later errors compound.
+> V9 keeps BC as a warm start, normalizes the run's own lineage into consecutive edges, and adds
+> reverse closed-loop practice. Only replay-verified successful Student rollouts may join the
+> aggregated training set; every failure remains in the denominator. Consecutive graph binding,
+> exact-target closed-loop verification, terminal-reason accounting, bounded rotating success
+> replay, checkpoint-bound practice rollback, and the two-window 27/30 practice gate are now
+> implemented. The current engineering suite passes 271 non-integration plus 12 integration checks
+> (283 total). A recurrent PPO recovery lane remains a future automatic escalation and is disabled.
+> Strict checkpoint-separated exams remain unchanged. No V9 real-ROM canary, learned skill, or
+> live-game progress is claimed. See
+> [Let the Student practice being wrong](docs/version-9-self-correcting-student.md).
 
 The current code preserves every historical runner, including Monkey, Archivist, online learners,
 and clean-start neuroevolution, so rejected approaches remain reproducible. See
@@ -89,8 +111,9 @@ attempt. That foundation is Act I of the project, not backstage work to be edite
 The primary completion protocol is the
 [Hall of Fame completion program](docs/completion-program.md). The original
 [game-naive, pixels-only curiosity](docs/blind-curiosity.md) protocol remains the philosophical
-control. The next learned-policy design is frozen in
-[Visual Apprentice v1](docs/visual-apprentice.md). The editorial direction lives in
+control. [Visual Apprentice v1](docs/visual-apprentice.md) remains a preserved predecessor; the
+current implementation hypothesis is
+[Version 9's self-correcting Student](docs/version-9-self-correcting-student.md). The editorial direction lives in
 [The project narrative](docs/narrative.md), and evidence levels remain tracked in
 [Progress](docs/progress.md).
 
@@ -111,7 +134,7 @@ control. The next learned-policy design is frozen in
 | Preserved random comparison | Monkey vs. pixels-only Archivist under matched budgets |
 | Completed 90-minute pretrial | Evolution reached tier 1; online learners plateaued around Pallet Town and Route 1 |
 | Concluded neural experiment | Six inherited-archive lanes all failed the second-map/party gate under equal fuel |
-| Current completion work | V8's committed mechanism, two resumes, four-skill library, and bounded shard replay are qualified; 0/7 frozen exams mean Student competence and composition remain unproved |
+| Current completion work | V8 closed after a qualified 0/7 canary and a longer 1/47 final run; V9 self-correction is engineering-checked, with no real-ROM canary or live success yet |
 | North star | First discover a replayable Hall-of-Fame lineage, then train and evaluate one frozen pixel policy |
 
 ## The journey
@@ -129,8 +152,9 @@ flowchart LR
     EM --> FR["✅ Frontier Apprentice<br/>verify-only updates"]
     FR --> PPO["🟨 Parallel PPO<br/>learn from every rollout"]
     PPO --> V7["🟨 V7<br/>unchanged denominator"]
-    V7 --> V8["🟨 V8<br/>wiring passed; learning open"]
-    V8 --> HF["⬜ Hall of Fame<br/>one frozen policy"]
+    V7 --> V8["✅ V8<br/>0/7 canary; 1/47 final"]
+    V8 --> V9["🟨 V9<br/>engineering checked; canary next"]
+    V9 --> HF["⬜ Hall of Fame<br/>one frozen policy"]
 ```
 
 GitHub issues and experiment records will attach evidence to this roadmap. A checked engineering
@@ -196,8 +220,10 @@ local competence. The historical 5,248-action canary qualified the basic mechani
 on one trivial skill; its duplicate grades remain only as wiring evidence. The clean post-commit
 canary then reached Oak's lab, produced four distilled skills, ran 51 Student rounds and 134
 optimizer updates, exercised persistent bounded-shard coverage across two resumes, and opened zero
-full skill datasets during routine replay. Its decisive behavioral result was still 0/7 frozen
-exams and zero competent skills. Current grading permits one attempt per Student checkpoint at a
+full skill datasets during routine replay. Its 0/7 frozen exams remain qualification-canary
+evidence. The later stopped long run reached Route 1 with seven skills and substantially improved
+fit, but its final 1/47 frozen exams still yielded zero competent skills. Current grading permits
+one attempt per Student checkpoint at a
 16,384-Explorer-action cadence; an 8/10 competence window therefore spans ten different Student
 versions. Neither canary isolates learning from chance or supports a later-game claim; V7 continues
 under its original configuration so a future comparison remains honest.
@@ -299,7 +325,8 @@ Start with [the documentation hub](docs/index.md), or jump directly to:
 - [Parallel recurrent PPO](docs/parallel-ppo.md) — four-worker learning, information boundaries, rewards, replay admission, benchmarks, and long-run interpretation
 - [Version 5.2: the road to Brock](docs/version-5-2-northbound.md) — completed predecessor evidence, ten northbound lessons, recovery reward, and video narrative
 - [Version 7: let a new player teach itself](docs/version-7-self-taught.md) — random power-on start, self-generated visual skills, direct self-imitation, competence gates, and canary evidence
-- [Version 8: separate discovery from learning](docs/version-8-distilled-student.md) — unchanged V7 denominator, replay-backed trajectory compression, separate Explorer and Student, recurrent sequence training, prerequisite scheduling, frozen exams, and falsifiers
+- [Version 8: separate discovery from learning](docs/version-8-distilled-student.md) — qualified 0/7 canary, longer 1/47 final run, unchanged V7 denominator, replay-backed compression, separate Explorer and Student, and lessons learned
+- [Version 9: let the Student practice being wrong](docs/version-9-self-correcting-student.md) — exposure bias, consecutive edges, reverse closed-loop practice, success-only aggregation, deferred automatic PPO recovery, strict exams, qualification gates, and video narrative
 - [Version 6: remember the journey](docs/version-6-consolidation.md) — retained PPO weights, backward competence gates, failed and passed canaries, and the new claim ladder
 - [Append-only decision register](docs/decision-register.md) — accepted, rejected, retired, superseded, and failed ideas with their evidence
 - [Progress](docs/progress.md) — current evidence, status, and reporting rules

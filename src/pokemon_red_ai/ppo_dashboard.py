@@ -120,8 +120,16 @@ def _is_v8(status: Mapping[str, Any]) -> bool:
     reward_protocol = str(status.get("reward_protocol", ""))
     return (
         mode == "self_taught_v8"
-        or protocol == "parallel-recurrent-ppo-v8"
+        or protocol in {"parallel-recurrent-ppo-v8", "parallel-recurrent-ppo-v9"}
         or reward_protocol.startswith("distilled-self-generated-skills")
+    )
+
+
+def _is_v9(status: Mapping[str, Any]) -> bool:
+    return (
+        str(status.get("mode", "")) == "self_taught_v9"
+        or str(status.get("protocol", "")) == "parallel-recurrent-ppo-v9"
+        or str(status.get("reward_protocol", "")) == "self-correcting-student-v1"
     )
 
 
@@ -638,6 +646,118 @@ def _student_section(status: Mapping[str, Any]) -> str:
     )
 
 
+def _practice_section(status: Mapping[str, Any]) -> str:
+    practice = _mapping(status.get("student_practice"))
+    terminal_reasons = _mapping(practice.get("terminal_reasons"))
+    attempts = _integer(practice.get("attempts"))
+    successes = _integer(practice.get("successes"))
+    ladders = _integer(practice.get("skills_with_ladders"))
+    completed = _integer(practice.get("skills_completed"))
+    promotion_window = _integer(practice.get("promotion_window"))
+    promotion_required = _integer(practice.get("promotion_required_successes"))
+    confirmations = _integer(practice.get("promotion_confirmations"))
+    rung = _optional_integer((practice,), "active_rung_index")
+    remaining = _optional_integer((practice,), "active_remaining_actions")
+    if rung is None:
+        active_rung = "waiting for a skill" if not ladders else "all ladders complete"
+    elif remaining is None:
+        active_rung = f"rung {rung + 1}"
+    else:
+        active_rung = f"rung {rung + 1} · last {remaining:,} actions"
+    cards = "".join(
+        (
+            _metric_card("Practice ladders completed", f"{completed}/{ladders}"),
+            _metric_card(
+                "Practice promotion gate",
+                (
+                    f"{promotion_required}/{promotion_window} × {confirmations}"
+                    if promotion_window and confirmations
+                    else "not reported"
+                ),
+                note="consecutive, non-overlapping success windows",
+            ),
+            _metric_card(
+                "Verified practice record",
+                f"{successes}/{attempts}",
+                note=_rate(successes, attempts),
+            ),
+            _metric_card(
+                "Exact-target attempts",
+                f"{_integer(terminal_reasons.get('exact_target')):,}",
+            ),
+            _metric_card(
+                "Wrong-state milestone hits",
+                f"{_integer(terminal_reasons.get('milestone_wrong_state')):,}",
+            ),
+            _metric_card(
+                "Practice timeouts",
+                f"{_integer(terminal_reasons.get('timeout')):,}",
+            ),
+            _metric_card(
+                "Practice emulator stops",
+                f"{_integer(terminal_reasons.get('emulator_stopped')):,}",
+            ),
+            _metric_card("Active reverse-practice rung", active_rung),
+            _metric_card(
+                "Successful rollouts retained",
+                f"{_integer(practice.get('retained_success_rollouts')):,}",
+                note="bounded Student-generated training evidence",
+            ),
+            _metric_card(
+                "Aggregated rollouts replayed",
+                f"{_integer(practice.get('aggregated_datasets_loaded_last_round')):,}",
+                note="one rotating bounded sample per practiced rung",
+            ),
+            _metric_card(
+                "Aggregated examples replayed",
+                f"{_integer(practice.get('aggregated_train_examples_last_round')):,}",
+            ),
+            _metric_card(
+                "Closed-loop practice actions",
+                f"{_integer(practice.get('emulator_actions')):,}",
+            ),
+            _metric_card(
+                "Replay-verification actions",
+                f"{_integer(practice.get('verification_actions')):,}",
+            ),
+            _metric_card(
+                "Success-only training updates",
+                f"{_integer(practice.get('training_updates')):,}",
+            ),
+            _metric_card(
+                "Failed attempts enter gradient",
+                "no" if practice.get("success_only_gradient") is True else "not reported",
+            ),
+            _metric_card(
+                "Memory reset at each attempt",
+                (
+                    "yes"
+                    if practice.get("recurrent_state_reset_each_attempt") is True
+                    else "not reported"
+                ),
+            ),
+            _metric_card(
+                "Recovery PPO escalation",
+                (
+                    "not active"
+                    if practice.get("recovery_ppo") == "gated_future_escalation_not_active"
+                    else _escaped(practice.get("recovery_ppo"), "not reported")
+                ),
+            ),
+        )
+    )
+    return _section(
+        "Closed-loop practice: can it recover from its own mistakes?",
+        (
+            "V9 begins near the end of each self-discovered skill, acts for itself, and expands "
+            "the starting point backward only after repeated verified success. Failed attempts "
+            "measure the gap but never become demonstrations."
+        ),
+        cards,
+        class_name="student-practice",
+    )
+
+
 def _exam_section(status: Mapping[str, Any]) -> str:
     self_taught = _mapping(status.get("self_taught"))
     exams = _mapping(self_taught.get("frozen_exams"))
@@ -826,6 +946,7 @@ def render_ppo_dashboard(status: Mapping[str, Any]) -> str:
     """Render one self-contained, mobile-friendly dashboard from public status counters."""
 
     v8 = _is_v8(status)
+    v9 = _is_v9(status)
     mode = _escaped(str(status.get("mode", "unknown")).upper())
     updated_at = html.escape(str(status.get("updated_at", "")), quote=True)
     environment_label = "Explorer environment" if v8 else "Environment"
@@ -858,6 +979,7 @@ def render_ppo_dashboard(status: Mapping[str, Any]) -> str:
         + _depth_section(status)
         + _distillation_section(status)
         + _student_section(status)
+        + (_practice_section(status) if v9 else "")
         + _exam_section(status)
         + _provenance_section(status)
         if v8

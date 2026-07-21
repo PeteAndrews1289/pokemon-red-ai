@@ -4,9 +4,12 @@
 > distinction between a stored lineage and one-policy competence. Version 7 is the live
 > random-start, self-generated denominator. Version 8 keeps that no-imported-solution boundary but
 > separates four PPO Explorers from a replay-distilled recurrent Student and frozen examiner. A
-> clean source-bound V8 canary reached Oak's lab, created four distilled skills, and survived two
-> resumes, but passed 0/7 frozen exams. That qualifies the pipeline, not causal learning or
-> later-game behavior.
+> clean source-bound V8 canary reached Oak's lab, created four distilled skills, survived two
+> resumes, and passed 0/7 frozen exams. That qualifies the pipeline. The final longer V8 run reached
+> Route 1 with seven skills but finished at 1/47 and zero competent skills, so causal learning and
+> later-game behavior remain unproved. V8 is closed; the engineering-checked, canary-pending
+> [Version 9](version-9-self-correcting-student.md) tests closed-loop self-correction without
+> weakening this exam boundary.
 
 ## Why this lane exists
 

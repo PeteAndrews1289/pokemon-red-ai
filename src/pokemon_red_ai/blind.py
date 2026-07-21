@@ -1311,7 +1311,8 @@ def run_blind_experiment(
                             if significant_components:
                                 event_slug = "-".join(sorted(significant_components))
                                 event_filename = (
-                                    f"screenshots/event-{counters.total_actions:010d}-{event_slug}.png"
+                                    f"screenshots/event-{counters.total_actions:010d}-"
+                                    f"{event_slug}.png"
                                 )
                                 _save_png(pixels, output / event_filename)
                                 event_capture = {

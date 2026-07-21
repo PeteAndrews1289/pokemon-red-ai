@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import random
 
+import pytest
+
 from pokemon_red_ai.self_taught import (
     SelfTaughtSkillLibrary,
     choose_self_taught_episode,
@@ -98,6 +100,91 @@ def test_library_round_trip_and_imitation_accounting() -> None:
     assert restored.imitation_examples == 24
     assert restored.last_imitation_loss == 0.75
     assert restored.imitation_pending is False
+
+
+def test_v9_graph_provenance_is_optional_and_survives_round_trip() -> None:
+    library = SelfTaughtSkillLibrary.initialize(entries(0), window_size=10, threshold=0.8)
+    add_skill(library, 0, 1)
+    assert library.add_verified_skill(
+        skill_id="skill-1-2",
+        source_entry_id="entry-1",
+        source_index=1,
+        target_entry_id="entry-2",
+        target_index=2,
+        target_label="Target 2",
+        target_frame_file="self-skills/skill-1-2.png",
+        target_frame_sha256="a" * 64,
+        dataset_file="self-skills/skill-1-2.npz",
+        dataset_sha256="b" * 64,
+        action_count=12,
+        skill_graph_audit_file="self-skills/replay.skill-graph.json",
+        skill_graph_audit_sha256="c" * 64,
+        graph_edge_id="d" * 64,
+    )
+
+    restored = SelfTaughtSkillLibrary.from_dict(library.public_dict())
+
+    legacy = restored.skill("skill-0-1")
+    assert "skill_graph_audit_file" not in legacy
+    graph_skill = restored.skill("skill-1-2")
+    assert graph_skill["skill_graph_audit_file"] == "self-skills/replay.skill-graph.json"
+    assert graph_skill["skill_graph_audit_sha256"] == "c" * 64
+    assert graph_skill["graph_edge_id"] == "d" * 64
+
+
+@pytest.mark.parametrize(
+    "provenance",
+    [
+        {"skill_graph_audit_file": "self-skills/replay.skill-graph.json"},
+        {
+            "skill_graph_audit_file": "self-skills/replay.skill-graph.json",
+            "skill_graph_audit_sha256": "c" * 64,
+        },
+        {"graph_edge_id": "d" * 64},
+    ],
+)
+def test_v9_graph_provenance_must_be_complete(provenance: dict[str, str]) -> None:
+    library = SelfTaughtSkillLibrary.initialize(entries(0), window_size=10, threshold=0.8)
+
+    with pytest.raises(ValueError, match="graph path, hash, and edge ID"):
+        library.add_verified_skill(
+            skill_id="skill-0-1",
+            source_entry_id="entry-0",
+            source_index=0,
+            target_entry_id="entry-1",
+            target_index=1,
+            target_label="Target 1",
+            target_frame_file="self-skills/skill-0-1.png",
+            target_frame_sha256="a" * 64,
+            dataset_file="self-skills/skill-0-1.npz",
+            dataset_sha256="b" * 64,
+            action_count=12,
+            **provenance,
+        )
+    assert library.skills == []
+
+
+def test_v9_graph_edge_id_must_be_a_sha256() -> None:
+    library = SelfTaughtSkillLibrary.initialize(entries(0), window_size=10, threshold=0.8)
+
+    with pytest.raises(ValueError, match="graph edge identity"):
+        library.add_verified_skill(
+            skill_id="skill-0-1",
+            source_entry_id="entry-0",
+            source_index=0,
+            target_entry_id="entry-1",
+            target_index=1,
+            target_label="Target 1",
+            target_frame_file="self-skills/skill-0-1.png",
+            target_frame_sha256="a" * 64,
+            dataset_file="self-skills/skill-0-1.npz",
+            dataset_sha256="b" * 64,
+            action_count=12,
+            skill_graph_audit_file="self-skills/replay.skill-graph.json",
+            skill_graph_audit_sha256="c" * 64,
+            graph_edge_id="not-a-digest",
+        )
+    assert library.skills == []
 
 
 def test_pending_self_imitation_survives_restart() -> None:

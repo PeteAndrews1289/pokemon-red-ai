@@ -1,6 +1,59 @@
 # Changelog
 
-## Unreleased — parallel recurrent PPO
+## Unreleased — Version 9 self-correcting Student
+
+- Recorded V8's final longer run,
+  `parallel-ppo-v8-distilled-student-8h-20260721-seed20260793`. It ended by explicit stop request
+  after 5,668.623 seconds, from `2026-07-21T18:52:49Z` to `20:27:21Z`, with 784,386 Explorer
+  actions at 138.373 actions/second and 1,532 PPO updates. Seven verified promotions reached
+  milestone 7, Route 1. Seven skills compressed 13,011 original actions to 8,582 using 238 oracle
+  calls and 373,639 replay actions. The Student completed 387 rounds, 2,513 updates, and 137,437
+  examples; final action fit was 53.0817% accuracy and NLL 1.295676. It passed only 1/47 frozen
+  exams, so zero skills became competent and zero compositions ran. This is the final V8
+  behavioral result and remains negative.
+- Preserved the clean V8 qualification canary as distinct historical evidence. It produced
+  four verified/distilled lessons, 51 Student rounds, 134 optimizer updates, two clean resumes, and
+  bounded replay, but passed 0/7 frozen exams; zero skills were competent and composition remained
+  ineligible. Its then-current supported-ROM suite passed 245/245 in 24.80 seconds; neither figure
+  is overwritten by the longer run.
+- Integrated V9 as an engineering-checked response to exposure bias. Behavioral cloning remains
+  the canonical Student's warm start, but the Student must then act closed loop on states produced
+  by its own buttons. The current suite passes 271 non-integration and 12 integration checks, 283
+  total. No V9 real-ROM canary, frozen success, or live progress is claimed.
+- Implemented consecutive edge normalization under `self-generated-consecutive-skill-graph-v1`:
+  derive
+  exact adjacent source-to-next-target lessons from replay-local first hits, bind original offsets,
+  stable-state and private-snapshot identities, reject incomplete/non-monotonic/ordinal-only state
+  reuse, and add no imported or human-selected action. Public audits omit actions and save payloads.
+- Integrated graph-audit hash binding into every normalized V9 skill and fail-closed checkpoint
+  validation, so a skill cannot silently detach from the exact graph that created it.
+- Implemented reverse practice under protocol `v9-student-closed-loop-reverse-practice-v1`: horizons
+  expand 8/16/32/64 through the full edge, practice promotion requires two consecutive
+  non-overlapping 27/30 windows, deterministic retention is 25%, and pending scheduling choice plus
+  attempt seed survive resume exactly.
+- Restricted practice observations to `pixels`, `action_history`, and `target_pixels`. Reset
+  protocol `zero-recurrent-sentinel-history-duplicate-frame-v1` zeroes recurrent state and keeps
+  skill/checkpoint/rung/horizon identities trainer-only.
+- Defined success-only aggregation under `v9-student-successful-rollout-v1`. Failed attempts remain
+  in the denominator but cannot become imitation labels; successful Student actions require exact
+  target-state and replay verification. Terminal-reason counters distinguish `exact_target`,
+  `timeout`, `emulator_stopped`, and `milestone_wrong_state`. Deterministic reservoir sampling
+  retains at most 32 success records per rung; immutable bounded shards rotate through Student
+  replay instead of repeatedly loading one full success artifact.
+- Bound the mutable practice ledger to the same Student checkpoint generation. Resume restores the
+  hash-matching practice snapshot, pending choice, promotion windows, terminal denominator,
+  reservoir, and replay provenance, rolling live practice bookkeeping back with the model rather
+  than pairing a newer curriculum with an older Student.
+- Preserved strict frozen exams. Reverse-rung promotion does not grant competence, frozen attempts
+  apply no update or aggregation, and restore-free power-on composition remains separate.
+- Predeclared same-boundary recurrent PPO recovery as a future conditional automatic escalation
+  targeting the canonical Student. It is not implemented or active in initial qualification and
+  cannot be enabled before the closed-loop path and matched BC-only ablation qualify.
+- Added the V9 architecture, qualification ladder, falsifiers, actor boundary, budget accounting,
+  claim language, dashboard requirements, and “It Never Practiced Being Wrong” video chapter in
+  `docs/version-9-self-correcting-student.md`.
+
+## Version 8 — parallel recurrent PPO
 
 - Froze the Version 8 design while preserving the active Version 7 long run unchanged as its
   shared-policy, raw-trajectory denominator.

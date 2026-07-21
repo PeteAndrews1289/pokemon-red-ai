@@ -87,6 +87,7 @@ class SelfTaughtSkillLibrary:
                 ("target_frame_file", "target_frame_sha256", False),
                 ("dataset_file", "dataset_sha256", False),
                 ("distillation_audit_file", "distillation_audit_sha256", True),
+                ("skill_graph_audit_file", "skill_graph_audit_sha256", True),
             ):
                 file_value = skill.get(file_key)
                 hash_value = skill.get(hash_key)
@@ -100,6 +101,19 @@ class SelfTaughtSkillLibrary:
                     character not in "0123456789abcdef" for character in digest
                 ):
                     raise ValueError("Self-taught skill artifact identity is invalid")
+            graph_provenance = (
+                skill.get("skill_graph_audit_file"),
+                skill.get("skill_graph_audit_sha256"),
+                skill.get("graph_edge_id"),
+            )
+            if any(value is not None for value in graph_provenance):
+                if not all(value is not None for value in graph_provenance):
+                    raise ValueError("Self-taught skill graph provenance must be recorded together")
+                edge_id = str(skill["graph_edge_id"])
+                if len(edge_id) != 64 or any(
+                    character not in "0123456789abcdef" for character in edge_id
+                ):
+                    raise ValueError("Self-taught skill graph edge identity is invalid")
             shards = list(skill.get("replay_shards", []))
             replay_cursor = int(skill.get("replay_cursor", 0))
             if replay_cursor < 0:
@@ -120,8 +134,7 @@ class SelfTaughtSkillLibrary:
                 if relative.is_absolute() or ".." in relative.parts or not relative.name:
                     raise ValueError("Self-taught replay shard path is invalid")
                 if not all(
-                    len(value) == 64
-                    and all(character in "0123456789abcdef" for character in value)
+                    len(value) == 64 and all(character in "0123456789abcdef" for character in value)
                     for value in (digest, source_digest)
                 ):
                     raise ValueError("Self-taught replay shard identity is invalid")
@@ -223,22 +236,14 @@ class SelfTaughtSkillLibrary:
                 )
             )
             item["target_clip_channels"] = int(item.get("target_clip_channels", 1))
-            item["distillation_oracle_calls"] = int(
-                item.get("distillation_oracle_calls", 0)
-            )
+            item["distillation_oracle_calls"] = int(item.get("distillation_oracle_calls", 0))
             item["distillation_oracle_actions_replayed"] = int(
                 item.get("distillation_oracle_actions_replayed", 0)
             )
-            item["distillation_edits_accepted"] = int(
-                item.get("distillation_edits_accepted", 0)
-            )
-            item["distillation_edits_rejected"] = int(
-                item.get("distillation_edits_rejected", 0)
-            )
+            item["distillation_edits_accepted"] = int(item.get("distillation_edits_accepted", 0))
+            item["distillation_edits_rejected"] = int(item.get("distillation_edits_rejected", 0))
             item["replay_cursor"] = int(item.get("replay_cursor", 0))
-            item["replay_shard_example_cap"] = int(
-                item.get("replay_shard_example_cap", 0)
-            )
+            item["replay_shard_example_cap"] = int(item.get("replay_shard_example_cap", 0))
             item["replay_shard_burn_in"] = int(item.get("replay_shard_burn_in", 0))
             normalized_shards: list[dict[str, Any]] = []
             for raw_shard in item.get("replay_shards", []):
@@ -371,6 +376,9 @@ class SelfTaughtSkillLibrary:
         original_action_count: int | None = None,
         distillation_audit_file: str | None = None,
         distillation_audit_sha256: str | None = None,
+        skill_graph_audit_file: str | None = None,
+        skill_graph_audit_sha256: str | None = None,
+        graph_edge_id: str | None = None,
         distillation_oracle_calls: int = 0,
         distillation_oracle_actions_replayed: int = 0,
         distillation_edits_accepted: int = 0,
@@ -393,6 +401,15 @@ class SelfTaughtSkillLibrary:
             raise ValueError("A self-taught target clip needs at least one frame")
         if (distillation_audit_file is None) != (distillation_audit_sha256 is None):
             raise ValueError("Distillation audit path and hash must be recorded together")
+        graph_provenance = (
+            skill_graph_audit_file,
+            skill_graph_audit_sha256,
+            graph_edge_id,
+        )
+        if any(value is not None for value in graph_provenance) and not all(
+            value is not None for value in graph_provenance
+        ):
+            raise ValueError("Skill graph path, hash, and edge ID must be recorded together")
         distillation_counts = (
             distillation_oracle_calls,
             distillation_oracle_actions_replayed,
@@ -408,43 +425,48 @@ class SelfTaughtSkillLibrary:
             raise ValueError("Replay shards and their example cap must be recorded together")
         if replay_shard_burn_in < 0:
             raise ValueError("Replay shard burn-in cannot be negative")
-        self.skills.append(
-            {
-                "skill_id": skill_id,
-                "source_entry_id": source_entry_id,
-                "source_index": source_index,
-                "target_entry_id": target_entry_id,
-                "target_index": target_index,
-                "target_label": target_label,
-                "target_frame_file": target_frame_file,
-                "target_frame_sha256": target_frame_sha256,
-                "dataset_file": dataset_file,
-                "dataset_sha256": dataset_sha256,
-                "action_count": action_count,
-                "original_action_count": original_count,
-                "compression_ratio": action_count / original_count,
-                "distillation_audit_file": distillation_audit_file,
-                "distillation_audit_sha256": distillation_audit_sha256,
-                "distillation_oracle_calls": distillation_oracle_calls,
-                "distillation_oracle_actions_replayed": (
-                    distillation_oracle_actions_replayed
-                ),
-                "distillation_edits_accepted": distillation_edits_accepted,
-                "distillation_edits_rejected": distillation_edits_rejected,
-                "target_clip_channels": target_clip_channels,
-                "replay_shards": normalized_shards,
-                "replay_shard_example_cap": int(replay_shard_example_cap),
-                "replay_shard_burn_in": int(replay_shard_burn_in),
-                "replay_cursor": 0,
-                "attempts": 0,
-                "successes": 0,
-                "window": [],
-                "competent": False,
-                "last_retention_decision": self.v8_schedule_decisions,
-                "competence_losses": 0,
-                "discovered_at": datetime.now(UTC).isoformat(),
-            }
-        )
+        skill = {
+            "skill_id": skill_id,
+            "source_entry_id": source_entry_id,
+            "source_index": source_index,
+            "target_entry_id": target_entry_id,
+            "target_index": target_index,
+            "target_label": target_label,
+            "target_frame_file": target_frame_file,
+            "target_frame_sha256": target_frame_sha256,
+            "dataset_file": dataset_file,
+            "dataset_sha256": dataset_sha256,
+            "action_count": action_count,
+            "original_action_count": original_count,
+            "compression_ratio": action_count / original_count,
+            "distillation_audit_file": distillation_audit_file,
+            "distillation_audit_sha256": distillation_audit_sha256,
+            "distillation_oracle_calls": distillation_oracle_calls,
+            "distillation_oracle_actions_replayed": (distillation_oracle_actions_replayed),
+            "distillation_edits_accepted": distillation_edits_accepted,
+            "distillation_edits_rejected": distillation_edits_rejected,
+            "target_clip_channels": target_clip_channels,
+            "replay_shards": normalized_shards,
+            "replay_shard_example_cap": int(replay_shard_example_cap),
+            "replay_shard_burn_in": int(replay_shard_burn_in),
+            "replay_cursor": 0,
+            "attempts": 0,
+            "successes": 0,
+            "window": [],
+            "competent": False,
+            "last_retention_decision": self.v8_schedule_decisions,
+            "competence_losses": 0,
+            "discovered_at": datetime.now(UTC).isoformat(),
+        }
+        if skill_graph_audit_file is not None:
+            skill.update(
+                {
+                    "skill_graph_audit_file": skill_graph_audit_file,
+                    "skill_graph_audit_sha256": skill_graph_audit_sha256,
+                    "graph_edge_id": graph_edge_id,
+                }
+            )
+        self.skills.append(skill)
         # Re-run the complete structural checks before allowing newly supplied
         # shard metadata to become part of the mutable ledger.
         try:

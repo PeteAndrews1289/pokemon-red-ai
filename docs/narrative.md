@@ -26,9 +26,27 @@
 > real-ROM canary qualified that mechanism on the trivial `game_started` outcome. The final
 > committed canary got farther: its Explorer followed Oak into the lab and left four verified
 > lessons behind. But the exam door stayed shut—seven frozen attempts, seven failures. That
-> contrast is the point of V8: discovery and a growing lesson library are visible progress, while
-> neither is allowed to masquerade as learning. The corrected story waits 16,384 Explorer actions,
-> freezes the next Student version, and collects exactly one grade; 8/10 must span ten checkpoints.
+> contrast qualified V8's measurement. A longer final run then reached Route 1, grew the library
+> from four skills to seven, and lifted action fit from 13.78% to 53.08%, but only one of 47 frozen
+> exams succeeded. Zero skills crossed the competence gate. The point survives more data:
+> discovery, compression, and even much better fit are visible progress, but none may masquerade as
+> reliable behavior. The corrected story waits 16,384 Explorer actions, freezes the next Student
+> version, and collects exactly one grade; 8/10 must span ten checkpoints.
+
+> **Current turn:** V8's Student had studied only successful recorded stories. During a frozen
+> attempt, its own first wrong action could put it on a screen the story never contained. Version 9
+> asks whether that exposure bias—not merely too few cloning updates—explains both the 0/7 canary
+> and final 1/47 result. The
+> run's own lineage is normalized into exact consecutive edges. The canonical Student receives a
+> BC warm start, then acts closed loop from disclosed near-target snapshots; the start moves
+> backward only after a hard practice gate. A Student rollout can write a new lesson only if it
+> reaches the target and exact replay verifies it. Every failure remains on screen but is never
+> imitated. A future recurrent PPO recovery lever is designed to trigger automatically after a
+> declared no-success condition, yet it stays behind glass—unimplemented, disabled, and unclaimed
+> for the initial qualification. The closed-loop path itself is now engineering-checked: exact
+> target identity, terminal-reason counts, bounded rotating success replay, graph hash binding,
+> checkpoint rollback, and the two-window 27/30 gate are implemented. That is still not a real-ROM
+> V9 behavioral result.
 
 ## The question
 
@@ -51,9 +69,12 @@ journey without those restores before the project says one model learned the gam
 
 ## Where the project honestly stands
 
-**The checkpoint expedition has replayed named transitions, and the committed V8 canary built four
-self-generated lessons through Oak's lab; its Student failed all seven frozen exams, and no
-self-taught policy has passed a production multi-skill or whole-game evaluation.**
+**The checkpoint expedition has replayed named transitions. V8's committed canary built four
+self-generated lessons through Oak's lab and failed 0/7 frozen exams; its later final run built
+seven through Route 1, improved offline fit, but finished at 1/47 with zero competent skills. V9's
+closed-loop self-correction mechanics now pass the 283-check engineering suite, but no V9 real-ROM
+canary or learned result exists, and no self-taught policy has passed a production multi-skill or
+whole-game evaluation.**
 
 Phase 0 built the measuring instrument: a reproducible emulator harness that can start the exact
 same game, issue timed controller inputs, observe a small and disclosed slice of state, restore an
@@ -87,8 +108,12 @@ test sequence used to prove that the laboratory works.
 | Has checkpoint-assisted PPO completed Oak's errand? | Yes. V5.1 replay-verified the Pokédex by action 402,320, but this is an assisted training lineage rather than one clean-start policy. |
 | Did V5.2 teach one model to compose those steps? | Not demonstrated. It verified Oak's Lab exit and Route 1, but its replay gate tested stored actions rather than the current policy's complete behavior. |
 | Is V7 being replaced mid-run? | No. It continues under its original shared-policy, raw-trace rules. Fresh V8 can lock one path-free, hash-matched V7 checkpoint; resume cannot move that denominator. |
-| What does V8 change? | It separates PPO exploration from a recurrent Student, replay-distills only self-generated trajectories, and collects one deterministic grade per Student checkpoint. The clean 3,584-action canary reached Oak's lab and built four lessons but passed 0/7 frozen exams; mechanism is qualified, useful learning is not. |
-| What comes next? | Test multiple prerequisite skills under the production window, add a hard-crash twin, and compare frozen behavior against chance and unchanged V7 without demonstrations or authored obstacle rewards. |
+| What does V8 change? | It separates PPO exploration from a recurrent Student, replay-distills only self-generated trajectories, and collects one deterministic grade per Student checkpoint. The clean 3,584-action canary reached Oak's lab and built four lessons but passed 0/7 frozen exams; it remains the qualification record. |
+| Why did V8 close? | Its final longer run spent 784,386 Explorer actions and 2,513 Student updates, reached Route 1, built seven lessons, and raised fit to 53.0817%, yet passed only 1/47 frozen exams. Zero skills became competent and no composition ran. More cloning improved fit without establishing reliable behavior. |
+| What does V9 change? | It tests exposure bias with exact consecutive edges, BC warm start, reverse closed-loop Student practice, and success-only replay-verified aggregation. Exact-target checking, full terminal counts, graph/checkpoint binding, rotating bounded replay, and the 27/30×2 gate are implemented. The actor still sees only pixels, its action history, and a self-generated visual goal. |
+| Is PPO already rescuing V9? | No. Same-boundary recurrent PPO is a deferred automatic-escalation design for a future no-success rung. It is not implemented or active in initial qualification. |
+| Has V9 worked? | Not behaviorally. The current suite passes 271 non-integration plus 12 integration checks, but no V9 real-ROM canary, frozen-exam success, or live-game progress is claimed. |
+| What comes next? | Run the real-ROM V9 mechanism canary, then the matched BC-only ablation and strict frozen exams before enabling PPO fallback or launching a long run. |
 
 Keeping this table current is part of the project. A small true claim is more valuable than a large
 ambiguous one.

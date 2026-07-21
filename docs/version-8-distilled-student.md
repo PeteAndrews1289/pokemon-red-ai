@@ -4,15 +4,14 @@ Version 8 is the engineering successor to Version 7's self-taught experiment. It
 human route, a scripted planner, or the assisted lesson graph. It keeps the new-player premise and
 changes the machinery used to remember an earned success.
 
-> **Status on 2026-07-21:** V8 has passed mechanism, bounded-replay, source-binding, and clean
-> stop/resume canaries on the real ROM. The latest canary started from random weights and power-on
-> under clean commit `4c3c1fc`, discovered and distilled four transitions through Oak's lab, trained
-> the separate Student, exercised a multi-shard skill with loss-free recurrent context, and resumed
-> cleanly twice. It also failed all 7 frozen Student exams; final action accuracy was 13.78%, and no
-> skill became competent or eligible for composition. This is stronger pipeline evidence, not
-> useful-learning evidence. Current V8 permits exactly one deterministic grade per Student
-> checkpoint. The already-running V7 trial remains untouched as the denominator. Its final result
-> must be reported under V7's original rules, even if V8 later performs better.
+> **Status on 2026-07-21:** V8 is closed. Its clean source-bound qualification canary started from
+> random weights and power-on under commit `4c3c1fc`, discovered four transitions through Oak's
+> lab, exercised bounded replay and two clean resumes, then passed 0/7 frozen exams. The final
+> longer run processed 784,386 Explorer actions, reached Route 1 with seven distilled skills, and
+> raised Student fit to 53.0817% accuracy, but passed only 1/47 frozen exams. No skill became
+> competent and no composition ran. This is qualified pipeline evidence and a negative behavioral
+> result, not useful-learning evidence. V8 permits exactly one deterministic grade per Student
+> checkpoint. The V7 trial remains an untouched denominator under its original rules.
 
 The central question is:
 
@@ -359,8 +358,8 @@ This trains the Student on the transitions it will face in the composition exam;
 the verified action stream available during that exam.
 
 The focused replay/Student/PPO/dashboard suite passed 61 tests after the final schema tweak, and
-the full private-ROM suite passed 246. A successful dataset build proves only that already verified
-local actions compose once under
+the then-current V8 canary suite passed 245/245 in 24.80 seconds. A successful dataset build proves
+only that already verified local actions compose once under
 exact replay and are valid training material. It does not prove that the Student can produce the
 chain.
 
@@ -712,11 +711,36 @@ The canary locked a path-free, read-only V7 snapshot at 7,442,496 actions. V7 ha
 identity and provenance check, not a matched-budget comparison: V8 stopped at 3,584 actions and
 used deliberately accelerated exam and replay settings.
 
-The narrative result is deliberately two-sided. The new system can convert several accidents into
-auditable, bounded training material and survive interruption. The Student did not yet reproduce
-even the earliest skill under a frozen grade. The next long run therefore tests whether more
-checkpoint-separated practice creates a trend above chance; it does not begin from the premise
-that V8 already learns.
+The canary result is deliberately two-sided. The new system can convert several accidents into
+auditable, bounded training material and survive interruption. The Student did not reproduce even
+the earliest skill under a frozen grade. A later longer run tested whether more checkpoint-
+separated practice created a trend; it did not retroactively change what this canary qualified.
+
+## Final longer pretrial: fit improved, competence did not
+
+Run `parallel-ppo-v8-distilled-student-8h-20260721-seed20260793` began at
+`2026-07-21T18:52:49.997984Z` and ended at `2026-07-21T20:27:21.139277Z` with terminal reason
+`stop_requested`. Its `8h` run name records the intended ceiling, not elapsed time: the preserved
+status reports 5,668.623 seconds, about 94 minutes 29 seconds.
+
+| Measure | Final longer-run result | Honest interpretation |
+| --- | ---: | --- |
+| Explorer actions | 784,386 at 138.373 actions/s | Throughput includes two emulator workers plus training, replay, and exams |
+| Explorer PPO | 1,532 updates | Discovery continued under the V8 Explorer; this is not Student competence |
+| Furthest discovery | Seven promotions; index 7, `reached_route_1` | The run extended the verified library through Route 1 |
+| Verified/distilled skills | 7 | Three more than the clean qualification canary |
+| Raw → distilled actions | 13,011 → 8,582 | 238 oracle calls replayed 373,639 actions to validate edits |
+| Student training | 387 rounds / 2,513 updates / 137,437 examples | Far more cloning exposure than the canary |
+| Final Student fit | NLL 1.295676 / accuracy 53.0817% | Offline action prediction improved dramatically; fit still is not behavior |
+| Frozen local exams | 1/47 | One success did not satisfy the checkpoint-separated 8/10 gate |
+| Competent skills | 0 | No skill earned the declared competence label |
+| Restore-free composition | 0 attempts | Correctly remained ineligible because no prerequisite became competent |
+
+This run sharpens rather than erases the canary result. The canary showed 0/7 while fit remained
+near uniform; the longer run showed that cloning could fit its self-generated sequences much
+better, yet reliable closed-loop execution still did not emerge. A single success among 47 exams
+is evidence that the Student was not literally incapable of reaching a target. It is not evidence
+of a retained skill, a trend toward the Hall of Fame, or an 8/10 competence gate.
 
 ### Earlier live V7 denominator snapshot
 
@@ -789,10 +813,12 @@ student.
 4. Remove another; flash **REPLAY PASSED**, and shorten the line.
 5. Split the screen into an orange Explorer and a blue Student. Only the orange side wanders; only
    the blue side studies the surviving actions.
-6. Let training loss fall, then stop the music and label it **PRACTICE, NOT PROOF**.
+6. Let action accuracy rise from 13.78% in the canary to 53.08% in the longer run, then stop the
+   music and label it **PRACTICE, NOT PROOF**.
 7. Freeze the blue model for one grade, then advance to the next Student checkpoint. Build ten
    checkpoint-labeled exam tiles over time, including failures.
-8. End with four simultaneous meters: discovered, distilled, locally competent, and composed.
+8. Reveal 1/47, zero competent, and zero composed. End with four simultaneous meters: discovered,
+   distilled, locally competent, and composed.
 
 The episode's honest question is not “did we finally beat the game?” It is:
 
@@ -802,13 +828,17 @@ The unchanged V7 result belongs beside that answer. If V8 fails, the split-scree
 audit still explain *where* it failed without converting the next obstacle into another hand-made
 lesson.
 
-## What success would change
+## Final disposition
 
-If V8 passes local exams but not composition, the project has evidence for reusable pieces and a
-specific hierarchy problem. If both remain flat, the self-generated visual-target premise or model
-capacity may be wrong. If composition expands from power-on, the project may finally scale the
-same loop toward Oak's Parcel, Brock, the remaining badges, and the Hall of Fame without asking the
-host to explain each new quest.
+V8's clean qualification canary ended at 0/7. Its final longer run then reached Route 1, built
+seven skills, and substantially improved Student fit, but ended at only 1/47; no skill became
+competent and composition never became eligible. The mechanism remains valuable—it made discovery,
+distillation, bounded replay, fitting, and frozen behavior separate and auditable—but behavioral
+cloning alone did not cross the exam door reliably in either run.
 
-That is the purpose of V8: not to guarantee the ending, but to make every step toward—or away
-from—the ending legible.
+That legible failure motivates
+[Version 9: let the Student practice being wrong](version-9-self-correcting-student.md). V9 tests
+whether exposure bias can be reduced with consecutive edges, reverse closed-loop practice, and
+success-only Student aggregation without importing a walkthrough or weakening the exam. V8 remains
+the closed predecessor result. V9's engineering path is implemented and checked, but no V9
+real-ROM canary or behavioral success retroactively changes V8.
