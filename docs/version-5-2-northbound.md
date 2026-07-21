@@ -193,6 +193,34 @@ The canary qualifies the production-shaped observation, reward, optimizer, dashb
 and shutdown path. It does not qualify the northbound curriculum behavior because no new milestone
 was expected or claimed in 8,192 actions.
 
+## Production run declaration
+
+The first V5.2 long run began at 9:43:21 PM EDT on 2026-07-20 from code commit `c8a4be3`.
+
+| Setting | Declared value |
+| --- | ---: |
+| Seed | `20260782` |
+| Simultaneous environments | 4 |
+| Mode | assisted teacher |
+| Time ceiling | 24 hours |
+| Action ceiling | 150,000,000 combined actions |
+| Episode ceiling | 16,384 actions per worker |
+| PPO rollout | 256 steps per worker |
+| Batch / epochs | 256 / 4 |
+| Learning rate / gamma / entropy | 0.00025 / 0.997 / 0.01 |
+| Frontier reset probability | 0.90 |
+| Replay gate | one edge replay plus three power-on replays |
+| Checkpoint interval | 16,384 combined actions |
+| Narrative interval | 60 minutes |
+| Storage ceiling / free-space floor | 100 GiB / 50 GiB |
+
+The run starts with fresh PPO parameters warm-started only from the declared Frontier Apprentice
+visual learner. Its private curriculum is imported from the cleanly finished V5.1 archive. The
+first detailed heartbeat at 6,148 actions showed six PPO updates, 36 unique positions, +24 bounded
+recovery credit, zero episodes yet at the 16,384-action horizon, and zero verification failures.
+The active lesson was leaving Oak's Lab with the Pokédex. This heartbeat proves liveness, not
+behavioral progress.
+
 ## Falsifiable long-run questions
 
 The next run should answer these in order:

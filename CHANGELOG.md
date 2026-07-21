@@ -24,6 +24,9 @@
   matching terminal model plus four novelty-memory hashes.
 - Added the design, completed predecessor denominator, evidence boundary, falsifiable run questions,
   and video narrative in `docs/version-5-2-northbound.md`.
+- Declared and launched the first 24-hour V5.2 run from commit `c8a4be3`, seed `20260782`, with four
+  workers, a 150-million-action ceiling, hourly narrative updates, and the verified Pokédex
+  curriculum.
 
 - Closed Version 5 cleanly after 1,390,596 actions, 1,358 PPO updates, 723 episodes, and three
   verified promotions. It entered the Mart at action 619,660 and obtained Oak's Parcel at 619,956.

@@ -28,6 +28,10 @@
   promotion failures, and ended with matching model plus four novelty-memory hashes.
 - Wrote the result, rationale, assistance boundary, falsifiable run questions, stop rules, and video
   beat in `docs/version-5-2-northbound.md` before launching behavioral training.
+- Launched the declared four-worker, 24-hour V5.2 run at 9:43:21 PM EDT from commit `c8a4be3`, seed
+  `20260782`, with the 150-million-action safety ceiling. Its first detailed heartbeat reported
+  6,148 actions, six updates, 36 unique positions, +24 recovery credit, and zero verification
+  failures while the active lesson remained leaving Oak's Lab with the Pokédex.
 
 ## 2026-07-20 — The Parcel teaches us that progress can point backward
 

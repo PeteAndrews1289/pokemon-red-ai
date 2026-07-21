@@ -7,8 +7,8 @@
 > Pewter Gym into explicit chapter steps. The eventual pixels-only, restore-free power-on evaluation
 > remains a separate and harder claim.
 
-- **Current stage:** Version 5.1 is closed cleanly at the Pokédex; Version 5.2 is implemented,
-  migration-audited, real-ROM canary qualified, and ready for its long run
+- **Current stage:** Version 5.1 is closed cleanly at the Pokédex; Version 5.2 passed migration and
+  real-ROM canary checks, and its declared 24-hour long run is active
 - **Status date:** 2026-07-20
 
 **Most important caveat:** Q1 verified one replayable house-exit lineage, but the acting suffix
