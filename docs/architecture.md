@@ -1,7 +1,7 @@
 # Architecture
 
-> **Primary-track update:** the active Version-5.2 system is one assisted recurrent teacher trained
-> by PPO across four emulator environments. Its training aids are explicit and will be removed in
+> **Primary-track update:** Version 6 retains one assisted recurrent PPO teacher across lessons and
+> expands its training start backward after rolling competence. Its aids will be removed in
 > a later pixels-only student and power-on evaluation. Existing pixels-only, random,
 > quality-diversity, checkpoint, and verify-only learners remain reproducible comparisons. See
 > [Parallel recurrent PPO](parallel-ppo.md).
@@ -25,6 +25,9 @@ flowchart LR
     Referee --> Replay["Exact promotion replay"]
     Replay --> Curriculum["Verified private curriculum"]
     Curriculum -. "episode reset only" .-> Games
+    Curriculum --> Gate["Backward competence gate"]
+    Gate -. "earlier training reset" .-> Games
+    Gate --> Ledger["Hash-bound consolidation ledger"]
 ```
 
 The current teacher receives pixels, its three most recent actions, a trainer-built map of positions
@@ -34,6 +37,12 @@ checks named outcomes but cannot choose buttons. This lane cannot be presented a
 historical pixels-only actor omits both training aids; the separately labeled privileged comparator
 instead adds a fixed 24-value state vector. A checkpoint restore resets actor memory, episode map,
 and pixel history with emulator state.
+
+Version 6 changes policy and scheduling continuity rather than the actor observation. A clean
+predecessor supplies the PPO policy and optimizer. Frontier episodes seek discoveries;
+consolidation episodes begin at one declared earlier checkpoint and target the current verified
+frontier. Only the latter enter the rolling gate. Passing moves the start backward; it does not
+change controller authority or qualify as a frozen evaluation.
 
 ## Historical evolutionary authority boundary
 
@@ -133,6 +142,8 @@ active goal. Its signed route potential pays net progress and removes equal cred
 Version 5.2 extends the disclosed trainer topology only through Pewter Gym and adds trainer-only,
 bounded credit when movement resumes after a stationary navigation trap. It does not expose the
 trap type or a recovery button to the actor.
+Version 6 retains this observation schema while preserving policy/optimizer state and adding a
+trainer-side backward scheduler. Consolidation results never enter the actor input.
 The privileged
 comparator appends 24 normalized values instead. All three are described in
 [Parallel recurrent PPO](parallel-ppo.md); reward-only fields remain on the referee side.

@@ -323,6 +323,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Frontier learner checkpoint used to warm-start the visual policy",
     )
     ppo.add_argument(
+        "--policy-source",
+        type=Path,
+        help="Cleanly finished PPO run whose compatible policy and optimizer are retained",
+    )
+    ppo.add_argument(
         "--mode", choices=("pixels", "assisted", "privileged"), default="pixels"
     )
     ppo.add_argument("--hours", type=float, default=8)
@@ -345,6 +350,9 @@ def build_parser() -> argparse.ArgumentParser:
     ppo.add_argument("--max-output-mib", type=int, default=102_400)
     ppo.add_argument("--min-free-gib", type=float, default=50)
     ppo.add_argument("--frontier-probability", type=float, default=0.90)
+    ppo.add_argument("--consolidation", action="store_true")
+    ppo.add_argument("--competence-window", type=int, default=10)
+    ppo.add_argument("--competence-threshold", type=float, default=0.80)
     ppo.add_argument("--resume", action="store_true")
 
     ppo_status = subparsers.add_parser(
@@ -837,6 +845,9 @@ def run_parallel_ppo_command(args: argparse.Namespace) -> int:
         max_output_bytes=args.max_output_mib * 1024 * 1024,
         min_free_bytes=int(args.min_free_gib * 1024**3),
         frontier_probability=args.frontier_probability,
+        consolidation=args.consolidation,
+        competence_window=args.competence_window,
+        competence_threshold=args.competence_threshold,
     )
     if args.port:
         print(
@@ -850,6 +861,7 @@ def run_parallel_ppo_command(args: argparse.Namespace) -> int:
         learner,
         config,
         resume=args.resume,
+        policy_source=args.policy_source,
     )
     print(f"Parallel PPO stopped: {status['stop_reason']}")
     print(f"Combined actions: {status['total_actions']:,}")

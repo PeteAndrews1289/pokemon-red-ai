@@ -2,6 +2,27 @@
 
 ## Unreleased — parallel recurrent PPO
 
+- Added Version 6 retained-policy consolidation. A new campaign may import one clean, hash-valid,
+  architecture-compatible Version-5.2-or-later PPO policy and optimizer instead of restarting from
+  the Frontier Apprentice seed.
+- Added a backward competence scheduler that separates frontier discovery episodes from earlier-
+  start rehearsal, fixes the target at the current verified frontier, and moves the start one
+  verified checkpoint backward only after a declared rolling success threshold.
+- Added persistent per-gate attempts, successes, best reached index, rolling windows, passed gates,
+  and an explicit power-on training gate. The ledger is atomic and hash-bound into every PPO
+  checkpoint.
+- Added four dashboard and hourly narrative measures: consolidation start, target, rolling
+  competence, and backward gates passed. Frontier restores cannot count as competence.
+- Preserved the first failed V6 canary, which incorrectly subtracted the inherited policy's old
+  timestep count from the new campaign budget and stopped after one 1,024-action rollout. Added a
+  regression that separates fresh retained campaigns from true resumes.
+- Passed the corrected 8,192-action four-worker V6 canary with eight updates, retained policy and
+  optimizer provenance, all four frames, zero promotion failures, and matching model, four novelty
+  memories, and consolidation-state hashes. One of two genuine earlier-start episodes reached the
+  Pokédex; the shortened 3/4 gate correctly remained closed.
+- Passed 180 tests with the private supported ROM and documented the architecture, evidence ladder,
+  limitations, production questions, and video narrative in `docs/version-6-consolidation.md`.
+
 - Closed Version 5.1 cleanly after 3,437,572 actions, 3,357 PPO updates, 1,900 episodes, and six
   verified promotions. It reached the Pokédex at action 402,320 with a 10,819-action complete
   lineage, then spent 3,035,252 more actions without reaching Viridian Forest.

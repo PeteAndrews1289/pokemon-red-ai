@@ -21,6 +21,11 @@ Version 5.2 is the first curriculum explicitly designed around a complete game c
 one local bug. Its bounded chapter is the journey from the Pokédex through Viridian Forest and into
 Pewter Gym. Brock remains the evidence gate at the end.
 
+> **Successor note:** the first long V5.2 run verified leaving Oak's Lab and reaching Route 1, then
+> plateaued before Viridian. That evidence motivated Version 6, which retains one PPO policy and
+> moves a separate training start backward after rolling competence. See
+> [Version 6: make one policy remember the journey](version-6-consolidation.md).
+
 ## The completed Version-5.1 result
 
 Version 5.1 ran from 5:11:21 PM to 9:23:02 PM EDT on 2026-07-20 and stopped cleanly when requested.

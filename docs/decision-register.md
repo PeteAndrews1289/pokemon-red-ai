@@ -1288,6 +1288,52 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
 - **Supersedes / superseded by:** Extends DR-0049. V5.1 remains the accepted backtracking result;
   V5.2 supersedes only its post-Pokédex task granularity.
 
+## DR-0051 — Separate discovered lineage from one-policy competence
+
+- **Date:** 2026-07-21
+- **Status:** Accepted and implemented; private-ROM suite and corrected engineering canary passed;
+  production behavioral qualification pending
+- **Scope:** Version 6 PPO initialization, episode scheduling, competence gates, checkpoint
+  integrity, dashboard, narrative, and claim language
+- **Decision:** Retain one clean compatible predecessor PPO policy and optimizer rather than restart
+  from the Frontier Apprentice seed. Split episodes into frontier discovery and backward
+  consolidation. Count only earlier-start episodes toward a rolling gate. Hold the current verified
+  frontier as the target and move the active start one available checkpoint backward after 8/10
+  successes in production. Reset the active edge when a new promotion extends the target. Hash-bind
+  consolidation state into every model checkpoint.
+- **Alternatives considered:** Continue adding permanent micro-milestones; increase the V5.2 runtime;
+  treat three deterministic lineage replays as proof that the neural policy learned the sequence;
+  restart PPO again; sample the full archive uniformly; count target-start episodes as success;
+  immediately add an untested recurrent imitation loss; or require power-on from the first V6
+  episode and recreate the original sparse-horizon problem.
+- **Observation/evidence:** V5.2 verified leaving Oak's Lab at action 52,728 and Route 1 at 707,472,
+  then spent more than four million actions without Viridian progress. The code audit confirmed
+  90-percent frontier resets, apprentice-seed PPO initialization for every new protocol, and
+  promotion based on replayed stored actions. The V6 private-ROM suite passed 180 tests. The first
+  canary exposed a retained-counter budget bug and stopped at 1,024 actions; the corrected canary
+  completed 8,192 actions, eight updates, four frames, zero promotion failures, and matching model,
+  novelty, and consolidation hashes. One of two earlier-start episodes reached the Pokédex while
+  frontier starts were excluded.
+- **Interpretation:** The archive has accumulated a valid solution lineage farther than any frozen
+  policy has been required to act. Discovery and competence are complementary but non-equivalent.
+  A backward-expanding gate preserves local tractability while making composition an explicit
+  training obligation.
+- **Consequence:** Protocol identifiers become `parallel-recurrent-ppo-v6` and
+  `retained-policy-backward-consolidation-v1`. A V6 manifest records the retained source model and
+  optimizer. Status and narrative distinguish frontier, consolidation start, target, rolling
+  result, and gates passed. “Learned” is reserved for a declared competence gate; replay promotion
+  alone is called “discovered” or “verified lineage.”
+- **Narrative value:** The assembled lineage becomes a multicolored chain made by several policies.
+  V6 replaces it with one continuing line and moves the start left only when one brain can connect
+  the larger span. The project can show how far the archive knows and how far the current model can
+  remember at the same time.
+- **Revisit when:** The production 8/10 gate passes or plateaus; a new promotion changes the target;
+  retained weights catastrophically forget earlier behavior; a frozen earlier-start evaluation
+  disagrees with the training gate; or the verified-lineage imitation ablation is ready.
+- **Supersedes / superseded by:** Extends DR-0050 without rejecting its chapter milestones. It
+  supersedes fresh PPO initialization and frontier-dominant sampling as the default successor
+  strategy.
+
 ## Unresolved decisions
 
 These are questions, not hidden commitments. Each becomes a numbered entry when evidence supports

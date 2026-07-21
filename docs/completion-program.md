@@ -15,9 +15,10 @@
 > generations of recurrent PPO then extended the curriculum through Route 1. Version 4 produced
 > the first PPO promotion into Viridian City. Version 5 then verified the Mart and Oak's Parcel.
 > Version 5.1 then verified Pallet Town, Oak's Lab, Parcel delivery, and the Pokédex before a
-> 3,035,252-action plateau. The active gate is Version 5.2's explicitly assisted chapter curriculum
-> through Route 2, Viridian Forest, Pewter City, and Pewter Gym, followed by student distillation
-> and an unassisted power-on exam.
+> 3,035,252-action plateau. Version 5.2 then verified Route 1 but exposed that replayed fragments did
+> not prove one policy retained the route. The active successor is Version 6: preserve the PPO policy
+> and optimizer, continue frontier discovery, and move a separate rehearsal start backward only
+> after rolling competence. Frozen local and unassisted power-on exams remain later gates.
 
 ### Implementation ledger
 
@@ -37,6 +38,7 @@
 | Version 5 assisted teacher | ✅ Closed at Oak's Parcel | Three replay-verified promotions reached the Mart and Parcel; the run also exposed obsolete lesson reward after completion |
 | Version 5.1 active-goal return curriculum | ✅ Closed at the Pokédex | Six promotions verified the complete return errand; 3,035,252 later actions without Forest progress define the successor problem |
 | Version 5.2 northbound chapter curriculum | 🟨 Current qualification | Ten map-level steps lead from the Pokédex through Pewter Gym, with bounded trap-recovery credit and no pixels-only claim |
+| Version 6 retained-policy consolidation | ✅ Engineering canary passed | One continuing PPO policy alternates discovery with backward rehearsal; its ledger separates verified frontier from rolling training competence |
 | Pixels-only student and clean exam | ⬜ Not started | Teacher trajectories may become self-generated demonstrations, but H5 requires frozen restore-free power-on attempts without the aids |
 
 ## The destination

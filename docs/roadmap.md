@@ -5,7 +5,8 @@
 > [parallel recurrent PPO](parallel-ppo.md): four simultaneous games teach one shared pixel policy
 > from every rollout, while the Hall-of-Fame referee and replay-verified Archive-v2 curriculum
 > remain unchanged. Version 5.1 reached the Pokédex and exposed a 3,035,252-action plateau;
-> Version 5.2 now teaches the map-level chapter through Pewter Gym.
+> Version 5.2 reached Route 1 but showed that verified slices do not prove one policy composed them.
+> Version 6 retains the PPO policy and optimizer and expands rehearsal backward after rolling gates.
 
 ## Completed blind-discovery arc
 
@@ -46,12 +47,17 @@
     privileged-input, and production-shaped optimizer canaries.
 19. ✅ Complete the Version-5.1 active-goal run: verify the Pokédex, preserve its 3,035,252-action
     post-Pokédex plateau, and close it with matching terminal hashes.
-20. 🟨 Run Version 5.2 under the 150-million-action safety ceiling, using the declared first-Gym
-    chapter curriculum and bounded navigation-recovery signal.
-21. ⬜ Run the privileged comparator only under a matched declared budget if it remains useful.
-22. ⬜ Distill useful self-generated lineages into a richer frozen visual policy and evaluate it
+20. ✅ Use Version 5.2 to verify Oak's Lab exit and Route 1, then preserve its multi-million-action
+    Viridian plateau as evidence that permanent frontier slices do not enforce composition.
+21. ✅ Implement Version 6 retained PPO policy/optimizer transfer, backward rolling competence,
+    hash-bound scheduler state, dashboard metrics, and failed-plus-corrected canaries.
+22. 🟨 Run Version 6 with the production 8/10 gate, expanding the training start toward power-on.
+23. ⬜ Add and ablate offline imitation over replayed self-generated lineages after recurrent action
+    and goal alignment is independently qualified.
+24. ⬜ Run the privileged comparator only under a matched declared budget if it remains useful.
+25. ⬜ Distill useful self-generated lineages into a richer frozen visual policy and evaluate it
     separately from power-on.
-23. ✅ Replace Monkey in the four-lane pretrial dashboard.
+26. ✅ Replace Monkey in the four-lane pretrial dashboard.
 
 ## Later informed-agent roadmap
 

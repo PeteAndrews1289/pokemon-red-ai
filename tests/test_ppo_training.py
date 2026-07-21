@@ -2,6 +2,10 @@ from __future__ import annotations
 
 # Optional RL dependencies must be checked before importing the PPO module.
 # ruff: noqa: E402
+import hashlib
+import json
+from pathlib import Path
+
 import numpy as np
 import pytest
 
@@ -23,6 +27,8 @@ from pokemon_red_ai.ppo_training import (
     ParallelPpoConfig,
     PokemonPpoFeatures,
     VisualStagnationTracker,
+    _copy_retained_ppo_policy,
+    _remaining_action_budget,
     _remap_warm_start_lstm_input,
     _render_dashboard,
     _state_vector,
@@ -36,6 +42,58 @@ def test_parallel_config_enforces_vector_batch_boundary() -> None:
 
     with pytest.raises(ValueError, match="must divide"):
         ParallelPpoConfig(environments=3, rollout_steps=64, batch_size=128)
+
+    with pytest.raises(ValueError, match="competence"):
+        ParallelPpoConfig(competence_window=1)
+
+
+def test_retained_policy_copy_requires_clean_compatible_terminal_evidence(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "source"
+    source.mkdir()
+    model = source / "ppo-latest.zip"
+    model.write_bytes(b"verified policy")
+    config = ParallelPpoConfig(mode="assisted")
+    checkpoint = {
+        "protocol": "parallel-recurrent-ppo-v5.2",
+        "total_actions": 1234,
+        "model_file_sha256": hashlib.sha256(model.read_bytes()).hexdigest(),
+        "config": config.public_dict(),
+    }
+    (source / "checkpoint.json").write_text(json.dumps(checkpoint), encoding="utf-8")
+    (source / "status.json").write_text(
+        json.dumps(
+            {
+                "state": "finished",
+                "stop_reason": "stop_requested",
+                "total_actions": 1234,
+                "best_milestone": {"index": 17, "key": "route", "label": "Route"},
+            }
+        ),
+        encoding="utf-8",
+    )
+    (source / "manifest.json").write_text(
+        json.dumps({"actor_mode": "assisted"}), encoding="utf-8"
+    )
+    destination = tmp_path / "retained.zip"
+
+    metadata = _copy_retained_ppo_policy(source, destination, config)
+
+    assert destination.read_bytes() == model.read_bytes()
+    assert metadata["optimizer_state_retained"] is True
+    assert metadata["source_total_actions"] == 1234
+
+    failed_status = json.loads((source / "status.json").read_text(encoding="utf-8"))
+    failed_status["state"] = "running"
+    (source / "status.json").write_text(json.dumps(failed_status), encoding="utf-8")
+    with pytest.raises(ValueError, match="cleanly finished"):
+        _copy_retained_ppo_policy(source, tmp_path / "rejected.zip", config)
+
+
+def test_retained_policy_gets_a_fresh_budget_but_resume_does_not() -> None:
+    assert _remaining_action_budget(8_192, 8_192, resume=False) == 8_192
+    assert _remaining_action_budget(8_192, 4_096, resume=True) == 4_096
 
 
 def test_privileged_state_vector_is_fixed_and_bounded() -> None:
@@ -179,14 +237,15 @@ def test_dashboard_names_actor_boundary_and_finished_state() -> None:
                 "pixels + three recent actions; trainer-only RAM rewards and loop termination"
             ),
             "novelty_scope": "persistent per worker across episodes and resumes",
-            "reward_protocol": "northbound-curriculum-navigation-recovery-v1",
+            "reward_protocol": "retained-policy-backward-consolidation-v1",
             "battle_events": {"success": 3, "ended_without_progress": 7},
         }
     )
     assert "Failures now" in page
     assert "pixels + three recent actions; trainer-only RAM rewards" in page
     assert "persistent per worker across episodes and resumes" in page
-    assert "northbound-curriculum-navigation-recovery-v1" in page
+    assert "retained-policy-backward-consolidation-v1" in page
+    assert "Consolidation start" in page
     assert "Navigation-recovery credit" in page
     assert "Battle successes" in page
     assert ">3<" in page

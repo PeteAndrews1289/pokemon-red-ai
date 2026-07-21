@@ -366,6 +366,32 @@ new milestones begin after it. V5.2 starts fresh PPO weights under the changed o
 rationale and evidence plan are in
 [Version 5.2: from one solved errand to the road to Brock](version-5-2-northbound.md).
 
+## Version 6: retain and rehearse
+
+V5.2 exposed a distinction the earlier dashboard did not show. The verifier could assemble and
+replay a complete action lineage across promotions, while each new PPO protocol restarted from the
+older apprentice seed and overwhelmingly practiced only the latest checkpoint. The archive was
+learning a route; one current policy was not required to retain it.
+
+Version 6 changes the protocol to `parallel-recurrent-ppo-v6` and the reward/training protocol to
+`retained-policy-backward-consolidation-v1`. It imports a clean compatible V5.2-or-later PPO policy
+and optimizer with exact hash and training-shape checks. The new campaign keeps a fresh action
+budget but does not discard the predecessor's network.
+
+Episodes are explicitly labeled `frontier` or `consolidation`. Frontier episodes seek a new
+verified outcome. Consolidation episodes begin one verified checkpoint earlier and try to reach the
+fixed current frontier. Only consolidation episodes enter the rolling competence window. Once the
+production window reaches 8/10, the start moves one available checkpoint backward; a new promotion
+makes the old frontier the first start for the new target.
+
+The atomic consolidation ledger and its checkpoint hash preserve every start→target attempt,
+success, best reached index, rolling result, passed gate, and power-on training status. Dashboard
+and hourly chapters show discovery and composition separately. Training-gate passage still is not
+a frozen evaluation.
+
+The complete rationale, failed first canary, corrected 8,192-action canary, claim ladder, and future
+imitation ablation are in [Version 6: make one policy remember the journey](version-6-consolidation.md).
+
 ## Promotion remains harder than reward
 
 When a worker observes a named milestone beyond the curriculum's current best, it writes a private

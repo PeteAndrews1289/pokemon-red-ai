@@ -4,11 +4,13 @@
 > promotion, from Route 1 into Viridian City. Version 5 verified the Viridian Mart and Oak's Parcel.
 > Version 5.1 then verified the return to Pallet Town, Oak's Lab, and the Pokédex before plateauing
 > for 3,035,252 additional actions. Version 5.2 decomposes the road through Viridian Forest and
-> Pewter Gym into explicit chapter steps. The eventual pixels-only, restore-free power-on evaluation
-> remains a separate and harder claim.
+> Pewter Gym into explicit chapter steps and verified Route 1. Version 6 now retains that PPO policy
+> and moves its training start backward only after rolling competence, separating discovered lineage
+> from one-policy composition. The eventual pixels-only, restore-free power-on evaluation remains a
+> separate and harder claim.
 
-- **Current stage:** Version 5.1 is closed cleanly at the Pokédex; Version 5.2 passed migration and
-  real-ROM canary checks, and its declared 24-hour long run is active
+- **Current stage:** Version 5.2's declared run remains active as the predecessor denominator;
+  Version 6 retained-policy consolidation passed implementation, private-ROM, and canary gates
 - **Status date:** 2026-07-20
 
 **Most important caveat:** Q1 verified one replayable house-exit lineage, but the acting suffix
@@ -85,6 +87,10 @@ flowchart LR
 | Version 5.1 exposed the post-Pokédex plateau | ✅ Preserved negative result | E3 training | It ran 3,035,252 more actions without Forest progress; all 1,900 episodes ended in 1,241 stagnations or 659 visual cycles |
 | Version 5.2 represents the road to Brock as a chapter curriculum | ✅ Implemented and checked | E2 | Seven new milestones create ten visible steps through Route 2, both Forest gates, Pewter, and its Gym; 174 private-ROM tests and the V5.1 migration audit pass |
 | Version 5.2 production path runs on the real ROM | ✅ Qualified engineering | E3 pipeline | Four workers completed 8,192 actions and eight updates at 256.18 actions/s, wrote all frames, exercised the recovery cap, and ended with matching model plus four novelty hashes |
+| Version 5.2 reached Route 1 with the Pokédex | ✅ Replay verified | E3 checkpoint-assisted | Oak's Lab exit promoted at action 52,728 and Route 1 at 707,472; the complete lineage reached 12,812 actions, but later Viridian progress plateaued |
+| Version 6 retains one PPO policy across lessons | ✅ Qualified engineering | E2 / E3 pipeline | A compatible predecessor policy and optimizer load with hash and shape checks; the corrected canary completed eight updates under a fresh action budget |
+| Version 6 measures backward composition | ✅ Qualified engineering | E2 / E3 pipeline | Frontier episodes are excluded; one of two earlier-start canary attempts reached Pokédex, the shortened 3/4 rolling gate stayed closed, and scheduler state matched its checkpoint hash |
+| One retained model composes the route from power-on | ⬜ Not demonstrated | E0 | Backward training and frozen evaluation gates must expand to power-on before this claim exists |
 | Reverse curriculum reaches the complete opening horizon | ✅ Completed in development scope | E3 development | Seven adaptive rungs completed in 480 attempts with 451 successes; the final full-horizon rung passed 29/30 twice, but weights changed between attempts and no held-out H2 evaluation exists |
 | The apprentice-guided expedition continues beyond `left_home` | 🟨 Active | E1 | Frozen pixel-policy actions and seeded exploration now feed Archive v2's full 66-milestone search; no later verified milestone is claimed before run evidence exists |
 | Frontier Apprentice learns only replay-verified promotions | ✅ Checked | E2 / E3 engineering | A real-ROM canary learned five promotions through `chose_starter`, made 38 updates, passed 49/49 replay checks, and resumed at the exact learner hash after an intentional stop; Forest performance remains untested |

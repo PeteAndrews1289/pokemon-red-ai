@@ -1,5 +1,37 @@
 # Development log
 
+## 2026-07-21 — The archive knew the route; one policy did not
+
+- Audited the active PPO implementation after V5.2 required another explicit lesson. Confirmed
+  that 90 percent of resets favored the newest checkpoint, every major protocol version restarted
+  PPO from the Frontier Apprentice seed, and promotion verified a recorded action lineage rather
+  than the current policy's ability to reproduce earlier segments.
+- Split future evidence into discovery, training consolidation, frozen local competence, and frozen
+  power-on competence. Replay promotion remains the discovery gate and is no longer described as
+  proof that one model composed the route.
+- Implemented Version 6 policy retention. A cleanly finished, hash-valid, compatible V5.2-or-later
+  run now supplies the actual recurrent PPO policy and optimizer. The successor receives a fresh
+  action counter and budget while retaining source provenance.
+- Implemented backward consolidation. Episodes are explicitly frontier or consolidation practice.
+  Only earlier-start episodes can enter the rolling window. Passing the declared rate moves the
+  start one verified checkpoint toward power-on while the target remains fixed.
+- Persisted attempts, successes, rolling outcomes, best reached index, passed gates, and the
+  explicit power-on training gate in an atomic ledger whose hash enters every PPO checkpoint.
+- Added consolidation start, target, rolling competence, and passed-gate cards to the dashboard and
+  hourly Markdown narrative.
+- Passed 180 tests with the real ROM. The tests freeze source compatibility, frontier exclusion,
+  rolling thresholds, one-rung expansion, target changes after promotion, state round trips,
+  power-on labeling, and fresh-versus-resume action budgets.
+- Preserved the first failed canary. It loaded the retained policy but stopped after one 1,024-
+  action rollout because the predecessor's timestep count was subtracted before the new campaign
+  reset. Added a regression and corrected the budget calculation.
+- Passed the corrected four-worker 8,192-action canary with eight updates at 202.73 actions/s. The
+  model, four novelty memories, and consolidation state matched their hashes. One of two true
+  earlier-start attempts reached the Pokédex; the shortened 3/4 gate remained correctly closed.
+- Documented that Stage 1 rehearses accumulated spans with retained PPO but does not yet apply an
+  offline imitation loss to every lineage action. That is the next compatible ablation, not a
+  capability silently claimed by this version.
+
 ## 2026-07-20 — One solved errand is not yet the idea of an errand
 
 - Closed Version 5.1 cleanly at 3,437,572 actions, 3,357 updates, 1,900 episodes, and 15,101.119

@@ -31,6 +31,10 @@ from pokemon_red_ai.blind import (
     BlindAction,
     FrozenSnapshot,
 )
+from pokemon_red_ai.consolidation import (
+    BackwardConsolidation,
+    choose_consolidation_entry,
+)
 from pokemon_red_ai.emulator import PokemonRedEmulator
 from pokemon_red_ai.expedition import (
     ExpeditionStore,
@@ -45,8 +49,8 @@ from pokemon_red_ai.quest_navigation import route_guidance
 from pokemon_red_ai.rom import verify_rom
 from pokemon_red_ai.state import PokemonRedState, PokemonRedStateReader
 
-PPO_PROTOCOL = "parallel-recurrent-ppo-v5.2"
-PPO_REWARD_PROTOCOL = "northbound-curriculum-navigation-recovery-v1"
+PPO_PROTOCOL = "parallel-recurrent-ppo-v6"
+PPO_REWARD_PROTOCOL = "retained-policy-backward-consolidation-v1"
 PPO_MODES = frozenset({"pixels", "assisted", "privileged"})
 PRIVILEGED_STATE_SIZE = 24
 ACTION_HISTORY_LENGTH = 3
@@ -131,6 +135,9 @@ class ParallelPpoConfig:
     max_output_bytes: int = 100 * 1024**3
     min_free_bytes: int = 50 * 1024**3
     frontier_probability: float = 0.90
+    consolidation: bool = False
+    competence_window: int = 10
+    competence_threshold: float = 0.80
 
     def __post_init__(self) -> None:
         if self.mode not in PPO_MODES:
@@ -158,6 +165,8 @@ class ParallelPpoConfig:
             raise ValueError("PPO disk limits are invalid")
         if not 0 <= self.frontier_probability <= 1:
             raise ValueError("PPO frontier probability must be between zero and one")
+        if self.competence_window < 2 or not 0 < self.competence_threshold <= 1:
+            raise ValueError("PPO competence gate settings are invalid")
 
     def public_dict(self) -> dict[str, object]:
         return asdict(self)
@@ -174,6 +183,7 @@ class PpoEnvironmentConfig:
     seed: int
     rank: int
     frontier_probability: float
+    consolidation: bool = False
     novelty_checkpoint_file: str | None = None
 
 
@@ -209,6 +219,14 @@ def _canonical_progress(key: str) -> MilestoneProgress:
     return MilestoneProgress(milestone.key, milestone.ordinal + 1, milestone.label)
 
 
+def _milestone_label(index: int) -> str:
+    if index == 0:
+        return "Power-on"
+    if not 0 < index <= len(MILESTONES):
+        raise ValueError("Milestone index is outside the canonical catalogue")
+    return MILESTONES[index - 1].label
+
+
 def _import_verified_ppo_curriculum(source_run: Path, curriculum_directory: Path) -> dict[str, Any]:
     """Import only replay-admitted curriculum from a cleanly finished PPO run."""
 
@@ -219,9 +237,11 @@ def _import_verified_ppo_curriculum(source_run: Path, curriculum_directory: Path
         "parallel-recurrent-ppo-v4",
         "parallel-recurrent-ppo-v5",
         "parallel-recurrent-ppo-v5.1",
+        "parallel-recurrent-ppo-v5.2",
+        "parallel-recurrent-ppo-v6",
     }:
         raise ValueError(
-            "Version 5.2 can import only a verified Version-4, Version-5, or Version-5.1 curriculum"
+            "Version 6 can import only a verified Version-4 through Version-5.2 curriculum"
         )
     source_status = json.loads((source_run / "status.json").read_text(encoding="utf-8"))
     source_checkpoint = json.loads((source_run / "checkpoint.json").read_text(encoding="utf-8"))
@@ -314,6 +334,65 @@ def _import_verified_ppo_curriculum(source_run: Path, curriculum_directory: Path
     }
     _atomic_json(curriculum_directory / "manifest.json", manifest)
     return manifest
+
+
+def _copy_retained_ppo_policy(
+    source_run: Path,
+    destination: Path,
+    config: ParallelPpoConfig,
+) -> dict[str, Any]:
+    """Copy one clean compatible PPO policy and optimizer into a new campaign."""
+
+    status = json.loads((source_run / "status.json").read_text(encoding="utf-8"))
+    checkpoint = json.loads((source_run / "checkpoint.json").read_text(encoding="utf-8"))
+    manifest = json.loads((source_run / "manifest.json").read_text(encoding="utf-8"))
+    source_protocol = checkpoint.get("protocol")
+    if source_protocol not in {"parallel-recurrent-ppo-v5.2", "parallel-recurrent-ppo-v6"}:
+        raise ValueError("Consolidation requires a Version-5.2-or-later PPO policy")
+    if status.get("state") != "finished" or status.get("stop_reason") not in {
+        "stop_requested",
+        "duration_limit",
+        "action_limit",
+        "hall_of_fame_verified",
+    }:
+        raise ValueError("Retained PPO policy source is not a cleanly finished run")
+    if checkpoint.get("total_actions") != status.get("total_actions"):
+        raise ValueError("Retained PPO policy terminal action counts disagree")
+    if manifest.get("actor_mode") != config.mode:
+        raise ValueError("Retained PPO policy actor mode is incompatible")
+    source_config = checkpoint.get("config", {})
+    compatible = (
+        "mode",
+        "rollout_steps",
+        "batch_size",
+        "epochs",
+        "learning_rate",
+        "gamma",
+        "entropy_coefficient",
+    )
+    mismatched = [
+        name for name in compatible if source_config.get(name) != config.public_dict().get(name)
+    ]
+    if mismatched:
+        raise ValueError(
+            "Retained PPO policy training shape changed: " + ", ".join(sorted(mismatched))
+        )
+    source_model = source_run / "ppo-latest.zip"
+    expected_hash = checkpoint.get("model_file_sha256")
+    if _sha256_file(source_model) != expected_hash:
+        raise ValueError("Retained PPO policy failed its terminal hash")
+    shutil.copy2(source_model, destination)
+    return {
+        "kind": "retained_ppo_policy_and_optimizer",
+        "source_run": source_run.name,
+        "source_protocol": source_protocol,
+        "source_total_actions": int(status["total_actions"]),
+        "source_best_milestone": status["best_milestone"],
+        "file": destination.name,
+        "file_sha256": _sha256_file(destination),
+        "optimizer_state_retained": True,
+        "new_campaign_timestep_counter": True,
+    }
 
 
 def freeze_verified_curriculum(expedition_run: Path, curriculum_directory: Path) -> dict[str, Any]:
@@ -780,6 +859,8 @@ class PokemonRedPpoEnvironment(gym.Env):
         self.start_progress = MilestoneProgress("power_on", 0, "Power-on")
         self.current_progress = self.start_progress
         self.episode_best = 0
+        self.start_mode = "frontier"
+        self.episode_target_index = 0
         self.rng = random.Random(config.seed + config.rank)
 
     def _observation(
@@ -813,15 +894,28 @@ class PokemonRedPpoEnvironment(gym.Env):
         self.previous_frame = current
         return value
 
-    def _choose_entry(self) -> dict[str, Any]:
+    def _choose_entry(self) -> tuple[dict[str, Any], str, int]:
         manifest = _load_curriculum_manifest(self.curriculum_directory)
         entries = list(manifest["entries"])
         best_index = max(int(item["milestone_index"]) for item in entries)
+        if self.config.consolidation:
+            state = BackwardConsolidation.from_dict(
+                json.loads(
+                    (self.run_directory / "consolidation.json").read_text(encoding="utf-8")
+                )
+            )
+            metadata, mode, target = choose_consolidation_entry(
+                entries,
+                state,
+                self.rng,
+                frontier_probability=self.config.frontier_probability,
+            )
+            return _load_curriculum_entry(self.curriculum_directory, metadata), mode, target
         frontier = [item for item in entries if int(item["milestone_index"]) == best_index]
         metadata = self.rng.choice(
             frontier if self.rng.random() < self.config.frontier_probability else entries
         )
-        return _load_curriculum_entry(self.curriculum_directory, metadata)
+        return _load_curriculum_entry(self.curriculum_directory, metadata), "legacy", best_index
 
     def reset(
         self,
@@ -832,7 +926,7 @@ class PokemonRedPpoEnvironment(gym.Env):
         super().reset(seed=seed)
         if seed is not None:
             self.rng.seed(seed)
-        self.start_entry = self._choose_entry()
+        self.start_entry, self.start_mode, self.episode_target_index = self._choose_entry()
         snapshot = FrozenSnapshot.from_checkpoint_dict(self.start_entry["snapshot"])
         self.emulator.load_state(snapshot.thaw())
         self.start_progress = _progress_from_value(self.start_entry["progress"])
@@ -851,6 +945,9 @@ class PokemonRedPpoEnvironment(gym.Env):
         return self._observation(state), {
             "curriculum_entry": self.start_entry["entry_id"],
             "starting_milestone": self.start_progress.key,
+            "starting_milestone_index": self.start_progress.index,
+            "start_mode": self.start_mode,
+            "consolidation_target_index": self.episode_target_index,
         }
 
     def _write_frame(self) -> None:
@@ -922,6 +1019,9 @@ class PokemonRedPpoEnvironment(gym.Env):
             "rank": self.config.rank,
             "milestone_key": progress.key,
             "milestone_index": progress.index,
+            "starting_milestone_index": self.start_progress.index,
+            "start_mode": self.start_mode,
+            "consolidation_target_index": self.episode_target_index,
             "map_id": state.map_id,
             "x": state.player_x,
             "y": state.player_y,
@@ -944,6 +1044,10 @@ class PokemonRedPpoEnvironment(gym.Env):
         )
         if truncated:
             info["episode_end"] = True
+            info["episode_best_index"] = self.episode_best
+            info["consolidation_success"] = (
+                self.episode_best >= self.episode_target_index
+            )
             info["episode_end_reason"] = loop_reason or (
                 "episode_action_limit"
                 if self.steps >= self.config.episode_actions
@@ -1175,6 +1279,7 @@ def _render_dashboard(status: Mapping[str, Any]) -> str:
     best = status.get("best_milestone", {})
     focus = status.get("training_focus", {})
     rewards = status.get("reward_components", {})
+    consolidation = status.get("consolidation", {})
     mode = html.escape(str(status.get("mode", "unknown")))
     frame_cards = "".join(
         f'<figure><img src="env-{rank}.png?v={status.get("updated_at", "")}" '
@@ -1208,6 +1313,25 @@ def _render_dashboard(status: Mapping[str, Any]) -> str:
                 f"{int(status.get('unique_positions', 0)):,}",
             ),
             ("Episodes", f"{int(status.get('episodes', 0)):,}"),
+            (
+                "Consolidation start",
+                html.escape(str(consolidation.get("active_start_label", "disabled"))),
+            ),
+            (
+                "Consolidation target",
+                html.escape(str(consolidation.get("target_label", "disabled"))),
+            ),
+            (
+                "Rolling competence",
+                (
+                    f"{int(consolidation.get('active_window_successes', 0))}/"
+                    f"{int(consolidation.get('active_window_attempts', 0))}"
+                ),
+            ),
+            (
+                "Backward gates passed",
+                f"{int(consolidation.get('gates_passed_count', 0)):,}",
+            ),
             (
                 "Novelty memory",
                 html.escape(str(status.get("novelty_scope", "unknown"))),
@@ -1307,6 +1431,45 @@ class PpoRunCallback(BaseCallback):
         self.stop_reason: str | None = None
         self.cached_run_bytes = 0
         self.cached_free_bytes = shutil.disk_usage(self.run_directory).free
+        self.consolidation = (
+            BackwardConsolidation.from_dict(
+                json.loads(
+                    (self.run_directory / "consolidation.json").read_text(encoding="utf-8")
+                )
+            )
+            if config.consolidation
+            else None
+        )
+
+    def _write_consolidation(self) -> None:
+        if self.consolidation is not None:
+            _atomic_json(
+                self.run_directory / "consolidation.json",
+                self.consolidation.public_dict(),
+            )
+
+    def _consolidation_status(self) -> dict[str, Any]:
+        if self.consolidation is None:
+            return {"enabled": False}
+        window = self.consolidation.active_window
+        return {
+            "enabled": True,
+            "active_start_index": self.consolidation.active_start_index,
+            "active_start_label": _milestone_label(
+                self.consolidation.active_start_index
+            ),
+            "target_index": self.consolidation.target_index,
+            "target_label": _milestone_label(self.consolidation.target_index),
+            "active_window_successes": sum(window),
+            "active_window_attempts": len(window),
+            "active_window_rate": self.consolidation.active_window_rate,
+            "required_window": self.consolidation.window_size,
+            "required_rate": self.consolidation.threshold,
+            "gates_passed_count": len(self.consolidation.gates_passed),
+            "power_on_training_gate_passed": (
+                self.consolidation.power_on_training_gate_passed
+            ),
+        }
 
     def elapsed(self) -> float:
         return self.base_elapsed + time.monotonic() - self.clock_started
@@ -1322,22 +1485,28 @@ class PpoRunCallback(BaseCallback):
         if latest.exists():
             os.replace(latest, previous)
         os.replace(temporary, latest)
+        checkpoint: dict[str, Any] = {
+            "schema_version": 1,
+            "protocol": PPO_PROTOCOL,
+            "reward_protocol": PPO_REWARD_PROTOCOL,
+            "model_file_sha256": _sha256_file(latest),
+            "total_actions": self.model.num_timesteps,
+            "elapsed_seconds": self.elapsed(),
+            "config": self.config.public_dict(),
+            "best_milestone": _load_curriculum_manifest(self.curriculum_directory)[
+                "best_milestone"
+            ],
+            "novelty_files": novelty_files,
+            "resume_semantics": "model_optimizer_exact_environment_rollout_restarts",
+        }
+        if self.consolidation is not None:
+            self._write_consolidation()
+            checkpoint["consolidation_file_sha256"] = _sha256_file(
+                self.run_directory / "consolidation.json"
+            )
         _atomic_json(
             self.run_directory / "checkpoint.json",
-            {
-                "schema_version": 1,
-                "protocol": PPO_PROTOCOL,
-                "reward_protocol": PPO_REWARD_PROTOCOL,
-                "model_file_sha256": _sha256_file(latest),
-                "total_actions": self.model.num_timesteps,
-                "elapsed_seconds": self.elapsed(),
-                "config": self.config.public_dict(),
-                "best_milestone": _load_curriculum_manifest(self.curriculum_directory)[
-                    "best_milestone"
-                ],
-                "novelty_files": novelty_files,
-                "resume_semantics": "model_optimizer_exact_environment_rollout_restarts",
-            },
+            checkpoint,
         )
         self.last_checkpoint_step = self.model.num_timesteps
 
@@ -1393,6 +1562,7 @@ class PpoRunCallback(BaseCallback):
             "battle_events": dict(sorted(self.battle_events.items())),
             "loop_events": dict(sorted(self.loop_events.items())),
             "episode_end_reasons": dict(sorted(self.episode_end_reasons.items())),
+            "consolidation": self._consolidation_status(),
             "reward_protocol": PPO_REWARD_PROTOCOL,
             "novelty_scope": "persistent per worker across episodes and resumes",
             "information_boundary": (
@@ -1436,6 +1606,15 @@ class PpoRunCallback(BaseCallback):
                 f"- Verified promotions: {status['verified_promotions']:,}\n"
                 f"- Episodes: {status['episodes']:,}\n"
                 f"- Unique map positions: {status['unique_positions']:,}\n\n"
+                f"- Consolidation start: "
+                f"**{status['consolidation'].get('active_start_label', 'disabled')}**\n"
+                f"- Consolidation target: "
+                f"**{status['consolidation'].get('target_label', 'disabled')}**\n"
+                f"- Rolling training competence: "
+                f"{status['consolidation'].get('active_window_successes', 0)}/"
+                f"{status['consolidation'].get('active_window_attempts', 0)}\n"
+                f"- Backward gates passed: "
+                f"{status['consolidation'].get('gates_passed_count', 0)}\n\n"
                 f"- Battle successes: {status['battle_events'].get('success', 0):,}\n"
                 "- Battle exits without durable progress: "
                 f"{status['battle_events'].get('ended_without_progress', 0):,}\n\n"
@@ -1468,6 +1647,10 @@ class PpoRunCallback(BaseCallback):
                 replay_passes=self.config.promotion_replays,
             )
             admit_verified_candidate(self.curriculum_directory, verification)
+            if self.consolidation is not None:
+                updated_manifest = _load_curriculum_manifest(self.curriculum_directory)
+                self.consolidation.sync_curriculum(updated_manifest["entries"])
+                self._write_consolidation()
             source_png = candidate_path.with_suffix("").with_suffix(".png")
             if source_png.is_file():
                 shutil.copy2(
@@ -1495,11 +1678,20 @@ class PpoRunCallback(BaseCallback):
 
     def _on_step(self) -> bool:
         infos = self.locals.get("infos", [])
+        competence_gate_passed = False
         for info in infos:
             if not isinstance(info, Mapping):
                 continue
             if info.get("episode_end"):
                 self.episodes += 1
+                if self.consolidation is not None:
+                    competence_gate_passed |= self.consolidation.record_episode(
+                        start_mode=str(info.get("start_mode", "")),
+                        start_index=int(info.get("starting_milestone_index", -1)),
+                        target_index=int(info.get("consolidation_target_index", -1)),
+                        best_reached_index=int(info.get("episode_best_index", -1)),
+                    )
+                    self._write_consolidation()
             map_id, x, y = info.get("map_id"), info.get("x"), info.get("y")
             if all(isinstance(value, int) for value in (map_id, x, y)):
                 self.positions.add((map_id, x, y))
@@ -1516,6 +1708,9 @@ class PpoRunCallback(BaseCallback):
             candidate = info.get("promotion_candidate")
             if isinstance(candidate, str):
                 self._handle_candidate(Path(candidate))
+
+        if competence_gate_passed:
+            self._narrative("training competence gate expanded one checkpoint backward")
 
         elapsed = self.elapsed()
         if (self.run_directory / "STOP").exists():
@@ -1552,6 +1747,12 @@ def _start_server(directory: Path, port: int) -> ThreadingHTTPServer | None:
     return server
 
 
+def _remaining_action_budget(max_actions: int, current_actions: int, *, resume: bool) -> int:
+    """Give a retained fresh campaign a new counter while continuing a true resume counter."""
+
+    return max(1, max_actions - current_actions) if resume else max_actions
+
+
 def run_parallel_ppo(
     rom_path: Path,
     run_directory: Path,
@@ -1560,8 +1761,11 @@ def run_parallel_ppo(
     config: ParallelPpoConfig,
     *,
     resume: bool = False,
+    policy_source: Path | None = None,
 ) -> dict[str, Any]:
     verify_rom(rom_path)
+    if policy_source is not None and not config.consolidation:
+        raise ValueError("A retained policy source requires consolidation mode")
     run_directory = run_directory.expanduser().resolve()
     if run_directory.exists() and not resume:
         raise ValueError("PPO output directory already exists")
@@ -1571,11 +1775,22 @@ def run_parallel_ppo(
     curriculum_directory = run_directory / "curriculum"
     if not curriculum_directory.exists():
         freeze_verified_curriculum(curriculum_source, curriculum_directory)
+    consolidation_path = run_directory / "consolidation.json"
+    if config.consolidation and not consolidation_path.exists() and not resume:
+        curriculum_manifest = _load_curriculum_manifest(curriculum_directory)
+        consolidation = BackwardConsolidation.initialize(
+            curriculum_manifest["entries"],
+            window_size=config.competence_window,
+            threshold=config.competence_threshold,
+        )
+        _atomic_json(consolidation_path, consolidation.public_dict())
     source = detect_source_provenance().public_dict()
     started_at = datetime.now(UTC).isoformat()
     base_elapsed = 0.0
     checkpoint_path = run_directory / "checkpoint.json"
     model_path = run_directory / "ppo-latest.zip"
+    retained_policy_path: Path | None = None
+    retained_policy_info: dict[str, Any] | None = None
     novelty_by_rank: dict[int, str] = {}
     if resume:
         checkpoint = json.loads(checkpoint_path.read_text(encoding="utf-8"))
@@ -1585,6 +1800,13 @@ def run_parallel_ppo(
             raise ValueError("PPO resume configuration does not match")
         if _sha256_file(model_path) != checkpoint.get("model_file_sha256"):
             raise ValueError("PPO model does not match its checkpoint")
+        if config.consolidation:
+            expected_consolidation_hash = checkpoint.get("consolidation_file_sha256")
+            if (
+                not consolidation_path.is_file()
+                or _sha256_file(consolidation_path) != expected_consolidation_hash
+            ):
+                raise ValueError("PPO consolidation state does not match its checkpoint")
         novelty_files = checkpoint.get("novelty_files")
         if not isinstance(novelty_files, list):
             raise ValueError("PPO checkpoint has no persistent novelty memory")
@@ -1611,7 +1833,17 @@ def run_parallel_ppo(
         (run_directory / "STOP").unlink(missing_ok=True)
     else:
         learner_copy = run_directory / "seed-frontier-learner.pt"
-        shutil.copy2(learner_path, learner_copy)
+        if config.consolidation:
+            if policy_source is None:
+                raise ValueError("Consolidation requires a finished PPO policy source")
+            retained_policy_path = run_directory / "seed-ppo-policy.zip"
+            retained_policy_info = _copy_retained_ppo_policy(
+                policy_source.expanduser().resolve(),
+                retained_policy_path,
+                config,
+            )
+        else:
+            shutil.copy2(learner_path, learner_copy)
         _atomic_json(
             run_directory / "manifest.json",
             {
@@ -1621,14 +1853,17 @@ def run_parallel_ppo(
                 "source": source,
                 "actor_mode": config.mode,
                 "human_demonstrations": [],
+                "self_generated_verified_curriculum": True,
                 "curriculum_source": curriculum_source.name,
                 "novelty_scope": "persistent per worker across episodes and resumes",
                 "reward_protocol": PPO_REWARD_PROTOCOL,
                 "rom_path_recorded": False,
                 "resume_semantics": "model_optimizer_exact_environment_rollout_restarts",
+                "policy_initialization": retained_policy_info,
             },
         )
-        learner_path = learner_copy
+        if retained_policy_path is None:
+            learner_path = learner_copy
 
     env_fns = [
         partial(
@@ -1643,6 +1878,7 @@ def run_parallel_ppo(
                 seed=config.seed,
                 rank=rank,
                 frontier_probability=config.frontier_probability,
+                consolidation=config.consolidation,
                 novelty_checkpoint_file=novelty_by_rank.get(rank),
             ),
         )
@@ -1660,6 +1896,9 @@ def run_parallel_ppo(
     }
     if resume:
         model = RecurrentPPO.load(model_path, env=vector, device="cpu")
+    elif retained_policy_path is not None:
+        model = RecurrentPPO.load(retained_policy_path, env=vector, device="cpu")
+        model.tensorboard_log = str(run_directory / "tensorboard")
     else:
         model = RecurrentPPO(
             "MultiInputLstmPolicy",
@@ -1696,7 +1935,11 @@ def run_parallel_ppo(
     server = _start_server(run_directory, config.dashboard_port)
     reason = "completed"
     try:
-        remaining = max(1, config.max_actions - model.num_timesteps)
+        remaining = _remaining_action_budget(
+            config.max_actions,
+            model.num_timesteps,
+            resume=resume,
+        )
         model.learn(
             total_timesteps=remaining,
             callback=callback,

@@ -11,7 +11,7 @@ The original game-naive, pixels-only condition remains a strict control. The Q0/
 baseline deliberately used a seeded random action emitter and a sealed, read-only referee; the next
 trials compare learned or optimized emitters under the same checkpoint and replay rules.
 
-> **Current status: Version 5.1 reached the Pokédex; Version 5.2 teaches the road to Brock.**
+> **Current status: V5.2 reached Route 1; V6 makes one policy rehearse the whole journey.**
 > Stage 0 memorized and exactly replayed its one 419-action house-exit route. Reverse curriculum
 > completed that opening in development, and Frontier Apprentice proved that network updates can be
 > gated behind replay-verified milestones. Its limitation was equally important: almost every
@@ -35,7 +35,12 @@ trials compare learned or optimized emitters under the same checkpoint and repla
 > actions without reaching Viridian Forest. Version 5.2 turns that plateau into ten visible steps
 > from Oak's Lab through Route 2, both Forest gates, Pewter City, and Pewter Gym, plus bounded credit
 > for escaping navigation traps. See
-> [From one solved errand to the road to Brock](docs/version-5-2-northbound.md). This is a
+> [From one solved errand to the road to Brock](docs/version-5-2-northbound.md). Its first long run
+> verified leaving Oak's Lab and reaching Route 1, then exposed the deeper limitation: the archive
+> could assemble successful slices without requiring one current model to reproduce them together.
+> Version 6 retains the actual PPO policy and optimizer, divides training between discovery and
+> rehearsal, and moves its start backward only after a rolling competence gate passes. See
+> [Make one policy remember the journey](docs/version-6-consolidation.md). This is a
 > curriculum-learning experiment, not yet a claim that one unassisted model can complete Pokémon
 > Red from power-on.
 
@@ -81,7 +86,7 @@ control. The next learned-policy design is frozen in
 | Preserved random comparison | Monkey vs. pixels-only Archivist under matched budgets |
 | Completed 90-minute pretrial | Evolution reached tier 1; online learners plateaued around Pallet Town and Route 1 |
 | Concluded neural experiment | Six inherited-archive lanes all failed the second-map/party gate under equal fuel |
-| Current completion work | Four-worker assisted-teacher PPO learning a disclosed map-level curriculum from the verified Pokédex frontier through Pewter Gym; later distillation and power-on evaluation remain mandatory |
+| Current completion work | Retained-policy PPO alternates frontier discovery with backward-expanding rehearsal; discovery, training competence, and frozen power-on evaluation remain separate claims |
 | North star | First discover a replayable Hall-of-Fame lineage, then train and evaluate one frozen pixel policy |
 
 ## The journey
@@ -148,7 +153,8 @@ trainer-owned and disclosed; they are disabled when evaluating one frozen model 
 [the experiment protocol](docs/experiment-protocol.md) and
 [the completion program](docs/completion-program.md).
 
-The current parallel-PPO reward protocol is Version 5.2. It does not pay merely because a battle
+The current parallel-PPO successor is Version 6. It retains Version 5.2's reward mechanics and does
+not pay merely because a battle
 ended: trainer-only evidence must show experience or capture progress for a durable success. It
 also supplies bounded intermediate credit when opponent HP falls and explicitly terminates visual
 cycles or prolonged stagnation. Its assisted-teacher lane additionally receives an episodic visited
@@ -158,6 +164,8 @@ farmed by oscillation. The dashboard reports this lesson credit, damage credit, 
 and loop exits separately so local activity cannot masquerade as verified story progress. V5.2
 adds source-disclosed map-level lessons through Pewter Gym and a three-per-episode recovery signal
 that pays only after movement resumes following at least 12 stationary navigation actions.
+Version 6 additionally reports a backward consolidation start, fixed verified target, rolling
+success window, and gates passed. Frontier restores cannot count as consolidation success.
 
 ## What will count as progress?
 
@@ -188,6 +196,7 @@ Start with [the documentation hub](docs/index.md), or jump directly to:
 - [Hall of Fame completion program](docs/completion-program.md) — the checkpoint expedition, claim ladder, qualification gates, and path to one learned policy
 - [Parallel recurrent PPO](docs/parallel-ppo.md) — four-worker learning, information boundaries, rewards, replay admission, benchmarks, and long-run interpretation
 - [Version 5.2: the road to Brock](docs/version-5-2-northbound.md) — completed predecessor evidence, ten northbound lessons, recovery reward, and video narrative
+- [Version 6: remember the journey](docs/version-6-consolidation.md) — retained PPO weights, backward competence gates, failed and passed canaries, and the new claim ladder
 - [Append-only decision register](docs/decision-register.md) — accepted, rejected, retired, superseded, and failed ideas with their evidence
 - [Progress](docs/progress.md) — current evidence, status, and reporting rules
 - [Roadmap](docs/roadmap.md) — engineering, learning, and storytelling milestones

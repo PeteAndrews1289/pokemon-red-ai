@@ -65,7 +65,8 @@ test sequence used to prove that the laboratory works.
 | Is the current test sequence an autonomous playthrough? | No; it is test infrastructure. |
 | Can one model execute the lucky route? | Yes once: Stage 0 fit 419/419 labels, survived frozen reload, and selected the exact 419 actions from clean power-on to `left_home`. This is route memorization, not a robust skill. |
 | Has checkpoint-assisted PPO completed Oak's errand? | Yes. V5.1 replay-verified the Pokédex by action 402,320, but this is an assisted training lineage rather than one clean-start policy. |
-| What comes next? | Teach and verify the ten map-level steps from Oak's Lab through Pewter Gym, while keeping training hints, shaped reward, and replay proof visibly separate. |
+| Did V5.2 teach one model to compose those steps? | Not demonstrated. It verified Oak's Lab exit and Route 1, but its replay gate tested stored actions rather than the current policy's complete behavior. |
+| What comes next? | Retain one PPO policy, alternate discovery with earlier-start rehearsal, and move toward power-on only after rolling competence. |
 
 Keeping this table current is part of the project. A small true claim is more valuable than a large
 ambiguous one.
@@ -259,6 +260,12 @@ without reaching the Forest. The new curriculum replaces one distant Forest targ
 steps through Route 1, Viridian, Route 2, both Forest gates, Pewter, and its Gym. That is explicit
 training assistance, not a hidden discovery claim. Each step still needs exact replay admission,
 and Brock remains unfinished until the Boulder Badge itself is verified.
+
+Version 6 adds a second axis to this chapter. The furthest verified checkpoint measures discovery;
+the backward consolidation start measures how much of that route one retained policy is currently
+rehearsing. A rolling 8/10 training gate can move the start earlier, but only frozen attempts can
+later establish competence. This prevents a scrapbook of valid fragments from being narrated as
+one continuous learned playthrough.
 
 ### Later chapters — Generalize or merely memorize?
 

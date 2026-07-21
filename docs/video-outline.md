@@ -31,7 +31,10 @@
 > succeeds through the Pokédex—then spends another 3.0 million actions trapped before the Forest.
 > Version 5.2 supplies the next turn: finishing one errand did not teach the abstraction of an
 > errand. The road to Brock becomes a ten-step staircase, with training hints and replay-verified
-> progress shown as separate meters.
+> progress shown as separate meters. V5.2 reaches Route 1 and then reveals that the verified chain
+> can be assembled from successful fragments without one current policy knowing the whole chain.
+> Version 6 draws two lines: how far the archive has ever discovered, and how far backward one
+> retained model can reliably connect that discovery.
 
 This document is a production guide for telling the project's story without getting ahead of the
 evidence. The detailed Episode 0 section preserves the original before-training production plan;
@@ -63,8 +66,9 @@ the next test, and lets the evidence change the plan.
 | 5. Four games, one memory | Can failures teach one shared recurrent policy? | PPO learning curves, complete denominator, and a replay-verified milestone result or plateau |
 | 6. The road back | What happens when the correct progress is through familiar territory? | Parcel return checkpoints, active-goal reward accounting, and an honest test of route reuse |
 | 7. Ten steps north | Can chapter-scale lessons compose navigation, gates, encounters, and a Gym? | A replay-verified Boulder Badge or the exact step where the curriculum fails |
-| 8. Nature or nurture? | Which progress came from pixels, rewards, RAM, or selection? | Successor comparisons with declared information budgets |
-| 9. The clean exam | Can the assisted lineage become one frozen, restore-free pixel policy? | Every power-on attempt, intervention count, and success denominator |
+| 8. One brain, not a scrapbook | Can one retained model connect the verified fragments as its training start moves backward? | Separate discovery and competence meters, including every failed rolling gate |
+| 9. Nature or nurture? | Which progress came from pixels, rewards, RAM, or selection? | Successor comparisons with declared information budgets |
+| 10. The clean exam | Can the assisted lineage become one frozen, restore-free pixel policy? | Every power-on attempt, intervention count, and success denominator |
 
 Do not promise a full playthrough in the first episode. Promise an investigation with the next
 milestone close enough to be credible.
