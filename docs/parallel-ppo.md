@@ -342,6 +342,30 @@ PPO weights because the actor input and objective changed. Full rationale, prese
 limitations, and the narrative plan are in
 [Version 5.1: learning that progress sometimes points backward](version-5-1-backtracking.md).
 
+## Version 5.2: a chapter curriculum through Pewter Gym
+
+Version 5.1 verified the entire return trip through the Pokédex, then spent 3,035,252 additional
+actions without reaching Viridian Forest. Version 5.2 changes the protocol to
+`parallel-recurrent-ppo-v5.2` and the reward protocol to
+`northbound-curriculum-navigation-recovery-v1`.
+
+Seven new named checkpoints split the next chapter into leaving Oak's Lab, Route 1, Viridian City,
+Route 2, the Forest south gate, the Forest north gate, and Pewter Gym. Together with the existing
+Forest, Pewter City, and Boulder Badge outcomes, the actor sees one current map-level lesson at a
+time. The declared trainer graph ends at the first Gym and supplies no tiles or buttons.
+
+When a landmark-navigation goal is active, the trainer also detects at least 12 actions without a
+position change. It pays +2 only when movement resumes, never for waiting itself, never during a
+battle, and at most three times per episode. This lets recurrent credit assignment learn an escape
+sequence without exposing a menu flag or scripted recovery action to the actor. The dashboard and
+hourly narrative report this component separately.
+
+The completed V5.1 archive passed the V5.2 importer with all 24 entries, six promotions, its final
+model, and four novelty memories intact. The canonical verified frontier remains Pokédex index 15;
+new milestones begin after it. V5.2 starts fresh PPO weights under the changed objective. The full
+rationale and evidence plan are in
+[Version 5.2: from one solved errand to the road to Brock](version-5-2-northbound.md).
+
 ## Promotion remains harder than reward
 
 When a worker observes a named milestone beyond the curriculum's current best, it writes a private

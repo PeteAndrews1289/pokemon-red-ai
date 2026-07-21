@@ -83,9 +83,7 @@ def test_feature_extractor_preserves_declared_information_boundary(mode: str) ->
                 ),
                 "goal": gym.spaces.Box(0, 1, shape=(GOAL_COUNT,), dtype=np.float32),
                 "skill": gym.spaces.Box(0, 1, shape=(SKILL_COUNT,), dtype=np.float32),
-                "map_context": gym.spaces.Box(
-                    0, 1, shape=(MAP_CONTEXT_SIZE,), dtype=np.float32
-                ),
+                "map_context": gym.spaces.Box(0, 1, shape=(MAP_CONTEXT_SIZE,), dtype=np.float32),
             }
         )
     extractor = PokemonPpoFeatures(gym.spaces.Dict(spaces))
@@ -160,9 +158,7 @@ def test_warm_start_maps_previous_action_to_newest_history_slot() -> None:
     newest = 256 + (ACTION_HISTORY_LENGTH - 1) * len(BLIND_ACTIONS)
     assert torch.equal(destination[:, :256], source[:, :256])
     assert torch.count_nonzero(destination[:, 256:newest]) == 0
-    assert torch.equal(
-        destination[:, newest : newest + len(BLIND_ACTIONS)], source[:, 256:]
-    )
+    assert torch.equal(destination[:, newest : newest + len(BLIND_ACTIONS)], source[:, 256:])
     assert torch.count_nonzero(destination[:, newest + len(BLIND_ACTIONS) :]) == 0
 
 
@@ -183,14 +179,15 @@ def test_dashboard_names_actor_boundary_and_finished_state() -> None:
                 "pixels + three recent actions; trainer-only RAM rewards and loop termination"
             ),
             "novelty_scope": "persistent per worker across episodes and resumes",
-            "reward_protocol": "active-goal-bidirectional-navigation-v1",
+            "reward_protocol": "northbound-curriculum-navigation-recovery-v1",
             "battle_events": {"success": 3, "ended_without_progress": 7},
         }
     )
     assert "Failures now" in page
     assert "pixels + three recent actions; trainer-only RAM rewards" in page
     assert "persistent per worker across episodes and resumes" in page
-    assert "active-goal-bidirectional-navigation-v1" in page
+    assert "northbound-curriculum-navigation-recovery-v1" in page
+    assert "Navigation-recovery credit" in page
     assert "Battle successes" in page
     assert ">3<" in page
     assert "No-progress battle exits" in page

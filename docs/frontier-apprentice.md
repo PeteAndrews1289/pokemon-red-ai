@@ -9,7 +9,7 @@ Pokédex in about 68 minutes, but spent more than five additional hours without 
 named milestone. Frontier Apprentice turns every later verified milestone into another lesson.
 
 Its terminal condition is the same strict Hall-of-Fame condition as the completion program. The
-same loop applies to every entry in the 59-milestone catalogue; Viridian Forest is the first test,
+same loop applies to every entry in the 66-milestone catalogue; Viridian Forest is the first test,
 not a special case in the code.
 
 ## The central loop
@@ -64,7 +64,7 @@ existing badge, item, level, or Pokédex state.
 
 | Component | Default | Purpose |
 | --- | ---: | --- |
-| Next named milestone | +1,000 | Dominant progress signal across all 59 milestones |
+| Next named milestone | +1,000 | Dominant progress signal across all 66 milestones |
 | New badge | +500 | Make Gym completion unmistakable |
 | New persistent event bit | +20 | Reward story and prerequisite changes without a walkthrough |
 | New map / directed warp | +25 / +10 | Reward leaving local cul-de-sacs and using doors |
@@ -85,26 +85,26 @@ an early-game conditional—defines progress.
 ### The complete ratchet
 
 The same code path covers every chapter below. Each range is inclusive and refers to the ordered
-59-milestone catalogue; there is no separate early-game terminal condition.
+66-milestone catalogue; there is no separate early-game terminal condition.
 
 | Milestones | Chapter | Boundary outcomes |
 | ---: | --- | --- |
 | 1–6 | Pallet Town | Game start through the first rival battle |
-| 7–11 | Oak's Errand | Route 1 through receiving the Pokédex |
-| 12–14 | Boulder Badge | Viridian Forest through Brock |
-| 15–16 | To Cerulean City | Mt. Moon through Cerulean City |
-| 17–18 | Cerulean City | Cascade Badge and Bill |
-| 19–22 | Vermilion City | S.S. Ticket through Thunder Badge |
-| 23–24 | Toward Lavender | Rock Tunnel through Lavender Town |
-| 25–33 | Celadon and Lavender | Rainbow Badge, Rocket Hideout, Pokémon Tower, and Poké Flute |
-| 34–37 | Saffron City | Silph Co., Giovanni, and Marsh Badge |
-| 38–42 | Fuchsia City | Safari Zone, Surf, Strength, and Soul Badge |
-| 43–45 | Cinnabar Island | Cinnabar, Secret Key, and Volcano Badge |
-| 46 | Viridian City | Earth Badge |
-| 47–49 | Pokémon League | Route 23 through Indigo Plateau |
-| 50–53 | Elite Four | Lorelei through Lance |
-| 54 | Champion | Champion defeated |
-| 55 | Hall of Fame | Champion flag and Hall-of-Fame map both observed |
+| 7–15 | Oak's Errand | Route 1, Parcel return, and receiving the Pokédex |
+| 16–25 | Boulder Badge | Oak's Lab through both Forest gates, Pewter Gym, and Brock |
+| 26–27 | To Cerulean City | Mt. Moon through Cerulean City |
+| 28–29 | Cerulean City | Cascade Badge and Bill |
+| 30–33 | Vermilion City | S.S. Ticket through Thunder Badge |
+| 34–35 | Toward Lavender | Rock Tunnel through Lavender Town |
+| 36–44 | Celadon and Lavender | Rainbow Badge, Rocket Hideout, Pokémon Tower, and Poké Flute |
+| 45–48 | Saffron City | Silph Co., Giovanni, and Marsh Badge |
+| 49–53 | Fuchsia City | Safari Zone, Surf, Strength, and Soul Badge |
+| 54–56 | Cinnabar Island | Cinnabar, Secret Key, and Volcano Badge |
+| 57 | Viridian City | Earth Badge |
+| 58–60 | Pokémon League | Route 23 through Indigo Plateau |
+| 61–64 | Elite Four | Lorelei through Lance |
+| 65 | Champion | Champion defeated |
+| 66 | Hall of Fame | Champion flag and Hall-of-Fame map both observed |
 
 ## What changes after a plateau
 

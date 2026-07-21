@@ -1,13 +1,14 @@
 # Progress and evidence
 
 > **Current research direction:** Parallel PPO Version 4 produced the first replay-verified PPO
-> promotion, from Route 1 into Viridian City. Version 5 then verified the Viridian Mart and Oak's
-> Parcel. Version 5.1 tests whether active-goal gating, bidirectional route reuse, and three explicit
-> return checkpoints can teach necessary backtracking. The eventual pixels-only, restore-free
-> power-on evaluation remains a separate and harder claim.
+> promotion, from Route 1 into Viridian City. Version 5 verified the Viridian Mart and Oak's Parcel.
+> Version 5.1 then verified the return to Pallet Town, Oak's Lab, and the Pokédex before plateauing
+> for 3,035,252 additional actions. Version 5.2 decomposes the road through Viridian Forest and
+> Pewter Gym into explicit chapter steps. The eventual pixels-only, restore-free power-on evaluation
+> remains a separate and harder claim.
 
-- **Current stage:** Version 5 is closed cleanly at Oak's Parcel; Version 5.1 passed its real-ROM
-  engineering canary and is ready for the return-trip long run
+- **Current stage:** Version 5.1 is closed cleanly at the Pokédex; Version 5.2 is implemented,
+  migration-audited, real-ROM canary qualified, and ready for its long run
 - **Status date:** 2026-07-20
 
 **Most important caveat:** Q1 verified one replayable house-exit lineage, but the acting suffix
@@ -80,10 +81,12 @@ flowchart LR
 | Recurrent PPO can extend the verified curriculum | ✅ Verified once | E3 checkpoint-assisted | Version 4 promoted Route 1 to Viridian City at action 790,900; the suffix passed one edge and three complete power-on replays, but one policy has not reproduced that lineage from power-on |
 | Version 5 assisted-teacher wiring is real-ROM checked | ✅ Qualified engineering | E3 pipeline | Four workers imported 19 verified entries, completed 16,384 actions and 16 PPO updates, exercised bounded Mart guidance, and ended with matching hashes; the Mart lesson itself remains unpassed |
 | Version 5 reached Oak's Parcel | ✅ Replay verified | E3 checkpoint-assisted | The stopped run completed 1,390,596 actions and three verified promotions; Mart entry at 619,660 and Parcel at 619,956 each survived exact replay admission |
-| Version 5.1 represents backtracking as active progress | ✅ Implemented and unit checked | E2 | Expired lessons are gated off, signed route potential cancels oscillation, and Parcel return is split into Route 1, Pallet Town, and Oak's Lab; behavioral qualification remains pending |
-| Version 5.1 engineering path runs on the real ROM | ✅ Qualified engineering | E3 pipeline | Four workers completed 8,192 actions and eight updates, recorded +24 net route credit and no expired Mart credit, had zero verification failures, and ended with matching model plus four worker hashes; no return milestone was claimed |
+| Version 5.1 taught active-goal backtracking | ✅ Replay verified | E3 checkpoint-assisted | The run promoted Pallet Town, Oak's Lab, Parcel delivery, and Pokédex by action 402,320; its 10,819-action lineage passed exact replay admission |
+| Version 5.1 exposed the post-Pokédex plateau | ✅ Preserved negative result | E3 training | It ran 3,035,252 more actions without Forest progress; all 1,900 episodes ended in 1,241 stagnations or 659 visual cycles |
+| Version 5.2 represents the road to Brock as a chapter curriculum | ✅ Implemented and checked | E2 | Seven new milestones create ten visible steps through Route 2, both Forest gates, Pewter, and its Gym; 174 private-ROM tests and the V5.1 migration audit pass |
+| Version 5.2 production path runs on the real ROM | ✅ Qualified engineering | E3 pipeline | Four workers completed 8,192 actions and eight updates at 256.18 actions/s, wrote all frames, exercised the recovery cap, and ended with matching model plus four novelty hashes |
 | Reverse curriculum reaches the complete opening horizon | ✅ Completed in development scope | E3 development | Seven adaptive rungs completed in 480 attempts with 451 successes; the final full-horizon rung passed 29/30 twice, but weights changed between attempts and no held-out H2 evaluation exists |
-| The apprentice-guided expedition continues beyond `left_home` | 🟨 Active | E1 | Frozen pixel-policy actions and seeded exploration now feed Archive v2's full 59-milestone search; no later verified milestone is claimed before run evidence exists |
+| The apprentice-guided expedition continues beyond `left_home` | 🟨 Active | E1 | Frozen pixel-policy actions and seeded exploration now feed Archive v2's full 66-milestone search; no later verified milestone is claimed before run evidence exists |
 | Frontier Apprentice learns only replay-verified promotions | ✅ Checked | E2 / E3 engineering | A real-ROM canary learned five promotions through `chose_starter`, made 38 updates, passed 49/49 replay checks, and resumed at the exact learner hash after an intentional stop; Forest performance remains untested |
 | Parallel recurrent PPO updates from every rollout | ✅ Checked | E2 / E3 engineering | Pixels-only and privileged canaries completed optimizer updates and hash-bound checkpoints; a production-shaped four-worker run completed two full updates and wrote all dashboard frames |
 | Four emulator workers fit the current M1 host | ✅ Checked | E2 local benchmark | Under the prior learner's one-core load, 2/4/6 workers measured 178.06/419.34/351.39 actions/s; the four-worker production shape measured 218.65 actions/s with four optimizer epochs |

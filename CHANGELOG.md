@@ -2,6 +2,29 @@
 
 ## Unreleased — parallel recurrent PPO
 
+- Closed Version 5.1 cleanly after 3,437,572 actions, 3,357 PPO updates, 1,900 episodes, and six
+  verified promotions. It reached the Pokédex at action 402,320 with a 10,819-action complete
+  lineage, then spent 3,035,252 more actions without reaching Viridian Forest.
+- Preserved the two-sided result: active-goal backtracking worked through Pallet Town and Oak's Lab,
+  while all 1,900 episodes still ended in either long stagnation or a visual cycle. The terminal
+  model and all four novelty memories matched their hashes.
+- Added Version 5.2's seven new chapter checkpoints from leaving Oak's Lab with the Pokédex through
+  Route 2, both Viridian Forest gates, and Pewter Gym. The canonical catalogue now contains 66
+  outcomes without renumbering anything already verified through Pokédex index 15.
+- Added a source-disclosed map graph through the first Gym. The assisted teacher receives only the
+  next map and bounded route distance, never target tiles, menu commands, battle actions, or scripted
+  buttons.
+- Added bounded navigation-recovery reward: after at least 12 stationary actions under a landmark
+  goal, credit is paid only when movement resumes, is disabled in battle, and is capped at three
+  payments per episode.
+- Passed 174 tests with the private supported ROM and a fail-closed migration audit of the completed
+  V5.1 model, four worker memories, and all 24 verified curriculum entries.
+- Passed an 8,192-action, four-worker real-ROM V5.2 canary with eight PPO updates, 256.18 combined
+  actions/second, all four live frames, +24 bounded recovery credit, zero promotion failures, and
+  matching terminal model plus four novelty-memory hashes.
+- Added the design, completed predecessor denominator, evidence boundary, falsifiable run questions,
+  and video narrative in `docs/version-5-2-northbound.md`.
+
 - Closed Version 5 cleanly after 1,390,596 actions, 1,358 PPO updates, 723 episodes, and three
   verified promotions. It entered the Mart at action 619,660 and obtained Oak's Parcel at 619,956.
 - Preserved a negative result: Mart-approach credit continued accumulating after the Parcel,

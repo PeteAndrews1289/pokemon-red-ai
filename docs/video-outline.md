@@ -27,7 +27,11 @@
 > entered the Mart and obtained Oak's Parcel. The twist is that the reward system kept pointing at
 > the Mart after the task changed. The model had not “forgotten Oak”; the experiment had encoded
 > novelty and an expired lesson more clearly than intent. Version 5.1 turns the route around, makes
-> backtracking measurable, and asks whether a demonstrated path can become a two-way skill.
+> backtracking measurable, and asks whether a demonstrated path can become a two-way skill. It
+> succeeds through the Pokédex—then spends another 3.0 million actions trapped before the Forest.
+> Version 5.2 supplies the next turn: finishing one errand did not teach the abstraction of an
+> errand. The road to Brock becomes a ten-step staircase, with training hints and replay-verified
+> progress shown as separate meters.
 
 This document is a production guide for telling the project's story without getting ahead of the
 evidence. The detailed Episode 0 section preserves the original before-training production plan;
@@ -58,9 +62,9 @@ the next test, and lets the evidence change the plan.
 | 4. The apprentice | Can one lucky route become a reusable pixel-conditioned skill? | Deliberate overfit smoke, recovery failures, and the first frozen local evaluation |
 | 5. Four games, one memory | Can failures teach one shared recurrent policy? | PPO learning curves, complete denominator, and a replay-verified milestone result or plateau |
 | 6. The road back | What happens when the correct progress is through familiar territory? | Parcel return checkpoints, active-goal reward accounting, and an honest test of route reuse |
-| 6. A real errand | Can a population extend a verified lineage through Oak's Parcel? | Checkpoint-assisted result clearly separated from clean-start policy ability |
-| 7. Nature or nurture? | Which progress came from pixels, rewards, RAM, or selection? | Successor comparisons with declared information budgets |
-| 8. Brock | Can an evolved lineage prepare, navigate, and win? | Power-on lineage replay, including every failed branch |
+| 7. Ten steps north | Can chapter-scale lessons compose navigation, gates, encounters, and a Gym? | A replay-verified Boulder Badge or the exact step where the curriculum fails |
+| 8. Nature or nurture? | Which progress came from pixels, rewards, RAM, or selection? | Successor comparisons with declared information budgets |
+| 9. The clean exam | Can the assisted lineage become one frozen, restore-free pixel policy? | Every power-on attempt, intervention count, and success denominator |
 
 Do not promise a full playthrough in the first episode. Promise an investigation with the next
 milestone close enough to be credible.

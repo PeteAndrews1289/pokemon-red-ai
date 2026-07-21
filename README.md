@@ -11,7 +11,7 @@ The original game-naive, pixels-only condition remains a strict control. The Q0/
 baseline deliberately used a seeded random action emitter and a sealed, read-only referee; the next
 trials compare learned or optimized emitters under the same checkpoint and replay rules.
 
-> **Current status: Version 5 obtained Oak's Parcel, and Version 5.1 is teaching the return trip.**
+> **Current status: Version 5.1 reached the Pokédex; Version 5.2 teaches the road to Brock.**
 > Stage 0 memorized and exactly replayed its one 419-action house-exit route. Reverse curriculum
 > completed that opening in development, and Frontier Apprentice proved that network updates can be
 > gated behind replay-verified milestones. Its limitation was equally important: almost every
@@ -30,8 +30,12 @@ trials compare learned or optimized emitters under the same checkpoint and repla
 > 619,660 and Oak's Parcel at 619,956 in its own run. That success exposed a general failure:
 > expired Mart guidance continued paying when the correct task was to backtrack. Version 5.1 gates
 > rewards to the active goal, inserts Parcel-return checkpoints, reuses certified routes in both
-> directions, and gives signed route-distance credit that oscillation cannot farm. See
-> [Learning that progress sometimes points backward](docs/version-5-1-backtracking.md). This is a
+> directions, and gives signed route-distance credit that oscillation cannot farm. It then verified
+> Pallet Town, Oak's Lab, and the Pokédex by action 402,320 before spending another 3,035,252
+> actions without reaching Viridian Forest. Version 5.2 turns that plateau into ten visible steps
+> from Oak's Lab through Route 2, both Forest gates, Pewter City, and Pewter Gym, plus bounded credit
+> for escaping navigation traps. See
+> [From one solved errand to the road to Brock](docs/version-5-2-northbound.md). This is a
 > curriculum-learning experiment, not yet a claim that one unassisted model can complete Pokémon
 > Red from power-on.
 
@@ -77,7 +81,7 @@ control. The next learned-policy design is frozen in
 | Preserved random comparison | Monkey vs. pixels-only Archivist under matched budgets |
 | Completed 90-minute pretrial | Evolution reached tier 1; online learners plateaued around Pallet Town and Route 1 |
 | Concluded neural experiment | Six inherited-archive lanes all failed the second-map/party gate under equal fuel |
-| Current completion work | Four-worker assisted-teacher PPO learning micro-milestones from the replay-verified Viridian frontier; later distillation and power-on evaluation remain mandatory |
+| Current completion work | Four-worker assisted-teacher PPO learning a disclosed map-level curriculum from the verified Pokédex frontier through Pewter Gym; later distillation and power-on evaluation remain mandatory |
 | North star | First discover a replayable Hall-of-Fame lineage, then train and evaluate one frozen pixel policy |
 
 ## The journey
@@ -144,14 +148,16 @@ trainer-owned and disclosed; they are disabled when evaluating one frozen model 
 [the experiment protocol](docs/experiment-protocol.md) and
 [the completion program](docs/completion-program.md).
 
-The current parallel-PPO reward protocol is version 5. It does not pay merely because a battle
+The current parallel-PPO reward protocol is Version 5.2. It does not pay merely because a battle
 ended: trainer-only evidence must show experience or capture progress for a durable success. It
 also supplies bounded intermediate credit when opponent HP falls and explicitly terminates visual
 cycles or prolonged stagnation. Its assisted-teacher lane additionally receives an episodic visited
 map plus the current milestone/skill lesson and is never labeled pixels-only. The first Viridian
 lesson pays only for a new closest distance to the Mart and new Mart dialogue stages; neither can be
 farmed by oscillation. The dashboard reports this lesson credit, damage credit, battle outcomes,
-and loop exits separately so local activity cannot masquerade as verified story progress.
+and loop exits separately so local activity cannot masquerade as verified story progress. V5.2
+adds source-disclosed map-level lessons through Pewter Gym and a three-per-episode recovery signal
+that pays only after movement resumes following at least 12 stationary navigation actions.
 
 ## What will count as progress?
 
@@ -181,6 +187,7 @@ Start with [the documentation hub](docs/index.md), or jump directly to:
 - [Q1 `left_home` result](experiments/q1-left-home/README.md) — both seeds, the verified successful lineage, replay cost, and failed robustness gate
 - [Hall of Fame completion program](docs/completion-program.md) — the checkpoint expedition, claim ladder, qualification gates, and path to one learned policy
 - [Parallel recurrent PPO](docs/parallel-ppo.md) — four-worker learning, information boundaries, rewards, replay admission, benchmarks, and long-run interpretation
+- [Version 5.2: the road to Brock](docs/version-5-2-northbound.md) — completed predecessor evidence, ten northbound lessons, recovery reward, and video narrative
 - [Append-only decision register](docs/decision-register.md) — accepted, rejected, retired, superseded, and failed ideas with their evidence
 - [Progress](docs/progress.md) — current evidence, status, and reporting rules
 - [Roadmap](docs/roadmap.md) — engineering, learning, and storytelling milestones

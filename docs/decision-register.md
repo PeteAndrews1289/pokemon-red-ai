@@ -1242,6 +1242,52 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
 - **Supersedes / superseded by:** Extends DR-0048. It preserves Version 5's Mart/Parcel evidence but
   supersedes its always-live local lesson semantics.
 
+## DR-0050 — Teach the first Gym as a chapter, not one distant outcome
+
+- **Date:** 2026-07-20
+- **Status:** Accepted and implemented; migration, private-ROM tests, and engineering canary passed;
+  long-run behavioral evidence pending
+- **Scope:** Parallel PPO Version 5.2 milestone catalogue, first-Gym trainer topology, recovery
+  reward, dashboard, and documentation
+- **Decision:** Close Version 5.1 after preserving its verified Pokédex lineage and post-Pokédex
+  plateau. Add seven named milestones so every map-level transition from Oak's Lab through Pewter
+  Gym is visible. Extend the assisted teacher graph only through the first Gym using source-verified
+  map IDs. Add +2 navigation-recovery credit only when movement resumes after at least 12 stationary
+  actions, disable it during battle, and cap it at three payments per episode. Import the verified
+  V5.1 curriculum but start fresh PPO weights under new protocol identifiers.
+- **Alternatives considered:** Run V5.1 longer unchanged; increase generic novelty; make Viridian
+  Forest one larger reward; supply target coordinates; supply a scripted menu escape button; read a
+  text-box RAM flag into the actor; copy a complete walkthrough graph for the whole game; resume
+  V5.1 weights despite changing the catalogue and reward objective.
+- **Observation/evidence:** V5.1 promoted Pallet Town, Oak's Lab, Parcel delivery, and the Pokédex
+  by action 402,320. It then spent 3,035,252 further actions without reaching Forest, adding only
+  305 global positions. Its completed denominator was 3,437,572 actions, 3,357 updates, 1,900
+  episodes, 1,241 stagnations, 659 visual cycles, six promotions, and zero promotion failures. Its
+  model and four novelty-memory hashes matched. V5.2 passed 174 tests with the private ROM. Its
+  migration audit verified all 24 V5.1 entries, six promotions, the terminal model, and all four
+  worker memories while preserving Pokédex index 15. A four-worker canary completed 8,192 actions,
+  eight updates, all live frames, +24 bounded recovery credit, and matching terminal hashes with no
+  promotion failure.
+- **Interpretation:** V5.1 solved the reward contradiction it targeted, but a solved fetch quest did
+  not create an implicit planner. The next objective combined too many map transitions and
+  interaction modes for one sparse label to diagnose. Chapter decomposition should expose where
+  composition fails while retaining strict replay admission.
+- **Consequence:** The catalogue contains 66 outcomes. Protocol identifiers become
+  `parallel-recurrent-ppo-v5.2` and `northbound-curriculum-navigation-recovery-v1`. The assisted
+  actor may receive next-map context derived from a declared first-Gym topology. It still receives
+  no tile, collision map, menu command, battle action, or scripted button. Dashboard and hourly
+  narrative output report recovery credit separately. Later ordinals shift by seven after the
+  Pokédex; all previously verified ordinals remain unchanged.
+- **Narrative value:** The payoff and setback coexist: the agent learns to finish Oak's errand, then
+  demonstrates that one taught errand is not the abstraction “quest.” A 3.0-million-action empty
+  timeline gives way to a ten-step staircase toward Brock, with hints and verified proof displayed
+  separately.
+- **Revisit when:** The canary fails migration or checkpoint checks; recovery credit grows without
+  exits; V5.2 promotes any northbound milestone; all workers plateau at one step; or the Boulder
+  Badge is replay verified and the student-distillation gate becomes active.
+- **Supersedes / superseded by:** Extends DR-0049. V5.1 remains the accepted backtracking result;
+  V5.2 supersedes only its post-Pokédex task granularity.
+
 ## Unresolved decisions
 
 These are questions, not hidden commitments. Each becomes a numbered entry when evidence supports

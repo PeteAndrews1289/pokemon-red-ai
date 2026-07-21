@@ -152,6 +152,23 @@ learns from those trajectories with progressively fewer aids, then a frozen stud
 power-on exam. Version 5.1 is successful if it makes return behavior learnable and measurable. It
 is not successful merely because its curriculum checkpoint can be loaded near the destination.
 
+## Long-run result
+
+Version 5.1 answered its central behavioral question positively. It reached Pallet Town with the
+Parcel at action 105,760, entered Oak's Lab at 123,068, and received the Pokédex at 402,320. The
+run ended cleanly after 3,437,572 actions, 3,357 updates, and 1,900 episodes with six verified
+promotions and no verification failures. Its complete verified lineage reached 10,819 actions.
+
+The result also exposed the next limit. After the Pokédex, 3,035,252 additional actions produced no
+Viridian Forest promotion. Only 305 additional global positions were found, and all 1,900 episodes
+ended as either long stagnation (1,241) or a visual cycle (659). The model and four worker memories
+matched their terminal hashes.
+
+This makes Version 5.1 a successful backtracking experiment and an unsuccessful general
+post-Pokédex curriculum. It is closed, not abandoned. Version 5.2 preserves its verified lessons
+and decomposes the road through Viridian Forest and Pewter Gym. See
+[Version 5.2: from one solved errand to the road to Brock](version-5-2-northbound.md).
+
 ## Falsifiable run questions
 
 The next run should answer these in order:

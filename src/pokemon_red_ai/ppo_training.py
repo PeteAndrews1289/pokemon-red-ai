@@ -45,8 +45,8 @@ from pokemon_red_ai.quest_navigation import route_guidance
 from pokemon_red_ai.rom import verify_rom
 from pokemon_red_ai.state import PokemonRedState, PokemonRedStateReader
 
-PPO_PROTOCOL = "parallel-recurrent-ppo-v5.1"
-PPO_REWARD_PROTOCOL = "active-goal-bidirectional-navigation-v1"
+PPO_PROTOCOL = "parallel-recurrent-ppo-v5.2"
+PPO_REWARD_PROTOCOL = "northbound-curriculum-navigation-recovery-v1"
 PPO_MODES = frozenset({"pixels", "assisted", "privileged"})
 PRIVILEGED_STATE_SIZE = 24
 ACTION_HISTORY_LENGTH = 3
@@ -209,20 +209,22 @@ def _canonical_progress(key: str) -> MilestoneProgress:
     return MilestoneProgress(milestone.key, milestone.ordinal + 1, milestone.label)
 
 
-def _import_verified_ppo_curriculum(
-    source_run: Path, curriculum_directory: Path
-) -> dict[str, Any]:
+def _import_verified_ppo_curriculum(source_run: Path, curriculum_directory: Path) -> dict[str, Any]:
     """Import only replay-admitted curriculum from a cleanly finished PPO run."""
 
     source_manifest_path = source_run / "curriculum" / "manifest.json"
     source_manifest = json.loads(source_manifest_path.read_text(encoding="utf-8"))
     source_protocol = source_manifest.get("protocol")
-    if source_protocol not in {"parallel-recurrent-ppo-v4", "parallel-recurrent-ppo-v5"}:
-        raise ValueError("Version 5.1 can import only a verified Version-4 or Version-5 curriculum")
+    if source_protocol not in {
+        "parallel-recurrent-ppo-v4",
+        "parallel-recurrent-ppo-v5",
+        "parallel-recurrent-ppo-v5.1",
+    }:
+        raise ValueError(
+            "Version 5.2 can import only a verified Version-4, Version-5, or Version-5.1 curriculum"
+        )
     source_status = json.loads((source_run / "status.json").read_text(encoding="utf-8"))
-    source_checkpoint = json.loads(
-        (source_run / "checkpoint.json").read_text(encoding="utf-8")
-    )
+    source_checkpoint = json.loads((source_run / "checkpoint.json").read_text(encoding="utf-8"))
     if source_status.get("state") != "finished" or source_status.get("stop_reason") not in {
         "stop_requested",
         "duration_limit",
@@ -236,9 +238,7 @@ def _import_verified_ppo_curriculum(
         raise ValueError("PPO curriculum source best milestone is inconsistent")
     if source_checkpoint.get("total_actions") != source_status.get("total_actions"):
         raise ValueError("PPO curriculum source terminal action counts disagree")
-    if _sha256_file(source_run / "ppo-latest.zip") != source_checkpoint.get(
-        "model_file_sha256"
-    ):
+    if _sha256_file(source_run / "ppo-latest.zip") != source_checkpoint.get("model_file_sha256"):
         raise ValueError("PPO curriculum source model failed its checkpoint hash")
     novelty_files = source_checkpoint.get("novelty_files")
     expected_environments = int(source_checkpoint.get("config", {}).get("environments", 0))
@@ -754,9 +754,7 @@ class PokemonRedPpoEnvironment(gym.Env):
                     ),
                     "goal": spaces.Box(0, 1, shape=(GOAL_COUNT,), dtype=np.float32),
                     "skill": spaces.Box(0, 1, shape=(SKILL_COUNT,), dtype=np.float32),
-                    "map_context": spaces.Box(
-                        0, 1, shape=(MAP_CONTEXT_SIZE,), dtype=np.float32
-                    ),
+                    "map_context": spaces.Box(0, 1, shape=(MAP_CONTEXT_SIZE,), dtype=np.float32),
                 }
             )
         self.observation_space = spaces.Dict(observation)
@@ -843,9 +841,7 @@ class PokemonRedPpoEnvironment(gym.Env):
         self.reward_tracker.prime(state, self.start_progress)
         current = preprocess_apprentice_frame(self.emulator.screen_rgb())
         self.previous_frame = current
-        self.recent_actions = deque(
-            [-1] * ACTION_HISTORY_LENGTH, maxlen=ACTION_HISTORY_LENGTH
-        )
+        self.recent_actions = deque([-1] * ACTION_HISTORY_LENGTH, maxlen=ACTION_HISTORY_LENGTH)
         self.steps = 0
         self.episode_actions = []
         self.episode_best = self.start_progress.index
@@ -944,19 +940,14 @@ class PokemonRedPpoEnvironment(gym.Env):
         if self.steps % 128 == 0 or progress.index > self.start_progress.index:
             self._write_frame()
         truncated = (
-            self.steps >= self.config.episode_actions
-            or not alive
-            or loop_reason is not None
+            self.steps >= self.config.episode_actions or not alive or loop_reason is not None
         )
         if truncated:
             info["episode_end"] = True
-            info["episode_end_reason"] = (
-                loop_reason
-                or (
-                    "episode_action_limit"
-                    if self.steps >= self.config.episode_actions
-                    else "emulator_stop"
-                )
+            info["episode_end_reason"] = loop_reason or (
+                "episode_action_limit"
+                if self.steps >= self.config.episode_actions
+                else "emulator_stop"
             )
         return (
             self._observation(state, current),
@@ -1242,6 +1233,10 @@ def _render_dashboard(status: Mapping[str, Any]) -> str:
                 f"{float(rewards.get('goal_route_progress', 0)):,.2f}",
             ),
             (
+                "Navigation-recovery credit",
+                f"{float(rewards.get('navigation_recovery', 0)):,.2f}",
+            ),
+            (
                 "New-best Mart approach credit",
                 f"{float(rewards.get('mart_approach', 0)):,.2f}",
             ),
@@ -1448,6 +1443,8 @@ class PpoRunCallback(BaseCallback):
                 f"{status['reward_components'].get('opponent_damage', 0):,.2f}\n"
                 f"- Net active-route credit: "
                 f"{status['reward_components'].get('goal_route_progress', 0):,.2f}\n"
+                f"- Navigation-recovery credit: "
+                f"{status['reward_components'].get('navigation_recovery', 0):,.2f}\n"
                 f"- New-best Mart approach credit: "
                 f"{status['reward_components'].get('mart_approach', 0):,.2f}\n"
                 f"- Mart dialogue-stage credit: "

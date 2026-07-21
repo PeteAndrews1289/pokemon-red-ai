@@ -213,6 +213,30 @@ def test_parcel_return_is_split_into_monotonic_backtracking_checkpoints() -> Non
     assert "returned_to_route_1_with_parcel" not in reached_keys(without_parcel)
 
 
+def test_pokedex_to_pewter_route_is_split_into_visible_curriculum_steps() -> None:
+    tracker = MilestoneTracker()
+    pokedex_state = {
+        "party_count": 1,
+        "events": (PokemonRedEvent.GOT_POKEDEX,),
+        "got_pokedex": True,
+    }
+    expected = (
+        (PokemonRedMap.PALLET_TOWN, "left_oaks_lab_with_pokedex"),
+        (PokemonRedMap.ROUTE_1, "returned_to_route_1_with_pokedex"),
+        (PokemonRedMap.VIRIDIAN_CITY, "returned_to_viridian_city_with_pokedex"),
+        (PokemonRedMap.ROUTE_2, "reached_route_2_with_pokedex"),
+        (PokemonRedMap.VIRIDIAN_FOREST_SOUTH_GATE, "entered_viridian_forest_south_gate"),
+        (PokemonRedMap.VIRIDIAN_FOREST, "reached_viridian_forest"),
+        (PokemonRedMap.VIRIDIAN_FOREST_NORTH_GATE, "crossed_viridian_forest"),
+        (PokemonRedMap.PEWTER_CITY, "reached_pewter_city"),
+        (PokemonRedMap.PEWTER_GYM, "entered_pewter_gym"),
+    )
+
+    for map_id, key in expected:
+        newly_reached = tracker.observe(state(map_id=map_id, **pokedex_state))
+        assert newly_reached[-1].key == key
+
+
 def test_badges_are_named_individually_without_inventing_missing_badges() -> None:
     tracker = MilestoneTracker()
     tracker.observe(state(badges=Badge.EARTH))

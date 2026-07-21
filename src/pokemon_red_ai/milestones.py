@@ -19,11 +19,15 @@ class PokemonRedMap(IntEnum):
     CINNABAR_ISLAND = 0x08
     INDIGO_PLATEAU = 0x09
     ROUTE_1 = 0x0C
+    ROUTE_2 = 0x0D
     ROUTE_23 = 0x22
     REDS_HOUSE_1F = 0x25
     OAKS_LAB = 0x28
     VIRIDIAN_MART = 0x2A
+    VIRIDIAN_FOREST_NORTH_GATE = 0x2F
+    VIRIDIAN_FOREST_SOUTH_GATE = 0x32
     VIRIDIAN_FOREST = 0x33
+    PEWTER_GYM = 0x36
     MT_MOON_1F = 0x3B
     MT_MOON_B1F = 0x3C
     MT_MOON_B2F = 0x3D
@@ -363,6 +367,44 @@ _UNORDERED_MILESTONES = (
         _condition(pokedex=True),
     ),
     _definition(
+        "left_oaks_lab_with_pokedex",
+        "Left Oak's Lab with the Pokedex",
+        "The Boulder Badge",
+        "landmark",
+        _condition(maps=(PokemonRedMap.PALLET_TOWN,), pokedex=True),
+    ),
+    _definition(
+        "returned_to_route_1_with_pokedex",
+        "Returned to Route 1 with the Pokedex",
+        "The Boulder Badge",
+        "landmark",
+        _condition(maps=(PokemonRedMap.ROUTE_1,), pokedex=True),
+    ),
+    _definition(
+        "returned_to_viridian_city_with_pokedex",
+        "Returned to Viridian City with the Pokedex",
+        "The Boulder Badge",
+        "landmark",
+        _condition(maps=(PokemonRedMap.VIRIDIAN_CITY,), pokedex=True),
+    ),
+    _definition(
+        "reached_route_2_with_pokedex",
+        "Reached Route 2 with the Pokedex",
+        "The Boulder Badge",
+        "landmark",
+        _condition(maps=(PokemonRedMap.ROUTE_2,), pokedex=True),
+    ),
+    _definition(
+        "entered_viridian_forest_south_gate",
+        "Entered the Viridian Forest south gate",
+        "The Boulder Badge",
+        "landmark",
+        _condition(
+            maps=(PokemonRedMap.VIRIDIAN_FOREST_SOUTH_GATE,),
+            pokedex=True,
+        ),
+    ),
+    _definition(
         "reached_viridian_forest",
         "Entered Viridian Forest",
         "The Boulder Badge",
@@ -370,11 +412,25 @@ _UNORDERED_MILESTONES = (
         _condition(maps=(PokemonRedMap.VIRIDIAN_FOREST,)),
     ),
     _definition(
+        "crossed_viridian_forest",
+        "Reached the Viridian Forest north gate",
+        "The Boulder Badge",
+        "landmark",
+        _condition(maps=(PokemonRedMap.VIRIDIAN_FOREST_NORTH_GATE,)),
+    ),
+    _definition(
         "reached_pewter_city",
         "Reached Pewter City",
         "The Boulder Badge",
         "landmark",
         _condition(maps=(PokemonRedMap.PEWTER_CITY,)),
+    ),
+    _definition(
+        "entered_pewter_gym",
+        "Entered the Pewter City Gym",
+        "The Boulder Badge",
+        "landmark",
+        _condition(maps=(PokemonRedMap.PEWTER_GYM,)),
     ),
     _definition(
         "boulder_badge",
@@ -666,9 +722,7 @@ _UNORDERED_MILESTONES = (
         "Reached Indigo Plateau",
         "The Pokemon League",
         "landmark",
-        _condition(
-            maps=(PokemonRedMap.INDIGO_PLATEAU, PokemonRedMap.INDIGO_PLATEAU_LOBBY)
-        ),
+        _condition(maps=(PokemonRedMap.INDIGO_PLATEAU, PokemonRedMap.INDIGO_PLATEAU_LOBBY)),
     ),
     _definition(
         "defeated_lorelei",
@@ -756,9 +810,7 @@ class MilestoneTracker:
 
     @property
     def reached(self) -> tuple[MilestoneDefinition, ...]:
-        return tuple(
-            milestone for milestone in MILESTONES if milestone.key in self.first_observed
-        )
+        return tuple(milestone for milestone in MILESTONES if milestone.key in self.first_observed)
 
     @property
     def latest(self) -> MilestoneDefinition | None:
@@ -767,11 +819,7 @@ class MilestoneTracker:
     @property
     def next_milestone(self) -> MilestoneDefinition | None:
         return next(
-            (
-                milestone
-                for milestone in MILESTONES
-                if milestone.key not in self.first_observed
-            ),
+            (milestone for milestone in MILESTONES if milestone.key not in self.first_observed),
             None,
         )
 
@@ -827,8 +875,7 @@ class MilestoneTracker:
             names = ", ".join(sorted(unknown))
             raise ValueError(f"unknown milestone keys in checkpoint: {names}")
         if any(
-            observation < 1 or observation > observations
-            for observation in first_observed.values()
+            observation < 1 or observation > observations for observation in first_observed.values()
         ):
             raise ValueError("milestone first-observation values must fit the observation count")
         return cls(observations=observations, first_observed=first_observed)

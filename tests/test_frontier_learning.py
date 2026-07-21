@@ -49,7 +49,7 @@ def state(**changes: object) -> PokemonRedState:
 def test_full_game_reward_is_nonrepeatable_and_round_trips() -> None:
     tracker = FullGameRewardTracker()
     pokedex = MilestoneProgress("obtained_pokedex", 15, "Received the Pokedex")
-    forest = MilestoneProgress("reached_viridian_forest", 16, "Entered Viridian Forest")
+    forest = MilestoneProgress("reached_viridian_forest", 21, "Entered Viridian Forest")
     tracker.prime(state(), pokedex)
 
     events = bytearray(319)
@@ -73,7 +73,7 @@ def test_full_game_reward_is_nonrepeatable_and_round_trips() -> None:
         action_button="up",
         loop_detected=False,
     )
-    assert first.components["named_milestone"] == 1_000
+    assert first.components["named_milestone"] == 6_000
     assert first.components["new_map"] == 25
     assert first.components["new_badge"] == 500
     assert first.components["new_event"] == 20
@@ -198,9 +198,7 @@ def test_opponent_damage_gets_dense_credit_without_turning_escape_into_success()
         action_button="a",
         loop_detected=False,
     )
-    escaped = tracker.score(
-        state(), route, action_button="b", loop_detected=False
-    )
+    escaped = tracker.score(state(), route, action_button="b", loop_detected=False)
 
     assert damaged.components["opponent_damage"] == pytest.approx(1.0)
     assert escaped.battle_event == "ended_without_progress"
@@ -305,11 +303,59 @@ def test_bidirectional_goal_potential_rewards_return_and_cancels_oscillation() -
 
     assert south.components["goal_route_progress"] == 8
     assert north.components["goal_route_progress"] == -8
-    assert (
-        south.components["goal_route_progress"]
-        + north.components["goal_route_progress"]
-        == 0
+    assert south.components["goal_route_progress"] + north.components["goal_route_progress"] == 0
+
+
+def test_navigation_recovery_is_bounded_and_requires_resumed_movement() -> None:
+    tracker = FullGameRewardTracker()
+    pokedex = MilestoneProgress("obtained_pokedex", 15, "Received the Pokedex")
+    origin = state(map_id=0x28, player_x=5, player_y=5)
+    tracker.prime(origin, pokedex)
+
+    def recover(destination_x: int) -> object:
+        for _ in range(12):
+            stationary = tracker.score(
+                origin,
+                pokedex,
+                action_button="b",
+                loop_detected=False,
+            )
+            assert "navigation_recovery" not in stationary.components
+        return tracker.score(
+            state(map_id=0x28, player_x=destination_x, player_y=5),
+            pokedex,
+            action_button="left",
+            loop_detected=False,
+        )
+
+    for destination_x in (4, 3, 2):
+        recovered = recover(destination_x)
+        assert recovered.components["navigation_recovery"] == 2
+        origin = state(map_id=0x28, player_x=destination_x, player_y=5)
+
+    capped = recover(1)
+    assert "navigation_recovery" not in capped.components
+
+
+def test_navigation_recovery_is_disabled_during_battle() -> None:
+    tracker = FullGameRewardTracker()
+    pokedex = MilestoneProgress("obtained_pokedex", 15, "Received the Pokedex")
+    battling = state(map_id=0x28, player_x=5, player_y=5, battle_state=1)
+    tracker.prime(battling, pokedex)
+    for _ in range(15):
+        tracker.score(
+            battling,
+            pokedex,
+            action_button="b",
+            loop_detected=False,
+        )
+    moved = tracker.score(
+        state(map_id=0x28, player_x=4, player_y=5, battle_state=1),
+        pokedex,
+        action_button="left",
+        loop_detected=False,
     )
+    assert "navigation_recovery" not in moved.components
 
 
 def test_experience_reward_is_lifetime_bounded_but_local_wins_still_count() -> None:

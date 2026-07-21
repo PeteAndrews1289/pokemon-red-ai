@@ -16,7 +16,9 @@ verified route into a learned visual skill is now the active work.
 Stage 0 then reproduced its sole route exactly, reverse curriculum completed the opening in
 development, and Frontier Apprentice established a replay-gated self-imitation baseline. The active
 successor is four-worker recurrent PPO: every rollout can now update one shared policy while the
-same verifier controls named curriculum promotion.
+same verifier controls named curriculum promotion. Version 5.1 used explicit active goals to reach
+the Pokédex, then plateaued for more than three million actions. Version 5.2 now turns the road from
+Oak's Lab to Pewter Gym into a visible, replay-gated chapter curriculum.
 
 ## Start here
 
@@ -31,6 +33,7 @@ same verifier controls named curriculum promotion.
 | Understand the next learned model | [Visual Apprentice v1](visual-apprentice.md) | Pixel inputs, self-generated demonstrations, reverse curriculum, recovery training, hardware bounds, and frozen evaluation gates |
 | Follow learning through the remainder of the game | [Frontier Apprentice](frontier-apprentice.md) | Verify-before-update milestone ratchet, adaptive exploration, full-game rewards, crash safety, and evaluation limits |
 | Understand the active shared-policy learner | [Parallel recurrent PPO](parallel-ppo.md) | Four-worker PPO, pixels/RAM boundaries, verified curriculum, dense rewards, checkpoints, dashboard, and benchmark evidence |
+| Audit the current curriculum | [Version 5.2: the road to Brock](version-5-2-northbound.md) | V5.1's completed result, ten northbound lessons, recovery reward, evidence limits, and run questions |
 | Inspect the first verified expedition milestone | [Q1 `left_home` result](../experiments/q1-left-home/README.md) | Both seeds, full denominator, lineage hashes, replay cost, and why 1/2 is not a pass |
 | Audit the qualified memory substrate | [Archive v2 qualification](../experiments/archive-v2-qualification/README.md) | Bounded replay, exact resume, crash recovery, deterministic comparison, and the failed stop-timing attempt |
 | Audit every accepted and discarded idea | [Decision register](decision-register.md) | Append-only decisions, failed hypotheses, alternatives, evidence, and consequences |

@@ -4,7 +4,8 @@
 > remain preserved controls. The active track is now
 > [parallel recurrent PPO](parallel-ppo.md): four simultaneous games teach one shared pixel policy
 > from every rollout, while the Hall-of-Fame referee and replay-verified Archive-v2 curriculum
-> remain unchanged.
+> remain unchanged. Version 5.1 reached the Pokédex and exposed a 3,035,252-action plateau;
+> Version 5.2 now teaches the map-level chapter through Pewter Gym.
 
 ## Completed blind-discovery arc
 
@@ -43,12 +44,14 @@
     curriculum, replay-gated promotion, resumable model checkpoints, and the four-frame dashboard.
 18. ✅ Benchmark 2/4/6 emulator workers on the target M1 and select four; pass pixels-only,
     privileged-input, and production-shaped optimizer canaries.
-19. 🟨 Run the first long pixels-only PPO development campaign under the 150-million-action safety
-    ceiling; compare later named milestones with the verify-only baseline.
-20. ⬜ Run the privileged comparator only under a matched declared budget if it remains useful.
-21. ⬜ Distill useful self-generated lineages into a richer frozen visual policy and evaluate it
+19. ✅ Complete the Version-5.1 active-goal run: verify the Pokédex, preserve its 3,035,252-action
+    post-Pokédex plateau, and close it with matching terminal hashes.
+20. 🟨 Run Version 5.2 under the 150-million-action safety ceiling, using the declared first-Gym
+    chapter curriculum and bounded navigation-recovery signal.
+21. ⬜ Run the privileged comparator only under a matched declared budget if it remains useful.
+22. ⬜ Distill useful self-generated lineages into a richer frozen visual policy and evaluate it
     separately from power-on.
-22. ✅ Replace Monkey in the four-lane pretrial dashboard.
+23. ✅ Replace Monkey in the four-lane pretrial dashboard.
 
 ## Later informed-agent roadmap
 

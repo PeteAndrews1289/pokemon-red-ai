@@ -1,5 +1,34 @@
 # Development log
 
+## 2026-07-20 — One solved errand is not yet the idea of an errand
+
+- Closed Version 5.1 cleanly at 3,437,572 actions, 3,357 updates, 1,900 episodes, and 15,101.119
+  seconds. The terminal PPO model and four novelty memories all matched their hashes.
+- Preserved six promotions with zero verification failures. The model returned to Pallet Town with
+  the Parcel at action 105,760, entered Oak's Lab at 123,068, and received the Pokédex at 402,320.
+  The complete verified lineage reached 10,819 actions.
+- Preserved the negative denominator instead of extending it indefinitely: after the Pokédex,
+  3,035,252 more actions produced no Forest promotion and only 305 more global positions. All 1,900
+  episodes ended as 1,241 long stagnations or 659 visual cycles.
+- Interpreted this as a successful V5.1 backtracking hypothesis followed by a missing chapter-level
+  abstraction. Rejected more unchanged runtime, larger novelty reward, a target-tile walkthrough,
+  and a scripted “press B” recovery rule.
+- Added Version 5.2's seven new checkpoints. Together with three existing outcomes, they form ten
+  visible steps from the Pokédex through Route 2, both Viridian Forest gates, Pewter City, Pewter
+  Gym, and the Boulder Badge. The complete catalogue now contains 66 outcomes.
+- Added a declared trainer topology only through the first Gym. Its map IDs were verified against
+  the supported game source. The teacher exposes next-map context, not coordinates or buttons.
+- Added bounded recovery credit when movement resumes after at least 12 stationary navigation
+  actions. Waiting does not pay; battle disables it; each episode can receive at most three awards.
+- Passed 174 tests with the private supported ROM. Audited the actual finished V5.1 archive: all 24
+  curriculum entries, six promotions, the terminal model, and four novelty memories imported under
+  the new protocol while Pokédex remained index 15.
+- Passed an 8,192-action, four-worker real-ROM canary in 31.978 seconds. It completed eight updates,
+  wrote all four frames and the dashboard, exercised the recovery cap for +24 credit, recorded zero
+  promotion failures, and ended with matching model plus four novelty-memory hashes.
+- Wrote the result, rationale, assistance boundary, falsifiable run questions, stop rules, and video
+  beat in `docs/version-5-2-northbound.md` before launching behavioral training.
+
 ## 2026-07-20 — The Parcel teaches us that progress can point backward
 
 - Stopped Version 5 cleanly at 1,390,596 actions, 1,358 PPO updates, 723 episodes, and 5,862.825

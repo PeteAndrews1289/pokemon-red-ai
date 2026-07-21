@@ -23,13 +23,16 @@ from pokemon_red_ai.blind import (
     PixelsOnlyActor,
 )
 from pokemon_red_ai.expedition import MilestoneProgress
-from pokemon_red_ai.quest_navigation import route_guidance
+from pokemon_red_ai.milestones import MILESTONE_BY_KEY
+from pokemon_red_ai.quest_navigation import active_goal, route_guidance
 from pokemon_red_ai.state import PokemonRedState
 
 FRONTIER_LEARNER_POLICY_ID = "visual-frontier-self-imitation-v1"
 FRONTIER_LEARNER_SCHEMA = 1
 VIRIDIAN_CITY_MAP_ID = 0x01
 VIRIDIAN_MART_DOOR = (29, 19)
+NAVIGATION_RECOVERY_ACTIONS = 12
+NAVIGATION_RECOVERY_EPISODE_CAP = 3
 
 
 def _sha256_file(path: Path) -> str:
@@ -79,6 +82,7 @@ class FullGameRewardConfig:
     lesson_navigation: float = 0.25
     lesson_progress: float = 5.0
     goal_navigation: float = 8.0
+    navigation_recovery: float = 2.0
     blackout: float = -20.0
     visual_loop: float = -2.0
     repeated_action: float = -0.02
@@ -153,6 +157,9 @@ class FullGameRewardTracker:
     _episode_mart_script: int = 0
     _episode_goal_key: str | None = None
     _episode_route_distance: int | None = None
+    _episode_last_position: tuple[int, int, int] | None = None
+    _episode_stationary_actions: int = 0
+    _episode_navigation_recoveries: int = 0
     _last_action: str | None = None
     _action_streak: int = 0
 
@@ -185,6 +192,9 @@ class FullGameRewardTracker:
         guidance = route_guidance(state, progress, self.seen_warps)
         self._episode_goal_key = guidance.goal_key
         self._episode_route_distance = guidance.distance
+        self._episode_last_position = self._position(state)
+        self._episode_stationary_actions = 0
+        self._episode_navigation_recoveries = 0
         self._last_action = None
         self._action_streak = 0
 
@@ -227,11 +237,7 @@ class FullGameRewardTracker:
                     components["opponent_damage"] = credit
                     self._battle_damage_credit += credit
                 self._enemy_hp_floor = enemy_hp
-            elif (
-                enemy_hp is not None
-                and self._last_enemy_hp == 0
-                and enemy_hp > 0
-            ):
+            elif enemy_hp is not None and self._last_enemy_hp == 0 and enemy_hp > 0:
                 # A trainer has sent out a new opponent. Healing never resets the floor.
                 self._enemy_hp_floor = enemy_hp
             self._last_enemy_hp = enemy_hp
@@ -254,9 +260,7 @@ class FullGameRewardTracker:
                 self._episode_mart_distance = mart_distance
 
         mart_script = (
-            state.viridian_mart_script
-            if progress.key == "entered_viridian_mart"
-            else None
+            state.viridian_mart_script if progress.key == "entered_viridian_mart" else None
         )
         if mart_script is not None and mart_script > self._episode_mart_script:
             components["mart_dialogue_progress"] = c.lesson_progress * (
@@ -293,6 +297,25 @@ class FullGameRewardTracker:
             self._episode_route_distance = guidance.distance
         elif guidance.distance is not None:
             self._episode_route_distance = guidance.distance
+
+        position = self._position(state)
+        goal_key = active_goal(progress)
+        navigation_active = bool(
+            goal_key is not None and MILESTONE_BY_KEY[goal_key].kind == "landmark" and battle == 0
+        )
+        if not navigation_active or position is None:
+            self._episode_stationary_actions = 0
+        elif position == self._episode_last_position:
+            self._episode_stationary_actions += 1
+        else:
+            if (
+                self._episode_stationary_actions >= NAVIGATION_RECOVERY_ACTIONS
+                and self._episode_navigation_recoveries < NAVIGATION_RECOVERY_EPISODE_CAP
+            ):
+                components["navigation_recovery"] = c.navigation_recovery
+                self._episode_navigation_recoveries += 1
+            self._episode_stationary_actions = 0
+        self._episode_last_position = position
 
         events = _set_bits(state.event_flags)
         new_events = events - self.seen_events
@@ -390,14 +413,16 @@ class FullGameRewardTracker:
 
     @staticmethod
     def _mart_distance(state: PokemonRedState) -> int | None:
-        if (
-            state.map_id != VIRIDIAN_CITY_MAP_ID
-            or state.player_x is None
-            or state.player_y is None
-        ):
+        if state.map_id != VIRIDIAN_CITY_MAP_ID or state.player_x is None or state.player_y is None:
             return None
         door_x, door_y = VIRIDIAN_MART_DOOR
         return abs(state.player_x - door_x) + abs(state.player_y - door_y)
+
+    @staticmethod
+    def _position(state: PokemonRedState) -> tuple[int, int, int] | None:
+        if None in (state.map_id, state.player_x, state.player_y):
+            return None
+        return int(state.map_id), int(state.player_x), int(state.player_y)
 
     def _prime_enemy_health(self, state: PokemonRedState) -> None:
         self._enemy_hp_floor = state.enemy_hp

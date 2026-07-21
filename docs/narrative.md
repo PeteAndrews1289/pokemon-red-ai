@@ -64,7 +64,8 @@ test sequence used to prove that the laboratory works.
 | Can it reach the first playable state twice with identical results? | Yes. |
 | Is the current test sequence an autonomous playthrough? | No; it is test infrastructure. |
 | Can one model execute the lucky route? | Yes once: Stage 0 fit 419/419 labels, survived frozen reload, and selected the exact 419 actions from clean power-on to `left_home`. This is route memorization, not a robust skill. |
-| What comes next? | Start near the door with zero recurrent memory, learn only from genuine successful attempts, and move the curriculum backward while keeping every failure in the denominator. |
+| Has checkpoint-assisted PPO completed Oak's errand? | Yes. V5.1 replay-verified the Pokédex by action 402,320, but this is an assisted training lineage rather than one clean-start policy. |
+| What comes next? | Teach and verify the ten map-level steps from Oak's Lab through Pewter Gym, while keeping training hints, shaped reward, and replay proof visibly separate. |
 
 Keeping this table current is part of the project. A small true claim is more valuable than a large
 ambiguous one.
@@ -251,6 +252,13 @@ Brock turns the project from navigation into preparation. A successful system mu
 select battle actions, respond to losses, and coordinate short-term skills with a longer-term goal.
 It is also a natural point for the first serious comparison among language-model-only,
 reinforcement-learning-only, and hybrid systems.
+
+Version 5.2 begins this chapter before the battle. V5.1 showed that finishing Oak's errand did not
+automatically teach the route north: after receiving the Pokédex, it spent 3,035,252 more actions
+without reaching the Forest. The new curriculum replaces one distant Forest target with visible
+steps through Route 1, Viridian, Route 2, both Forest gates, Pewter, and its Gym. That is explicit
+training assistance, not a hidden discovery claim. Each step still needs exact replay admission,
+and Brock remains unfinished until the Boulder Badge itself is verified.
 
 ### Later chapters — Generalize or merely memorize?
 

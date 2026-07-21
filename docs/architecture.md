@@ -1,6 +1,6 @@
 # Architecture
 
-> **Primary-track update:** the active Version-5 system is one assisted recurrent teacher trained
+> **Primary-track update:** the active Version-5.2 system is one assisted recurrent teacher trained
 > by PPO across four emulator environments. Its training aids are explicit and will be removed in
 > a later pixels-only student and power-on evaluation. Existing pixels-only, random,
 > quality-diversity, checkpoint, and verify-only learners remain reproducible comparisons. See
@@ -127,9 +127,12 @@ boundaries remain separately declared for every lane. See
 
 The pixels-only PPO schema contains two processed 72 × 80 grayscale frames plus one-hot encodings
 of three previous actions. Version 5's assisted teacher appends a two-plane 64 × 64 visited/current
-map, next-goal one-hot, three-way skill hint, and normalized map/goal context. Version 5.1 expands
+map, next-goal one-hot, three-way skill hint, and normalized map/goal context. Version 5.1 expanded
 that context with the next map and distance on the shortest certified-or-observed route to the
 active goal. Its signed route potential pays net progress and removes equal credit for reversal.
+Version 5.2 extends the disclosed trainer topology only through Pewter Gym and adds trainer-only,
+bounded credit when movement resumes after a stationary navigation trap. It does not expose the
+trap type or a recovery button to the actor.
 The privileged
 comparator appends 24 normalized values instead. All three are described in
 [Parallel recurrent PPO](parallel-ppo.md); reward-only fields remain on the referee side.

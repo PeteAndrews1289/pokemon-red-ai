@@ -14,14 +14,16 @@
 > preserves three fresh power-on replays for every named promotion. Frontier Apprentice and four
 > generations of recurrent PPO then extended the curriculum through Route 1. Version 4 produced
 > the first PPO promotion into Viridian City. Version 5 then verified the Mart and Oak's Parcel.
-> The active gate is Version 5.1's explicitly assisted return curriculum: Route 1, Pallet Town,
-> Oak's Lab, and Parcel delivery, followed by student distillation and an unassisted power-on exam.
+> Version 5.1 then verified Pallet Town, Oak's Lab, Parcel delivery, and the Pokédex before a
+> 3,035,252-action plateau. The active gate is Version 5.2's explicitly assisted chapter curriculum
+> through Route 2, Viridian Forest, Pewter City, and Pewter Gym, followed by student distillation
+> and an unassisted power-on exam.
 
 ### Implementation ledger
 
 | Completion foundation | State | Evidence boundary |
 | --- | --- | --- |
-| Ordered named milestone catalogue | ✅ Implemented and tested | 59 read-only outcomes, including mandatory keys/HMs and Parcel return stages; does not imply an agent reached any of them |
+| Ordered named milestone catalogue | ✅ Implemented and tested | 66 read-only outcomes, including mandatory keys/HMs, Parcel return stages, and the complete map-level road to Pewter Gym; does not imply an agent reached any of them |
 | Strict Hall-of-Fame condition | ✅ Implemented and tested | Champion event and Hall-of-Fame map must coincide |
 | Private snapshot/action store | ✅ Implemented and tested | ROM/version/payload, parent, frame, depth, cell, lineage, and audit hashes fail closed |
 | Mandatory power-on replay semantics | ✅ Real-ROM integration checked | A deliberately false Hall-of-Fame cell is rejected even when its snapshot and screen hashes replay exactly |
@@ -33,7 +35,8 @@
 | Visual Apprentice v1 | ✅ Local development curriculum complete | Stage 0 replayed the exact route; the adaptive reverse curriculum then completed seven rungs and two final 29/30 windows; no held-out H2 claim |
 | Recurrent PPO curriculum | ✅ Viridian City verified | Version 4 promoted a 2,109-action suffix after one edge and three power-on replays; this is checkpoint-assisted H3 evidence |
 | Version 5 assisted teacher | ✅ Closed at Oak's Parcel | Three replay-verified promotions reached the Mart and Parcel; the run also exposed obsolete lesson reward after completion |
-| Version 5.1 active-goal return curriculum | 🟨 Current qualification | Three Parcel-qualified return checkpoints, bidirectional certified routes, and signed route potential address fetch quests without claiming a pixels-only result |
+| Version 5.1 active-goal return curriculum | ✅ Closed at the Pokédex | Six promotions verified the complete return errand; 3,035,252 later actions without Forest progress define the successor problem |
+| Version 5.2 northbound chapter curriculum | 🟨 Current qualification | Ten map-level steps lead from the Pokédex through Pewter Gym, with bounded trap-recovery credit and no pixels-only claim |
 | Pixels-only student and clean exam | ⬜ Not started | Teacher trajectories may become self-generated demonstrations, but H5 requires frozen restore-free power-on attempts without the aids |
 
 ## The destination

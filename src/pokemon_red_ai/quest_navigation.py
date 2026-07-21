@@ -32,6 +32,27 @@ CERTIFIED_MAP_EDGES = frozenset(
     }
 )
 
+# Version 5.2's explicitly disclosed lesson plan extends only through the first Gym. Unlike the
+# certified edges above, these transitions come from the supported game's source-verified map
+# topology. They tell the assisted teacher which map comes next, never which tile or button to use.
+CURRICULUM_MAP_EDGES = frozenset(
+    {
+        (int(PokemonRedMap.VIRIDIAN_CITY), int(PokemonRedMap.ROUTE_2)),
+        (int(PokemonRedMap.ROUTE_2), int(PokemonRedMap.VIRIDIAN_FOREST_SOUTH_GATE)),
+        (
+            int(PokemonRedMap.VIRIDIAN_FOREST_SOUTH_GATE),
+            int(PokemonRedMap.VIRIDIAN_FOREST),
+        ),
+        (
+            int(PokemonRedMap.VIRIDIAN_FOREST),
+            int(PokemonRedMap.VIRIDIAN_FOREST_NORTH_GATE),
+        ),
+        (int(PokemonRedMap.VIRIDIAN_FOREST_NORTH_GATE), int(PokemonRedMap.ROUTE_2)),
+        (int(PokemonRedMap.ROUTE_2), int(PokemonRedMap.PEWTER_CITY)),
+        (int(PokemonRedMap.PEWTER_CITY), int(PokemonRedMap.PEWTER_GYM)),
+    }
+)
+
 
 # Story and interaction goals do not always carry a map condition. These locations are disclosed
 # only after the corresponding place has already entered the verified curriculum.
@@ -59,9 +80,7 @@ def goal_target_maps(progress: MilestoneProgress) -> tuple[int, ...]:
         return ()
     milestone = MILESTONES[progress.index]
     conditioned = {
-        int(map_id)
-        for condition in milestone.conditions
-        for map_id in condition.map_ids
+        int(map_id) for condition in milestone.conditions for map_id in condition.map_ids
     }
     return tuple(sorted(conditioned)) or STORY_GOAL_MAPS.get(goal_key, ())
 
@@ -70,7 +89,11 @@ def _graph(
     observed_edges: Iterable[tuple[int, int]],
 ) -> dict[int, set[int]]:
     adjacency: dict[int, set[int]] = {}
-    for first, second in (*CERTIFIED_MAP_EDGES, *tuple(observed_edges)):
+    for first, second in (
+        *CERTIFIED_MAP_EDGES,
+        *CURRICULUM_MAP_EDGES,
+        *tuple(observed_edges),
+    ):
         first, second = int(first), int(second)
         adjacency.setdefault(first, set()).add(second)
         adjacency.setdefault(second, set()).add(first)
