@@ -125,6 +125,23 @@
   run's self-generated visual targets at declared milestones. That is goal-conditioned
   hierarchical control with no authored quest direction or controller actions, not unaided
   pixel-only autonomy; any Hall-of-Fame claim must name the switching protocol.
+- Ran the hardened code from clean commit `4c3c1fc` as
+  `parallel-ppo-v8-canary-20260721-seed20260792`. The one-environment canary started from random
+  power-on, stopped and resumed cleanly twice, and ended by request at 3,584 Explorer actions.
+- The Explorer reached milestone index 4, `met_professor_oak`, and produced four verified,
+  replay-distilled skills. Distillation retained 1,528 of 1,537 actions after eight accepted and
+  eight rejected edits; 24 oracle calls replayed 7,653 actions.
+- The Student completed 51 replay rounds and 134 optimizer updates. Final action NLL was 2.07149
+  and accuracy was 13.7795%. It passed 0/7 checkpoint-separated frozen exams, leaving zero
+  competent skills and therefore zero eligible composition attempts. This supersedes the earlier
+  canary as current wiring evidence, but it does not qualify useful learning.
+- Exercised the bounded replay path on real run artifacts. The final round selected four of five
+  shards, loaded 1,016 loss-bearing examples plus eight loss-free context examples, completed at
+  least five full coverage cycles, and opened zero full skill artifacts during routine replay.
+  Persistent cursors and the two-shard skill survived both resumes.
+- Locked a read-only, path-free V7 comparison snapshot at 7,442,496 actions and milestone index 8,
+  `Reached Viridian City`. V7 remained running unchanged; the lock is a provenance anchor rather
+  than a matched-budget or terminal comparison.
 
 ## 2026-07-21 — We had become the walkthrough
 

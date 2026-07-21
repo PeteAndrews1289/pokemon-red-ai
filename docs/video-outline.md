@@ -48,6 +48,10 @@
 > decide competence. The first real-ROM canary now gives this planned chapter a mechanism beat:
 > distillation, separate updates, frozen attempts, and two clean resumes worked for `game_started`.
 > Its duplicate deterministic attempts are now explicitly superseded as robustness evidence. The
+> clean committed canary supplies the stronger visual: four orange discovery cards light up through
+> Oak's lab, then all seven blue exam tiles turn red. It survived two resumes and bounded replay
+> worked, but the Student learned no qualified skill. Discovery is progress; a library is not
+> competence. The
 > corrected visual is one grade, then 16,384 Explorer actions, then a new Student checkpoint; 8/10
 > spans ten versions. It does not yet supply the learning payoff; chance and useful later skills
 > remain untested.

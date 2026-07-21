@@ -28,7 +28,9 @@ searching, but a separate recurrent Student studies replay-distilled self-genera
 and replay-verified bounded handoffs between locally competent skills. It earns competence only in
 checkpoint-separated frozen exams. Its first 5,248-action real-ROM canary passed the
 mechanism and clean-resume gate on `game_started`; it did not test causal learning or useful later
-gameplay.
+gameplay. The later clean-commit canary discovered four skills through Oak's lab and exercised
+bounded replay across two resumes, but passed 0/7 frozen Student exams. The mechanism is qualified;
+useful learning is not.
 
 ## Start here
 

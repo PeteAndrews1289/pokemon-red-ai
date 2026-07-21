@@ -22,12 +22,13 @@
 > jobs: wander noisily for PPO and memorize every action in a lucky verified trace. V8 keeps the
 > live V7 run unchanged as the denominator, gives discovery to four orange Explorers, and gives
 > retention to a separate blue Student. Replay—not the host—decides which loops can be removed.
-> Training loss stops at an exam door: only frozen attempts can mark a skill competent. V8's first
-> real-ROM canary passed that mechanism and two clean resumes for the trivial `game_started`
-> outcome. That is the wiring scene, not the learning payoff: it did not isolate Student training
-> from chance or test useful later gameplay. Its duplicate deterministic 2/2 is now superseded even
-> as robustness evidence. The corrected story waits 16,384 Explorer actions, freezes the next
-> Student version, and collects exactly one grade; 8/10 must span ten checkpoints.
+> Training loss stops at an exam door: only frozen attempts can mark a skill competent. The first
+> real-ROM canary qualified that mechanism on the trivial `game_started` outcome. The final
+> committed canary got farther: its Explorer followed Oak into the lab and left four verified
+> lessons behind. But the exam door stayed shut—seven frozen attempts, seven failures. That
+> contrast is the point of V8: discovery and a growing lesson library are visible progress, while
+> neither is allowed to masquerade as learning. The corrected story waits 16,384 Explorer actions,
+> freezes the next Student version, and collects exactly one grade; 8/10 must span ten checkpoints.
 
 ## The question
 
@@ -50,9 +51,9 @@ journey without those restores before the project says one model learned the gam
 
 ## Where the project honestly stands
 
-**The checkpoint expedition has replayed named transitions, and V8's first mechanism canary ran
-frozen attempts successfully; no self-taught policy has passed a production multi-skill or
-whole-game evaluation.**
+**The checkpoint expedition has replayed named transitions, and the committed V8 canary built four
+self-generated lessons through Oak's lab; its Student failed all seven frozen exams, and no
+self-taught policy has passed a production multi-skill or whole-game evaluation.**
 
 Phase 0 built the measuring instrument: a reproducible emulator harness that can start the exact
 same game, issue timed controller inputs, observe a small and disclosed slice of state, restore an
@@ -86,7 +87,7 @@ test sequence used to prove that the laboratory works.
 | Has checkpoint-assisted PPO completed Oak's errand? | Yes. V5.1 replay-verified the Pokédex by action 402,320, but this is an assisted training lineage rather than one clean-start policy. |
 | Did V5.2 teach one model to compose those steps? | Not demonstrated. It verified Oak's Lab exit and Route 1, but its replay gate tested stored actions rather than the current policy's complete behavior. |
 | Is V7 being replaced mid-run? | No. It continues under its original shared-policy, raw-trace rules. Fresh V8 can lock one path-free, hash-matched V7 checkpoint; resume cannot move that denominator. |
-| What does V8 change? | It separates PPO exploration from a recurrent Student, replay-distills only self-generated trajectories, and collects one deterministic grade per Student checkpoint. A 5,248-action canary qualified wiring on `game_started`; its duplicate results do not prove robustness or causal learning. |
+| What does V8 change? | It separates PPO exploration from a recurrent Student, replay-distills only self-generated trajectories, and collects one deterministic grade per Student checkpoint. The clean 3,584-action canary reached Oak's lab and built four lessons but passed 0/7 frozen exams; mechanism is qualified, useful learning is not. |
 | What comes next? | Test multiple prerequisite skills under the production window, add a hard-crash twin, and compare frozen behavior against chance and unchanged V7 without demonstrations or authored obstacle rewards. |
 
 Keeping this table current is part of the project. A small true claim is more valuable than a large

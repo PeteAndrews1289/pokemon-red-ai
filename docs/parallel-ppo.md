@@ -3,9 +3,10 @@
 > **Status:** Versions 4–6 established replay-verified PPO discovery, assisted lessons, and the
 > distinction between a stored lineage and one-policy competence. Version 7 is the live
 > random-start, self-generated denominator. Version 8 keeps that no-imported-solution boundary but
-> separates four PPO Explorers from a replay-distilled recurrent Student and frozen examiner. V8
-> now passes a 5,248-action real-ROM mechanism and two-clean-resume canary on one trivial
-> `game_started` skill. That qualifies the pipeline, not causal learning or later-game behavior.
+> separates four PPO Explorers from a replay-distilled recurrent Student and frozen examiner. A
+> clean source-bound V8 canary reached Oak's lab, created four distilled skills, and survived two
+> resumes, but passed 0/7 frozen exams. That qualifies the pipeline, not causal learning or
+> later-game behavior.
 
 ## Why this lane exists
 

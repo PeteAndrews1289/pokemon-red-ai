@@ -3,9 +3,10 @@
 > **Primary-track update:** the running Version 7 trial remains unchanged as the denominator.
 > Version 8 preserves its random, no-demonstration, self-generated boundary while separating four
 > PPO Explorers from a recurrent Student. Only replay-verified and replay-distilled discoveries may
-> train the Student; frozen exams, not training reward, grade competence. Its first real-ROM canary
-> qualified the mechanism and two clean resumes on one trivial `game_started` skill. It did not
-> establish causal learning, multi-skill retention, or later-game progress. See
+> train the Student; frozen exams, not training reward, grade competence. A clean source-bound
+> canary qualified the mechanism, two resumes, four-skill library, and bounded replay through Oak's
+> lab. It passed 0/7 frozen exams, so it did not establish causal learning, multi-skill retention,
+> or later-game progress. See
 > [Version 8](version-8-distilled-student.md).
 
 ## Active Version-8 boundary

@@ -48,6 +48,15 @@
 - Preserved the original canary's 2/2 local and 14/14 power-on duplicate deterministic attempts as
   historical mechanism wiring only. They are explicitly superseded and provide no robustness
   evidence, chance comparison, later skill, production competence, or Hall-of-Fame behavior.
+- Passed a clean-source V8 canary from commit `4c3c1fc`. It started from random power-on, survived
+  two stop/resume cycles, and ended by request at 3,584 Explorer actions after reaching milestone
+  index 4, `met_professor_oak`, with four verified and distilled skills.
+- Recorded the negative learning result without promotion: 51 Student rounds and 134 optimizer
+  updates ended at NLL 2.07149, 13.7795% action accuracy, and 0/7 frozen exams. No skill was
+  competent and no composition attempt was eligible.
+- Qualified bounded replay on the canary artifacts: the final round selected four of five shards,
+  loaded 1,016 loss-bearing plus eight loss-free context examples, completed at least five coverage
+  cycles, and opened zero full skill artifacts during routine replay.
 - Changed V8 grading to exactly one deterministic attempt per Student checkpoint. The rolling
   10-wide, 8/10 competence window now spans ten distinct checkpoints and Student versions; the
   cadence is 16,384 Explorer actions, never ten duplicate resets in one exam round.

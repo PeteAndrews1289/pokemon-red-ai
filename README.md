@@ -56,17 +56,17 @@ trials compare learned or optimized emitters under the same checkpoint and repla
 > removes only loops and chunks whose deletion still reaches the same protected outcome; and a
 > separate recurrent Student trains on those distilled, self-generated sequences. Periodic frozen
 > exams—not training loss—decide competence. The already-running V7 trial remains unchanged as the
-> denominator. V8's first 5,248-action real-ROM canary now passes the mechanism and clean-resume
-> gate: one 256-action `game_started` edge distilled to 254 replay-verified actions; a separate
-> Student completed eight updates; its model, optimizer, and ledger hashes survived two clean
-> resumes; and the historical runner repeated deterministic local and power-on attempts. The old
-> 2/2 local result is now explicitly superseded as robustness evidence: current V8 records exactly
-> one deterministic grade per Student checkpoint, every 16,384 Explorer actions, and builds its
-> 8/10 window across ten distinct Student versions. Because the canary tested only the trivial first
-> milestone with no chance comparison, it is pipeline evidence—not evidence that Student training
-> caused useful learning. At
-> `2026-07-21T17:29:11Z`, unchanged V7 was at 6,466,564 actions, Route 1, seven discoveries, and
-> zero competent skills, with 19/1,274 rehearsals and 66,560 imitation examples. See
+> denominator. The first 5,248-action real-ROM canary qualified the basic mechanism and clean
+> resume on one trivial `game_started` edge. A second, source-bound canary from clean commit
+> `4c3c1fc` began from random power-on, survived two more stop/resume cycles, and independently
+> discovered and distilled four transitions through Oak's lab in 3,584 Explorer actions. It also
+> passed 0/7 frozen Student exams: action accuracy ended at 13.78%, no skill became competent, and
+> composition correctly remained ineligible. That split result is the current headline—the V8
+> machinery can build bounded, auditable lessons, but useful Student learning is still unproved.
+> Current V8 records exactly one deterministic grade per Student checkpoint, every 16,384 Explorer
+> actions, and builds its 8/10 window across ten distinct Student versions. The clean canary locked
+> an unchanged V7 snapshot at 7,442,496 actions and Viridian City; it is a provenance anchor, not a
+> matched-budget result. See
 > [Separate discovery from learning](docs/version-8-distilled-student.md).
 
 The current code preserves every historical runner, including Monkey, Archivist, online learners,
@@ -111,7 +111,7 @@ control. The next learned-policy design is frozen in
 | Preserved random comparison | Monkey vs. pixels-only Archivist under matched budgets |
 | Completed 90-minute pretrial | Evolution reached tier 1; online learners plateaued around Pallet Town and Route 1 |
 | Concluded neural experiment | Six inherited-archive lanes all failed the second-map/party gate under equal fuel |
-| Current completion work | V8's mechanism and clean resume are qualified on one trivial skill; final-audited grading now collects one deterministic result per Student checkpoint before any multi-skill or causal claim |
+| Current completion work | V8's committed mechanism, two resumes, four-skill library, and bounded shard replay are qualified; 0/7 frozen exams mean Student competence and composition remain unproved |
 | North star | First discover a replayable Hall-of-Fame lineage, then train and evaluate one frozen pixel policy |
 
 ## The journey
@@ -192,14 +192,15 @@ Version 8 keeps the same ban on imported solutions while separating roles. Explo
 candidate experience; only exact self-generated replays may become Student data. A replay oracle
 must approve every loop or chunk deletion, and a separate recurrent Student optimizer trains on
 balanced contiguous sequences with burn-in. Prerequisite-aware frozen exams can grant or revoke
-local competence. A 5,248-action real-ROM canary has qualified that mechanism, including two clean
-resumes, one replay-distilled `game_started` edge, eight separate-Student updates, a shortened 2/2
-local check, and repeated power-on attempts of only that first trivial outcome. Those deterministic
-duplicates are preserved as historical wiring evidence and excluded from robustness language.
-Current grading permits one attempt per Student checkpoint at a 16,384-Explorer-action cadence; an
-8/10 competence window therefore spans ten different Student versions. Those grades still do not
-isolate learning from chance or support any later-game claim; V7 continues under its original
-configuration so a future comparison remains honest.
+local competence. The historical 5,248-action canary qualified the basic mechanism and resume path
+on one trivial skill; its duplicate grades remain only as wiring evidence. The clean post-commit
+canary then reached Oak's lab, produced four distilled skills, ran 51 Student rounds and 134
+optimizer updates, exercised persistent bounded-shard coverage across two resumes, and opened zero
+full skill datasets during routine replay. Its decisive behavioral result was still 0/7 frozen
+exams and zero competent skills. Current grading permits one attempt per Student checkpoint at a
+16,384-Explorer-action cadence; an 8/10 competence window therefore spans ten different Student
+versions. Neither canary isolates learning from chance or supports a later-game claim; V7 continues
+under its original configuration so a future comparison remains honest.
 
 V8 now trains the missing handoff between local skills as well as the skills themselves. When two
 or more adjacent skills are competent, it streams the deepest competent chain once from exact

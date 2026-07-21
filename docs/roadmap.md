@@ -11,8 +11,9 @@
 > skills produced only by the same run's verified discoveries. Version 8 is the active engineering
 > successor. It keeps those information rules, leaves the V7 run untouched, separates PPO
 > exploration from a recurrent Student, distills only replay-preserving edits, and moves competence
-> into frozen exams. Its first 5,248-action real-ROM mechanism and clean-resume canary passed on one
-> trivial `game_started` skill. That qualifies wiring, not learning or later-game progress.
+> into frozen exams. The clean source-bound canary reached Oak's lab, created four distilled skills,
+> and survived two resumes, but passed 0/7 frozen exams. That qualifies wiring, not learning or
+> later-game progress.
 
 ## Completed blind-discovery arc
 
@@ -82,7 +83,9 @@
 28. 🟨 Pass algorithm, real-ROM mechanism, frozen-exam, crash-twin, and production-shaped canaries.
     The first mechanism/frozen-exam/clean-resume canary passed at 5,248 actions. A later stored-action
     real-ROM test accepted the corrected two-skill save/load-stable composition verifier and
-    rejected wrong endpoints. A hard-crash twin, ten-distinct-checkpoint 8/10 window, and learned
+    rejected wrong endpoints. The clean committed canary then discovered four skills through Oak's
+    lab and exercised bounded multi-shard replay across two resumes, but passed 0/7 frozen exams.
+    A hard-crash twin, production-shaped long run, ten-distinct-checkpoint 8/10 window, and learned
     multi-skill behavior remain. Its old duplicate 2/2 is superseded as robustness evidence. Do not
     convert wiring into learning.
 29. ⬜ Run matched V7/V8 analysis after the V7 denominator closes; show raw/compressed actions,

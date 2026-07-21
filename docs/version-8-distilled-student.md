@@ -4,16 +4,15 @@ Version 8 is the engineering successor to Version 7's self-taught experiment. It
 human route, a scripted planner, or the assisted lesson graph. It keeps the new-player premise and
 changes the machinery used to remember an earned success.
 
-> **Status on 2026-07-21:** the V8 implementation has passed its first real-ROM mechanism and clean
-> stop/resume canary. One trivial `game_started` skill exercised self-generated distillation, the
-> separate Student optimizer, frozen local exams, power-on composition, and hash-bound resume. This
-> validates the pipeline, not useful learning: the run did not reach later gameplay, did not compare
-> against chance, and did not establish that Student training caused its successes. Its repeated
-> 2/2 local attempts came from one deterministic Student version and are now explicitly superseded
-> as a robustness measure. Current V8 permits exactly one deterministic grade per Student
-> checkpoint. The
-> already-running V7 trial remains untouched as the denominator. Its final result must be reported
-> under V7's original rules, even if V8 later performs better.
+> **Status on 2026-07-21:** V8 has passed mechanism, bounded-replay, source-binding, and clean
+> stop/resume canaries on the real ROM. The latest canary started from random weights and power-on
+> under clean commit `4c3c1fc`, discovered and distilled four transitions through Oak's lab, trained
+> the separate Student, exercised a multi-shard skill with loss-free recurrent context, and resumed
+> cleanly twice. It also failed all 7 frozen Student exams; final action accuracy was 13.78%, and no
+> skill became competent or eligible for composition. This is stronger pipeline evidence, not
+> useful-learning evidence. Current V8 permits exactly one deterministic grade per Student
+> checkpoint. The already-running V7 trial remains untouched as the denominator. Its final result
+> must be reported under V7's original rules, even if V8 later performs better.
 
 The central question is:
 
@@ -651,7 +650,7 @@ real-ROM crash twin, a ten-distinct-checkpoint competence window, a learned mult
 exam, or a long comparison. Passing engineering gates proves the mechanism is wired and
 recoverable. It does not prove that the Student learns useful Pokémon behavior.
 
-## First real-ROM qualification canary
+## Earlier wiring canary (historical)
 
 Run `parallel-ppo-v8-resume-canary-20260721-seed20260791` started from the declared V8 boundary,
 stopped and resumed cleanly twice, and then ended for `stop_requested`. It completed 5,248 Explorer
@@ -683,7 +682,43 @@ The corrected protocol must accumulate one grade from each later Student checkpo
 says nothing about leaving the bedroom, navigating Route 1, retaining multiple prerequisites,
 completing Oak's errand, or reaching the Hall of Fame.
 
-### Live V7 denominator at the qualification snapshot
+## Clean post-commit canary: more discoveries, no learned skill yet
+
+Run `parallel-ppo-v8-canary-20260721-seed20260792` tested the hardened implementation from exact
+clean commit `4c3c1fc8296e75071aefd5006b15663053579023`. It used one Explorer environment, random
+initial parameters, power-on only, an 8,192-action safety ceiling, and deliberately accelerated
+512-action frozen exams. It began at `2026-07-21T18:42:15.855674Z`; the process was stopped after
+2,049 actions, resumed, stopped again after 3,010, resumed a second time, and finally stopped
+cleanly at 3,584 actions at `2026-07-21T18:44:36.033311Z`. No predecessor policy, action trace, or
+curriculum artifact entered the run.
+
+| Measure | Canary result | Honest interpretation |
+| --- | ---: | --- |
+| Runtime | 95.26 s at 37.62 Explorer actions/s | Includes replay, Student training, exams, checkpoints, and two resumes; it is not a throughput benchmark |
+| Furthest discovery | Index 4, `met_professor_oak` | The Explorer independently reached Oak's lab; this is discovery, not Student competence |
+| Verified and distilled skills | 4 / 4 | Enough to exercise prerequisite and balanced replay over multiple skills |
+| Raw → distilled actions | 1,537 → 1,528 | Eight edits passed, eight failed, and 24 oracle calls replayed 7,653 actions |
+| Student training | 51 rounds / 134 optimizer updates | The isolated Student and optimizer performed sustained work |
+| Final Student fit | NLL 2.07149 / accuracy 13.78% | Accuracy is near the 12.5% uniform-choice reference; fitting is not yet convincing |
+| Frozen local exams | 0/7 | No skill became competent; this is the decisive behavioral result |
+| Restore-free composition | 0 attempts | Correctly remained ineligible because no prerequisite skill was competent |
+| Bounded replay | 4 selected of 5 shards; 1,016 owned + 8 context examples | A 2-shard skill loaded its second shard with predecessor context and no loss on that context |
+| Cursor persistence | Minimum 5 complete coverage cycles | All skill cursors advanced across training and both resumes |
+| Full source artifacts opened | 0 during routine replay | The bounded-I/O promise held; full datasets remained provenance-only |
+| Resume integrity | Two clean stop/resume cycles | Explorer, Student, optimizer, ledger, shards, and counters remained compatible |
+
+The canary locked a path-free, read-only V7 snapshot at 7,442,496 actions. V7 had reached index 8,
+`reached_viridian_city`, and was still running under its original protocol. That snapshot is an
+identity and provenance check, not a matched-budget comparison: V8 stopped at 3,584 actions and
+used deliberately accelerated exam and replay settings.
+
+The narrative result is deliberately two-sided. The new system can convert several accidents into
+auditable, bounded training material and survive interruption. The Student did not yet reproduce
+even the earliest skill under a frozen grade. The next long run therefore tests whether more
+checkpoint-separated practice creates a trend above chance; it does not begin from the premise
+that V8 already learns.
+
+### Earlier live V7 denominator snapshot
 
 At `2026-07-21T17:29:11Z`, the unchanged V7 run had completed 6,466,564 actions and remained on
 Route 1. It held seven discoveries, zero competent skills, 19 successful rehearsals in 1,274
