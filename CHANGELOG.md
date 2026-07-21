@@ -2,6 +2,24 @@
 
 ## Unreleased — parallel recurrent PPO
 
+- Added Version 7's demo-free self-taught mode. It requires random neural initialization, retains
+  only the unique verified power-on snapshot, and rejects predecessor policies and consolidation.
+- Added self-generated visual skills. Replay-verified transitions save their own terminal screen,
+  reconstructed pixel/action examples, source state, action count, and integrity hashes.
+- Added direct recurrent-policy self-imitation using only the current run's successful actions,
+  balanced rehearsal of up to eight skills, weakest-skill scheduling, and rolling 8/10 competence.
+- Removed authored quest direction from V7 reward: milestone, Mart, active-route, and landmark-
+  recovery components are explicitly zero. The actor receives pixels, recent actions, and only a
+  self-discovered target screen during rehearsal.
+- Added dashboard and narrative measures for discovered skills, competent skills, weakest-skill
+  window, imitation updates, and examples.
+- Passed 187 tests with the private ROM, including a real recurrent self-imitation gradient update
+  and restart-safe pending self-imitation state.
+- Passed the first 8,192-action, four-worker V7 canary from random parameters and power-on only. It
+  discarded 25 inherited entries, imported zero parameters/actions, replay-verified game start and
+  the ground floor, created two skills, trained eight imitation updates over 2,048 examples, and
+  reproduced the ground-floor skill once with zero verification failures and matching hashes.
+
 - Added Version 6 retained-policy consolidation. A new campaign may import one clean, hash-valid,
   architecture-compatible Version-5.2-or-later PPO policy and optimizer instead of restarting from
   the Frontier Apprentice seed.
@@ -29,6 +47,9 @@
 - Launched the first declared 24-hour V6 run with V5.2's exact policy and optimizer, four workers,
   a 50/50 frontier-to-consolidation split, an 8/10 rolling gate, and the 150-million-action safety
   ceiling. The initial gate connects `left_oaks_lab_with_pokedex` to Route 1.
+- Closed that V6 diagnostic at 1,001,476 actions, 978 updates, 390 episodes, and 72m 51s. Across 206
+  earlier-start attempts it reached Route 1 11 times and ended at 5/10 in the rolling window, below
+  the required 8/10. No backward gate or power-on gate passed.
 
 - Closed Version 5.1 cleanly after 3,437,572 actions, 3,357 PPO updates, 1,900 episodes, and six
   verified promotions. It reached the Pokédex at action 402,320 with a 10,819-action complete

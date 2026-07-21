@@ -1,9 +1,8 @@
 # Parallel recurrent PPO
 
-> **Status:** Version 4 ended cleanly after 1,776,644 actions and produced the project's first PPO
-> promotion, a replay-verified arrival in Viridian City. Version 5 is the current assisted-teacher
-> experiment. It adds an episodic map memory, a declared current lesson, and bounded micro-rewards,
-> while reserving the eventual power-on, assistance-free frozen student as the completion test.
+> **Status:** Versions 4–6 established replay-verified PPO discovery, assisted lessons, and the
+> distinction between a stored lineage and one-policy competence. Version 7 is the active successor:
+> random parameters, power-on only, and self-generated visual skills with no imported solution.
 
 ## Why this lane exists
 
@@ -48,7 +47,7 @@ This is an influence record, not a claim that the implementations or results are
 
 ## Information boundaries
 
-The code supports three actors so the project can measure the value of assistance and privileged
+The code supports four actors so the project can measure the value of assistance and privileged
 state without quietly mixing either into the pixels-only claim.
 
 | Lane | Actor receives | Trainer/referee may inspect | Honest label |
@@ -56,6 +55,11 @@ state without quietly mixing either into the pixels-only claim.
 | Pixels | Two 72 × 80 grayscale frames and three recent actions | Documented RAM for reward, termination, curriculum, and replay | `PIXEL-ACTOR / PRIVILEGED-TRAINING-REFEREE / PPO / ARCHIVE-RESTORE` |
 | Assisted teacher | The pixel input above, an episodic 64 × 64 visited-position map, next-milestone one-hot, coarse navigation/interaction/battle lesson, and normalized map/goal context | The same referee fields | `PIXEL+TRAINER-MAP+GOAL-ACTOR / PPO / ARCHIVE-RESTORE / TEACHER` |
 | Privileged comparator | The pixel input above plus 24 normalized state values | The same referee fields | `PIXEL+RAM-ACTOR / PPO / ARCHIVE-RESTORE / COMPARATOR` |
+| Self-taught | The pixel input, three recent actions, and during rehearsal only a terminal screen reached by the same run | General novelty, loop detection, replay grading, and skill scheduling | `SELF-TAUGHT / RANDOM-START / PIXELS+SELF-VISUAL-GOAL / NO-IMPORTED-ACTIONS` |
+
+The self-taught lane deletes all inherited curriculum entries except the clean power-on root and
+initializes a new recurrent policy randomly. Milestone labels and active routes remain referee
+measurements only; their rewards are zero. See [Version 7](version-7-self-taught.md).
 
 The 24-value comparator vector contains game-start state, map and coordinates, party size, battle
 kind, individual badge bits, maximum party level, Pokédex counts, event count, bag count, Pokédex

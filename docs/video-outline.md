@@ -35,6 +35,12 @@
 > can be assembled from successful fragments without one current policy knowing the whole chain.
 > Version 6 draws two lines: how far the archive has ever discovered, and how far backward one
 > retained model can reliably connect that discovery.
+> Its first line begins at 0/10 and eventually reaches 5/10, but never passes the promised 8/10
+> gate in one million actions. Partial learning without reliable composition is the moment to admit
+> the project has become a sequence of host-authored lessons. Version 7 erases the inherited policy, imported trajectories, later
+> checkpoints, and route reward. The new protagonist begins at power-on with random weights and can
+> study only successes it generated itself. Its first canary unexpectedly reaches the ground floor,
+> giving the story a genuine restart rather than another patched obstacle.
 
 This document is a production guide for telling the project's story without getting ahead of the
 evidence. The detailed Episode 0 section preserves the original before-training production plan;
@@ -67,8 +73,9 @@ the next test, and lets the evidence change the plan.
 | 6. The road back | What happens when the correct progress is through familiar territory? | Parcel return checkpoints, active-goal reward accounting, and an honest test of route reuse |
 | 7. Ten steps north | Can chapter-scale lessons compose navigation, gates, encounters, and a Gym? | A replay-verified Boulder Badge or the exact step where the curriculum fails |
 | 8. One brain, not a scrapbook | Can one retained model connect the verified fragments as its training start moves backward? | Separate discovery and competence meters, including every failed rolling gate |
-| 9. Nature or nurture? | Which progress came from pixels, rewards, RAM, or selection? | Successor comparisons with declared information budgets |
-| 10. The clean exam | Can the assisted lineage become one frozen, restore-free pixel policy? | Every power-on attempt, intervention count, and success denominator |
+| 9. We became the walkthrough | Can the agent restart with no inherited answer and teach itself from its own discoveries? | Random-start visual skills, imitation evidence, competence windows, and the first clean-start exam |
+| 10. Nature or nurture? | Which progress came from pixels, rewards, RAM, or selection? | Successor comparisons with declared information budgets |
+| 11. The clean exam | Can the self-taught library become one frozen, restore-free policy? | Every power-on attempt, intervention count, and success denominator |
 
 Do not promise a full playthrough in the first episode. Promise an investigation with the next
 milestone close enough to be credible.

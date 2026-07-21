@@ -221,6 +221,12 @@ second, all four live frames, six completed episodes, and zero replay failures. 
 entered the consolidation window; none reached Route 1. This is not called regression or success
 yet. It is the first direct measurement of the exact capability earlier versions never required.
 
+The diagnostic closed at 1,001,476 actions, 978 PPO updates, 390 episodes, 640 reported positions,
+zero promotion failures, and 4,371.17 seconds. The fixed `left_oaks_lab_with_pokedex` → Route 1 edge
+succeeded 11 times across 206 consolidation attempts. Its final rolling window was 5/10: meaningful
+improvement from the opening 0/10, but below the predeclared 8/10 gate. The start never moved
+backward, no gate passed, and no power-on training claim was earned.
+
 ## Production questions
 
 The first long consolidation run should answer:

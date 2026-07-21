@@ -1,10 +1,36 @@
 # Architecture
 
-> **Primary-track update:** Version 6 retains one assisted recurrent PPO teacher across lessons and
-> expands its training start backward after rolling competence. Its aids will be removed in
-> a later pixels-only student and power-on evaluation. Existing pixels-only, random,
-> quality-diversity, checkpoint, and verify-only learners remain reproducible comparisons. See
-> [Parallel recurrent PPO](parallel-ppo.md).
+> **Primary-track update:** Version 7 begins with random parameters and only power-on. It imports no
+> action sequence, model, route graph, or human demonstration. A sealed referee verifies outcomes;
+> the actor turns only its own discoveries into visual-goal skills. See
+> [Version 7](version-7-self-taught.md).
+
+## Active self-taught boundary
+
+```mermaid
+flowchart LR
+    Game["Private game runtime"] --> Pixels["Current + previous pixels"]
+    Agent --> History["Three recent self-actions"]
+    Library --> Goal["Self-discovered target screen"]
+    Pixels --> Policy["Random-start recurrent policy"]
+    History --> Policy
+    Goal --> Policy
+    Policy --> Agent["Game Boy buttons"]
+    Game --> Referee["Sealed RAM referee"]
+    Referee --> Verify["Exact replay verification"]
+    Verify --> Library["Self-generated skill library"]
+    Library --> Imitate["Direct self-imitation"]
+    Imitate --> Policy
+    Referee --> Novelty["General consequence feedback"]
+    Novelty --> Policy
+```
+
+The target image is zero during open exploration. It becomes a previously observed terminal screen
+only while rehearsing a transition this same run produced and replayed. Labels, coordinates,
+routes, event flags, and earlier agents' actions never enter the actor. The unique root snapshot is
+training infrastructure; every later inherited curriculum entry is deleted before V7 begins.
+
+## Historical assisted parallel-learning boundary
 
 ## Active parallel-learning boundary
 

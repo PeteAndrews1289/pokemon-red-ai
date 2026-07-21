@@ -319,7 +319,6 @@ def build_parser() -> argparse.ArgumentParser:
     ppo.add_argument(
         "--learner",
         type=Path,
-        required=True,
         help="Frontier learner checkpoint used to warm-start the visual policy",
     )
     ppo.add_argument(
@@ -328,7 +327,9 @@ def build_parser() -> argparse.ArgumentParser:
         help="Cleanly finished PPO run whose compatible policy and optimizer are retained",
     )
     ppo.add_argument(
-        "--mode", choices=("pixels", "assisted", "privileged"), default="pixels"
+        "--mode",
+        choices=("pixels", "assisted", "privileged", "self_taught"),
+        default="pixels",
     )
     ppo.add_argument("--hours", type=float, default=8)
     ppo.add_argument("--max-actions", type=int, default=20_000_000)
@@ -353,6 +354,9 @@ def build_parser() -> argparse.ArgumentParser:
     ppo.add_argument("--consolidation", action="store_true")
     ppo.add_argument("--competence-window", type=int, default=10)
     ppo.add_argument("--competence-threshold", type=float, default=0.80)
+    ppo.add_argument("--random-initialization", action="store_true")
+    ppo.add_argument("--power-on-only", action="store_true")
+    ppo.add_argument("--self-imitation-epochs", type=int, default=2)
     ppo.add_argument("--resume", action="store_true")
 
     ppo_status = subparsers.add_parser(
@@ -820,8 +824,8 @@ def run_parallel_ppo_command(args: argparse.Namespace) -> int:
     from pokemon_red_ai.ppo_training import ParallelPpoConfig, run_parallel_ppo
 
     rom_path = resolve_rom_path(args.rom)
-    learner = args.learner.expanduser().resolve()
-    if not learner.is_file():
+    learner = None if args.learner is None else args.learner.expanduser().resolve()
+    if learner is not None and not learner.is_file():
         raise ValueError("PPO learner checkpoint does not exist")
     config = ParallelPpoConfig(
         mode=args.mode,
@@ -848,6 +852,9 @@ def run_parallel_ppo_command(args: argparse.Namespace) -> int:
         consolidation=args.consolidation,
         competence_window=args.competence_window,
         competence_threshold=args.competence_threshold,
+        random_initialization=(args.random_initialization or args.mode == "self_taught"),
+        power_on_only=(args.power_on_only or args.mode == "self_taught"),
+        self_imitation_epochs=args.self_imitation_epochs,
     )
     if args.port:
         print(

@@ -18,9 +18,11 @@ development, and Frontier Apprentice established a replay-gated self-imitation b
 successor is four-worker recurrent PPO: every rollout can now update one shared policy while the
 same verifier controls named curriculum promotion. Version 5.1 used explicit active goals to reach
 the Pokédex, then plateaued for more than three million actions. Version 5.2 turned the road from
-Oak's Lab to Pewter Gym into a visible curriculum and reached Route 1. Version 6 now retains that
-policy and expands its rehearsal start backward, so assembled lineage and one-model competence are
-visible as separate results.
+Oak's Lab to Pewter Gym into a visible curriculum and reached Route 1. Version 6 retained that
+policy but ended at 5/10—short of its 8/10 first composition gate—after one million actions.
+Version 7 now restarts from random weights and
+power-on only, using no imported actions or human demonstration. It converts only its own verified
+discoveries into visual-goal skills and directly rehearses them.
 
 ## Start here
 
@@ -37,6 +39,7 @@ visible as separate results.
 | Understand the active shared-policy learner | [Parallel recurrent PPO](parallel-ppo.md) | Four-worker PPO, pixels/RAM boundaries, verified curriculum, dense rewards, checkpoints, dashboard, and benchmark evidence |
 | Audit the current curriculum | [Version 5.2: the road to Brock](version-5-2-northbound.md) | V5.1's completed result, ten northbound lessons, recovery reward, evidence limits, and run questions |
 | Understand the composition pivot | [Version 6: remember the journey](version-6-consolidation.md) | Retained weights, backward rolling gates, canary evidence, claim boundaries, and the next imitation ablation |
+| Understand the game-naive reset | [Version 7: let a new player teach itself](version-7-self-taught.md) | Random power-on start, strict information rules, self-generated visual skills, self-imitation, canary evidence, and falsification gates |
 | Inspect the first verified expedition milestone | [Q1 `left_home` result](../experiments/q1-left-home/README.md) | Both seeds, full denominator, lineage hashes, replay cost, and why 1/2 is not a pass |
 | Audit the qualified memory substrate | [Archive v2 qualification](../experiments/archive-v2-qualification/README.md) | Bounded replay, exact resume, crash recovery, deterministic comparison, and the failed stop-timing attempt |
 | Audit every accepted and discarded idea | [Decision register](decision-register.md) | Append-only decisions, failed hypotheses, alternatives, evidence, and consequences |
@@ -73,7 +76,8 @@ flowchart LR
     I --> J["✅ Visual Apprentice<br/>one-route pipeline"]
     J --> K["✅ Frontier Apprentice<br/>verify-only baseline"]
     K --> P["✅ Parallel recurrent PPO<br/>verified slices"]
-    P --> V6["🟨 Version 6<br/>one policy consolidates"]
+    P --> V6["✅ Version 6<br/>composition failure measured"]
+    V6 --> V7["🟨 Version 7<br/>self-taught hierarchy"]
 ```
 
 The diagram shows project position, not game progress. Reaching the game-start state is a narrow

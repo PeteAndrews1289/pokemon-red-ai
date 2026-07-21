@@ -11,6 +11,13 @@
 > accident can teach a visual model. Its destination and strict claims are defined in the
 > [Hall of Fame completion program](completion-program.md).
 
+> **Latest turn:** the project drifted from observing learning into supplying a new lesson whenever
+> the agent failed. V6 made the problem measurable: its retained policy improved from 0/10 to 5/10
+> on the first connection but failed the 8/10 gate after one million actions. V7 now removes the
+> inherited brain, later checkpoints, route hints, and demonstrations.
+> A random power-on agent may train only on actions it discovered and replay-verified itself. Its
+> first tiny canary started the game and reached the ground floor without a supplied route.
+
 ## The question
 
 Can an AI learn to make meaningful progress through Pokémon Red—and can we explain what it is
@@ -66,7 +73,7 @@ test sequence used to prove that the laboratory works.
 | Can one model execute the lucky route? | Yes once: Stage 0 fit 419/419 labels, survived frozen reload, and selected the exact 419 actions from clean power-on to `left_home`. This is route memorization, not a robust skill. |
 | Has checkpoint-assisted PPO completed Oak's errand? | Yes. V5.1 replay-verified the Pokédex by action 402,320, but this is an assisted training lineage rather than one clean-start policy. |
 | Did V5.2 teach one model to compose those steps? | Not demonstrated. It verified Oak's Lab exit and Route 1, but its replay gate tested stored actions rather than the current policy's complete behavior. |
-| What comes next? | Retain one PPO policy, alternate discovery with earlier-start rehearsal, and move toward power-on only after rolling competence. |
+| What comes next? | Test whether a random power-on policy can turn its own replay-verified discoveries into competent visual-goal skills without human demonstrations or authored route rewards. |
 
 Keeping this table current is part of the project. A small true claim is more valuable than a large
 ambiguous one.

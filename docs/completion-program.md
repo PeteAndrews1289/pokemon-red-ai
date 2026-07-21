@@ -16,9 +16,11 @@
 > the first PPO promotion into Viridian City. Version 5 then verified the Mart and Oak's Parcel.
 > Version 5.1 then verified Pallet Town, Oak's Lab, Parcel delivery, and the Pokédex before a
 > 3,035,252-action plateau. Version 5.2 then verified Route 1 but exposed that replayed fragments did
-> not prove one policy retained the route. The active successor is Version 6: preserve the PPO policy
-> and optimizer, continue frontier discovery, and move a separate rehearsal start backward only
-> after rolling competence. Frozen local and unassisted power-on exams remain later gates.
+> not prove one policy retained the route. Version 6 retained the policy but closed its million-
+> action diagnostic at 5/10, below its 8/10 first composition gate. The active successor is Version
+> 7: begin again from random weights and
+> power-on only, then create visual skills solely from the run's own verified discoveries. Frozen
+> local and unassisted power-on exams remain later gates.
 
 ### Implementation ledger
 
@@ -39,6 +41,7 @@
 | Version 5.1 active-goal return curriculum | ✅ Closed at the Pokédex | Six promotions verified the complete return errand; 3,035,252 later actions without Forest progress define the successor problem |
 | Version 5.2 northbound chapter curriculum | 🟨 Current qualification | Ten map-level steps lead from the Pokédex through Pewter Gym, with bounded trap-recovery credit and no pixels-only claim |
 | Version 6 retained-policy consolidation | ✅ Engineering canary passed | One continuing PPO policy alternates discovery with backward rehearsal; its ledger separates verified frontier from rolling training competence |
+| Version 7 self-taught hierarchy | ✅ Engineering canary passed | Random power-on policy imported no actions or parameters, discovered two verified opening skills, and applied direct self-imitation; 8/10 and clean-start composition remain unproved |
 | Pixels-only student and clean exam | ⬜ Not started | Teacher trajectories may become self-generated demonstrations, but H5 requires frozen restore-free power-on attempts without the aids |
 
 ## The destination

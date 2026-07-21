@@ -42,16 +42,20 @@ from pokemon_red_ai.expedition import (
     milestone_progress_for_state,
     referee_summary_for_state,
 )
-from pokemon_red_ai.frontier_learning import FullGameRewardTracker
+from pokemon_red_ai.frontier_learning import FullGameRewardConfig, FullGameRewardTracker
 from pokemon_red_ai.milestones import HALL_OF_FAME_KEY, MILESTONE_BY_KEY, MILESTONES
 from pokemon_red_ai.provenance import detect_source_provenance
 from pokemon_red_ai.quest_navigation import route_guidance
 from pokemon_red_ai.rom import verify_rom
+from pokemon_red_ai.self_taught import (
+    SelfTaughtSkillLibrary,
+    choose_self_taught_episode,
+)
 from pokemon_red_ai.state import PokemonRedState, PokemonRedStateReader
 
-PPO_PROTOCOL = "parallel-recurrent-ppo-v6"
-PPO_REWARD_PROTOCOL = "retained-policy-backward-consolidation-v1"
-PPO_MODES = frozenset({"pixels", "assisted", "privileged"})
+PPO_PROTOCOL = "parallel-recurrent-ppo-v7"
+PPO_REWARD_PROTOCOL = "self-generated-visual-skills-v1"
+PPO_MODES = frozenset({"pixels", "assisted", "privileged", "self_taught"})
 PRIVILEGED_STATE_SIZE = 24
 ACTION_HISTORY_LENGTH = 3
 MAP_MEMORY_SIZE = 64
@@ -59,6 +63,18 @@ MAP_MEMORY_FEATURES = 64
 SKILL_COUNT = 3
 GOAL_COUNT = len(MILESTONES) + 1
 MAP_CONTEXT_SIZE = 4
+
+
+def _self_taught_reward_config() -> FullGameRewardConfig:
+    """Remove authored quest directions while retaining consequence and novelty feedback."""
+
+    return FullGameRewardConfig(
+        milestone=0,
+        lesson_navigation=0,
+        lesson_progress=0,
+        goal_navigation=0,
+        navigation_recovery=0,
+    )
 
 
 def _require_rl() -> tuple[Any, Any, Any, Any, Any, Any]:
@@ -138,10 +154,13 @@ class ParallelPpoConfig:
     consolidation: bool = False
     competence_window: int = 10
     competence_threshold: float = 0.80
+    random_initialization: bool = False
+    power_on_only: bool = False
+    self_imitation_epochs: int = 2
 
     def __post_init__(self) -> None:
         if self.mode not in PPO_MODES:
-            raise ValueError("PPO mode must be pixels, assisted, or privileged")
+            raise ValueError("PPO mode must be pixels, assisted, privileged, or self_taught")
         if self.duration_seconds <= 0 or self.max_actions < 1:
             raise ValueError("PPO budgets must be positive")
         if not 1 <= self.environments <= 16:
@@ -167,6 +186,14 @@ class ParallelPpoConfig:
             raise ValueError("PPO frontier probability must be between zero and one")
         if self.competence_window < 2 or not 0 < self.competence_threshold <= 1:
             raise ValueError("PPO competence gate settings are invalid")
+        if self.self_imitation_epochs < 1:
+            raise ValueError("PPO self-imitation epochs must be positive")
+        if self.mode == "self_taught" and (
+            not self.random_initialization or not self.power_on_only or self.consolidation
+        ):
+            raise ValueError(
+                "Self-taught PPO requires random power-on initialization without consolidation"
+            )
 
     def public_dict(self) -> dict[str, object]:
         return asdict(self)
@@ -184,6 +211,7 @@ class PpoEnvironmentConfig:
     rank: int
     frontier_probability: float
     consolidation: bool = False
+    self_taught: bool = False
     novelty_checkpoint_file: str | None = None
 
 
@@ -239,9 +267,10 @@ def _import_verified_ppo_curriculum(source_run: Path, curriculum_directory: Path
         "parallel-recurrent-ppo-v5.1",
         "parallel-recurrent-ppo-v5.2",
         "parallel-recurrent-ppo-v6",
+        "parallel-recurrent-ppo-v7",
     }:
         raise ValueError(
-            "Version 6 can import only a verified Version-4 through Version-5.2 curriculum"
+            "Version 7 can import only a verified Version-4-or-later curriculum"
         )
     source_status = json.loads((source_run / "status.json").read_text(encoding="utf-8"))
     source_checkpoint = json.loads((source_run / "checkpoint.json").read_text(encoding="utf-8"))
@@ -347,7 +376,11 @@ def _copy_retained_ppo_policy(
     checkpoint = json.loads((source_run / "checkpoint.json").read_text(encoding="utf-8"))
     manifest = json.loads((source_run / "manifest.json").read_text(encoding="utf-8"))
     source_protocol = checkpoint.get("protocol")
-    if source_protocol not in {"parallel-recurrent-ppo-v5.2", "parallel-recurrent-ppo-v6"}:
+    if source_protocol not in {
+        "parallel-recurrent-ppo-v5.2",
+        "parallel-recurrent-ppo-v6",
+        "parallel-recurrent-ppo-v7",
+    }:
         raise ValueError("Consolidation requires a Version-5.2-or-later PPO policy")
     if status.get("state") != "finished" or status.get("stop_reason") not in {
         "stop_requested",
@@ -481,6 +514,33 @@ def freeze_verified_curriculum(expedition_run: Path, curriculum_directory: Path)
         "verified_promotions": 0,
         "updated_at": datetime.now(UTC).isoformat(),
     }
+    _atomic_json(curriculum_directory / "manifest.json", manifest)
+    return manifest
+
+
+def _retain_power_on_only(curriculum_directory: Path) -> dict[str, Any]:
+    """Remove inherited lessons while retaining one verified clean-start snapshot."""
+
+    manifest = _load_curriculum_manifest(curriculum_directory)
+    roots = [entry for entry in manifest["entries"] if int(entry["milestone_index"]) == 0]
+    if len(roots) != 1:
+        raise ValueError("Fresh self-taught curriculum requires one power-on root")
+    root = roots[0]
+    retained = curriculum_directory / str(root["file"])
+    for entry in manifest["entries"]:
+        path = curriculum_directory / str(entry["file"])
+        if path != retained:
+            path.unlink()
+    manifest["discarded_inherited_entries"] = len(manifest["entries"]) - 1
+    manifest["entries"] = [root]
+    manifest["best_milestone"] = {
+        "key": "power_on",
+        "index": 0,
+        "label": "Power-on",
+    }
+    manifest["verified_promotions"] = 0
+    manifest["power_on_only"] = True
+    manifest["updated_at"] = datetime.now(UTC).isoformat()
     _atomic_json(curriculum_directory / "manifest.json", manifest)
     return manifest
 
@@ -747,10 +807,12 @@ class PokemonPpoFeatures(BaseFeaturesExtractor):
     def __init__(self, observation_space: Any) -> None:
         privileged = "state" in observation_space.spaces
         assisted = "map_memory" in observation_space.spaces
+        self_taught = "target_pixels" in observation_space.spaces
         feature_count = (
             256
             + ACTION_HISTORY_LENGTH * len(BLIND_ACTIONS)
             + (MAP_MEMORY_FEATURES + GOAL_COUNT + SKILL_COUNT + MAP_CONTEXT_SIZE if assisted else 0)
+            + (128 if self_taught else 0)
             + (PRIVILEGED_STATE_SIZE if privileged else 0)
         )
         super().__init__(observation_space, features_dim=feature_count)
@@ -767,6 +829,7 @@ class PokemonPpoFeatures(BaseFeaturesExtractor):
         )
         self.privileged = privileged
         self.assisted = assisted
+        self.self_taught = self_taught
         if assisted:
             self.map_encoder = torch.nn.Sequential(
                 torch.nn.Conv2d(2, 8, kernel_size=8, stride=4),
@@ -775,6 +838,16 @@ class PokemonPpoFeatures(BaseFeaturesExtractor):
                 torch.nn.ReLU(),
                 torch.nn.Flatten(),
                 torch.nn.Linear(16 * 6 * 6, MAP_MEMORY_FEATURES),
+                torch.nn.ReLU(),
+            )
+        if self_taught:
+            self.target_encoder = torch.nn.Sequential(
+                torch.nn.Conv2d(1, 8, kernel_size=8, stride=4),
+                torch.nn.ReLU(),
+                torch.nn.Conv2d(8, 16, kernel_size=4, stride=2),
+                torch.nn.ReLU(),
+                torch.nn.Flatten(),
+                torch.nn.Linear(16 * 7 * 8, 128),
                 torch.nn.ReLU(),
             )
 
@@ -795,6 +868,11 @@ class PokemonPpoFeatures(BaseFeaturesExtractor):
                     observations["map_context"].float(),
                 )
             )
+        if self.self_taught:
+            target = observations["target_pixels"].float()
+            if target.detach().max() > 1:
+                target = target.div(255)
+            values.append(self.target_encoder(target))
         if self.privileged:
             values.append(observations["state"].float())
         return torch.cat(values, dim=1)
@@ -836,11 +914,21 @@ class PokemonRedPpoEnvironment(gym.Env):
                     "map_context": spaces.Box(0, 1, shape=(MAP_CONTEXT_SIZE,), dtype=np.float32),
                 }
             )
+        if config.mode == "self_taught":
+            observation["target_pixels"] = spaces.Box(
+                0, 255, shape=(1, 72, 80), dtype=np.uint8
+            )
         self.observation_space = spaces.Dict(observation)
         self.emulator = PokemonRedEmulator(Path(config.rom_path)).start()
         self.reader = PokemonRedStateReader(self.emulator)
         self.reward_tracker = (
-            FullGameRewardTracker()
+            FullGameRewardTracker(
+                config=(
+                    _self_taught_reward_config()
+                    if config.self_taught
+                    else FullGameRewardConfig()
+                )
+            )
             if config.novelty_checkpoint_file is None
             else FullGameRewardTracker.from_checkpoint_dict(
                 _read_gzip_json(self.run_directory / config.novelty_checkpoint_file)
@@ -861,6 +949,8 @@ class PokemonRedPpoEnvironment(gym.Env):
         self.episode_best = 0
         self.start_mode = "frontier"
         self.episode_target_index = 0
+        self.self_skill_id: str | None = None
+        self.target_frame = np.zeros((72, 80), dtype=np.uint8)
         self.rng = random.Random(config.seed + config.rank)
 
     def _observation(
@@ -891,13 +981,32 @@ class PokemonRedPpoEnvironment(gym.Env):
                     ),
                 }
             )
+        if self.config.mode == "self_taught":
+            value["target_pixels"] = self.target_frame[None, :, :]
         self.previous_frame = current
         return value
 
-    def _choose_entry(self) -> tuple[dict[str, Any], str, int]:
+    def _choose_entry(self) -> tuple[dict[str, Any], str, int, str | None, str | None]:
         manifest = _load_curriculum_manifest(self.curriculum_directory)
         entries = list(manifest["entries"])
         best_index = max(int(item["milestone_index"]) for item in entries)
+        if self.config.self_taught:
+            library = SelfTaughtSkillLibrary.from_dict(
+                json.loads((self.run_directory / "self-skills.json").read_text(encoding="utf-8"))
+            )
+            metadata, mode, target, skill_id, target_frame = choose_self_taught_episode(
+                entries,
+                library,
+                self.rng,
+                frontier_probability=self.config.frontier_probability,
+            )
+            return (
+                _load_curriculum_entry(self.curriculum_directory, metadata),
+                mode,
+                target,
+                skill_id,
+                target_frame,
+            )
         if self.config.consolidation:
             state = BackwardConsolidation.from_dict(
                 json.loads(
@@ -910,12 +1019,24 @@ class PokemonRedPpoEnvironment(gym.Env):
                 self.rng,
                 frontier_probability=self.config.frontier_probability,
             )
-            return _load_curriculum_entry(self.curriculum_directory, metadata), mode, target
+            return (
+                _load_curriculum_entry(self.curriculum_directory, metadata),
+                mode,
+                target,
+                None,
+                None,
+            )
         frontier = [item for item in entries if int(item["milestone_index"]) == best_index]
         metadata = self.rng.choice(
             frontier if self.rng.random() < self.config.frontier_probability else entries
         )
-        return _load_curriculum_entry(self.curriculum_directory, metadata), "legacy", best_index
+        return (
+            _load_curriculum_entry(self.curriculum_directory, metadata),
+            "legacy",
+            best_index,
+            None,
+            None,
+        )
 
     def reset(
         self,
@@ -926,7 +1047,20 @@ class PokemonRedPpoEnvironment(gym.Env):
         super().reset(seed=seed)
         if seed is not None:
             self.rng.seed(seed)
-        self.start_entry, self.start_mode, self.episode_target_index = self._choose_entry()
+        (
+            self.start_entry,
+            self.start_mode,
+            self.episode_target_index,
+            self.self_skill_id,
+            target_frame_file,
+        ) = self._choose_entry()
+        self.target_frame = (
+            np.asarray(
+                Image.open(self.run_directory / target_frame_file).convert("L").resize((80, 72))
+            )
+            if target_frame_file is not None
+            else np.zeros((72, 80), dtype=np.uint8)
+        )
         snapshot = FrozenSnapshot.from_checkpoint_dict(self.start_entry["snapshot"])
         self.emulator.load_state(snapshot.thaw())
         self.start_progress = _progress_from_value(self.start_entry["progress"])
@@ -948,6 +1082,7 @@ class PokemonRedPpoEnvironment(gym.Env):
             "starting_milestone_index": self.start_progress.index,
             "start_mode": self.start_mode,
             "consolidation_target_index": self.episode_target_index,
+            "self_skill_id": self.self_skill_id,
         }
 
     def _write_frame(self) -> None:
@@ -1022,6 +1157,7 @@ class PokemonRedPpoEnvironment(gym.Env):
             "starting_milestone_index": self.start_progress.index,
             "start_mode": self.start_mode,
             "consolidation_target_index": self.episode_target_index,
+            "self_skill_id": self.self_skill_id,
             "map_id": state.map_id,
             "x": state.player_x,
             "y": state.player_y,
@@ -1095,6 +1231,138 @@ def _replay_sequence(
             referee_summary_for_state(state, progress),
             emulator.screen_sha256(),
         )
+
+
+def _collect_self_imitation_dataset(
+    rom_path: Path,
+    start_snapshot: FrozenSnapshot,
+    actions: list[int],
+    target_frame: np.ndarray,
+) -> dict[str, np.ndarray]:
+    """Replay the agent's own verified edge into exact visual/action training examples."""
+
+    if not actions:
+        raise ValueError("Self-imitation requires a non-empty verified edge")
+    pixels: list[np.ndarray] = []
+    histories: list[np.ndarray] = []
+    recent: deque[int] = deque([-1] * ACTION_HISTORY_LENGTH, maxlen=ACTION_HISTORY_LENGTH)
+    with PokemonRedEmulator(rom_path) as emulator:
+        emulator.load_state(start_snapshot.thaw())
+        current = preprocess_apprentice_frame(emulator.screen_rgb())
+        previous = current
+        for action_index in actions:
+            pixels.append(np.stack((previous, current)))
+            histories.append(_action_history(recent))
+            if not _execute_action(emulator, int(action_index)):
+                raise RuntimeError("Self-imitation replay emulator stopped")
+            recent.append(int(action_index))
+            previous = current
+            current = preprocess_apprentice_frame(emulator.screen_rgb())
+    return {
+        "pixels": np.stack(pixels).astype(np.uint8, copy=False),
+        "action_history": np.stack(histories).astype(np.float32, copy=False),
+        "target_pixels": target_frame[None, :, :].astype(np.uint8, copy=False),
+        "actions": np.asarray(actions, dtype=np.int64),
+    }
+
+
+def _atomic_self_imitation_dataset(path: Path, dataset: Mapping[str, np.ndarray]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(".tmp.npz")
+    with temporary.open("wb") as output:
+        np.savez_compressed(output, **dataset)
+        output.flush()
+        os.fsync(output.fileno())
+    os.replace(temporary, path)
+
+
+def _self_imitation_windows(length: int, width: int = 256) -> list[tuple[int, int]]:
+    if length < 1:
+        return []
+    if length <= width:
+        return [(0, length)]
+    starts = np.linspace(0, length - width, num=min(8, max(2, length // width)), dtype=int)
+    return [(int(start), min(length, int(start) + width)) for start in sorted(set(starts))]
+
+
+def _train_self_imitation_policy(
+    model: Any,
+    datasets: list[Path],
+    *,
+    epochs: int,
+) -> dict[str, Any]:
+    """Apply direct action likelihood updates on self-generated, replay-verified skills."""
+
+    from sb3_contrib.common.recurrent.type_aliases import RNNStates
+
+    if epochs < 1 or not datasets:
+        raise ValueError("Self-imitation training requires data and positive epochs")
+    losses: list[float] = []
+    examples = 0
+    updates = 0
+    policy = model.policy
+    policy.set_training_mode(True)
+    for _epoch in range(epochs):
+        for path in datasets:
+            with np.load(path, allow_pickle=False) as data:
+                actions = np.asarray(data["actions"], dtype=np.int64)
+                pixels = np.asarray(data["pixels"], dtype=np.uint8)
+                histories = np.asarray(data["action_history"], dtype=np.float32)
+                target = np.asarray(data["target_pixels"], dtype=np.uint8)
+            for begin, end in _self_imitation_windows(len(actions)):
+                count = end - begin
+                observations = {
+                    "pixels": torch.as_tensor(pixels[begin:end], device=policy.device),
+                    "action_history": torch.as_tensor(
+                        histories[begin:end], device=policy.device
+                    ),
+                    "target_pixels": torch.as_tensor(
+                        np.repeat(target[None, ...], count, axis=0),
+                        device=policy.device,
+                    ),
+                }
+                action_tensor = torch.as_tensor(
+                    actions[begin:end], dtype=torch.long, device=policy.device
+                )
+                episode_starts = torch.zeros(count, device=policy.device)
+                episode_starts[0] = 1
+                actor_shape = (
+                    policy.lstm_actor.num_layers,
+                    1,
+                    policy.lstm_actor.hidden_size,
+                )
+                actor_zero = torch.zeros(actor_shape, device=policy.device)
+                critic_lstm = policy.lstm_critic or policy.lstm_actor
+                critic_shape = (
+                    critic_lstm.num_layers,
+                    1,
+                    critic_lstm.hidden_size,
+                )
+                critic_zero = torch.zeros(critic_shape, device=policy.device)
+                states = RNNStates(
+                    pi=(actor_zero, actor_zero.clone()),
+                    vf=(critic_zero, critic_zero.clone()),
+                )
+                _values, log_probability, _entropy = policy.evaluate_actions(
+                    observations,
+                    action_tensor,
+                    states,
+                    episode_starts,
+                )
+                loss = -log_probability.mean()
+                policy.optimizer.zero_grad(set_to_none=True)
+                loss.backward()
+                torch.nn.utils.clip_grad_norm_(policy.parameters(), model.max_grad_norm)
+                policy.optimizer.step()
+                losses.append(float(loss.detach().item()))
+                examples += count
+                updates += 1
+    policy.set_training_mode(False)
+    return {
+        "updates": updates,
+        "examples": examples,
+        "mean_loss": sum(losses) / len(losses),
+    }
 
 
 def verify_promotion_candidate(
@@ -1280,6 +1548,7 @@ def _render_dashboard(status: Mapping[str, Any]) -> str:
     focus = status.get("training_focus", {})
     rewards = status.get("reward_components", {})
     consolidation = status.get("consolidation", {})
+    self_taught = status.get("self_taught", {})
     mode = html.escape(str(status.get("mode", "unknown")))
     frame_cards = "".join(
         f'<figure><img src="env-{rank}.png?v={status.get("updated_at", "")}" '
@@ -1331,6 +1600,29 @@ def _render_dashboard(status: Mapping[str, Any]) -> str:
             (
                 "Backward gates passed",
                 f"{int(consolidation.get('gates_passed_count', 0)):,}",
+            ),
+            (
+                "Self-discovered skills",
+                f"{int(self_taught.get('skills_discovered', 0)):,}",
+            ),
+            (
+                "Competent skills",
+                f"{int(self_taught.get('skills_competent', 0)):,}",
+            ),
+            (
+                "Weakest skill",
+                html.escape(str(self_taught.get("weakest_skill") or "none yet")),
+            ),
+            (
+                "Weakest skill window",
+                (
+                    f"{int(self_taught.get('weakest_window_successes', 0))}/"
+                    f"{int(self_taught.get('weakest_window_attempts', 0))}"
+                ),
+            ),
+            (
+                "Self-imitation examples",
+                f"{int(self_taught.get('imitation_examples', 0)):,}",
             ),
             (
                 "Novelty memory",
@@ -1440,6 +1732,18 @@ class PpoRunCallback(BaseCallback):
             if config.consolidation
             else None
         )
+        self.self_skills = (
+            SelfTaughtSkillLibrary.from_dict(
+                json.loads(
+                    (self.run_directory / "self-skills.json").read_text(encoding="utf-8")
+                )
+            )
+            if config.mode == "self_taught"
+            else None
+        )
+        self.self_imitation_pending = bool(
+            self.self_skills is not None and self.self_skills.imitation_pending
+        )
 
     def _write_consolidation(self) -> None:
         if self.consolidation is not None:
@@ -1469,6 +1773,35 @@ class PpoRunCallback(BaseCallback):
             "power_on_training_gate_passed": (
                 self.consolidation.power_on_training_gate_passed
             ),
+        }
+
+    def _write_self_skills(self) -> None:
+        if self.self_skills is not None:
+            _atomic_json(
+                self.run_directory / "self-skills.json",
+                self.self_skills.public_dict(),
+            )
+
+    def _self_taught_status(self) -> dict[str, Any]:
+        if self.self_skills is None:
+            return {"enabled": False}
+        competent = sum(bool(skill.get("competent", False)) for skill in self.self_skills.skills)
+        weakest = self.self_skills.weakest_skills()
+        active = weakest[0] if weakest else None
+        window = [] if active is None else [bool(value) for value in active.get("window", [])]
+        return {
+            "enabled": True,
+            "skills_discovered": len(self.self_skills.skills),
+            "skills_competent": competent,
+            "rehearsal_attempts": self.self_skills.total_rehearsal_attempts,
+            "rehearsal_successes": self.self_skills.total_rehearsal_successes,
+            "weakest_skill": None if active is None else active.get("target_label"),
+            "weakest_window_successes": sum(window),
+            "weakest_window_attempts": len(window),
+            "imitation_updates": self.self_skills.imitation_updates,
+            "imitation_examples": self.self_skills.imitation_examples,
+            "last_imitation_loss": self.self_skills.last_imitation_loss,
+            "imitation_pending": self.self_skills.imitation_pending,
         }
 
     def elapsed(self) -> float:
@@ -1503,6 +1836,11 @@ class PpoRunCallback(BaseCallback):
             self._write_consolidation()
             checkpoint["consolidation_file_sha256"] = _sha256_file(
                 self.run_directory / "consolidation.json"
+            )
+        if self.self_skills is not None:
+            self._write_self_skills()
+            checkpoint["self_skills_file_sha256"] = _sha256_file(
+                self.run_directory / "self-skills.json"
             )
         _atomic_json(
             self.run_directory / "checkpoint.json",
@@ -1563,16 +1901,22 @@ class PpoRunCallback(BaseCallback):
             "loop_events": dict(sorted(self.loop_events.items())),
             "episode_end_reasons": dict(sorted(self.episode_end_reasons.items())),
             "consolidation": self._consolidation_status(),
+            "self_taught": self._self_taught_status(),
             "reward_protocol": PPO_REWARD_PROTOCOL,
             "novelty_scope": "persistent per worker across episodes and resumes",
             "information_boundary": (
                 "pixels + three recent actions; trainer-only RAM rewards and loop termination"
                 if self.config.mode == "pixels"
                 else (
+                    "pixels + three recent actions + a self-discovered target screen; no imported "
+                    "actions, route graph, target coordinates, or quest direction"
+                    if self.config.mode == "self_taught"
+                    else (
                     "pixels + three recent actions + trainer-built visited map + active goal/skill "
                     "+ next certified route map; assisted teacher lane"
                     if self.config.mode == "assisted"
                     else "pixels + three recent actions + disclosed RAM state comparator"
+                    )
                 )
             ),
             "resume_semantics": "exact model/optimizer; fresh environment rollouts",
@@ -1615,6 +1959,12 @@ class PpoRunCallback(BaseCallback):
                 f"{status['consolidation'].get('active_window_attempts', 0)}\n"
                 f"- Backward gates passed: "
                 f"{status['consolidation'].get('gates_passed_count', 0)}\n\n"
+                f"- Self-discovered skills: "
+                f"{status['self_taught'].get('skills_discovered', 0)}\n"
+                f"- Competent self-discovered skills: "
+                f"{status['self_taught'].get('skills_competent', 0)}\n"
+                f"- Self-imitation examples: "
+                f"{status['self_taught'].get('imitation_examples', 0):,}\n\n"
                 f"- Battle successes: {status['battle_events'].get('success', 0):,}\n"
                 "- Battle exits without durable progress: "
                 f"{status['battle_events'].get('ended_without_progress', 0):,}\n\n"
@@ -1633,6 +1983,92 @@ class PpoRunCallback(BaseCallback):
                 f"{status['loop_events'].get('progress_stagnation', 0):,}\n\n"
             )
 
+    def _prepare_self_generated_skill(
+        self,
+        verification: Mapping[str, Any],
+        progress: MilestoneProgress,
+        source_png: Path,
+    ) -> dict[str, Any] | None:
+        if self.self_skills is None:
+            return None
+        if not source_png.is_file():
+            raise ValueError("Self-generated skill has no terminal visual target")
+        candidate = verification["candidate"]
+        parent = verification["parent"]
+        skill_id = str(candidate["candidate_id"])
+        target_relative = f"self-skills/{skill_id}.png"
+        dataset_relative = f"self-skills/{skill_id}.npz"
+        target_path = self.run_directory / target_relative
+        dataset_path = self.run_directory / dataset_relative
+        target_frame = preprocess_apprentice_frame(
+            np.asarray(Image.open(source_png).convert("RGB"))
+        )
+        temporary_target = target_path.with_suffix(".tmp.png")
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        Image.fromarray(target_frame).save(temporary_target, format="PNG")
+        os.replace(temporary_target, target_path)
+        edge_actions = [int(value) for value in candidate["actions"]]
+        dataset = _collect_self_imitation_dataset(
+            self.rom_path,
+            FrozenSnapshot.from_checkpoint_dict(parent["snapshot"]),
+            edge_actions,
+            target_frame,
+        )
+        _atomic_self_imitation_dataset(dataset_path, dataset)
+        source_progress = _progress_from_value(parent["progress"])
+        return {
+            "skill_id": skill_id,
+            "source_entry_id": str(parent["entry_id"]),
+            "source_index": source_progress.index,
+            "target_entry_id": skill_id,
+            "target_index": progress.index,
+            "target_label": progress.label,
+            "target_frame_file": target_relative,
+            "target_frame_sha256": _sha256_file(target_path),
+            "dataset_file": dataset_relative,
+            "dataset_sha256": _sha256_file(dataset_path),
+            "action_count": len(edge_actions),
+        }
+
+    def _commit_self_generated_skill(self, prepared: Mapping[str, Any] | None) -> None:
+        if self.self_skills is None or prepared is None:
+            return
+        admitted = self.self_skills.add_verified_skill(**prepared)
+        if admitted:
+            self.self_imitation_pending = self.self_skills.imitation_pending
+            self._write_self_skills()
+
+    def _on_rollout_start(self) -> None:
+        if self.self_skills is None or not self.self_imitation_pending:
+            return
+        skills = self.self_skills.skills
+        selected = skills if len(skills) <= 8 else [
+            skills[int(index)]
+            for index in np.linspace(0, len(skills) - 1, num=8, dtype=int)
+        ]
+        datasets: list[Path] = []
+        for skill in selected:
+            path = self.run_directory / str(skill["dataset_file"])
+            if _sha256_file(path) != skill["dataset_sha256"]:
+                raise ValueError("Self-imitation dataset failed its recorded hash")
+            target = self.run_directory / str(skill["target_frame_file"])
+            if _sha256_file(target) != skill["target_frame_sha256"]:
+                raise ValueError("Self-generated visual target failed its recorded hash")
+            datasets.append(path)
+        result = _train_self_imitation_policy(
+            self.model,
+            datasets,
+            epochs=self.config.self_imitation_epochs,
+        )
+        self.self_skills.record_imitation(
+            updates=int(result["updates"]),
+            examples=int(result["examples"]),
+            mean_loss=float(result["mean_loss"]),
+        )
+        self.self_imitation_pending = self.self_skills.imitation_pending
+        self._write_self_skills()
+        self._narrative("rehearsed self-generated verified skills")
+
     def _handle_candidate(self, candidate_path: Path) -> None:
         try:
             current = _load_curriculum_manifest(self.curriculum_directory)
@@ -1646,12 +2082,16 @@ class PpoRunCallback(BaseCallback):
                 candidate_path,
                 replay_passes=self.config.promotion_replays,
             )
+            source_png = candidate_path.with_suffix("").with_suffix(".png")
+            prepared_skill = self._prepare_self_generated_skill(
+                verification, progress, source_png
+            )
             admit_verified_candidate(self.curriculum_directory, verification)
+            self._commit_self_generated_skill(prepared_skill)
             if self.consolidation is not None:
                 updated_manifest = _load_curriculum_manifest(self.curriculum_directory)
                 self.consolidation.sync_curriculum(updated_manifest["entries"])
                 self._write_consolidation()
-            source_png = candidate_path.with_suffix("").with_suffix(".png")
             if source_png.is_file():
                 shutil.copy2(
                     source_png,
@@ -1679,6 +2119,7 @@ class PpoRunCallback(BaseCallback):
     def _on_step(self) -> bool:
         infos = self.locals.get("infos", [])
         competence_gate_passed = False
+        self_skill_passed = False
         for info in infos:
             if not isinstance(info, Mapping):
                 continue
@@ -1692,6 +2133,17 @@ class PpoRunCallback(BaseCallback):
                         best_reached_index=int(info.get("episode_best_index", -1)),
                     )
                     self._write_consolidation()
+                if self.self_skills is not None:
+                    self_skill_passed |= self.self_skills.record_episode(
+                        mode=str(info.get("start_mode", "")),
+                        skill_id=(
+                            str(info["self_skill_id"])
+                            if info.get("self_skill_id") is not None
+                            else None
+                        ),
+                        best_reached_index=int(info.get("episode_best_index", -1)),
+                    )
+                    self._write_self_skills()
             map_id, x, y = info.get("map_id"), info.get("x"), info.get("y")
             if all(isinstance(value, int) for value in (map_id, x, y)):
                 self.positions.add((map_id, x, y))
@@ -1711,6 +2163,8 @@ class PpoRunCallback(BaseCallback):
 
         if competence_gate_passed:
             self._narrative("training competence gate expanded one checkpoint backward")
+        if self_skill_passed:
+            self._narrative("self-generated skill passed its rolling competence gate")
 
         elapsed = self.elapsed()
         if (self.run_directory / "STOP").exists():
@@ -1757,7 +2211,7 @@ def run_parallel_ppo(
     rom_path: Path,
     run_directory: Path,
     curriculum_source: Path,
-    learner_path: Path,
+    learner_path: Path | None,
     config: ParallelPpoConfig,
     *,
     resume: bool = False,
@@ -1766,15 +2220,19 @@ def run_parallel_ppo(
     verify_rom(rom_path)
     if policy_source is not None and not config.consolidation:
         raise ValueError("A retained policy source requires consolidation mode")
+    if config.mode == "self_taught" and policy_source is not None:
+        raise ValueError("Self-taught PPO cannot import a predecessor policy")
     run_directory = run_directory.expanduser().resolve()
     if run_directory.exists() and not resume:
         raise ValueError("PPO output directory already exists")
     run_directory.mkdir(parents=True, exist_ok=resume)
-    for name in ("candidate-spool", "milestones"):
+    for name in ("candidate-spool", "milestones", "self-skills"):
         (run_directory / name).mkdir(exist_ok=True)
     curriculum_directory = run_directory / "curriculum"
     if not curriculum_directory.exists():
         freeze_verified_curriculum(curriculum_source, curriculum_directory)
+        if config.power_on_only:
+            _retain_power_on_only(curriculum_directory)
     consolidation_path = run_directory / "consolidation.json"
     if config.consolidation and not consolidation_path.exists() and not resume:
         curriculum_manifest = _load_curriculum_manifest(curriculum_directory)
@@ -1784,6 +2242,15 @@ def run_parallel_ppo(
             threshold=config.competence_threshold,
         )
         _atomic_json(consolidation_path, consolidation.public_dict())
+    self_skills_path = run_directory / "self-skills.json"
+    if config.mode == "self_taught" and not self_skills_path.exists() and not resume:
+        curriculum_manifest = _load_curriculum_manifest(curriculum_directory)
+        library = SelfTaughtSkillLibrary.initialize(
+            curriculum_manifest["entries"],
+            window_size=config.competence_window,
+            threshold=config.competence_threshold,
+        )
+        _atomic_json(self_skills_path, library.public_dict())
     source = detect_source_provenance().public_dict()
     started_at = datetime.now(UTC).isoformat()
     base_elapsed = 0.0
@@ -1807,6 +2274,23 @@ def run_parallel_ppo(
                 or _sha256_file(consolidation_path) != expected_consolidation_hash
             ):
                 raise ValueError("PPO consolidation state does not match its checkpoint")
+        if config.mode == "self_taught":
+            if (
+                not self_skills_path.is_file()
+                or _sha256_file(self_skills_path)
+                != checkpoint.get("self_skills_file_sha256")
+            ):
+                raise ValueError("PPO self-taught skill state does not match its checkpoint")
+            library = SelfTaughtSkillLibrary.from_dict(
+                json.loads(self_skills_path.read_text(encoding="utf-8"))
+            )
+            for skill in library.skills:
+                for file_key, hash_key in (
+                    ("target_frame_file", "target_frame_sha256"),
+                    ("dataset_file", "dataset_sha256"),
+                ):
+                    if _sha256_file(run_directory / str(skill[file_key])) != skill[hash_key]:
+                        raise ValueError("PPO self-taught skill artifact failed its hash")
         novelty_files = checkpoint.get("novelty_files")
         if not isinstance(novelty_files, list):
             raise ValueError("PPO checkpoint has no persistent novelty memory")
@@ -1842,7 +2326,9 @@ def run_parallel_ppo(
                 retained_policy_path,
                 config,
             )
-        else:
+        elif not config.random_initialization:
+            if learner_path is None:
+                raise ValueError("Warm-start PPO requires a frontier learner checkpoint")
             shutil.copy2(learner_path, learner_copy)
         _atomic_json(
             run_directory / "manifest.json",
@@ -1859,10 +2345,18 @@ def run_parallel_ppo(
                 "reward_protocol": PPO_REWARD_PROTOCOL,
                 "rom_path_recorded": False,
                 "resume_semantics": "model_optimizer_exact_environment_rollout_restarts",
-                "policy_initialization": retained_policy_info,
+                "policy_initialization": (
+                    {
+                        "kind": "random_untrained_policy",
+                        "imported_actions": 0,
+                        "imported_parameters": 0,
+                    }
+                    if config.random_initialization
+                    else retained_policy_info
+                ),
             },
         )
-        if retained_policy_path is None:
+        if retained_policy_path is None and not config.random_initialization:
             learner_path = learner_copy
 
     env_fns = [
@@ -1879,6 +2373,7 @@ def run_parallel_ppo(
                 rank=rank,
                 frontier_probability=config.frontier_probability,
                 consolidation=config.consolidation,
+                self_taught=config.mode == "self_taught",
                 novelty_checkpoint_file=novelty_by_rank.get(rank),
             ),
         )
@@ -1915,15 +2410,20 @@ def run_parallel_ppo(
             verbose=0,
             tensorboard_log=str(run_directory / "tensorboard"),
         )
-        seed_info = _warm_start(
-            model,
-            learner_path,
-            privileged=config.mode == "privileged",
-            assisted=config.mode == "assisted",
-        )
-        manifest = json.loads((run_directory / "manifest.json").read_text(encoding="utf-8"))
-        manifest["warm_start"] = seed_info
-        _atomic_json(run_directory / "manifest.json", manifest)
+        if not config.random_initialization:
+            if learner_path is None:
+                raise ValueError("Warm-start PPO requires a frontier learner checkpoint")
+            seed_info = _warm_start(
+                model,
+                learner_path,
+                privileged=config.mode == "privileged",
+                assisted=config.mode == "assisted",
+            )
+            manifest = json.loads(
+                (run_directory / "manifest.json").read_text(encoding="utf-8")
+            )
+            manifest["warm_start"] = seed_info
+            _atomic_json(run_directory / "manifest.json", manifest)
     callback = PpoRunCallback(
         run_directory,
         rom_path,

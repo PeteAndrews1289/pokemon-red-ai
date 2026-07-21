@@ -1,5 +1,40 @@
 # Development log
 
+## 2026-07-21 — We had become the walkthrough
+
+- Accepted the user's concern that successive local reward repairs had moved the project away from
+  its original premise. Distinguished a useful trainer-assisted curriculum from the stricter
+  question of whether a new player could learn without seeing a solution.
+- Audited the reference implementation and follow-up research. The published systems used dense
+  state, long episodes, 32–64 workers, and easier starting conditions, yet reported only the early
+  game and explicitly identified reward exploitation, forgetting, and hierarchy as open problems.
+- Defined V7's strict boundary: random parameters, one verified power-on snapshot, no imported
+  actions, no model, no demonstration, no route graph, no coordinates, and no semantic target in
+  the actor. A rehearsal target may be only a terminal screen reached by the same run.
+- Implemented a two-level self-taught system. Open PPO exploration can create a skill only after
+  exact edge and three power-on replays; the scheduler then prioritizes weak skills while one
+  recurrent policy receives their visual targets.
+- Added direct self-imitation. Successful visual/action observations are reconstructed through
+  replay, compressed and hashed, then used to increase the likelihood of the run's own actions.
+  Up to eight skills are balanced during rehearsal to reduce forgetting.
+- Removed authored quest-direction reward from V7 by zeroing named milestones, Mart lessons,
+  active-route potential, and landmark recovery. General novelty and consequence signals remain
+  trainer-only; referee labels never enter the policy.
+- Passed 187 tests with the real ROM, including a real recurrent self-imitation gradient update and
+  persistence of pending imitation work across restarts.
+- Passed the first four-worker V7 canary from random weights and power-on only. It discarded 25
+  inherited entries, imported zero actions/parameters, and reached two replay-verified milestones
+  in 8,192 actions: game start through a 326-action edge and the ground floor through a 409-action
+  edge. It created two skills, trained eight self-imitation updates over 2,048 examples, reproduced
+  the ground-floor skill once, and recorded zero verification failures.
+- Verified the terminal model, self-skill ledger, two target images, two compressed datasets, and
+  all four novelty memories against their hashes. The canary qualifies the loop, not 8/10 skill
+  competence or a complete opening.
+- Closed V6 at its declared diagnostic boundary: 1,001,476 actions, 978 updates, 390 episodes, and
+  4,371.17 seconds. Its first consolidation edge succeeded 11 times in 206 attempts and improved
+  from an opening 0/10 to a terminal 5/10, but failed the 8/10 gate. It passed no backward gate and
+  made no power-on competence claim.
+
 ## 2026-07-21 — The archive knew the route; one policy did not
 
 - Audited the active PPO implementation after V5.2 required another explicit lesson. Confirmed

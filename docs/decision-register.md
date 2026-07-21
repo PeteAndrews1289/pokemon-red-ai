@@ -1334,6 +1334,40 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
   supersedes fresh PPO initialization and frontier-dominant sampling as the default successor
   strategy.
 
+## DR-0052 — Restart with self-generated skills instead of another authored lesson
+
+- **Date:** 2026-07-21
+- **Status:** Accepted; implementation, private-ROM suite, and first canary passed
+- **Scope:** Primary completion learner after the V6 diagnostic
+- **Information label:** `SELF-TAUGHT / PIXELS + SELF-DISCOVERED VISUAL GOAL`
+- **Decision:** Begin V7 from random neural parameters and the unique clean power-on snapshot. Do
+  not import a human playthrough, predecessor actions, predecessor weights, later curriculum
+  entries, route graph, coordinates, or semantic target. Admit a skill only when the same run's
+  transition passes exact replay; imitate its own verified actions and rehearse the weakest visual
+  skill behind an 8/10 rolling gate.
+- **Alternatives considered:** Continue patching V6 reward; record a full human Hall-of-Fame
+  demonstration; import earlier verified lineages into behavior cloning; use a scripted planner;
+  return to pure random or neuroevolution.
+- **Observation/evidence:** V6 retained one policy, opened its first Route-1 composition gate at
+  0/10, and closed at 5/10 after 1,001,476 actions—below the promised 8/10—with 11 successes across
+  206 attempts and no passed gate. The first V7 real-ROM canary
+  discarded 25 inherited entries, imported zero actions and parameters, then replay-verified game
+  start and the ground floor within 8,192 actions. It created two hashed self-generated skills,
+  performed eight direct imitation updates over 2,048 examples, and reproduced one skill once.
+- **Interpretation:** The agent needs direct credit and reusable memory, but the solution need not
+  come from a human. Separating exploration, replay, self-imitation, and rehearsal keeps assistance
+  visible while restoring the original new-player premise.
+- **Consequence:** Local obstacle-specific rewards are no longer the default response. A failure of
+  skill competence or clean-start composition is an architectural result. Referee watchpoints may
+  grade progress but cannot enter policy observation or reward in V7.
+- **Narrative value:** The project admits that the host had slowly become the walkthrough, erases
+  the inherited answer, and lets the agent keep only memories it earned itself. The first two tiny
+  skills become the honest restart rather than another patched obstacle.
+- **Revisit when:** A long V7 run shows whether imitation improves rolling competence, whether
+  later skills erase earlier ones, and whether a frozen policy composes from power-on.
+- **Supersedes / superseded by:** Supersedes V6 as the primary completion strategy while retaining
+  V6 as the controlled composition diagnostic. Not yet superseded.
+
 ## Unresolved decisions
 
 These are questions, not hidden commitments. Each becomes a numbered entry when evidence supports

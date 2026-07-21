@@ -11,7 +11,7 @@ The original game-naive, pixels-only condition remains a strict control. The Q0/
 baseline deliberately used a seeded random action emitter and a sealed, read-only referee; the next
 trials compare learned or optimized emitters under the same checkpoint and replay rules.
 
-> **Current status: V5.2 reached Route 1; V6 makes one policy rehearse the whole journey.**
+> **Current status: V7 restarts the original question with a self-taught agent.**
 > Stage 0 memorized and exactly replayed its one 419-action house-exit route. Reverse curriculum
 > completed that opening in development, and Frontier Apprentice proved that network updates can be
 > gated behind replay-verified milestones. Its limitation was equally important: almost every
@@ -42,9 +42,15 @@ trials compare learned or optimized emitters under the same checkpoint and repla
 > rehearsal, and moves its start backward only after a rolling competence gate passes. See
 > [Make one policy remember the journey](docs/version-6-consolidation.md). This is a
 > curriculum-learning experiment, not yet a claim that one unassisted model can complete Pokémon
-> Red from power-on. The first declared V6 run is now live from V5.2's clean 5,354,500-action
-> terminal policy; its initial gate asks that one retained model repeatedly connect leaving Oak's
-> Lab to Route 1 before training begins farther back.
+> Red from power-on. The declared V6 run closed at 1,001,476 new actions. It reached the target in
+> 11 of 206 earlier-start attempts and finished at 5/10 in the rolling window, below the required
+> 8/10; no backward gate passed. That partial learning confirmed both that retention was possible
+> and that another obstacle-specific reward repair would continue the wrong experiment. Version 7
+> begins with random weights and only power-on, imports no actions or demonstrations, turns its own
+> replay-verified discoveries into visual-goal skills, and rehearses the weakest skill. Its first
+> 8,192-action real-ROM canary independently started the game and reached the ground floor, creating
+> two self-generated skills and eight direct imitation updates. See
+> [Let a new player teach itself](docs/version-7-self-taught.md).
 
 The current code preserves every historical runner, including Monkey, Archivist, online learners,
 and clean-start neuroevolution, so rejected approaches remain reproducible. See
@@ -155,19 +161,13 @@ trainer-owned and disclosed; they are disabled when evaluating one frozen model 
 [the experiment protocol](docs/experiment-protocol.md) and
 [the completion program](docs/completion-program.md).
 
-The current parallel-PPO successor is Version 6. It retains Version 5.2's reward mechanics and does
-not pay merely because a battle
-ended: trainer-only evidence must show experience or capture progress for a durable success. It
-also supplies bounded intermediate credit when opponent HP falls and explicitly terminates visual
-cycles or prolonged stagnation. Its assisted-teacher lane additionally receives an episodic visited
-map plus the current milestone/skill lesson and is never labeled pixels-only. The first Viridian
-lesson pays only for a new closest distance to the Mart and new Mart dialogue stages; neither can be
-farmed by oscillation. The dashboard reports this lesson credit, damage credit, battle outcomes,
-and loop exits separately so local activity cannot masquerade as verified story progress. V5.2
-adds source-disclosed map-level lessons through Pewter Gym and a three-per-episode recovery signal
-that pays only after movement resumes following at least 12 stationary navigation actions.
-Version 6 additionally reports a backward consolidation start, fixed verified target, rolling
-success window, and gates passed. Frontier restores cannot count as consolidation success.
+The current parallel-PPO successor is Version 7. It starts one recurrent policy at random from the
+unique power-on state, imports no earlier actions or parameters, and removes authored route,
+milestone, Mart, and landmark-recovery reward. General consequence and novelty feedback remains
+trainer-only. A replay-verified discovery becomes a visual target plus a dataset reconstructed from
+the run's own actions; the policy directly self-imitates it and rehearses its weakest skill behind
+an 8/10 gate. Earlier assisted lanes and V6 consolidation remain preserved as disclosed comparison
+systems, not hidden ingredients in V7.
 
 ## What will count as progress?
 
@@ -198,6 +198,7 @@ Start with [the documentation hub](docs/index.md), or jump directly to:
 - [Hall of Fame completion program](docs/completion-program.md) — the checkpoint expedition, claim ladder, qualification gates, and path to one learned policy
 - [Parallel recurrent PPO](docs/parallel-ppo.md) — four-worker learning, information boundaries, rewards, replay admission, benchmarks, and long-run interpretation
 - [Version 5.2: the road to Brock](docs/version-5-2-northbound.md) — completed predecessor evidence, ten northbound lessons, recovery reward, and video narrative
+- [Version 7: let a new player teach itself](docs/version-7-self-taught.md) — random power-on start, self-generated visual skills, direct self-imitation, competence gates, and canary evidence
 - [Version 6: remember the journey](docs/version-6-consolidation.md) — retained PPO weights, backward competence gates, failed and passed canaries, and the new claim ladder
 - [Append-only decision register](docs/decision-register.md) — accepted, rejected, retired, superseded, and failed ideas with their evidence
 - [Progress](docs/progress.md) — current evidence, status, and reporting rules

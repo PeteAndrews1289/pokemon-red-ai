@@ -32,6 +32,7 @@ from pokemon_red_ai.ppo_training import (
     _remap_warm_start_lstm_input,
     _render_dashboard,
     _state_vector,
+    _train_self_imitation_policy,
 )
 from pokemon_red_ai.state import PokemonRedState
 
@@ -45,6 +46,13 @@ def test_parallel_config_enforces_vector_batch_boundary() -> None:
 
     with pytest.raises(ValueError, match="competence"):
         ParallelPpoConfig(competence_window=1)
+
+    with pytest.raises(ValueError, match="Self-taught"):
+        ParallelPpoConfig(mode="self_taught")
+    self_taught = ParallelPpoConfig(
+        mode="self_taught", random_initialization=True, power_on_only=True
+    )
+    assert self_taught.consolidation is False
 
 
 def test_retained_policy_copy_requires_clean_compatible_terminal_evidence(
@@ -96,6 +104,81 @@ def test_retained_policy_gets_a_fresh_budget_but_resume_does_not() -> None:
     assert _remaining_action_budget(8_192, 4_096, resume=True) == 4_096
 
 
+def test_self_imitation_updates_recurrent_policy_from_its_own_dataset(
+    tmp_path: Path,
+) -> None:
+    from sb3_contrib import RecurrentPPO
+    from stable_baselines3.common.vec_env import DummyVecEnv
+
+    class TinySelfTaughtEnv(gym.Env):
+        def __init__(self) -> None:
+            self.action_space = gym.spaces.Discrete(len(BLIND_ACTIONS))
+            self.observation_space = gym.spaces.Dict(
+                {
+                    "pixels": gym.spaces.Box(
+                        0, 255, shape=(2, 72, 80), dtype=np.uint8
+                    ),
+                    "action_history": gym.spaces.Box(
+                        0,
+                        1,
+                        shape=(ACTION_HISTORY_LENGTH * len(BLIND_ACTIONS),),
+                        dtype=np.float32,
+                    ),
+                    "target_pixels": gym.spaces.Box(
+                        0, 255, shape=(1, 72, 80), dtype=np.uint8
+                    ),
+                }
+            )
+
+        def observation(self) -> dict[str, np.ndarray]:
+            return {
+                "pixels": np.zeros((2, 72, 80), dtype=np.uint8),
+                "action_history": np.zeros(
+                    ACTION_HISTORY_LENGTH * len(BLIND_ACTIONS), dtype=np.float32
+                ),
+                "target_pixels": np.zeros((1, 72, 80), dtype=np.uint8),
+            }
+
+        def reset(self, *, seed=None, options=None):  # type: ignore[no-untyped-def]
+            super().reset(seed=seed)
+            return self.observation(), {}
+
+        def step(self, action):  # type: ignore[no-untyped-def]
+            return self.observation(), 0.0, False, False, {}
+
+    vector = DummyVecEnv([TinySelfTaughtEnv])
+    model = RecurrentPPO(
+        "MultiInputLstmPolicy",
+        vector,
+        n_steps=8,
+        batch_size=8,
+        n_epochs=1,
+        policy_kwargs={
+            "features_extractor_class": PokemonPpoFeatures,
+            "net_arch": [],
+            "lstm_hidden_size": 32,
+        },
+        device="cpu",
+    )
+    dataset = tmp_path / "self.npz"
+    np.savez_compressed(
+        dataset,
+        pixels=np.zeros((4, 2, 72, 80), dtype=np.uint8),
+        action_history=np.zeros(
+            (4, ACTION_HISTORY_LENGTH * len(BLIND_ACTIONS)), dtype=np.float32
+        ),
+        target_pixels=np.zeros((1, 72, 80), dtype=np.uint8),
+        actions=np.asarray([0, 1, 2, 3], dtype=np.int64),
+    )
+
+    result = _train_self_imitation_policy(model, [dataset], epochs=1)
+
+    assert result["updates"] == 1
+    assert result["examples"] == 4
+    assert np.isfinite(result["mean_loss"])
+    vector.close()
+
+
 def test_privileged_state_vector_is_fixed_and_bounded() -> None:
     state = PokemonRedState(
         game_started=True,
@@ -120,7 +203,7 @@ def test_privileged_state_vector_is_fixed_and_bounded() -> None:
     assert np.all((vector >= 0) & (vector <= 1))
 
 
-@pytest.mark.parametrize("mode", ["pixels", "assisted", "privileged"])
+@pytest.mark.parametrize("mode", ["pixels", "assisted", "privileged", "self_taught"])
 def test_feature_extractor_preserves_declared_information_boundary(mode: str) -> None:
     spaces = {
         "pixels": gym.spaces.Box(0, 255, shape=(2, 72, 80), dtype=np.uint8),
@@ -144,6 +227,10 @@ def test_feature_extractor_preserves_declared_information_boundary(mode: str) ->
                 "map_context": gym.spaces.Box(0, 1, shape=(MAP_CONTEXT_SIZE,), dtype=np.float32),
             }
         )
+    if mode == "self_taught":
+        spaces["target_pixels"] = gym.spaces.Box(
+            0, 255, shape=(1, 72, 80), dtype=np.uint8
+        )
     extractor = PokemonPpoFeatures(gym.spaces.Dict(spaces))
     observations = {
         "pixels": torch.zeros((2, 2, 72, 80)),
@@ -160,6 +247,8 @@ def test_feature_extractor_preserves_declared_information_boundary(mode: str) ->
                 "map_context": torch.zeros((2, MAP_CONTEXT_SIZE)),
             }
         )
+    if mode == "self_taught":
+        observations["target_pixels"] = torch.zeros((2, 1, 72, 80))
 
     features = extractor(observations)
     expected = (
@@ -170,6 +259,7 @@ def test_feature_extractor_preserves_declared_information_boundary(mode: str) ->
             if mode == "assisted"
             else 0
         )
+        + (128 if mode == "self_taught" else 0)
         + (PRIVILEGED_STATE_SIZE if mode == "privileged" else 0)
     )
     assert features.shape == (2, expected)
@@ -239,6 +329,11 @@ def test_dashboard_names_actor_boundary_and_finished_state() -> None:
             "novelty_scope": "persistent per worker across episodes and resumes",
             "reward_protocol": "retained-policy-backward-consolidation-v1",
             "battle_events": {"success": 3, "ended_without_progress": 7},
+            "self_taught": {
+                "skills_discovered": 2,
+                "skills_competent": 1,
+                "imitation_examples": 12,
+            },
         }
     )
     assert "Failures now" in page
@@ -246,6 +341,8 @@ def test_dashboard_names_actor_boundary_and_finished_state() -> None:
     assert "persistent per worker across episodes and resumes" in page
     assert "retained-policy-backward-consolidation-v1" in page
     assert "Consolidation start" in page
+    assert "Self-discovered skills" in page
+    assert "Self-imitation examples" in page
     assert "Navigation-recovery credit" in page
     assert "Battle successes" in page
     assert ">3<" in page

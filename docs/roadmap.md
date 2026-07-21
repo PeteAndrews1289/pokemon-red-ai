@@ -6,7 +6,10 @@
 > from every rollout, while the Hall-of-Fame referee and replay-verified Archive-v2 curriculum
 > remain unchanged. Version 5.1 reached the Pokédex and exposed a 3,035,252-action plateau;
 > Version 5.2 reached Route 1 but showed that verified slices do not prove one policy composed them.
-> Version 6 retains the PPO policy and optimizer and expands rehearsal backward after rolling gates.
+> Version 6 retained the policy but finished at 5/10, short of its 8/10 first connection gate.
+> Version 7 is now the active
+> reset: random power-on learning, no imported answer, and visual skills produced only by the same
+> run's verified discoveries.
 
 ## Completed blind-discovery arc
 
@@ -51,13 +54,18 @@
     Viridian plateau as evidence that permanent frontier slices do not enforce composition.
 21. ✅ Implement Version 6 retained PPO policy/optimizer transfer, backward rolling competence,
     hash-bound scheduler state, dashboard metrics, and failed-plus-corrected canaries.
-22. 🟨 Run Version 6 with the production 8/10 gate, expanding the training start toward power-on.
-23. ⬜ Add and ablate offline imitation over replayed self-generated lineages after recurrent action
-    and goal alignment is independently qualified.
-24. ⬜ Run the privileged comparator only under a matched declared budget if it remains useful.
-25. ⬜ Distill useful self-generated lineages into a richer frozen visual policy and evaluate it
-    separately from power-on.
-26. ✅ Replace Monkey in the four-lane pretrial dashboard.
+22. ✅ Close Version 6 at 1,001,476 actions with 11/206 total successes, a terminal 5/10 rolling
+    window, and no falsely claimed backward gate.
+23. ✅ Implement Version 7 random power-on initialization, inherited-curriculum deletion,
+    self-generated visual skills, direct self-imitation, weakest-skill scheduling, and 8/10 gates.
+24. ✅ Pass the first real-ROM V7 mechanism canary: two self-discovered skills and actual
+    recurrent imitation updates from zero imported actions or parameters.
+25. 🟨 Run the longer self-taught pretrial and measure discovery, imitation loss, rehearsal
+    competence, forgetting, and clean-start composition separately.
+26. ⬜ Run frozen power-on exams at declared intervals without checkpoint restoration or updates.
+27. ⬜ Add learned specialist heads only if self-discovered skill evidence shows the shared visual
+    target is insufficient; do not pre-author navigation, battle, or menu solutions.
+28. ✅ Replace Monkey in the four-lane pretrial dashboard.
 
 ## Later informed-agent roadmap
 
