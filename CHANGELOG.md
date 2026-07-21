@@ -2,6 +2,105 @@
 
 ## Unreleased — parallel recurrent PPO
 
+- Froze the Version 8 design while preserving the active Version 7 long run unchanged as its
+  shared-policy, raw-trajectory denominator.
+- Separated four PPO Explorers from a recurrent Student with its own parameters and
+  optimizer. V8 retains V7's ban on demonstrations, imported actions, predecessor weights, route
+  graphs, coordinates, and semantic actor goals.
+- Added self-generated trajectory distillation. Trainer-only repeated-state signatures and bounded
+  chunk reduction may propose deletions, but every accepted edit must replay from the same source
+  to the same protected outcome. Raw/compressed mappings and full edit accounting remain auditable.
+- Added sequence-aware Student replay with recurrent burn-in, overlapping horizons, temporal visual
+  goals, and skill-balanced sampling, plus a prerequisite scheduler with minimum evaluation,
+  mastery, retention, starvation protection, and competence revocation.
+- Added fail-closed self-generated composition training. The deepest competent chain is streamed
+  once from exact power-on and every protected endpoint must match before training. Only bounded
+  pre/post-switch excerpts are retained, with continuous context across each switch, compact
+  per-skill clips, goal indices, and hash-bound audit metadata; failed fingerprints never train.
+- Kept only the current deepest verified composition active in Student loading while preserving
+  prior ledgers/audits as archived evidence. The active composition receives one replay ticket per
+  constituent skill, at least half of its draws rotate deterministically across boundaries through
+  a checkpointed cursor, and individual skills are split at admission into immutable hash-bound
+  replay shards. Each shard owns no more than 512 loss-bearing examples and may retain up to one
+  burn-in predecessor prefix. Persistent per-skill cursors cover every shard across resumes while
+  routine replay opens only one bounded shard per skill; the original full NPZ is provenance-only.
+  Focused unit and real-ROM integration checks cover these controls, while learned multi-skill
+  behavior remains unproved.
+- Kept per-action imitation loss uniform across replay-proven local actions and composition
+  excerpts. Extra composition exposure comes only from the declared one-ticket-per-constituent-
+  skill replay schedule, not recency or gamma weighting.
+- Exposed Student replay-memory status: individual/active composition dataset counts, retained
+  examples and bytes, train/stored ceilings, total and loaded shard counts, loaded loss-bearing and
+  context examples, shard bytes read, full-skill artifacts opened, replay cursors and minimum
+  completed coverage cycles, ticket-expanded sampling-cycle size, archived composition count,
+  active switch examples, and failed composition builds.
+- Added periodic frozen Student exams and four distinct progress depths: discovery, distilled
+  library, local competence, and restore-free composition. Training loss and PPO reward remain
+  diagnostics rather than competence evidence.
+- Documented V8's information contract, expanded crash-integrity boundary, qualification ladder,
+  claim limits, falsifiers, matched ablations, dashboard panels, and video narrative in
+  `docs/version-8-distilled-student.md`.
+- Passed the first V8 real-ROM mechanism and clean-resume canary. It stopped and resumed twice,
+  completed 5,248 Explorer actions in 48.038 seconds, verified `game_started`, distilled one
+  256-action edge to 254 actions with a successful final replay, and trained the separate Student
+  for eight updates over 128 examples. Final Student NLL was 2.06915 and action accuracy was
+  16.14%; its model, optimizer, and bound ledger hashes matched the checkpoint.
+- Preserved the original canary's 2/2 local and 14/14 power-on duplicate deterministic attempts as
+  historical mechanism wiring only. They are explicitly superseded and provide no robustness
+  evidence, chance comparison, later skill, production competence, or Hall-of-Fame behavior.
+- Changed V8 grading to exactly one deterministic attempt per Student checkpoint. The rolling
+  10-wide, 8/10 competence window now spans ten distinct checkpoints and Student versions; the
+  cadence is 16,384 Explorer actions, never ten duplicate resets in one exam round.
+- Checked the grading scale against the safety ceiling: `66 × 10 × 16,384 = 10,813,440` Explorer
+  actions, about 10.8 million, is the all-milestone local-exam opportunity floor. It remains below
+  150 million but excludes discovery, composition, replay, and Student-training work.
+- Removed authored progress from the V8 stagnation watchdog. Route distance, canonical milestone
+  index, and Viridian Mart script no longer reset its timer; general durable consequences and new
+  positions remain allowed. V7 intentionally retains its historical authored termination shaping
+  so the live denominator remains resume-compatible; that boundary is now disclosed as not fully
+  blind.
+- Hardened the zero-authored-guidance reward path. When V8's navigation and Mart reward weights are
+  disabled, reward tracking no longer calls authored route guidance or active-goal lookup and
+  skips Mart-distance and Mart-script calculations entirely.
+- Required a clean Git commit for V8 launch, including untracked-file detection. V8 checkpoints bind
+  exact source and verified-ROM identities plus curriculum, Explorer, Student, Student optimizer,
+  and checkpoint-specific skill/exam ledger state.
+- Hardened atomic artifact fallback: a hash-matching `previous` model or optimizer is copied back
+  to `latest` atomically without consuming the fallback. A unit test recovers again after a second
+  interrupted rotation; a full process-kill real-ROM crash twin remains pending.
+- Bounded routine checkpoint I/O without weakening resume. A checkpoint fully validates every new
+  or changed skill shard plus each new or active composition, but may trust unchanged archived
+  artifacts only when their seals are already bound by the last atomically committed checkpoint.
+  Resume and full audit still hash-check every skill, shard, composition dataset, and audit.
+- Preserved V7 resume compatibility by omitting V8-only controls from its serialized configuration.
+  A legacy manifest's missing ROM identity is backfilled only on resume after ROM verification,
+  without rewriting its original source provenance.
+- Expanded the V8 dashboard to show four separate depths, explicit Hall-of-Fame completions,
+  Explorer/Student hashes, the locked V7 denominator, and distillation-audit fallbacks that label
+  absent historical metrics instead of silently displaying zero.
+- Added `--v7-denominator PATH` for fresh V8 launches. It read-only pairs a running or finished V7
+  self-taught checkpoint with its hash-matching latest/previous model generation, then seals only
+  path-free run ID, actions, milestone, model/checkpoint hashes, source state/timestamps, and lock
+  time into the V8 manifest. Resume reuses the seal and rejects re-locking.
+- Renamed the V8 dashboard's total to **Explorer actions** and expanded its Student card with shard
+  stored/owned/context footprint, bytes, coverage cycles, and zero-full-source-open evidence. The
+  exam copy now explicitly names trainer-side RAM milestone goal switching.
+- Clarified the V8 composition boundary. One frozen Student chooses every button, while the
+  trainer-side RAM referee switches an ordered playlist of the run's self-generated target clips
+  at declared milestones. This supplies no authored quest direction or controller action, but it
+  is goal-conditioned hierarchical control; a Hall-of-Fame result would be completion under that
+  declared goal-switching protocol, not unaided pixel-only autonomy.
+- Fixed a P0 composition-verifier defect found on the real ROM: PyBoy's complete game-area hash can
+  change across save/load even when the processed visual and enumerated gameplay RAM are exact.
+  Composition now uses the exact save/load-stable visual-plus-RAM signature; distillation retains
+  the stricter game-area hash because all deletion candidates replay from the same snapshot.
+- Added real-ROM verifier acceptance for a stored two-skill
+  `power_on → game_started → left_bedroom` chain, a four-noop save/load regression, and validly
+  encoded wrong-endpoint rejection. These prove endpoint and composition mechanics only; they do
+  not show that a Student learned or autonomously produced the stored actions.
+- Preserved the live V7 denominator snapshot at `2026-07-21T17:29:11Z`: 6,466,564 actions, Route 1,
+  seven discoveries, zero competent skills, 19/1,274 rehearsals, and 66,560 imitation examples.
+
 - Added Version 7's demo-free self-taught mode. It requires random neural initialization, retains
   only the unique verified power-on snapshot, and rejects predecessor policies and consolidation.
 - Added self-generated visual skills. Replay-verified transitions save their own terminal screen,

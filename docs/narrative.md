@@ -18,6 +18,17 @@
 > A random power-on agent may train only on actions it discovered and replay-verified itself. Its
 > first tiny canary started the game and reached the ground floor without a supplied route.
 
+> **Newest turn:** V7 restored the right source of knowledge but gave one network two competing
+> jobs: wander noisily for PPO and memorize every action in a lucky verified trace. V8 keeps the
+> live V7 run unchanged as the denominator, gives discovery to four orange Explorers, and gives
+> retention to a separate blue Student. Replay—not the host—decides which loops can be removed.
+> Training loss stops at an exam door: only frozen attempts can mark a skill competent. V8's first
+> real-ROM canary passed that mechanism and two clean resumes for the trivial `game_started`
+> outcome. That is the wiring scene, not the learning payoff: it did not isolate Student training
+> from chance or test useful later gameplay. Its duplicate deterministic 2/2 is now superseded even
+> as robustness evidence. The corrected story waits 16,384 Explorer actions, freezes the next
+> Student version, and collects exactly one grade; 8/10 must span ten checkpoints.
+
 ## The question
 
 Can an AI learn to make meaningful progress through Pokémon Red—and can we explain what it is
@@ -39,8 +50,9 @@ journey without those restores before the project says one model learned the gam
 
 ## Where the project honestly stands
 
-**The checkpoint expedition has replayed one named opening transition; no learned policy has passed
-a frozen local-skill or whole-game evaluation.**
+**The checkpoint expedition has replayed named transitions, and V8's first mechanism canary ran
+frozen attempts successfully; no self-taught policy has passed a production multi-skill or
+whole-game evaluation.**
 
 Phase 0 built the measuring instrument: a reproducible emulator harness that can start the exact
 same game, issue timed controller inputs, observe a small and disclosed slice of state, restore an
@@ -73,7 +85,9 @@ test sequence used to prove that the laboratory works.
 | Can one model execute the lucky route? | Yes once: Stage 0 fit 419/419 labels, survived frozen reload, and selected the exact 419 actions from clean power-on to `left_home`. This is route memorization, not a robust skill. |
 | Has checkpoint-assisted PPO completed Oak's errand? | Yes. V5.1 replay-verified the Pokédex by action 402,320, but this is an assisted training lineage rather than one clean-start policy. |
 | Did V5.2 teach one model to compose those steps? | Not demonstrated. It verified Oak's Lab exit and Route 1, but its replay gate tested stored actions rather than the current policy's complete behavior. |
-| What comes next? | Test whether a random power-on policy can turn its own replay-verified discoveries into competent visual-goal skills without human demonstrations or authored route rewards. |
+| Is V7 being replaced mid-run? | No. It continues under its original shared-policy, raw-trace rules. Fresh V8 can lock one path-free, hash-matched V7 checkpoint; resume cannot move that denominator. |
+| What does V8 change? | It separates PPO exploration from a recurrent Student, replay-distills only self-generated trajectories, and collects one deterministic grade per Student checkpoint. A 5,248-action canary qualified wiring on `game_started`; its duplicate results do not prove robustness or causal learning. |
+| What comes next? | Test multiple prerequisite skills under the production window, add a hard-crash twin, and compare frozen behavior against chance and unchanged V7 without demonstrations or authored obstacle rewards. |
 
 Keeping this table current is part of the project. A small true claim is more valuable than a large
 ambiguous one.
@@ -244,6 +258,41 @@ are sufficient.
 This chapter can reveal classic learning problems in miniature: walking into walls, oscillating
 between two tiles, opening menus unintentionally, discovering a reward shortcut, and reaching a
 door without crossing it.
+
+### Method turn — Split the discoverer from the student
+
+V7 creates the cleanest version of the new-player question so far: random weights, power-on, and no
+imported answer. Its unresolved tension is visual. One network is asked to be an orange scribble
+that explores and a blue line that remembers. A verified route may be real and still be a terrible
+lesson because it contains every loop taken before luck finally worked.
+
+V8 makes that tension the plot. Show the raw route as a knot. Let the emulator reject one unsafe
+deletion and approve another. Then let a separate recurrent Student study only the surviving
+self-generated sequence. The loss curve may rise or fall, but it cannot resolve the scene. Freeze
+one Student checkpoint for one grade, then advance training before adding another tile. Reveal ten
+checkpoint-labeled exam tiles and count every failure.
+
+Make the scaling repair tangible. Seal the full verified dataset on an archive shelf, cut a second
+training copy into immutable shards, color each shard's at-most-512 loss examples and gray burn-in
+prefix differently, then advance a cursor one shard per round. The status card should show one
+selected shard and zero full-source opens. Say explicitly that this bounds routine memory and I/O,
+while keeping roughly a second copy of the pixels as the cost of immutable provenance.
+
+When the story reaches power-on composition, show the trainer-side RAM referee switching the
+Student's ordered playlist of self-generated visual goals. The frozen Student chooses every
+button, and no authored quest direction is inserted, but this remains goal-conditioned
+hierarchical control. An eventual win is completion under that declared switching protocol—not
+unaided pixel-only autonomy.
+
+The save/load hash bug is a useful engineering beat, not a triumph montage. Show the processed
+visual and enumerated RAM matching while PyBoy's broader game-area hash alone changes. Label the
+corrected 289-action two-skill replay **STORED-ACTION VERIFIER TEST** and follow it immediately with
+the wrong-endpoint rejection. Do not cut from that acceptance into language suggesting the Student
+learned to leave the bedroom.
+
+The unchanged V7 denominator belongs on the same screen. This turns an architecture change into a
+causal question: did separating discovery from memory and distilling the route create competence,
+or merely a cleaner-looking dataset?
 
 ### Chapter 3 — Deliver Oak's Parcel
 

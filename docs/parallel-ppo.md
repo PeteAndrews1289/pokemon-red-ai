@@ -1,8 +1,11 @@
 # Parallel recurrent PPO
 
 > **Status:** Versions 4–6 established replay-verified PPO discovery, assisted lessons, and the
-> distinction between a stored lineage and one-policy competence. Version 7 is the active successor:
-> random parameters, power-on only, and self-generated visual skills with no imported solution.
+> distinction between a stored lineage and one-policy competence. Version 7 is the live
+> random-start, self-generated denominator. Version 8 keeps that no-imported-solution boundary but
+> separates four PPO Explorers from a replay-distilled recurrent Student and frozen examiner. V8
+> now passes a 5,248-action real-ROM mechanism and two-clean-resume canary on one trivial
+> `game_started` skill. That qualifies the pipeline, not causal learning or later-game behavior.
 
 ## Why this lane exists
 
@@ -47,7 +50,7 @@ This is an influence record, not a claim that the implementations or results are
 
 ## Information boundaries
 
-The code supports four actors so the project can measure the value of assistance and privileged
+The code supports five declared modes so the project can measure the value of assistance and privileged
 state without quietly mixing either into the pixels-only claim.
 
 | Lane | Actor receives | Trainer/referee may inspect | Honest label |
@@ -56,6 +59,7 @@ state without quietly mixing either into the pixels-only claim.
 | Assisted teacher | The pixel input above, an episodic 64 × 64 visited-position map, next-milestone one-hot, coarse navigation/interaction/battle lesson, and normalized map/goal context | The same referee fields | `PIXEL+TRAINER-MAP+GOAL-ACTOR / PPO / ARCHIVE-RESTORE / TEACHER` |
 | Privileged comparator | The pixel input above plus 24 normalized state values | The same referee fields | `PIXEL+RAM-ACTOR / PPO / ARCHIVE-RESTORE / COMPARATOR` |
 | Self-taught | The pixel input, three recent actions, and during rehearsal only a terminal screen reached by the same run | General novelty, loop detection, replay grading, and skill scheduling | `SELF-TAUGHT / RANDOM-START / PIXELS+SELF-VISUAL-GOAL / NO-IMPORTED-ACTIONS` |
+| Distilled Student | Explorer receives the self-taught open-play input; separate Student receives pixels, own action history, and a short terminal clip from the same run | Replay-backed trajectory reduction, prerequisite scheduling, and frozen grading; no live button authority | `SELF-TAUGHT / SEPARATE EXPLORER+STUDENT / SELF-GENERATED DISTILLED SEQUENCES` |
 
 The self-taught lane deletes all inherited curriculum entries except the clean power-on root and
 initializes a new recurrent policy randomly. Milestone labels and active routes remain referee
@@ -396,6 +400,77 @@ a frozen evaluation.
 The complete rationale, failed first canary, corrected 8,192-action canary, claim ladder, and future
 imitation ablation are in [Version 6: make one policy remember the journey](version-6-consolidation.md).
 
+## Versions 7 and 8: self-generated teaching
+
+Version 7 restarts at power-on with random parameters, deletes inherited later curriculum entries,
+and admits visual skills only from exact transitions the same run discovered and replay-verified.
+Its single recurrent network receives both PPO rollout gradients and direct imitation gradients
+from the raw verified sequence. The active V7 long run remains unchanged so it can answer that
+specific question with a complete denominator.
+
+Version 8 changes the protocol to `parallel-recurrent-ppo-v8` and the reward/training protocol to
+`distilled-self-generated-skills-v1`. Four PPO workers become dedicated Explorers. A separate
+recurrent Student and optimizer train only on replay-verified, self-generated data. Trainer-only
+state signatures may propose loop deletion, and bounded chunk reduction may propose further edits;
+every accepted edit must replay from the same source to the same protected outcome. The audit keeps
+raw and compressed counts, provenance mappings, accepted and rejected edits, and oracle cost.
+
+Student replay uses contiguous recurrent windows, a loss-free burn-in prefix, overlapping training
+horizons, short temporal pixel goals, and balanced sampling across skills. A prerequisite-aware
+scheduler allocates minimum evaluation, mastery, retention, and frontier work. Periodic frozen
+Student exams—not PPO reward, imitation accuracy, or moving-policy rehearsal—grant or revoke local
+competence. One deterministic grade is allowed per Student checkpoint every 16,384 Explorer
+actions; the 10-wide 8/10 window therefore spans ten distinct Student versions. The original
+canary's duplicate 2/2 is retained only as superseded mechanism wiring. Restore-free power-on
+composition remains a separate, stronger meter.
+
+V8 also trains the handoff between locally competent skills. It streams the deepest competent
+chain once from exact power-on, verifies every protected endpoint, and admits no data after a
+failure. A passing replay stores bounded excerpts around each goal switch, with continuous context
+through the switch and compact self-generated clips. Only one deepest composition is active in
+Student loading; it receives exactly one replay ticket per constituent skill, at least half of its
+draws rotate deterministically across boundaries, and local datasets are split at admission into
+immutable hash-bound shards. Each shard owns a disjoint contiguous range of at most 512
+loss-bearing examples and retains at most one configured burn-in prefix as loss-free context. A
+persistent per-skill round-robin cursor opens one shard per routine round and covers all shards
+across resume. The full source NPZ remains immutable provenance and routine replay never opens it.
+Archived composition artifacts remain hash-bound.
+Per-action loss remains uniform; this ticket schedule, not gamma weighting, controls composition
+exposure. The status ledger reports retained examples/bytes and ceilings plus the expanded cycle.
+The focused replay/Student/PPO/dashboard suite passed 61 tests after the final schema tweak.
+Real-ROM integration also accepted a stored
+289-action two-skill chain from power-on to `left_bedroom`, accepted a four-noop save/load
+regression, and rejected wrong endpoints. Those checks qualify replay, verifier, and bounded-I/O
+mechanics; multi-skill Student behavior remains unproved.
+
+The verifier needed one P0 correction before that integration could pass. PyBoy's complete
+game-area hash was not stable across save/load even when the processed screen and all enumerated
+gameplay RAM matched. Composition now uses that exact save/load-stable visual-plus-RAM signature.
+Distillation keeps the stricter game-area hash because deletion candidates are compared after
+replaying from the same snapshot.
+
+Composition is a goal-conditioned hierarchy, not a RAM-free controller. One frozen Student still
+chooses every button, but the trainer-side RAM referee switches an ordered playlist of the run's
+self-generated visual targets when declared milestones fire. It supplies no authored quest
+direction or controller action. A future Hall-of-Fame result would therefore be completion under
+that declared switching protocol, not unaided pixel-only autonomy.
+
+V8 reward tracking, with navigation/Mart weights disabled, skips authored route guidance,
+active-goal lookup, and Mart-specific calculations. Its stagnation timer uses new positions and
+general durable consequences, never authored route distance, milestone index, or Viridian Mart
+script. This closes trainer-side hints that could otherwise reward or keep alive an episode
+specifically when it followed the host's known route.
+V7 retains that historical hint unchanged for resume compatibility, so its “self-taught” label does
+not mean the old termination watchdog was fully blind.
+
+V8 launch requires a clean Git commit, treating untracked files as dirty. Explorer and Student
+models, optimizers, verified ROM identity, frozen curriculum, datasets, distillation audits,
+skill/exam ledger, worker memories, and action count must resume as one hash-compatible checkpoint
+set. V7 retains its pre-V8 serialized configuration and backfills missing manifest ROM identity
+only on resume without changing source provenance. The complete design,
+qualification ladder, information contract, falsifiers, and video plan are in
+[Version 8: separate discovery from learning](version-8-distilled-student.md).
+
 ## Promotion remains harder than reward
 
 When a worker observes a named milestone beyond the curriculum's current best, it writes a private
@@ -435,7 +510,7 @@ four worker reward memories matched their terminal hashes.
 
 ## Checkpoints and interruption semantics
 
-The latest and previous PPO archives are retained. A checkpoint binds the model file hash, total
+For V1–V7, the latest and previous PPO archives are retained. A checkpoint binds the model file hash, total
 actions, elapsed time, full configuration, and best milestone. Resume refuses a mismatched model or
 configuration.
 
@@ -447,6 +522,18 @@ uses the exact phrase:
 
 That is strong enough for an interrupted development campaign, but it is not a bit-identical
 continuation of every worker's hidden emulator and LSTM state.
+
+V8 expands this boundary: Explorer and Student each require their own model and optimizer record,
+and the checkpoint binds exact source commit, explicit verified-ROM identity, frozen curriculum,
+compatible distillation, prerequisite, and frozen-exam state. Launch rejects dirty source including
+untracked files. The same fresh-environment caveat remains. A mixed-age or identity-mismatched set
+must fail closed. V7 omits V8-only controls from serialized configuration; an old missing manifest
+ROM identity is added only on resume without rewriting the historical source field.
+
+If the checkpoint hash matches only an artifact's `previous` generation, V8 atomically copies it
+back to `latest` while preserving `previous`. A unit test recovers the same bytes after a simulated
+second interrupted rotation. This qualifies the file-generation fallback, not the still-pending
+process-kill real-ROM crash twin.
 
 The runner stops cleanly for wall time, action ceiling, explicit stop request, low disk space,
 output limit, or a replay-verified Hall of Fame. Disk tree scans happen on the reporting cadence,
@@ -483,6 +570,12 @@ The live page refreshes every five seconds and shows:
 - successful versus no-progress battle exits;
 - opponent-damage credit and classified loop/stagnation exits; and
 - the latest rendered frame from every emulator worker.
+
+V8 adds raw/compressed action totals and replay cost; separate Explorer and Student hashes, updates,
+loss, accuracy, and entropy; prerequisite eligibility and competence losses; every frozen exam
+attempt; separate discovery, library, local-competence, and restore-free composition depths; an
+explicit Hall-of-Fame count; and the locked V7 denominator. Distillation-audit fallbacks derive
+loop/chunk totals where possible and say `not recorded yet` for genuinely absent legacy fields.
 
 TensorBoard receives optimizer metrics. `status.json` supplies machine-readable counters.
 `NARRATIVE.md` appends an hourly chapter with the best milestone, actions, updates, promotions,
@@ -550,6 +643,29 @@ pokemon-red-ai ppo-run \
   --port 8772
 ```
 
+A fresh V8 comparison can lock the current V7 denominator without copying it or recording its
+private path. V8 launch also requires a clean named Git commit:
+
+```bash
+pokemon-red-ai ppo-run \
+  --rom "/private/path/Pokemon Red.gb" \
+  --output "/external/private/path/parallel-ppo-v8" \
+  --curriculum-source "/external/private/path/verified-expedition" \
+  --mode self_taught_v8 \
+  --v7-denominator "/external/private/path/parallel-ppo-v7" \
+  --environments 4 \
+  --hours 8 \
+  --max-actions 150000000 \
+  --port 8772
+```
+
+The read-only lock accepts only a V7 `self_taught` manifest/checkpoint and pairs the checkpoint's
+model hash with either `ppo-latest.zip` or `ppo-previous.zip`, retrying a crossing rotation. The V8
+manifest stores no source path: only the V7 run ID, Explorer actions, best milestone, model hash,
+checkpoint-JSON hash, source state/update timestamp, and lock timestamp. To resume V8, add
+`--resume` but **omit** `--v7-denominator`; the sealed manifest record is authoritative, and a
+resume request that tries to re-lock or move the baseline is rejected.
+
 Use `pokemon-red-ai ppo-status RUN_DIRECTORY` for a concise heartbeat and
 `pokemon-red-ai ppo-stop RUN_DIRECTORY` for an atomic checkpoint request. Never publish the output
 directory without a separate review and sanitization step.
@@ -563,6 +679,10 @@ directory without a separate review and sanitization step.
 - Does pixels-only PPO beat verify-only self-imitation at the Viridian Forest gate?
 - How much of any privileged comparator advantage comes from coordinates rather than game state?
 - When should a frozen power-on evaluation interrupt training without consuming the training RNG?
+- Does a separate Student retain skills that V7's shared PPO/self-imitation policy forgets?
+- Does replay-backed compression improve frozen success, or merely reduce the dataset size?
+- Does a temporal visual goal outperform one terminal frame on visually ambiguous transitions?
+- How often should retention exams run before their emulator cost starves open exploration?
 
 Those are experiment questions. They should be answered with matched runs and retained failures,
 not tuned away silently during the first long campaign.

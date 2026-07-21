@@ -327,8 +327,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="Cleanly finished PPO run whose compatible policy and optimizer are retained",
     )
     ppo.add_argument(
+        "--v7-denominator",
+        type=Path,
+        help=(
+            "Running or finished Version-7 self-taught run whose current hash-bound checkpoint "
+            "is locked read-only into a fresh Version-8 manifest"
+        ),
+    )
+    ppo.add_argument(
         "--mode",
-        choices=("pixels", "assisted", "privileged", "self_taught"),
+        choices=("pixels", "assisted", "privileged", "self_taught", "self_taught_v8"),
         default="pixels",
     )
     ppo.add_argument("--hours", type=float, default=8)
@@ -357,6 +365,15 @@ def build_parser() -> argparse.ArgumentParser:
     ppo.add_argument("--random-initialization", action="store_true")
     ppo.add_argument("--power-on-only", action="store_true")
     ppo.add_argument("--self-imitation-epochs", type=int, default=2)
+    ppo.add_argument("--distillation-attempts", type=int, default=32)
+    ppo.add_argument("--student-replay-interval", type=int, default=4)
+    ppo.add_argument("--student-replay-epochs", type=int, default=2)
+    ppo.add_argument("--student-burn-in", type=int, default=32)
+    ppo.add_argument("--student-train-horizon", type=int, default=64)
+    ppo.add_argument("--student-learning-rate", type=float, default=0.0005)
+    ppo.add_argument("--frozen-exam-interval-actions", type=int, default=16_384)
+    ppo.add_argument("--frozen-exam-attempts", type=int, default=1)
+    ppo.add_argument("--frozen-exam-action-multiplier", type=float, default=2.0)
     ppo.add_argument("--resume", action="store_true")
 
     ppo_status = subparsers.add_parser(
@@ -474,9 +491,7 @@ def build_parser() -> argparse.ArgumentParser:
     apprentice_curriculum.add_argument("--output", type=Path, required=True)
     apprentice_curriculum.add_argument("--hours", type=float, default=8)
     apprentice_curriculum.add_argument("--max-actions", type=int, default=15_000_000)
-    apprentice_curriculum.add_argument(
-        "--stagnation-actions", type=int, default=2_000_000
-    )
+    apprentice_curriculum.add_argument("--stagnation-actions", type=int, default=2_000_000)
     apprentice_curriculum.add_argument("--seed", type=int, default=20_260_743)
     apprentice_curriculum.add_argument("--max-rss-mib", type=float, default=1_536)
     apprentice_curriculum.add_argument("--min-free-gib", type=float, default=50)
@@ -852,9 +867,20 @@ def run_parallel_ppo_command(args: argparse.Namespace) -> int:
         consolidation=args.consolidation,
         competence_window=args.competence_window,
         competence_threshold=args.competence_threshold,
-        random_initialization=(args.random_initialization or args.mode == "self_taught"),
-        power_on_only=(args.power_on_only or args.mode == "self_taught"),
+        random_initialization=(
+            args.random_initialization or args.mode in {"self_taught", "self_taught_v8"}
+        ),
+        power_on_only=(args.power_on_only or args.mode in {"self_taught", "self_taught_v8"}),
         self_imitation_epochs=args.self_imitation_epochs,
+        distillation_attempts=args.distillation_attempts,
+        student_replay_interval=args.student_replay_interval,
+        student_replay_epochs=args.student_replay_epochs,
+        student_burn_in=args.student_burn_in,
+        student_train_horizon=args.student_train_horizon,
+        student_learning_rate=args.student_learning_rate,
+        frozen_exam_interval_actions=args.frozen_exam_interval_actions,
+        frozen_exam_attempts=args.frozen_exam_attempts,
+        frozen_exam_action_multiplier=args.frozen_exam_action_multiplier,
     )
     if args.port:
         print(
@@ -869,9 +895,13 @@ def run_parallel_ppo_command(args: argparse.Namespace) -> int:
         config,
         resume=args.resume,
         policy_source=args.policy_source,
+        v7_denominator=args.v7_denominator,
     )
     print(f"Parallel PPO stopped: {status['stop_reason']}")
-    print(f"Combined actions: {status['total_actions']:,}")
+    action_label = (
+        "Explorer actions" if status.get("mode") == "self_taught_v8" else "Combined actions"
+    )
+    print(f"{action_label}: {status['total_actions']:,}")
     print(f"PPO updates: {status['ppo_updates']:,}")
     print(f"Best verified milestone: {status['best_milestone']['label']}")
     print(f"Verified promotions: {status['verified_promotions']:,}")
@@ -883,7 +913,10 @@ def show_parallel_ppo_command(run_directory: Path) -> int:
 
     status = show_parallel_ppo_status(run_directory)
     print(f"State: {status['state']}")
-    print(f"Combined actions: {status['total_actions']:,}")
+    action_label = (
+        "Explorer actions" if status.get("mode") == "self_taught_v8" else "Combined actions"
+    )
+    print(f"{action_label}: {status['total_actions']:,}")
     print(f"Actions/second: {status['actions_per_second']:,.2f}")
     print(f"Best verified milestone: {status['best_milestone']['label']}")
     print(f"Verified promotions: {status['verified_promotions']:,}")
@@ -971,8 +1004,7 @@ def run_apprentice_overfit(args: argparse.Namespace) -> int:
     print(f"Stop reason: {result.stop_reason}")
     print(f"Epochs: {result.epochs:,}")
     print(
-        f"Teacher-forced exact labels: "
-        f"{result.offline.teacher_correct:,}/{result.action_count:,}"
+        f"Teacher-forced exact labels: {result.offline.teacher_correct:,}/{result.action_count:,}"
     )
     print(
         f"Predicted-feedback exact labels: "

@@ -212,6 +212,48 @@ Give each configuration the same panel size and axes. Show success, milestone fu
 failure reasons, interventions, and resource use. Add a disclosure row for information and tools
 that differ. Avoid one composite “winner” score unless its weighting was declared in advance.
 
+### H. Version-8 learning separation
+
+**Question:** Did a discovered accident become a frozen Student skill?
+
+Use five linked visuals rather than one “AI progress” number:
+
+1. **Raw-to-distilled ribbon:** one bar for the original self-generated action trace and one for
+   the retained actions. Mark proposed deletions, replay-passed deletions, replay-failed deletions,
+   original/compressed counts, ratio, and oracle cost.
+2. **Two-policy swim lane:** orange Explorer PPO updates and blue Student imitation updates occupy
+   separate lanes with separate checkpoint hashes. Gray verifier/scheduler events cross neither
+   controller boundary.
+3. **Replay-shard shelf:** put the full NPZ behind glass as provenance, then divide the training
+   copy into blocks with at most 512 colored loss examples and up to 32 gray burn-in examples.
+   Highlight one block per skill per round, move a persisted cursor across them, and show
+   **FULL SOURCE OPENS: 0**. This makes bounded I/O and eventual coverage visible at once.
+4. **Prerequisite graph:** every node shows pending, locally competent, retained, or revoked state.
+   The edge is the Explorer's verified lineage, not a human-authored quest map.
+5. **Frozen exam strip:** one equally sized tile per Student checkpoint, labeled with the short
+   checkpoint hash plus success, timeout, loop, blackout, or invalid. Adjacent tiles must represent
+   distinct Student versions; never draw repeated deterministic resets as independent robustness.
+
+Below them, show four horizontal depths: discovered, distilled library, frozen local competence,
+and restore-free composition. Preserve the active V7 shared-policy/raw-trace result as a locked
+small multiple with matched resource labels. The visual specification is detailed in
+[Version 8](version-8-distilled-student.md).
+
+The V7 card should look physically sealed: show its lock timestamp, Explorer-action count, best
+milestone, and short model/checkpoint identities. Do not animate it following later V7 progress;
+the point of `--v7-denominator` is that a V8 comparison cannot move its baseline after launch.
+
+For the composition depth, draw every trainer-side RAM goal switch above the action timeline. Use
+a clip thumbnail to show that the next target was self-generated, and a separate referee symbol to
+show who switched it. This makes the declared goal-conditioned hierarchy visible instead of
+implying unaided pixel-only autonomy.
+
+The verifier-fix interlude needs a different visual grammar from a learning result. Put a live
+state and its reloaded snapshot side by side. Mark processed visual and enumerated RAM rows equal;
+cross out only the save/load-volatile PyBoy game-area hash. Then show the stored 230+59-action
+two-skill trace passing and a wrong endpoint turning red, under a permanent **MECHANISM TEST —
+STORED ACTIONS, NOT STUDENT PLAY** label.
+
 ## Anti-cherry-picking rules for charts
 
 - Official plots include every attempt in the declared evaluation set.

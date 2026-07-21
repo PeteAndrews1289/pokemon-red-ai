@@ -22,7 +22,13 @@ Oak's Lab to Pewter Gym into a visible curriculum and reached Route 1. Version 6
 policy but ended at 5/10—short of its 8/10 first composition gate—after one million actions.
 Version 7 now restarts from random weights and
 power-on only, using no imported actions or human demonstration. It converts only its own verified
-discoveries into visual-goal skills and directly rehearses them.
+discoveries into visual-goal skills and directly rehearses them. Its current long trial remains
+running unchanged as the denominator. Version 8 is implemented beside it: PPO Explorers keep
+searching, but a separate recurrent Student studies replay-distilled self-generated trajectories
+and replay-verified bounded handoffs between locally competent skills. It earns competence only in
+checkpoint-separated frozen exams. Its first 5,248-action real-ROM canary passed the
+mechanism and clean-resume gate on `game_started`; it did not test causal learning or useful later
+gameplay.
 
 ## Start here
 
@@ -40,6 +46,7 @@ discoveries into visual-goal skills and directly rehearses them.
 | Audit the current curriculum | [Version 5.2: the road to Brock](version-5-2-northbound.md) | V5.1's completed result, ten northbound lessons, recovery reward, evidence limits, and run questions |
 | Understand the composition pivot | [Version 6: remember the journey](version-6-consolidation.md) | Retained weights, backward rolling gates, canary evidence, claim boundaries, and the next imitation ablation |
 | Understand the game-naive reset | [Version 7: let a new player teach itself](version-7-self-taught.md) | Random power-on start, strict information rules, self-generated visual skills, self-imitation, canary evidence, and falsification gates |
+| Understand the current architecture change | [Version 8: separate discovery from learning](version-8-distilled-student.md) | Why V7 remains the denominator; how replay-backed compression, immutable bounded shards, composition handoffs, save/load-stable verification, a separate Student, checkpoint-separated grading, and fail-closed resume work; what would falsify them |
 | Inspect the first verified expedition milestone | [Q1 `left_home` result](../experiments/q1-left-home/README.md) | Both seeds, full denominator, lineage hashes, replay cost, and why 1/2 is not a pass |
 | Audit the qualified memory substrate | [Archive v2 qualification](../experiments/archive-v2-qualification/README.md) | Bounded replay, exact resume, crash recovery, deterministic comparison, and the failed stop-timing attempt |
 | Audit every accepted and discarded idea | [Decision register](decision-register.md) | Append-only decisions, failed hypotheses, alternatives, evidence, and consequences |
@@ -77,7 +84,8 @@ flowchart LR
     J --> K["✅ Frontier Apprentice<br/>verify-only baseline"]
     K --> P["✅ Parallel recurrent PPO<br/>verified slices"]
     P --> V6["✅ Version 6<br/>composition failure measured"]
-    V6 --> V7["🟨 Version 7<br/>self-taught hierarchy"]
+    V6 --> V7["🟨 Version 7<br/>live denominator"]
+    V7 --> V8["🟨 Version 8<br/>distilled Student implementation"]
 ```
 
 The diagram shows project position, not game progress. Reaching the game-start state is a narrow

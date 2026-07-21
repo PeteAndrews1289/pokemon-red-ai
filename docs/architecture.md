@@ -1,11 +1,97 @@
 # Architecture
 
-> **Primary-track update:** Version 7 begins with random parameters and only power-on. It imports no
-> action sequence, model, route graph, or human demonstration. A sealed referee verifies outcomes;
-> the actor turns only its own discoveries into visual-goal skills. See
-> [Version 7](version-7-self-taught.md).
+> **Primary-track update:** the running Version 7 trial remains unchanged as the denominator.
+> Version 8 preserves its random, no-demonstration, self-generated boundary while separating four
+> PPO Explorers from a recurrent Student. Only replay-verified and replay-distilled discoveries may
+> train the Student; frozen exams, not training reward, grade competence. Its first real-ROM canary
+> qualified the mechanism and two clean resumes on one trivial `game_started` skill. It did not
+> establish causal learning, multi-skill retention, or later-game progress. See
+> [Version 8](version-8-distilled-student.md).
 
-## Active self-taught boundary
+## Active Version-8 boundary
+
+```mermaid
+flowchart LR
+    Games["Four private game runtimes"] --> View["Pixels + own action history"]
+    View --> Explorer["Explorer CNN-LSTM"]
+    Explorer --> Buttons["Game Boy buttons"]
+    Buttons --> Games
+    Games --> Referee["Sealed RAM referee"]
+    Referee --> Ppo["General PPO feedback"]
+    Ppo --> Explorer
+    Referee --> Verify["Exact self-generated replay"]
+    Verify --> Distill["Replay-backed loop + chunk deletion"]
+    Distill --> Data["Full provenance datasets + visual clips"]
+    Data --> Shards["Immutable bounded replay shards"]
+    Shards --> Student
+    Data --> Compose["Verified bounded goal-switch excerpts"]
+    Compose --> Student
+    Data --> Student["Separate recurrent Student + optimizer"]
+    Student --> Exam["Frozen local / composition exams"]
+    Exam --> Ledger["Prerequisite + retention ledger"]
+    Ledger -. "schedules eligible practice" .-> Games
+```
+
+Explorer and Student never share an optimizer. PPO rollout gradients cannot overwrite the Student,
+and Student imitation gradients cannot change the Explorer. Trainer-only state can propose a
+candidate milestone boundary or removable loop, but an emulator replay must independently preserve
+the protected outcome before the edit enters a dataset. The Student sees a short terminal pixel
+clip, never the milestone label used by the verifier.
+
+The prerequisite scheduler can order only transitions this same run discovered. Periodic frozen
+exams reset recurrent state, preserve every planned attempt, and may revoke competence after
+retention failures. Exactly one deterministic grade is allowed per Student checkpoint at 16,384-
+Explorer-action intervals; an 8/10 local window spans ten different Student versions. Local
+snapshot competence remains a weaker claim than restore-free composition from power-on.
+
+That composition lane is a disclosed goal-conditioned hierarchy. One frozen Student chooses the
+buttons, but the trainer-side RAM referee switches its current target among an ordered playlist of
+self-generated visual clips when declared milestones fire. It supplies neither an authored quest
+route nor a controller action. A future Hall-of-Fame result would therefore mean completion under
+this frozen goal-switching protocol, not unaided pixel-only autonomy.
+
+Training for those switches is also self-generated and fail closed. Once a competent chain has at
+least two edges, the trainer streams its exact compressed actions continuously from power-on and
+verifies every protected endpoint. A success yields bounded pre/post-switch excerpts with no reset
+at the switch; a failure is ledgered and supplies no examples. Only the current deepest verified
+composition enters Student replay, with one ticket per constituent skill and deterministic
+boundary rotation. Each local skill is divided at admission into immutable hash-bound shards, each
+with at most 512 loss-bearing examples and up to one burn-in predecessor prefix. A persisted
+per-skill cursor opens one shard per routine round and covers all shards across resume; the full
+skill NPZ remains provenance-only. Archived composition datasets and audits remain hash-bound but
+inactive.
+
+Composition endpoint identity deliberately differs from distillation identity. Real-ROM testing
+found PyBoy's full game-area hash can change after save/load while the processed visual and every
+enumerated gameplay RAM field remain equal. Composition therefore matches the exact save/load-
+stable visual-plus-RAM signature. Distillation keeps the stricter game-area hash because every
+candidate comparison replays from the same snapshot. A stored two-skill power-on-to-bedroom chain,
+a four-noop save/load chain, and wrong-endpoint rejection qualify this verifier mechanism; none is
+a learned Student playthrough.
+
+V8's reward tracker skips authored route guidance, active-goal lookup, and Mart-specific
+calculations when its navigation/Mart weights are disabled. Its watchdog can react to new positions
+and general durable consequences, but cannot consult authored route distance, milestone index, or
+Viridian Mart script. V8 launch also
+requires a clean Git commit including untracked-file detection. Checkpoint integrity binds source,
+verified ROM identity, frozen curriculum, Explorer, Student, Student optimizer, skill/exam ledger,
+distillation artifacts, worker memories, and action counter. The legacy V7 serializer omits V8-only
+controls; missing ROM identity is backfilled only during resume without rewriting recorded source.
+Routine checkpoints revalidate new or changed skill shards and every new or active composition.
+They may skip unchanged archived files only when the exact seal is already bound by the last
+atomically committed checkpoint; resume and full audit verify all sealed artifacts again.
+For a fresh V8 comparison, `--v7-denominator PATH` read-only locks one running or finished V7
+self-taught checkpoint by pairing its checkpoint-declared model hash with `latest` or `previous`.
+The V8 manifest stores only path-free identity, action/milestone evidence, both hashes, and lock
+state/timestamps. Resume consumes that sealed record and cannot point at a newer denominator.
+V7 deliberately retains its historical authored watchdog shaping so an unchanged resume remains a
+valid denominator; it is not fully blind at that trainer-side termination boundary.
+
+If only the `previous` artifact matches the atomic checkpoint, recovery copies it back to `latest`
+without consuming the fallback. A simulated second interrupted rotation is unit-checked; this does
+not replace the pending process-kill real-ROM crash twin.
+
+## Version-7 denominator boundary
 
 ```mermaid
 flowchart LR
@@ -25,10 +111,12 @@ flowchart LR
     Novelty --> Policy
 ```
 
-The target image is zero during open exploration. It becomes a previously observed terminal screen
+The V7 target image is zero during open exploration. It becomes a previously observed terminal screen
 only while rehearsing a transition this same run produced and replayed. Labels, coordinates,
 routes, event flags, and earlier agents' actions never enter the actor. The unique root snapshot is
-training infrastructure; every later inherited curriculum entry is deleted before V7 begins.
+training infrastructure; every later inherited curriculum entry is deleted before V7 begins. V7
+uses one network for PPO and direct self-imitation; V8 keeps it running unchanged precisely so the
+effect of separating those roles can later be measured.
 
 ## Historical assisted parallel-learning boundary
 

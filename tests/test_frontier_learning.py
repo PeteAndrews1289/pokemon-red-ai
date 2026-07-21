@@ -12,6 +12,7 @@ from pokemon_red_ai.apprentice_model import build_apprentice_policy, require_tor
 from pokemon_red_ai.expedition import MilestoneProgress
 from pokemon_red_ai.frontier_learning import (
     FrontierSelfImitationEmitter,
+    FullGameRewardConfig,
     FullGameRewardTracker,
     _parameter_sha256,
 )
@@ -281,6 +282,40 @@ def test_completed_mart_lessons_expire_after_the_parcel() -> None:
 
     assert "mart_approach" not in result.components
     assert "mart_dialogue_progress" not in result.components
+
+
+def test_zero_authored_guidance_weights_do_not_consult_route_code(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def forbidden(*_args: object, **_kwargs: object) -> object:
+        pytest.fail("zero-weight blind rewards consulted authored route guidance")
+
+    monkeypatch.setattr("pokemon_red_ai.frontier_learning.route_guidance", forbidden)
+    monkeypatch.setattr("pokemon_red_ai.frontier_learning.active_goal", forbidden)
+    tracker = FullGameRewardTracker(
+        config=FullGameRewardConfig(
+            lesson_navigation=0,
+            lesson_progress=0,
+            goal_navigation=0,
+            navigation_recovery=0,
+        )
+    )
+    progress = MilestoneProgress("game_started", 1, "The adventure begins")
+    tracker.prime(state(), progress)
+
+    result = tracker.score(
+        state(player_x=6),
+        progress,
+        action_button="right",
+        loop_detected=False,
+    )
+
+    assert not {
+        "mart_approach",
+        "mart_dialogue_progress",
+        "goal_route_progress",
+        "navigation_recovery",
+    }.intersection(result.components)
 
 
 def test_bidirectional_goal_potential_rewards_return_and_cancels_oscillation() -> None:

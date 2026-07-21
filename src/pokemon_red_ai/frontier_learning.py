@@ -186,12 +186,20 @@ class FullGameRewardTracker:
         self._battle_progressed = False
         self._prime_enemy_health(state)
         self._episode_mart_distance = (
-            self._mart_distance(state) if progress.key == "reached_viridian_city" else None
+            self._mart_distance(state)
+            if self.config.lesson_navigation > 0 and progress.key == "reached_viridian_city"
+            else None
         )
-        self._episode_mart_script = state.viridian_mart_script or 0
-        guidance = route_guidance(state, progress, self.seen_warps)
-        self._episode_goal_key = guidance.goal_key
-        self._episode_route_distance = guidance.distance
+        self._episode_mart_script = (
+            (state.viridian_mart_script or 0) if self.config.lesson_progress > 0 else 0
+        )
+        if self.config.goal_navigation > 0:
+            guidance = route_guidance(state, progress, self.seen_warps)
+            self._episode_goal_key = guidance.goal_key
+            self._episode_route_distance = guidance.distance
+        else:
+            self._episode_goal_key = None
+            self._episode_route_distance = None
         self._episode_last_position = self._position(state)
         self._episode_stationary_actions = 0
         self._episode_navigation_recoveries = 0
@@ -248,7 +256,9 @@ class FullGameRewardTracker:
             self.best_milestone_index = progress.index
 
         mart_distance = (
-            self._mart_distance(state) if progress.key == "reached_viridian_city" else None
+            self._mart_distance(state)
+            if c.lesson_navigation > 0 and progress.key == "reached_viridian_city"
+            else None
         )
         if mart_distance is not None:
             if self._episode_mart_distance is None:
@@ -260,7 +270,9 @@ class FullGameRewardTracker:
                 self._episode_mart_distance = mart_distance
 
         mart_script = (
-            state.viridian_mart_script if progress.key == "entered_viridian_mart" else None
+            state.viridian_mart_script
+            if c.lesson_progress > 0 and progress.key == "entered_viridian_mart"
+            else None
         )
         if mart_script is not None and mart_script > self._episode_mart_script:
             components["mart_dialogue_progress"] = c.lesson_progress * (
@@ -284,22 +296,23 @@ class FullGameRewardTracker:
                     components["new_position"] = c.new_position
                     self.seen_positions.add(position)
 
-        guidance = route_guidance(state, progress, self.seen_warps)
-        if guidance.goal_key != self._episode_goal_key:
-            self._episode_goal_key = guidance.goal_key
-            self._episode_route_distance = guidance.distance
-        elif guidance.distance is not None and self._episode_route_distance is not None:
-            delta = self._episode_route_distance - guidance.distance
-            if delta:
-                # Signed potential change: advancing pays, undoing the move takes the same credit
-                # back, and oscillation therefore cannot manufacture reward.
-                components["goal_route_progress"] = c.goal_navigation * delta
-            self._episode_route_distance = guidance.distance
-        elif guidance.distance is not None:
-            self._episode_route_distance = guidance.distance
+        if c.goal_navigation > 0:
+            guidance = route_guidance(state, progress, self.seen_warps)
+            if guidance.goal_key != self._episode_goal_key:
+                self._episode_goal_key = guidance.goal_key
+                self._episode_route_distance = guidance.distance
+            elif guidance.distance is not None and self._episode_route_distance is not None:
+                delta = self._episode_route_distance - guidance.distance
+                if delta:
+                    # Signed potential change: advancing pays, undoing the move takes the same
+                    # credit back, and oscillation therefore cannot manufacture reward.
+                    components["goal_route_progress"] = c.goal_navigation * delta
+                self._episode_route_distance = guidance.distance
+            elif guidance.distance is not None:
+                self._episode_route_distance = guidance.distance
 
         position = self._position(state)
-        goal_key = active_goal(progress)
+        goal_key = active_goal(progress) if c.navigation_recovery > 0 else None
         navigation_active = bool(
             goal_key is not None and MILESTONE_BY_KEY[goal_key].kind == "landmark" and battle == 0
         )

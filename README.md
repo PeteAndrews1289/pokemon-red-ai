@@ -11,7 +11,7 @@ The original game-naive, pixels-only condition remains a strict control. The Q0/
 baseline deliberately used a seeded random action emitter and a sealed, read-only referee; the next
 trials compare learned or optimized emitters under the same checkpoint and replay rules.
 
-> **Current status: V7 restarts the original question with a self-taught agent.**
+> **Current status: V7 is the live denominator; V8 separates the discoverer from the student.**
 > Stage 0 memorized and exactly replayed its one 419-action house-exit route. Reverse curriculum
 > completed that opening in development, and Frontier Apprentice proved that network updates can be
 > gated behind replay-verified milestones. Its limitation was equally important: almost every
@@ -51,6 +51,23 @@ trials compare learned or optimized emitters under the same checkpoint and repla
 > 8,192-action real-ROM canary independently started the game and reached the ground floor, creating
 > two self-generated skills and eight direct imitation updates. See
 > [Let a new player teach itself](docs/version-7-self-taught.md).
+> V8 preserves that no-demonstration premise but stops asking one continually changing network to
+> be both a noisy Explorer and a careful imitator. Four PPO workers discover; replay mechanically
+> removes only loops and chunks whose deletion still reaches the same protected outcome; and a
+> separate recurrent Student trains on those distilled, self-generated sequences. Periodic frozen
+> exams—not training loss—decide competence. The already-running V7 trial remains unchanged as the
+> denominator. V8's first 5,248-action real-ROM canary now passes the mechanism and clean-resume
+> gate: one 256-action `game_started` edge distilled to 254 replay-verified actions; a separate
+> Student completed eight updates; its model, optimizer, and ledger hashes survived two clean
+> resumes; and the historical runner repeated deterministic local and power-on attempts. The old
+> 2/2 local result is now explicitly superseded as robustness evidence: current V8 records exactly
+> one deterministic grade per Student checkpoint, every 16,384 Explorer actions, and builds its
+> 8/10 window across ten distinct Student versions. Because the canary tested only the trivial first
+> milestone with no chance comparison, it is pipeline evidence—not evidence that Student training
+> caused useful learning. At
+> `2026-07-21T17:29:11Z`, unchanged V7 was at 6,466,564 actions, Route 1, seven discoveries, and
+> zero competent skills, with 19/1,274 rehearsals and 66,560 imitation examples. See
+> [Separate discovery from learning](docs/version-8-distilled-student.md).
 
 The current code preserves every historical runner, including Monkey, Archivist, online learners,
 and clean-start neuroevolution, so rejected approaches remain reproducible. See
@@ -94,7 +111,7 @@ control. The next learned-policy design is frozen in
 | Preserved random comparison | Monkey vs. pixels-only Archivist under matched budgets |
 | Completed 90-minute pretrial | Evolution reached tier 1; online learners plateaued around Pallet Town and Route 1 |
 | Concluded neural experiment | Six inherited-archive lanes all failed the second-map/party gate under equal fuel |
-| Current completion work | Retained-policy PPO alternates frontier discovery with backward-expanding rehearsal; discovery, training competence, and frozen power-on evaluation remain separate claims |
+| Current completion work | V8's mechanism and clean resume are qualified on one trivial skill; final-audited grading now collects one deterministic result per Student checkpoint before any multi-skill or causal claim |
 | North star | First discover a replayable Hall-of-Fame lineage, then train and evaluate one frozen pixel policy |
 
 ## The journey
@@ -111,7 +128,9 @@ flowchart LR
     SC --> EM["🟨 Visual Apprentice<br/>learn one local skill"]
     EM --> FR["✅ Frontier Apprentice<br/>verify-only updates"]
     FR --> PPO["🟨 Parallel PPO<br/>learn from every rollout"]
-    PPO --> HF["⬜ Complete lineage<br/>then one frozen policy"]
+    PPO --> V7["🟨 V7<br/>unchanged denominator"]
+    V7 --> V8["🟨 V8<br/>wiring passed; learning open"]
+    V8 --> HF["⬜ Hall of Fame<br/>one frozen policy"]
 ```
 
 GitHub issues and experiment records will attach evidence to this roadmap. A checked engineering
@@ -161,13 +180,93 @@ trainer-owned and disclosed; they are disabled when evaluating one frozen model 
 [the experiment protocol](docs/experiment-protocol.md) and
 [the completion program](docs/completion-program.md).
 
-The current parallel-PPO successor is Version 7. It starts one recurrent policy at random from the
+The live parallel-PPO denominator is Version 7. It starts one recurrent policy at random from the
 unique power-on state, imports no earlier actions or parameters, and removes authored route,
 milestone, Mart, and landmark-recovery reward. General consequence and novelty feedback remains
 trainer-only. A replay-verified discovery becomes a visual target plus a dataset reconstructed from
 the run's own actions; the policy directly self-imitates it and rehearses its weakest skill behind
 an 8/10 gate. Earlier assisted lanes and V6 consolidation remain preserved as disclosed comparison
 systems, not hidden ingredients in V7.
+
+Version 8 keeps the same ban on imported solutions while separating roles. Explorer PPO produces
+candidate experience; only exact self-generated replays may become Student data. A replay oracle
+must approve every loop or chunk deletion, and a separate recurrent Student optimizer trains on
+balanced contiguous sequences with burn-in. Prerequisite-aware frozen exams can grant or revoke
+local competence. A 5,248-action real-ROM canary has qualified that mechanism, including two clean
+resumes, one replay-distilled `game_started` edge, eight separate-Student updates, a shortened 2/2
+local check, and repeated power-on attempts of only that first trivial outcome. Those deterministic
+duplicates are preserved as historical wiring evidence and excluded from robustness language.
+Current grading permits one attempt per Student checkpoint at a 16,384-Explorer-action cadence; an
+8/10 competence window therefore spans ten different Student versions. Those grades still do not
+isolate learning from chance or support any later-game claim; V7 continues under its original
+configuration so a future comparison remains honest.
+
+V8 now trains the missing handoff between local skills as well as the skills themselves. When two
+or more adjacent skills are competent, it streams the deepest competent chain once from exact
+power-on and verifies every protected endpoint. A failed chain is ledgered and never trains. A
+successful chain contributes only bounded excerpts around its goal switches, with continuous
+context across each switch, compact self-generated clips, and hash-bound provenance. Only the
+current deepest verified composition is active; archived compositions stay auditable but out of
+Student loading. The active composition receives one replay ticket per constituent skill and at
+least half of its draws rotate across switches with a checkpointed cursor. At skill admission, V8
+turns the verified full dataset into immutable, hash-bound replay shards. Each shard owns at most
+512 loss-bearing examples plus up to one burn-in prefix; a persistent per-skill cursor selects one
+bounded shard per routine Student round and eventually covers the whole skill across resumes. The
+original full NPZ remains provenance evidence and is not opened by routine replay.
+
+The composition verifier also has a real-ROM regression boundary. PyBoy's complete game-area hash
+changed after save/load even when the processed screen and enumerated gameplay RAM were identical,
+so composition now compares an exact save/load-stable processed-visual-plus-RAM signature.
+Distillation keeps the stricter game-area hash because its candidates replay from the same loaded
+snapshot. A stored two-skill `power_on → game_started → left_bedroom` trace passed continuous
+endpoint verification; a four-noop save/load regression also passed, and validly encoded wrong
+endpoints failed closed. These are verifier and data-path checks, not evidence that the Student
+learned either chain. No multi-skill real-ROM Student success is claimed yet.
+
+The cadence is feasible under the safety ceiling but not free: `66 × 10 × 16,384 = 10,813,440`
+Explorer actions, about 10.8 million, is the local-exam opportunity floor for ten grades across all
+66 outcomes. It excludes discovery, replay/distillation, Student training, composition, and game
+completion.
+
+The final audit removes authored help from the **V8** reward/watchdog path. With its navigation and
+Mart weights disabled, reward tracking skips authored route guidance, active-goal lookup, and
+Mart-specific calculations. Route distance, canonical milestone index, and the Viridian Mart
+script also cannot reset V8's stagnation timer. The already-running V7 denominator intentionally
+retains its historical trainer-side watchdog shaping so its behavior does not change on resume;
+V7 is therefore not fully blind at that boundary.
+V8 refuses a dirty Git checkout—including untracked files—and binds the exact source commit,
+verified ROM identity, curriculum, Explorer, Student, Student optimizer, and skill/exam ledger into
+its checkpoint boundary. V7 keeps its legacy serialized configuration; missing manifest ROM
+identity is backfilled only on resume without rewriting its recorded source.
+If a V8 checkpoint matches only a `previous` artifact generation, resume atomically re-promotes a
+copy to `latest` while preserving `previous`; a simulated second interrupted rotation is
+unit-checked. A deliberate process-kill real-ROM twin is still pending.
+Routine checkpoints fully validate new or changed skills, every shard they introduce, and new or
+active compositions. Unchanged archived artifacts may reuse only a seal already bound by the last
+atomically committed checkpoint; resume and full audit revalidate every skill, shard, composition,
+and audit file.
+The V8 dashboard now keeps discovery, distilled-library, checkpoint-separated local competence,
+and restore-free composition as four meters, beside Hall-of-Fame count, Explorer/Student hashes,
+the locked V7 denominator, and honest fallbacks for older distillation audits. Status also records
+active versus archived compositions, retained examples/bytes and train/stored ceilings,
+available versus loaded shards, loaded train/context examples and bytes, proof that routine replay
+opened zero full skill artifacts, per-skill cursor/coverage state, ticket-expanded replay-cycle
+size, active switch examples, and failed composition builds.
+On a fresh V8 launch, `--v7-denominator PATH` can lock a read-only snapshot of a running or finished
+V7 self-taught checkpoint. The snapshot matches the checkpoint hash to either the latest or previous
+model generation and stores only a path-free run ID, Explorer-action count, best milestone, model
+and checkpoint hashes, source state/timestamps, and lock time. Resume reuses that sealed manifest
+record and rejects an attempt to re-lock the baseline. The V8 dashboard labels its own counter
+**Explorer actions**, renders the locked comparison card, exposes selected-shard stored/owned/
+context footprint and coverage with zero routine full-source opens, and states that composition
+goals switch at trainer-side RAM milestone endpoints.
+
+“Restore-free composition” is not shorthand for unaided pixel-only autonomy. One frozen Student
+chooses every button from pixels, action history, recurrent state, and the current self-generated
+target clip; a trainer-side RAM referee switches an ordered playlist of those clips when declared
+milestones fire. The playlist comes only from this run's discoveries and provides no authored
+quest direction or controller actions. Any eventual Hall-of-Fame result must therefore be reported
+as completion under that frozen, declared goal-switching protocol.
 
 ## What will count as progress?
 
@@ -199,6 +298,7 @@ Start with [the documentation hub](docs/index.md), or jump directly to:
 - [Parallel recurrent PPO](docs/parallel-ppo.md) — four-worker learning, information boundaries, rewards, replay admission, benchmarks, and long-run interpretation
 - [Version 5.2: the road to Brock](docs/version-5-2-northbound.md) — completed predecessor evidence, ten northbound lessons, recovery reward, and video narrative
 - [Version 7: let a new player teach itself](docs/version-7-self-taught.md) — random power-on start, self-generated visual skills, direct self-imitation, competence gates, and canary evidence
+- [Version 8: separate discovery from learning](docs/version-8-distilled-student.md) — unchanged V7 denominator, replay-backed trajectory compression, separate Explorer and Student, recurrent sequence training, prerequisite scheduling, frozen exams, and falsifiers
 - [Version 6: remember the journey](docs/version-6-consolidation.md) — retained PPO weights, backward competence gates, failed and passed canaries, and the new claim ladder
 - [Append-only decision register](docs/decision-register.md) — accepted, rejected, retired, superseded, and failed ideas with their evidence
 - [Progress](docs/progress.md) — current evidence, status, and reporting rules

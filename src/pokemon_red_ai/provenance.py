@@ -20,14 +20,23 @@ class SourceProvenance:
         }
 
 
-def detect_source_provenance(project_root: Path | None = None) -> SourceProvenance:
+def detect_source_provenance(
+    project_root: Path | None = None,
+    *,
+    include_untracked: bool = False,
+) -> SourceProvenance:
     """Read public Git identity without recording a checkout path or command error."""
     root = project_root or Path(__file__).resolve().parents[2]
     commit = _git_output(root, "rev-parse", "HEAD")
     if commit is None or GIT_COMMIT.fullmatch(commit) is None:
         return SourceProvenance(None, None)
 
-    status = _git_output(root, "status", "--porcelain", "--untracked-files=no")
+    status = _git_output(
+        root,
+        "status",
+        "--porcelain",
+        "--untracked-files=all" if include_untracked else "--untracked-files=no",
+    )
     return SourceProvenance(commit, None if status is None else bool(status))
 
 

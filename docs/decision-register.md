@@ -1368,6 +1368,122 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
 - **Supersedes / superseded by:** Supersedes V6 as the primary completion strategy while retaining
   V6 as the controlled composition diagnostic. Not yet superseded.
 
+## DR-0053 — Separate the discoverer from a replay-distilled student
+
+- **Date:** 2026-07-21
+- **Status:** Accepted and implemented; first real-ROM mechanism, frozen-exam wiring, two clean
+  resumes, bounded replay I/O, and a two-skill composition-verifier acceptance passed; deliberate
+  hard-crash, production-window, learned multi-skill, and behavioral evidence pending
+- **Scope:** Version 8 trajectory processing, policy authority, recurrent imitation, scheduling,
+  exams, checkpoint integrity, dashboard, and claim language
+- **Information label:** `SELF-TAUGHT / PIXELS + SELF-DISCOVERED TEMPORAL VISUAL GOAL`, with a
+  privileged replay verifier and scheduler that never choose live buttons
+- **Decision:** Keep V7's ban on demonstrations, imported actions, predecessor weights, route
+  graphs, coordinates, and semantic actor goals. Leave its already-running trial unchanged as the
+  denominator. Continue four-worker recurrent PPO as a dedicated Explorer, but create a second
+  recurrent Student with a separate optimizer. Find the nearest verified self-generated lineage
+  prefix, then mechanically propose loop and contiguous-chunk deletion. Admit an edit only when a
+  fresh emulator replay from the same source preserves the protected outcome. Train the Student on
+  balanced contiguous sequences with loss-free burn-in and short terminal visual clips. Let a
+  prerequisite-aware scheduler allocate minimum evaluation, mastery, retention, or frontier
+  episodes. Grant or revoke competence only from periodic frozen Student exams, not PPO reward or
+  imitation loss. Collect exactly one deterministic grade from each Student checkpoint at a
+  16,384-Explorer-action cadence; the 10-wide 8/10 window must span ten Student versions.
+- **Alternatives considered:** Let V7 run longer without architectural change; increase V7's
+  imitation epochs; lower policy entropy; train the shared Explorer on every raw verified action;
+  copy PPO parameters into the Student after each rollout; use one still frame forever; label the
+  target with a named milestone; provide a human-optimal action trace; use a scripted planner;
+  resume V6's authored micro-curriculum; discard the live V7 trial; or call replay promotion itself
+  competence.
+- **Observation/evidence:** V6 showed partial local learning but failed its 8/10 composition gate.
+  V7's first canary proved that a random policy can generate, verify, and imitate its own opening
+  skills. That useful result also exposed the next causal ambiguity: one network receives both
+  noisy PPO gradients and direct imitation gradients, while the verified trace can contain every
+  accidental loop used before success. A successful replay protects outcome provenance but does
+  not certify every recorded action as a good target. The active long V7 denominator has not been
+  reconfigured or interpreted as a final result. The first V8 canary then stopped/resumed cleanly
+  twice and ended `stop_requested` at 5,248 Explorer actions / 48.038 seconds. It verified one
+  `game_started` skill, distilled 256 raw actions to 254 with final replay, trained the separate
+  Student for eight updates over 128 examples, and preserved matching Student model, optimizer,
+  and ledger hashes. Final NLL was 2.06915 and action accuracy 16.14%. The original runner repeated
+  the same deterministic Student and produced 2/2 locally plus 14/14 from power-on, all only for
+  `game_started`. The final audit supersedes those duplicates as robustness evidence; they remain
+  mechanism history only.
+  A later real-ROM integration found a P0 verifier defect: PyBoy's complete game-area hash changed
+  across save/load even when the processed visual and every enumerated gameplay RAM field matched.
+  Composition now uses that exact save/load-stable visual-plus-RAM signature, while distillation
+  keeps the stricter hash because its candidates replay from one snapshot. The corrected verifier
+  accepted a stored 230-plus-59-action chain from `power_on` through `game_started` to
+  `left_bedroom`, accepted a four-noop save/load regression, and rejected validly encoded wrong
+  endpoints. Those stored-action replays qualify mechanism only, not learned Student competence.
+  The unchanged V7 snapshot at `2026-07-21T17:29:11Z` was 6,466,564 actions, Route 1, seven
+  discoveries, zero competent skills, 19/1,274 rehearsals, and 66,560 imitation examples.
+- **Interpretation:** The source of teaching data is no longer the main philosophical problem; all
+  positive examples can remain self-generated. The next test is whether noisy discovery and stable
+  retention require different parameter streams, and whether replay can convert a successful
+  accident into a shorter causal lesson without a human editing the route. The canary confirms
+  those parts execute and resume together; because `game_started` is trivial, accuracy is low, and
+  no chance or raw-trace control ran, it does not show that Student updates caused success. Ten
+  checkpoint-separated grades for 66 outcomes require at least 10,813,440 Explorer actions at the
+  frozen cadence, before discovery or composition cost.
+- **Consequence:** Protocol identity advances only for V8 runs. Reports must expose separate
+  Explorer and Student hashes, optimizers, updates, entropy, and artifacts. Every distilled skill
+  keeps raw/compressed counts, bidirectional provenance mappings, accepted and rejected edit
+  counts, replay cost, and hashes. Scheduling decisions and competence losses persist. Dashboard
+  depth splits into discovered, distilled-library, frozen-local, and restore-free composition.
+  A real-ROM canary may qualify wiring but cannot establish learning; only frozen attempt
+  denominators support competence language. V8's zero-weight reward path skips authored route
+  guidance, active-goal lookup, and Mart calculations; stagnation may use general durable
+  consequences but not route distance, milestone index, or the Viridian Mart script. V7 retains
+  those historical termination signals for denominator compatibility and is not fully blind at
+  that boundary. V8 launch requires a clean named commit including untracked files; checkpoints
+  bind source, verified ROM, curriculum, Explorer, Student, Student optimizer, and ledger. V7
+  omits V8-only serialized config fields and backfills a missing manifest ROM only on resume
+  without changing recorded source. A fresh V8 run may lock a read-only V7 denominator by matching
+  its checkpoint to the latest/previous model hash. Only path-free identity, Explorer actions,
+  milestone, model/checkpoint hashes, state, and timestamps enter the V8 manifest; resume must reuse
+  that seal and cannot re-lock the comparison.
+  Hash-matching `previous` artifacts are atomically copied back to `latest` without consuming the
+  fallback; a simulated second interrupted rotation is unit-checked, while a process-kill real-ROM
+  crash twin remains pending.
+  Once a competent chain contains two or more edges, continuous exact power-on replay must verify
+  every protected endpoint before bounded goal-switch excerpts may train the Student. Only the
+  current deepest verified composition is active; archived ledgers/audits remain hash-bound.
+  One replay ticket per constituent skill, uniform per-action loss, deterministic boundary rotation
+  through a checkpointed cursor, and admission-time immutable replay shards prevent handoffs from
+  disappearing without loading every full skill. Each shard owns a disjoint contiguous range of at
+  most 512 loss-bearing examples plus up to the configured burn-in predecessor context. A
+  persistent per-skill cursor opens one shard per routine round and covers the full source across
+  resume; the original NPZ remains provenance-only during routine training. Routine checkpoints
+  may trust unchanged inactive composition seals only when the last atomic `checkpoint.json`
+  already commits them; new or active compositions and all new skill shards are validated, and
+  resume/full audit validates every artifact. After the final schema tweak, the focused
+  replay/Student/PPO/dashboard suite passed 61 tests, and the full private-ROM suite passed 246.
+  This is mechanism evidence, not multi-skill behavioral evidence.
+  Restore-free composition remains goal-conditioned hierarchical control: one frozen Student
+  chooses every button, while a trainer-side RAM referee switches an ordered playlist of the
+  run's self-generated target clips at declared milestones. This provides no authored quest
+  direction or controller actions, but any Hall-of-Fame claim must name the switching protocol
+  rather than imply unaided pixel-only autonomy.
+- **Failed/useful decisions preserved:** Pure Monkey established that luck without memory cannot
+  accumulate. Neuroevolution established that inheritance can retain a narrow habit without
+  extending it. Archive slicing established verifiable progress while hiding composition. V5's
+  expired Mart reward showed that a locally sensible reward can become globally wrong. V6 made
+  partial composition visible but still depended on authored lessons. V7 restored self-generated
+  learning and remains the necessary shared-policy/raw-trace comparison. None is deleted or
+  relabeled because V8 exists.
+- **Narrative value:** Draw the successful V7 action trace as a tangle. Let replay, rather than the
+  host, decide which knots can disappear. Then split one orange Explorer from one blue Student and
+  stop the training chart at the exam door. The question becomes whether the Student can pass with
+  its weights frozen, not whether another rising score can be narrated as understanding.
+- **Revisit when:** Any V8 canary fails the information boundary or atomic resume; compression harms
+  frozen success; action accuracy rises without exam progress; old competence is repeatedly lost;
+  local exams pass while composition remains flat; V7 closes and permits a matched comparison; or
+  a later obstacle still requires a bespoke human lesson.
+- **Supersedes / superseded by:** Extends DR-0052's self-generated-data decision. It supersedes V7's
+  shared Explorer/imitator as the proposed successor, but V7 remains the live denominator and
+  cannot be retroactively changed. Not yet superseded.
+
 ## Unresolved decisions
 
 These are questions, not hidden commitments. Each becomes a numbered entry when evidence supports

@@ -44,18 +44,56 @@ from pokemon_red_ai.expedition import (
 )
 from pokemon_red_ai.frontier_learning import FullGameRewardConfig, FullGameRewardTracker
 from pokemon_red_ai.milestones import HALL_OF_FAME_KEY, MILESTONE_BY_KEY, MILESTONES
+from pokemon_red_ai.ppo_dashboard import render_ppo_dashboard
 from pokemon_red_ai.provenance import detect_source_provenance
 from pokemon_red_ai.quest_navigation import route_guidance
 from pokemon_red_ai.rom import verify_rom
 from pokemon_red_ai.self_taught import (
+    SELF_GENERATED_COMPOSITION_PROTOCOL,
+    SELF_GENERATED_REPLAY_SHARD_PROTOCOL,
     SelfTaughtSkillLibrary,
     choose_self_taught_episode,
+    choose_v8_self_taught_episode,
 )
-from pokemon_red_ai.state import PokemonRedState, PokemonRedStateReader
+from pokemon_red_ai.state import (
+    MAX_BAG_ITEMS,
+    PARTY_LENGTH,
+    PARTY_MON_STRUCT_LENGTH,
+    PokemonRedState,
+    PokemonRedStateReader,
+    RamAddress,
+)
+from pokemon_red_ai.student_training import (
+    BalancedSkillReplay,
+    SequenceAwareStudentTrainer,
+    SequenceTrainingConfig,
+    load_self_generated_datasets,
+)
+from pokemon_red_ai.trajectory_distillation import (
+    DistillationConfig,
+    ReplayEvidence,
+    VerifiedSelfTrajectory,
+    distill_self_generated_trajectory,
+)
 
 PPO_PROTOCOL = "parallel-recurrent-ppo-v7"
 PPO_REWARD_PROTOCOL = "self-generated-visual-skills-v1"
-PPO_MODES = frozenset({"pixels", "assisted", "privileged", "self_taught"})
+PPO_V8_PROTOCOL = "parallel-recurrent-ppo-v8"
+PPO_V8_REWARD_PROTOCOL = "distilled-self-generated-skills-v1"
+PPO_MODES = frozenset({"pixels", "assisted", "privileged", "self_taught", "self_taught_v8"})
+V8_CONFIG_FIELDS = frozenset(
+    {
+        "distillation_attempts",
+        "student_replay_interval",
+        "student_replay_epochs",
+        "student_burn_in",
+        "student_train_horizon",
+        "student_learning_rate",
+        "frozen_exam_interval_actions",
+        "frozen_exam_attempts",
+        "frozen_exam_action_multiplier",
+    }
+)
 PRIVILEGED_STATE_SIZE = 24
 ACTION_HISTORY_LENGTH = 3
 MAP_MEMORY_SIZE = 64
@@ -63,6 +101,36 @@ MAP_MEMORY_FEATURES = 64
 SKILL_COUNT = 3
 GOAL_COUNT = len(MILESTONES) + 1
 MAP_CONTEXT_SIZE = 4
+
+
+class CompositionReplayRejected(RuntimeError):
+    """A verified skill chain did not compose continuously from power-on."""
+
+
+def _is_self_taught_mode(mode: str) -> bool:
+    return mode in {"self_taught", "self_taught_v8"}
+
+
+def _is_v8_mode(mode: str) -> bool:
+    return mode == "self_taught_v8"
+
+
+def _ppo_protocol(mode: str) -> str:
+    return PPO_V8_PROTOCOL if _is_v8_mode(mode) else PPO_PROTOCOL
+
+
+def _ppo_reward_protocol(mode: str) -> str:
+    return PPO_V8_REWARD_PROTOCOL if _is_v8_mode(mode) else PPO_REWARD_PROTOCOL
+
+
+def _hall_of_fame_stop_is_verified(
+    mode: str,
+    status: Mapping[str, Any],
+    library: SelfTaughtSkillLibrary | None,
+) -> bool:
+    if _is_v8_mode(mode):
+        return library is not None and library.hall_of_fame_completions > 0
+    return status.get("best_milestone", {}).get("key") == HALL_OF_FAME_KEY
 
 
 def _self_taught_reward_config() -> FullGameRewardConfig:
@@ -97,12 +165,144 @@ def _canonical_json(value: object) -> bytes:
     return json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")
 
 
+def _random_state_to_json(value: Any) -> Any:
+    if isinstance(value, tuple):
+        return [_random_state_to_json(item) for item in value]
+    return value
+
+
+def _random_state_from_json(value: Any) -> Any:
+    if isinstance(value, list):
+        return tuple(_random_state_from_json(item) for item in value)
+    return value
+
+
 def _sha256_file(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as source:
         for chunk in iter(lambda: source.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _require_reproducible_v8_source(source: Mapping[str, Any]) -> None:
+    """Refuse a V8 campaign whose executable source cannot be named exactly."""
+
+    if source.get("git_commit") == "unknown" or source.get("worktree_dirty") is not False:
+        raise ValueError("V8 requires a clean Git commit so checkpoints bind exact source")
+
+
+def _validate_checkpoint_identity(
+    checkpoint: Mapping[str, Any],
+    *,
+    source: Mapping[str, Any],
+    rom: Mapping[str, Any],
+    required: bool,
+) -> None:
+    if not required:
+        return
+    recorded_source = checkpoint.get("source")
+    recorded_rom = checkpoint.get("rom")
+    if recorded_source is None or recorded_rom is None:
+        raise ValueError("V8 checkpoint has no bound source and ROM identity")
+    if recorded_source != source:
+        raise ValueError("PPO checkpoint source identity does not match this checkout")
+    if recorded_rom != rom:
+        raise ValueError("PPO checkpoint ROM identity does not match the verified ROM")
+
+
+def _resolve_checkpoint_artifact(
+    run_directory: Path,
+    *,
+    latest_name: str,
+    previous_name: str,
+    expected_sha256: object,
+) -> Path:
+    """Resolve and re-promote the generation named by the atomic JSON checkpoint."""
+
+    for index, name in enumerate((latest_name, previous_name)):
+        path = run_directory / name
+        if path.is_file() and _sha256_file(path) == expected_sha256:
+            if index == 0:
+                return path
+            latest = run_directory / latest_name
+            temporary = latest.with_suffix(latest.suffix + ".recovered.tmp")
+            temporary.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(path, temporary)
+            os.replace(temporary, latest)
+            if _sha256_file(latest) != expected_sha256:
+                raise ValueError(f"Recovered {latest_name} failed its checkpoint hash")
+            return latest
+    raise ValueError(f"Neither {latest_name} nor its previous generation matches")
+
+
+def _snapshot_v7_denominator(run_directory: Path) -> dict[str, Any]:
+    """Lock one read-only V7 checkpoint for honest V8 dashboard comparison."""
+
+    source = run_directory.expanduser().resolve()
+    if not source.is_dir():
+        raise ValueError("V7 denominator run directory does not exist")
+    manifest_path = source / "manifest.json"
+    checkpoint_path = source / "checkpoint.json"
+    status_path = source / "status.json"
+    if not manifest_path.is_file() or not checkpoint_path.is_file():
+        raise ValueError("V7 denominator has no complete manifest and checkpoint")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if (
+        manifest.get("protocol") != PPO_PROTOCOL
+        or manifest.get("actor_mode") != "self_taught"
+    ):
+        raise ValueError("Denominator must be a Version-7 self-taught run")
+
+    # The denominator may still be running. Its checkpoint and model generations
+    # rotate atomically but separately, so retry the read-only pairing if one
+    # rotation crosses this snapshot operation.
+    for _attempt in range(3):
+        checkpoint_bytes = checkpoint_path.read_bytes()
+        checkpoint = json.loads(checkpoint_bytes)
+        expected = checkpoint.get("model_file_sha256")
+        checkpoint_config = checkpoint.get("config")
+        if (
+            checkpoint.get("protocol") != PPO_PROTOCOL
+            or not isinstance(checkpoint_config, Mapping)
+            or checkpoint_config.get("mode") != "self_taught"
+            or not isinstance(expected, str)
+            or len(expected) != 64
+        ):
+            raise ValueError("V7 denominator checkpoint identity is invalid")
+        matching_model = next(
+            (
+                candidate
+                for candidate in (source / "ppo-latest.zip", source / "ppo-previous.zip")
+                if candidate.is_file() and _sha256_file(candidate) == expected
+            ),
+            None,
+        )
+        if matching_model is None:
+            continue
+        best = checkpoint.get("best_milestone")
+        if not isinstance(best, Mapping):
+            raise ValueError("V7 denominator checkpoint has no milestone evidence")
+        status = (
+            json.loads(status_path.read_text(encoding="utf-8"))
+            if status_path.is_file()
+            else {}
+        )
+        return {
+            "locked": True,
+            "protocol": PPO_PROTOCOL,
+            "run_id": source.name,
+            "total_actions": int(checkpoint["total_actions"]),
+            "best_index": int(best["index"]),
+            "best_label": str(best["label"]),
+            "checkpoint_sha256": expected,
+            "checkpoint_json_sha256": hashlib.sha256(checkpoint_bytes).hexdigest(),
+            "source_state_at_lock": str(status.get("state", "unknown")),
+            "source_updated_at": status.get("updated_at"),
+            "locked_at": datetime.now(UTC).isoformat(),
+            "source_path_recorded": False,
+        }
+    raise ValueError("V7 denominator model rotated before a checkpoint pair could be locked")
 
 
 def _atomic_json(path: Path, value: object) -> None:
@@ -112,13 +312,191 @@ def _atomic_json(path: Path, value: object) -> None:
     os.replace(temporary, path)
 
 
+def _ensure_run_manifest_identity(
+    path: Path,
+    *,
+    source: Mapping[str, Any],
+    rom: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Backfill identity for pre-V8 manifests without rewriting existing provenance."""
+
+    value = json.loads(path.read_text(encoding="utf-8"))
+    changed = False
+    if "source" not in value:
+        value["source"] = dict(source)
+        changed = True
+    if "rom" not in value:
+        value["rom"] = dict(rom)
+        changed = True
+    if changed:
+        _atomic_json(path, value)
+    return value
+
+
+def _atomic_torch_checkpoint(path: Path, value: object) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    with temporary.open("wb") as output:
+        torch.save(value, output)
+        output.flush()
+        os.fsync(output.fileno())
+    os.replace(temporary, path)
+
+
+def _validate_hashed_run_artifact(
+    run_directory: Path,
+    relative_value: object,
+    expected_sha256: object,
+    *,
+    label: str,
+) -> Path:
+    """Resolve one ledger artifact inside the run and verify its sealed identity."""
+
+    relative = Path(str(relative_value))
+    expected = str(expected_sha256)
+    if relative.is_absolute() or ".." in relative.parts or not relative.name:
+        raise ValueError(f"{label} path is invalid")
+    if len(expected) != 64 or any(character not in "0123456789abcdef" for character in expected):
+        raise ValueError(f"{label} hash is invalid")
+    root = run_directory.resolve()
+    path = (root / relative).resolve()
+    if not path.is_relative_to(root) or not path.is_file() or _sha256_file(path) != expected:
+        raise ValueError(f"{label} failed its hash")
+    return path
+
+
 def _checkpoint_self_skill_state(run_directory: Path) -> dict[str, str]:
     """Freeze the mutable skill ledger beside the model checkpoint."""
 
     live = run_directory / "self-skills.json"
     snapshot = run_directory / "self-skills.checkpoint.json"
+    previous = run_directory / "self-skills.checkpoint.previous.json"
     value = json.loads(live.read_text(encoding="utf-8"))
-    SelfTaughtSkillLibrary.from_dict(value)
+    library = SelfTaughtSkillLibrary.from_dict(value)
+
+    # Only an artifact ledger whose hash is already bound by checkpoint.json can
+    # suppress another full-file validation.  In particular, an interrupted
+    # checkpoint may have published a newer skill snapshot, but it is untrusted
+    # until checkpoint.json commits its hash.  Keeping track of the matching path
+    # also lets a second interrupted rotation preserve the last committed copy.
+    committed_path: Path | None = None
+    committed_library: SelfTaughtSkillLibrary | None = None
+    checkpoint_path = run_directory / "checkpoint.json"
+    if checkpoint_path.is_file():
+        checkpoint = json.loads(checkpoint_path.read_text(encoding="utf-8"))
+        expected = str(checkpoint.get("self_skills_file_sha256", ""))
+        if len(expected) == 64:
+            for candidate in (snapshot, previous):
+                if candidate.is_file() and _sha256_file(candidate) == expected:
+                    committed_path = candidate
+                    committed_library = SelfTaughtSkillLibrary.from_dict(
+                        json.loads(candidate.read_text(encoding="utf-8"))
+                    )
+                    break
+
+    def skill_seal(skill: Mapping[str, Any]) -> tuple[Any, ...]:
+        return (
+            str(skill["target_frame_file"]),
+            str(skill["target_frame_sha256"]),
+            str(skill["dataset_file"]),
+            str(skill["dataset_sha256"]),
+            str(skill.get("distillation_audit_file")),
+            str(skill.get("distillation_audit_sha256")),
+            int(skill.get("replay_shard_example_cap", 0)),
+            int(skill.get("replay_shard_burn_in", 0)),
+            tuple(
+                (
+                    str(shard["protocol"]),
+                    str(shard["file"]),
+                    str(shard["sha256"]),
+                    str(shard["source_dataset_sha256"]),
+                    int(shard["shard_index"]),
+                    int(shard["shard_count"]),
+                    int(shard["source_start"]),
+                    int(shard["source_context_start"]),
+                    int(shard["source_train_start"]),
+                    int(shard["source_stop"]),
+                    int(shard["source_action_count"]),
+                    int(shard["context_example_count"]),
+                    int(shard["train_example_count"]),
+                    int(shard["example_count"]),
+                    int(shard["stored_bytes"]),
+                )
+                for shard in skill.get("replay_shards", [])
+            ),
+        )
+
+    committed_skills = (
+        {
+            str(skill["skill_id"]): skill_seal(skill)
+            for skill in committed_library.skills
+        }
+        if committed_library is not None
+        else {}
+    )
+    for skill in library.skills:
+        if committed_skills.get(str(skill["skill_id"])) == skill_seal(skill):
+            continue
+        for file_key, hash_key in (
+            ("target_frame_file", "target_frame_sha256"),
+            ("dataset_file", "dataset_sha256"),
+            ("distillation_audit_file", "distillation_audit_sha256"),
+        ):
+            if skill.get(file_key) is None:
+                continue
+            _validate_hashed_run_artifact(
+                run_directory,
+                skill[file_key],
+                skill.get(hash_key),
+                label="Self-taught skill artifact before checkpoint",
+            )
+        for shard in skill.get("replay_shards", []):
+            shard_path = _validate_hashed_run_artifact(
+                run_directory,
+                shard["file"],
+                shard["sha256"],
+                label="V8 bounded replay shard before checkpoint",
+            )
+            if shard_path.stat().st_size != int(shard["stored_bytes"]):
+                raise ValueError("V8 bounded replay shard size changed before checkpoint")
+
+    committed_compositions = (
+        {
+            str(composition["fingerprint"]): (
+                str(composition["dataset_file"]),
+                str(composition["dataset_sha256"]),
+                str(composition["audit_file"]),
+                str(composition["audit_sha256"]),
+            )
+            for composition in committed_library.composition_replays
+        }
+        if committed_library is not None
+        else {}
+    )
+    for composition in library.composition_replays:
+        seal = (
+            str(composition["dataset_file"]),
+            str(composition["dataset_sha256"]),
+            str(composition["audit_file"]),
+            str(composition["audit_sha256"]),
+        )
+        if (
+            not bool(composition.get("active", False))
+            and committed_compositions.get(str(composition["fingerprint"])) == seal
+        ):
+            continue
+        for file_key, hash_key in (
+            ("dataset_file", "dataset_sha256"),
+            ("audit_file", "audit_sha256"),
+        ):
+            _validate_hashed_run_artifact(
+                run_directory,
+                composition[file_key],
+                composition.get(hash_key),
+                label="V8 composition replay artifact before checkpoint",
+            )
+    if committed_path == snapshot or (not checkpoint_path.is_file() and snapshot.is_file()):
+        os.replace(snapshot, previous)
     _atomic_json(snapshot, value)
     return {
         "self_skills_checkpoint_file": snapshot.name,
@@ -135,12 +513,15 @@ def _restore_self_skill_state(
     filename = checkpoint.get("self_skills_checkpoint_file")
     if filename != "self-skills.checkpoint.json":
         raise ValueError("PPO checkpoint has no valid self-taught skill snapshot")
-    snapshot = run_directory / filename
-    if (
-        not snapshot.is_file()
-        or _sha256_file(snapshot) != checkpoint.get("self_skills_file_sha256")
-    ):
-        raise ValueError("PPO self-taught skill snapshot does not match its checkpoint")
+    try:
+        snapshot = _resolve_checkpoint_artifact(
+            run_directory,
+            latest_name=filename,
+            previous_name="self-skills.checkpoint.previous.json",
+            expected_sha256=checkpoint.get("self_skills_file_sha256"),
+        )
+    except ValueError as error:
+        raise ValueError("PPO self-taught skill snapshot does not match its checkpoint") from error
     value = json.loads(snapshot.read_text(encoding="utf-8"))
     library = SelfTaughtSkillLibrary.from_dict(value)
     _atomic_json(run_directory / "self-skills.json", value)
@@ -192,6 +573,15 @@ class ParallelPpoConfig:
     random_initialization: bool = False
     power_on_only: bool = False
     self_imitation_epochs: int = 2
+    distillation_attempts: int = 32
+    student_replay_interval: int = 4
+    student_replay_epochs: int = 2
+    student_burn_in: int = 32
+    student_train_horizon: int = 64
+    student_learning_rate: float = 0.0005
+    frozen_exam_interval_actions: int = 16_384
+    frozen_exam_attempts: int = 1
+    frozen_exam_action_multiplier: float = 2.0
 
     def __post_init__(self) -> None:
         if self.mode not in PPO_MODES:
@@ -223,7 +613,23 @@ class ParallelPpoConfig:
             raise ValueError("PPO competence gate settings are invalid")
         if self.self_imitation_epochs < 1:
             raise ValueError("PPO self-imitation epochs must be positive")
-        if self.mode == "self_taught" and (
+        if self.distillation_attempts < 0:
+            raise ValueError("Trajectory distillation attempts cannot be negative")
+        if self.student_replay_interval < 1 or self.student_replay_epochs < 1:
+            raise ValueError("Student replay settings must be positive")
+        if self.student_burn_in < 0 or self.student_train_horizon < 1:
+            raise ValueError("Student recurrent sequence settings are invalid")
+        if self.student_learning_rate <= 0:
+            raise ValueError("Student learning rate must be positive")
+        if self.frozen_exam_interval_actions < 1 or self.frozen_exam_attempts < 1:
+            raise ValueError("Frozen Student exam settings must be positive")
+        if _is_v8_mode(self.mode) and self.frozen_exam_attempts != 1:
+            raise ValueError(
+                "V8 runs exactly one deterministic frozen attempt per Student checkpoint"
+            )
+        if self.frozen_exam_action_multiplier < 1:
+            raise ValueError("Frozen Student exam multiplier must be at least one")
+        if _is_self_taught_mode(self.mode) and (
             not self.random_initialization or not self.power_on_only or self.consolidation
         ):
             raise ValueError(
@@ -231,7 +637,13 @@ class ParallelPpoConfig:
             )
 
     def public_dict(self) -> dict[str, object]:
-        return asdict(self)
+        value = asdict(self)
+        if not _is_v8_mode(self.mode):
+            # Keep the serialized V7 configuration compatible with campaigns that
+            # began before V8-only Student controls existed.
+            for name in V8_CONFIG_FIELDS:
+                value.pop(name)
+        return value
 
 
 @dataclass(frozen=True, slots=True)
@@ -290,7 +702,12 @@ def _milestone_label(index: int) -> str:
     return MILESTONES[index - 1].label
 
 
-def _import_verified_ppo_curriculum(source_run: Path, curriculum_directory: Path) -> dict[str, Any]:
+def _import_verified_ppo_curriculum(
+    source_run: Path,
+    curriculum_directory: Path,
+    *,
+    target_protocol: str = PPO_PROTOCOL,
+) -> dict[str, Any]:
     """Import only replay-admitted curriculum from a cleanly finished PPO run."""
 
     source_manifest_path = source_run / "curriculum" / "manifest.json"
@@ -303,10 +720,9 @@ def _import_verified_ppo_curriculum(source_run: Path, curriculum_directory: Path
         "parallel-recurrent-ppo-v5.2",
         "parallel-recurrent-ppo-v6",
         "parallel-recurrent-ppo-v7",
+        "parallel-recurrent-ppo-v8",
     }:
-        raise ValueError(
-            "Version 7 can import only a verified Version-4-or-later curriculum"
-        )
+        raise ValueError("Version 7 can import only a verified Version-4-or-later curriculum")
     source_status = json.loads((source_run / "status.json").read_text(encoding="utf-8"))
     source_checkpoint = json.loads((source_run / "checkpoint.json").read_text(encoding="utf-8"))
     if source_status.get("state") != "finished" or source_status.get("stop_reason") not in {
@@ -384,7 +800,7 @@ def _import_verified_ppo_curriculum(source_run: Path, curriculum_directory: Path
     best = max(entries, key=lambda item: int(item["milestone_index"]))
     manifest = {
         "schema_version": 1,
-        "protocol": PPO_PROTOCOL,
+        "protocol": target_protocol,
         "source_protocol": source_manifest["protocol"],
         "source_run": source_run.name,
         "entries": entries,
@@ -463,12 +879,21 @@ def _copy_retained_ppo_policy(
     }
 
 
-def freeze_verified_curriculum(expedition_run: Path, curriculum_directory: Path) -> dict[str, Any]:
+def freeze_verified_curriculum(
+    expedition_run: Path,
+    curriculum_directory: Path,
+    *,
+    target_protocol: str = PPO_PROTOCOL,
+) -> dict[str, Any]:
     """Copy a verified Archive-v2 or completed PPO curriculum into a private run."""
 
     expedition_run = expedition_run.expanduser().resolve()
     if (expedition_run / "curriculum" / "manifest.json").is_file():
-        return _import_verified_ppo_curriculum(expedition_run, curriculum_directory)
+        return _import_verified_ppo_curriculum(
+            expedition_run,
+            curriculum_directory,
+            target_protocol=target_protocol,
+        )
 
     store, checkpoint = _checkpoint_view(expedition_run)
     curriculum_directory.mkdir(parents=True, exist_ok=False)
@@ -538,7 +963,7 @@ def freeze_verified_curriculum(expedition_run: Path, curriculum_directory: Path)
     best = max(entries, key=lambda item: int(item["milestone_index"]))
     manifest = {
         "schema_version": 1,
-        "protocol": PPO_PROTOCOL,
+        "protocol": target_protocol,
         "source_run": expedition_run.name,
         "entries": entries,
         "best_milestone": {
@@ -582,7 +1007,9 @@ def _retain_power_on_only(curriculum_directory: Path) -> dict[str, Any]:
 
 def _load_curriculum_manifest(directory: Path) -> dict[str, Any]:
     value = json.loads((directory / "manifest.json").read_text(encoding="utf-8"))
-    if value.get("protocol") != PPO_PROTOCOL or not isinstance(value.get("entries"), list):
+    if value.get("protocol") not in {PPO_PROTOCOL, PPO_V8_PROTOCOL} or not isinstance(
+        value.get("entries"), list
+    ):
         raise ValueError("PPO curriculum manifest is invalid")
     return value
 
@@ -592,6 +1019,110 @@ def _load_curriculum_entry(directory: Path, metadata: Mapping[str, Any]) -> dict
     if _sha256_file(path) != metadata["file_sha256"]:
         raise ValueError("PPO curriculum entry hash is invalid")
     return _read_gzip_json(path)
+
+
+def _validate_curriculum_state(
+    directory: Path,
+    value: Mapping[str, Any],
+    *,
+    expected_protocol: str,
+) -> None:
+    if value.get("protocol") != expected_protocol:
+        raise ValueError("PPO curriculum checkpoint uses the wrong protocol")
+    entries = value.get("entries")
+    if not isinstance(entries, list) or not entries:
+        raise ValueError("PPO curriculum checkpoint has no entries")
+    identifiers: set[str] = set()
+    roots = 0
+    best_entry: Mapping[str, Any] | None = None
+    for metadata in entries:
+        if not isinstance(metadata, Mapping):
+            raise ValueError("PPO curriculum checkpoint entry is invalid")
+        entry_id = str(metadata.get("entry_id", ""))
+        if not entry_id or entry_id in identifiers:
+            raise ValueError("PPO curriculum checkpoint entry IDs are invalid")
+        identifiers.add(entry_id)
+        relative = Path(str(metadata.get("file", "")))
+        if (
+            relative.is_absolute()
+            or len(relative.parts) != 2
+            or relative.parts[0] != "entries"
+            or ".." in relative.parts
+        ):
+            raise ValueError("PPO curriculum checkpoint entry path is unsafe")
+        payload = _load_curriculum_entry(directory, metadata)
+        if str(payload.get("entry_id")) != entry_id:
+            raise ValueError("PPO curriculum checkpoint entry ID changed")
+        progress = _progress_from_value(payload["progress"])
+        if progress.index != int(metadata["milestone_index"]):
+            raise ValueError("PPO curriculum checkpoint milestone index changed")
+        roots += int(progress.index == 0)
+        if best_entry is None or int(metadata["milestone_index"]) > int(
+            best_entry["milestone_index"]
+        ):
+            best_entry = metadata
+    if roots != 1 or best_entry is None:
+        raise ValueError("PPO curriculum checkpoint needs one power-on root")
+    best = value.get("best_milestone")
+    if (
+        not isinstance(best, Mapping)
+        or int(best.get("index", -1)) != int(best_entry["milestone_index"])
+        or str(best.get("key")) != str(best_entry["milestone_id"])
+        or str(best.get("label")) != str(best_entry["milestone_label"])
+    ):
+        raise ValueError("PPO curriculum checkpoint best milestone is inconsistent")
+
+
+def _checkpoint_curriculum_state(
+    run_directory: Path,
+    curriculum_directory: Path,
+    *,
+    protocol: str,
+) -> dict[str, str]:
+    value = _load_curriculum_manifest(curriculum_directory)
+    _validate_curriculum_state(
+        curriculum_directory,
+        value,
+        expected_protocol=protocol,
+    )
+    snapshot = curriculum_directory / "manifest.checkpoint.json"
+    previous = curriculum_directory / "manifest.checkpoint.previous.json"
+    if snapshot.exists():
+        os.replace(snapshot, previous)
+    _atomic_json(snapshot, value)
+    return {
+        "curriculum_checkpoint_file": "curriculum/manifest.checkpoint.json",
+        "curriculum_file_sha256": _sha256_file(snapshot),
+    }
+
+
+def _restore_curriculum_state(
+    run_directory: Path,
+    curriculum_directory: Path,
+    checkpoint: Mapping[str, Any],
+    *,
+    protocol: str,
+) -> dict[str, Any]:
+    filename = checkpoint.get("curriculum_checkpoint_file")
+    if filename != "curriculum/manifest.checkpoint.json":
+        raise ValueError("PPO checkpoint has no valid curriculum snapshot")
+    try:
+        snapshot = _resolve_checkpoint_artifact(
+            run_directory,
+            latest_name=filename,
+            previous_name="curriculum/manifest.checkpoint.previous.json",
+            expected_sha256=checkpoint.get("curriculum_file_sha256"),
+        )
+    except ValueError as error:
+        raise ValueError("PPO curriculum snapshot does not match its checkpoint") from error
+    value = json.loads(snapshot.read_text(encoding="utf-8"))
+    _validate_curriculum_state(
+        curriculum_directory,
+        value,
+        expected_protocol=protocol,
+    )
+    _atomic_json(curriculum_directory / "manifest.json", value)
+    return value
 
 
 def _progress_from_value(value: Mapping[str, Any]) -> MilestoneProgress:
@@ -717,6 +1248,7 @@ class VisualStagnationTracker:
     cycle_window: int = 128
     cycle_unique_limit: int = 8
     hard_limit: int = 1_024
+    use_authored_guidance: bool = True
     _frames: deque[bytes] = field(default_factory=lambda: deque(maxlen=128))
     _seen_positions: set[tuple[int, int, int]] = field(default_factory=set)
     _best_progress: int = 0
@@ -736,17 +1268,21 @@ class VisualStagnationTracker:
         self._seen_positions = set()
         if state.map_id is not None and state.player_x is not None and state.player_y is not None:
             self._seen_positions.add((state.map_id, state.player_x, state.player_y))
-        self._best_progress = progress.index
+        self._best_progress = progress.index if self.use_authored_guidance else 0
         self._max_experience = state.total_party_experience
         self._max_events = state.event_flags_count
         self._max_owned = state.pokedex_owned_count
         self._max_badges = state.badge_count
         self._enemy_hp_floor = state.enemy_hp
         self._last_battle = state.battle_state or 0
-        self._max_mart_script = state.viridian_mart_script or 0
-        guidance = route_guidance(state, progress)
-        self._goal_key = guidance.goal_key
-        self._best_route_distance = guidance.distance
+        self._max_mart_script = state.viridian_mart_script or 0 if self.use_authored_guidance else 0
+        if self.use_authored_guidance:
+            guidance = route_guidance(state, progress)
+            self._goal_key = guidance.goal_key
+            self._best_route_distance = guidance.distance
+        else:
+            self._goal_key = None
+            self._best_route_distance = None
         self._stagnant_actions = 0
 
     def observe(
@@ -764,27 +1300,33 @@ class VisualStagnationTracker:
         if position is not None and position not in self._seen_positions:
             self._seen_positions.add(position)  # type: ignore[arg-type]
             useful_progress = True
-        for current, name in (
-            (progress.index, "_best_progress"),
+        generic_progress = (
             (state.total_party_experience, "_max_experience"),
             (state.event_flags_count, "_max_events"),
             (state.pokedex_owned_count, "_max_owned"),
             (state.badge_count, "_max_badges"),
+        )
+        authored_progress = (
+            (progress.index, "_best_progress"),
             (state.viridian_mart_script or 0, "_max_mart_script"),
+        )
+        for current, name in generic_progress + (
+            authored_progress if self.use_authored_guidance else ()
         ):
             if current > getattr(self, name):
                 setattr(self, name, current)
                 useful_progress = True
-        guidance = route_guidance(state, progress)
-        if guidance.goal_key != self._goal_key:
-            self._goal_key = guidance.goal_key
-            self._best_route_distance = guidance.distance
-            useful_progress = True
-        elif guidance.distance is not None and (
-            self._best_route_distance is None or guidance.distance < self._best_route_distance
-        ):
-            self._best_route_distance = guidance.distance
-            useful_progress = True
+        if self.use_authored_guidance:
+            guidance = route_guidance(state, progress)
+            if guidance.goal_key != self._goal_key:
+                self._goal_key = guidance.goal_key
+                self._best_route_distance = guidance.distance
+                useful_progress = True
+            elif guidance.distance is not None and (
+                self._best_route_distance is None or guidance.distance < self._best_route_distance
+            ):
+                self._best_route_distance = guidance.distance
+                useful_progress = True
         battle = state.battle_state or 0
         if battle in {1, 2}:
             if self._last_battle not in {1, 2}:
@@ -876,8 +1418,9 @@ class PokemonPpoFeatures(BaseFeaturesExtractor):
                 torch.nn.ReLU(),
             )
         if self_taught:
+            target_channels = int(observation_space.spaces["target_pixels"].shape[0])
             self.target_encoder = torch.nn.Sequential(
-                torch.nn.Conv2d(1, 8, kernel_size=8, stride=4),
+                torch.nn.Conv2d(target_channels, 8, kernel_size=8, stride=4),
                 torch.nn.ReLU(),
                 torch.nn.Conv2d(8, 16, kernel_size=4, stride=2),
                 torch.nn.ReLU(),
@@ -949,9 +1492,10 @@ class PokemonRedPpoEnvironment(gym.Env):
                     "map_context": spaces.Box(0, 1, shape=(MAP_CONTEXT_SIZE,), dtype=np.float32),
                 }
             )
-        if config.mode == "self_taught":
+        if _is_self_taught_mode(config.mode):
+            target_channels = 3 if _is_v8_mode(config.mode) else 1
             observation["target_pixels"] = spaces.Box(
-                0, 255, shape=(1, 72, 80), dtype=np.uint8
+                0, 255, shape=(target_channels, 72, 80), dtype=np.uint8
             )
         self.observation_space = spaces.Dict(observation)
         self.emulator = PokemonRedEmulator(Path(config.rom_path)).start()
@@ -959,9 +1503,7 @@ class PokemonRedPpoEnvironment(gym.Env):
         self.reward_tracker = (
             FullGameRewardTracker(
                 config=(
-                    _self_taught_reward_config()
-                    if config.self_taught
-                    else FullGameRewardConfig()
+                    _self_taught_reward_config() if config.self_taught else FullGameRewardConfig()
                 )
             )
             if config.novelty_checkpoint_file is None
@@ -973,7 +1515,11 @@ class PokemonRedPpoEnvironment(gym.Env):
         self.recent_actions: deque[int] = deque(
             [-1] * ACTION_HISTORY_LENGTH, maxlen=ACTION_HISTORY_LENGTH
         )
-        self.loop_tracker = VisualStagnationTracker()
+        # V8's blind Explorer must not receive authored quest information through
+        # episode length. V7 keeps its historical behavior for denominator compatibility.
+        self.loop_tracker = VisualStagnationTracker(
+            use_authored_guidance=not _is_v8_mode(config.mode)
+        )
         self.map_memory = EpisodeMapMemory()
         self.steps = 0
         self.episode_number = 0
@@ -985,7 +1531,7 @@ class PokemonRedPpoEnvironment(gym.Env):
         self.start_mode = "frontier"
         self.episode_target_index = 0
         self.self_skill_id: str | None = None
-        self.target_frame = np.zeros((72, 80), dtype=np.uint8)
+        self.target_frame = np.zeros((3 if _is_v8_mode(config.mode) else 1, 72, 80), dtype=np.uint8)
         self.rng = random.Random(config.seed + config.rank)
 
     def _observation(
@@ -1016,8 +1562,8 @@ class PokemonRedPpoEnvironment(gym.Env):
                     ),
                 }
             )
-        if self.config.mode == "self_taught":
-            value["target_pixels"] = self.target_frame[None, :, :]
+        if self.config.self_taught:
+            value["target_pixels"] = self.target_frame
         self.previous_frame = current
         return value
 
@@ -1025,6 +1571,17 @@ class PokemonRedPpoEnvironment(gym.Env):
         manifest = _load_curriculum_manifest(self.curriculum_directory)
         entries = list(manifest["entries"])
         best_index = max(int(item["milestone_index"]) for item in entries)
+        if self.config.mode == "self_taught_v8":
+            metadata = self.rng.choice(
+                [item for item in entries if int(item["milestone_index"]) == best_index]
+            )
+            return (
+                _load_curriculum_entry(self.curriculum_directory, metadata),
+                "v8_explorer",
+                best_index,
+                None,
+                None,
+            )
         if self.config.self_taught:
             library = SelfTaughtSkillLibrary.from_dict(
                 json.loads((self.run_directory / "self-skills.json").read_text(encoding="utf-8"))
@@ -1044,9 +1601,7 @@ class PokemonRedPpoEnvironment(gym.Env):
             )
         if self.config.consolidation:
             state = BackwardConsolidation.from_dict(
-                json.loads(
-                    (self.run_directory / "consolidation.json").read_text(encoding="utf-8")
-                )
+                json.loads((self.run_directory / "consolidation.json").read_text(encoding="utf-8"))
             )
             metadata, mode, target = choose_consolidation_entry(
                 entries,
@@ -1089,13 +1644,15 @@ class PokemonRedPpoEnvironment(gym.Env):
             self.self_skill_id,
             target_frame_file,
         ) = self._choose_entry()
-        self.target_frame = (
-            np.asarray(
+        if target_frame_file is not None:
+            frame = np.asarray(
                 Image.open(self.run_directory / target_frame_file).convert("L").resize((80, 72))
             )
-            if target_frame_file is not None
-            else np.zeros((72, 80), dtype=np.uint8)
-        )
+            self.target_frame = frame[None, :, :]
+        else:
+            self.target_frame = np.zeros(
+                (3 if _is_v8_mode(self.config.mode) else 1, 72, 80), dtype=np.uint8
+            )
         snapshot = FrozenSnapshot.from_checkpoint_dict(self.start_entry["snapshot"])
         self.emulator.load_state(snapshot.thaw())
         self.start_progress = _progress_from_value(self.start_entry["progress"])
@@ -1216,9 +1773,7 @@ class PokemonRedPpoEnvironment(gym.Env):
         if truncated:
             info["episode_end"] = True
             info["episode_best_index"] = self.episode_best
-            info["consolidation_success"] = (
-                self.episode_best >= self.episode_target_index
-            )
+            info["consolidation_success"] = self.episode_best >= self.episode_target_index
             info["episode_end_reason"] = loop_reason or (
                 "episode_action_limit"
                 if self.steps >= self.config.episode_actions
@@ -1268,6 +1823,464 @@ def _replay_sequence(
         )
 
 
+def _lineage_action_indices(entry: Mapping[str, Any]) -> list[int]:
+    actions = [_load_action(value) for value in entry.get("lineage_actions", [])]
+    if any(
+        action.hold_frames != ACTION_HOLD_FRAMES or action.release_frames != ACTION_RELEASE_FRAMES
+        for action in actions
+    ):
+        raise ValueError("PPO curriculum lineage uses a non-canonical action cadence")
+    return [BLIND_ACTIONS.index(action.button) for action in actions]
+
+
+def _nearest_verified_lineage_prefix(
+    curriculum_directory: Path,
+    full_actions: list[int],
+    *,
+    target_index: int,
+) -> tuple[dict[str, Any], dict[str, Any], int]:
+    """Find the deepest admitted state on the exact self-generated action lineage."""
+
+    manifest = _load_curriculum_manifest(curriculum_directory)
+    matches: list[tuple[int, int, dict[str, Any], dict[str, Any]]] = []
+    for metadata in manifest["entries"]:
+        index = int(metadata["milestone_index"])
+        if index >= target_index:
+            continue
+        entry = _load_curriculum_entry(curriculum_directory, metadata)
+        lineage = _lineage_action_indices(entry)
+        if len(lineage) <= len(full_actions) and full_actions[: len(lineage)] == lineage:
+            matches.append((len(lineage), index, dict(metadata), entry))
+    if not matches:
+        raise ValueError("Verified candidate has no admitted lineage prefix")
+    length, _index, metadata, entry = max(matches, key=lambda value: (value[0], value[1]))
+    return metadata, entry, length
+
+
+def _stable_semantic_state_signature(
+    emulator: PokemonRedEmulator,
+    state: PokemonRedState,
+) -> tuple[Any, ...]:
+    """Return gameplay state that survives an emulator save/load boundary.
+
+    PyBoy's complete game-area hash is a derived emulator view that is not
+    guaranteed to be identical immediately across ``load_state``. Keep that stricter hash in the
+    distillation oracle, whose candidates all replay from the same snapshot, but
+    do not use it to compare a live composition with a separately loaded target
+    snapshot.  The processed visual hash and all gameplay RAM fields remain exact.
+    """
+
+    frame = preprocess_apprentice_frame(emulator.screen_rgb())
+    visual = hashlib.blake2b(frame.tobytes(), digest_size=16).digest()
+    party_blob = bytes(
+        emulator.read_u8(int(RamAddress.PARTY_COUNT) + offset)
+        for offset in range(
+            int(RamAddress.PARTY_MONS)
+            - int(RamAddress.PARTY_COUNT)
+            + PARTY_LENGTH * PARTY_MON_STRUCT_LENGTH
+        )
+    )
+    bag_blob = bytes(
+        emulator.read_u8(int(RamAddress.NUM_BAG_ITEMS) + offset)
+        for offset in range(1 + MAX_BAG_ITEMS * 2)
+    )
+    money_blob = bytes(emulator.read_u8(0xD347 + offset) for offset in range(3))
+    status_blob = bytes(emulator.read_u8(0xD730 + offset) for offset in range(7))
+    return (
+        state.game_started,
+        state.map_id,
+        state.player_x,
+        state.player_y,
+        state.battle_state,
+        state.party_count,
+        state.party_species,
+        state.party_levels,
+        state.party_moves,
+        state.party_experience,
+        state.party_hp,
+        state.party_max_hp,
+        state.badge_bits,
+        state.pokedex_owned,
+        state.pokedex_seen,
+        state.event_flags,
+        state.bag_item_ids,
+        state.got_pokedex,
+        state.enemy_hp,
+        state.enemy_max_hp,
+        state.viridian_mart_script,
+        party_blob,
+        bag_blob,
+        money_blob,
+        status_blob,
+        visual,
+    )
+
+
+def _distillation_state_signature(
+    emulator: PokemonRedEmulator,
+    state: PokemonRedState,
+    progress: MilestoneProgress,
+) -> tuple[Any, ...]:
+    return (
+        *_stable_semantic_state_signature(emulator, state),
+        emulator.game_area_sha256(),
+        progress.index,
+    )
+
+
+def _composition_state_signature(
+    emulator: PokemonRedEmulator,
+    state: PokemonRedState,
+    progress: MilestoneProgress,
+) -> tuple[Any, ...]:
+    """Fail-closed endpoint identity for comparisons across save/load boundaries."""
+
+    return (*_stable_semantic_state_signature(emulator, state), progress.index)
+
+
+def _collect_distillation_signatures(
+    rom_path: Path,
+    start_snapshot: FrozenSnapshot,
+    actions: list[int],
+    inherited: MilestoneProgress,
+) -> tuple[tuple[Any, ...], ...]:
+    signatures: list[tuple[Any, ...]] = []
+    with PokemonRedEmulator(rom_path) as emulator:
+        emulator.load_state(start_snapshot.thaw())
+        reader = PokemonRedStateReader(emulator)
+        state = reader.read()
+        progress = milestone_progress_for_state(state, inherited=inherited)
+        signatures.append(_distillation_state_signature(emulator, state, progress))
+        for action in actions:
+            if not _execute_action(emulator, action):
+                raise RuntimeError("Trajectory distillation replay emulator stopped")
+            state = reader.read()
+            progress = milestone_progress_for_state(state, inherited=inherited)
+            signatures.append(_distillation_state_signature(emulator, state, progress))
+    return tuple(signatures)
+
+
+def _replay_distillation_terminal_signature(
+    rom_path: Path,
+    start_snapshot: FrozenSnapshot,
+    actions: tuple[int, ...],
+    inherited: MilestoneProgress,
+) -> tuple[Any, ...]:
+    with PokemonRedEmulator(rom_path) as emulator:
+        emulator.load_state(start_snapshot.thaw())
+        for action in actions:
+            if not _execute_action(emulator, action):
+                raise RuntimeError("Trajectory distillation replay emulator stopped")
+        state = PokemonRedStateReader(emulator).read()
+        progress = milestone_progress_for_state(state, inherited=inherited)
+        return _distillation_state_signature(emulator, state, progress)
+
+
+def _distill_verified_actions(
+    rom_path: Path,
+    start_snapshot: FrozenSnapshot,
+    actions: list[int],
+    inherited: MilestoneProgress,
+    target: MilestoneProgress,
+    *,
+    verification_id: str,
+    successful_replays: int,
+    max_attempts: int,
+) -> Any:
+    """Shorten an agent-generated edge using only replayed outcome evidence."""
+
+    signatures = _collect_distillation_signatures(rom_path, start_snapshot, actions, inherited)
+    protected_outcome = signatures[-1]
+
+    def oracle(candidate: tuple[int, ...]) -> bool:
+        try:
+            signature = _replay_distillation_terminal_signature(
+                rom_path,
+                start_snapshot,
+                candidate,
+                inherited,
+            )
+        except RuntimeError:
+            return False
+        return signature == protected_outcome and int(signature[-1]) >= target.index
+
+    return distill_self_generated_trajectory(
+        VerifiedSelfTrajectory(
+            actions=tuple(actions),
+            state_signatures=signatures,
+            evidence=ReplayEvidence(
+                verification_id=verification_id,
+                successful_replays=successful_replays,
+            ),
+        ),
+        oracle,
+        config=DistillationConfig(
+            max_loop_attempts=max_attempts // 2,
+            max_chunk_attempts=max_attempts - max_attempts // 2,
+        ),
+    )
+
+
+def _collect_v8_student_dataset(
+    rom_path: Path,
+    start_snapshot: FrozenSnapshot,
+    actions: list[int],
+    *,
+    compressed_to_original: tuple[int, ...],
+) -> tuple[dict[str, np.ndarray], np.ndarray]:
+    """Build a recurrent Student sequence and a three-frame self-observed goal clip."""
+
+    if not actions:
+        raise ValueError("V8 Student dataset requires a non-empty distilled edge")
+    pixels: list[np.ndarray] = []
+    histories: list[np.ndarray] = []
+    frames: list[np.ndarray] = []
+    recent: deque[int] = deque([-1] * ACTION_HISTORY_LENGTH, maxlen=ACTION_HISTORY_LENGTH)
+    with PokemonRedEmulator(rom_path) as emulator:
+        emulator.load_state(start_snapshot.thaw())
+        current = preprocess_apprentice_frame(emulator.screen_rgb())
+        previous = current
+        frames.append(current)
+        for action_index in actions:
+            pixels.append(np.stack((previous, current)))
+            histories.append(_action_history(recent))
+            if not _execute_action(emulator, int(action_index)):
+                raise RuntimeError("V8 Student replay emulator stopped")
+            recent.append(int(action_index))
+            previous = current
+            current = preprocess_apprentice_frame(emulator.screen_rgb())
+            frames.append(current)
+    target_frames = frames[-3:]
+    while len(target_frames) < 3:
+        target_frames.insert(0, target_frames[0])
+    target_clip = np.stack(target_frames).astype(np.uint8, copy=False)
+    # Distillation already proved that every retained action is necessary to the
+    # accepted replay. Give those actions equal authority instead of importing
+    # PPO's future-return discount into supervised sequence imitation.
+    weights = np.ones(len(actions), dtype=np.float32)
+    return (
+        {
+            "pixels": np.stack(pixels).astype(np.uint8, copy=False),
+            "action_history": np.stack(histories).astype(np.float32, copy=False),
+            "target_pixels": target_clip,
+            "actions": np.asarray(actions, dtype=np.int64),
+            "weights": weights,
+            "episode_starts": np.asarray([True, *([False] * (len(actions) - 1))], dtype=np.bool_),
+            "compressed_to_original": np.asarray(compressed_to_original, dtype=np.int64),
+        },
+        target_clip,
+    )
+
+
+def _v8_composition_fingerprint(chain: list[Mapping[str, Any]]) -> str:
+    """Name one exact ordered chain and every artifact that supplies its actions."""
+
+    if len(chain) < 2:
+        raise ValueError("V8 composition replay requires at least two skills")
+    identity = {
+        "protocol": SELF_GENERATED_COMPOSITION_PROTOCOL,
+        "skills": [
+            {
+                "skill_id": str(skill["skill_id"]),
+                "source_entry_id": str(skill["source_entry_id"]),
+                "target_entry_id": str(skill["target_entry_id"]),
+                "dataset_sha256": str(skill["dataset_sha256"]),
+                "distillation_audit_sha256": str(skill["distillation_audit_sha256"]),
+            }
+            for skill in chain
+        ],
+    }
+    return hashlib.sha256(_canonical_json(identity)).hexdigest()
+
+
+def _curriculum_snapshot_signature(
+    rom_path: Path,
+    entry: Mapping[str, Any],
+) -> tuple[Any, ...]:
+    inherited = _progress_from_value(entry["progress"])
+    with PokemonRedEmulator(rom_path) as emulator:
+        emulator.load_state(FrozenSnapshot.from_checkpoint_dict(entry["snapshot"]).thaw())
+        state = PokemonRedStateReader(emulator).read()
+        progress = milestone_progress_for_state(state, inherited=inherited)
+        return _composition_state_signature(emulator, state, progress)
+
+
+def _v8_composition_training_weights(action_count: int) -> np.ndarray:
+    """Keep both sides of long goal switches visible to normalized BC loss."""
+
+    if action_count < 1:
+        raise ValueError("V8 composition weights require at least one action")
+    return np.ones(action_count, dtype=np.float32)
+
+
+def _collect_v8_composition_dataset(
+    rom_path: Path,
+    curriculum_directory: Path,
+    chain: list[Mapping[str, Any]],
+    sources: Mapping[str, tuple[np.ndarray, np.ndarray]],
+    *,
+    burn_in: int,
+    train_length: int,
+) -> tuple[dict[str, np.ndarray], list[dict[str, Any]]]:
+    """Stream-verify a chain and retain only bounded goal-switch excerpts.
+
+    Every action comes from an individually replay-verified self-generated skill.
+    Concatenation is admitted only when one uninterrupted replay from the exact
+    power-on snapshot reaches the protected terminal state of every edge. Pixels
+    are retained only around internal goal switches; full lineage remains bound by
+    the source hashes and replay audit without quadratic prefix materialization.
+    """
+
+    if len(chain) < 2:
+        raise ValueError("V8 composition replay requires at least two skills")
+    if burn_in < 0 or train_length < 2:
+        raise ValueError("V8 composition excerpts require valid recurrent context")
+    if any(
+        str(left["target_entry_id"]) != str(right["source_entry_id"])
+        for left, right in zip(chain, chain[1:], strict=False)
+    ):
+        raise ValueError("V8 composition skills are not a continuous chain")
+    manifest = _load_curriculum_manifest(curriculum_directory)
+    metadata_by_id = {str(item["entry_id"]): item for item in manifest["entries"]}
+
+    def load_entry(entry_id: str) -> tuple[Mapping[str, Any], dict[str, Any]]:
+        metadata = metadata_by_id.get(entry_id)
+        if metadata is None:
+            raise ValueError("V8 composition curriculum entry is missing")
+        return metadata, _load_curriculum_entry(curriculum_directory, metadata)
+
+    root_id = str(chain[0]["source_entry_id"])
+    root_metadata, root = load_entry(root_id)
+    if int(root_metadata["milestone_index"]) != 0:
+        raise ValueError("V8 composition replay must begin at the exact power-on entry")
+    inherited = _progress_from_value(root["progress"])
+    expected: list[tuple[Mapping[str, Any], dict[str, Any], tuple[Any, ...]]] = []
+    ordered_actions: list[np.ndarray] = []
+    target_clips: list[np.ndarray] = []
+    for skill in chain:
+        skill_id = str(skill["skill_id"])
+        source = sources.get(skill_id)
+        if source is None:
+            raise ValueError("V8 composition source dataset is missing")
+        actions, target_clip = source
+        if actions.ndim != 1 or len(actions) != int(skill["action_count"]):
+            raise ValueError("V8 composition source actions disagree with the skill ledger")
+        if target_clip.shape != (3, 72, 80):
+            raise ValueError("V8 composition source needs one verified three-frame goal clip")
+        metadata, entry = load_entry(str(skill["target_entry_id"]))
+        expected.append((metadata, entry, _curriculum_snapshot_signature(rom_path, entry)))
+        ordered_actions.append(actions.astype(np.int64, copy=False))
+        target_clips.append(target_clip.astype(np.uint8, copy=False))
+
+    full_offsets = [0]
+    for actions in ordered_actions:
+        full_offsets.append(full_offsets[-1] + len(actions))
+    left_train = max(1, train_length // 2)
+    right_train = max(1, train_length - left_train)
+    before = burn_in + left_train
+    after = right_train
+    excerpt_ranges = [
+        (
+            max(full_offsets[index - 1], boundary - before),
+            min(full_offsets[index + 1], boundary + after),
+        )
+        for index, boundary in enumerate(full_offsets[1:-1], start=1)
+    ]
+    excerpt_pixels: list[list[np.ndarray]] = [[] for _ in excerpt_ranges]
+    excerpt_histories: list[list[np.ndarray]] = [[] for _ in excerpt_ranges]
+    excerpt_actions: list[list[int]] = [[] for _ in excerpt_ranges]
+    excerpt_goals: list[list[int]] = [[] for _ in excerpt_ranges]
+    boundaries: list[dict[str, Any]] = []
+    recent: deque[int] = deque([-1] * ACTION_HISTORY_LENGTH, maxlen=ACTION_HISTORY_LENGTH)
+    global_action = 0
+    with PokemonRedEmulator(rom_path) as emulator:
+        emulator.load_state(FrozenSnapshot.from_checkpoint_dict(root["snapshot"]).thaw())
+        reader = PokemonRedStateReader(emulator)
+        current = preprocess_apprentice_frame(emulator.screen_rgb())
+        previous = current
+        for goal_index, (skill, segment_actions, (metadata, target_entry, protected)) in enumerate(
+            zip(
+                chain,
+                ordered_actions,
+                expected,
+                strict=True,
+            )
+        ):
+            for raw_action in segment_actions:
+                action = int(raw_action)
+                for excerpt, (start, stop) in enumerate(excerpt_ranges):
+                    if start <= global_action < stop:
+                        excerpt_pixels[excerpt].append(np.stack((previous, current)))
+                        excerpt_histories[excerpt].append(_action_history(recent))
+                        excerpt_actions[excerpt].append(action)
+                        excerpt_goals[excerpt].append(goal_index)
+                if not _execute_action(emulator, action):
+                    raise CompositionReplayRejected(
+                        "V8 composition emulator stopped during continuous replay"
+                    )
+                recent.append(action)
+                previous = current
+                current = preprocess_apprentice_frame(emulator.screen_rgb())
+                global_action += 1
+            state = reader.read()
+            progress = milestone_progress_for_state(state, inherited=inherited)
+            observed = _composition_state_signature(emulator, state, progress)
+            if observed[:-1] != protected[:-1] or progress.index < int(skill["target_index"]):
+                raise CompositionReplayRejected(
+                    "V8 compressed skills did not compose to a protected target state"
+                )
+            boundaries.append(
+                {
+                    "full_action_offset": global_action,
+                    "skill_id": str(skill["skill_id"]),
+                    "target_entry_id": str(skill["target_entry_id"]),
+                    "target_entry_file_sha256": str(metadata["file_sha256"]),
+                    "target_index": int(skill["target_index"]),
+                    "observed_index": progress.index,
+                    "semantic_signature_sha256": hashlib.sha256(
+                        repr(observed[:-1]).encode("utf-8")
+                    ).hexdigest(),
+                }
+            )
+            inherited = _progress_from_value(target_entry["progress"])
+
+    pixels = [np.stack(values).astype(np.uint8, copy=False) for values in excerpt_pixels]
+    histories = [np.stack(values).astype(np.float32, copy=False) for values in excerpt_histories]
+    actions = [np.asarray(values, dtype=np.int64) for values in excerpt_actions]
+    goals = [np.asarray(values, dtype=np.int64) for values in excerpt_goals]
+    excerpt_offsets = [0]
+    training_switches: list[int] = []
+    for excerpt, ((start, _stop), full_boundary) in enumerate(
+        zip(excerpt_ranges, full_offsets[1:-1], strict=True)
+    ):
+        training_switches.append(excerpt_offsets[-1] + full_boundary - start)
+        excerpt_offsets.append(excerpt_offsets[-1] + len(actions[excerpt]))
+    count = excerpt_offsets[-1]
+    episode_starts = np.zeros(count, dtype=np.bool_)
+    episode_starts[np.asarray(excerpt_offsets[:-1], dtype=np.int64)] = True
+    return (
+        {
+            "pixels": np.concatenate(pixels),
+            "action_history": np.concatenate(histories),
+            "target_pixels": np.stack(target_clips).astype(np.uint8, copy=False),
+            "actions": np.concatenate(actions),
+            "weights": _v8_composition_training_weights(count),
+            "episode_starts": episode_starts,
+            "goal_indices": np.concatenate(goals),
+            "excerpt_offsets": np.asarray(excerpt_offsets, dtype=np.int64),
+            "dataset_kind": np.asarray("composition"),
+            "replay_protocol": np.asarray(SELF_GENERATED_COMPOSITION_PROTOCOL),
+            "successful_replays": np.asarray(1, dtype=np.int64),
+            "source_skill_ids": np.asarray([str(skill["skill_id"]) for skill in chain]),
+            "goal_switch_offsets": np.asarray(training_switches, dtype=np.int64),
+            "full_goal_switch_offsets": np.asarray(full_offsets[1:-1], dtype=np.int64),
+            "full_action_count": np.asarray(full_offsets[-1], dtype=np.int64),
+            "excerpt_full_ranges": np.asarray(excerpt_ranges, dtype=np.int64),
+        },
+        boundaries,
+    )
+
+
 def _collect_self_imitation_dataset(
     rom_path: Path,
     start_snapshot: FrozenSnapshot,
@@ -1311,6 +2324,116 @@ def _atomic_self_imitation_dataset(path: Path, dataset: Mapping[str, np.ndarray]
     os.replace(temporary, path)
 
 
+def _write_v8_replay_shards(
+    run_directory: Path,
+    *,
+    skill_id: str,
+    dataset: Mapping[str, np.ndarray],
+    source_dataset_sha256: str,
+    max_examples: int,
+    burn_in: int,
+) -> list[dict[str, Any]]:
+    """Seal bounded training chunks while the verified full dataset is in memory.
+
+    The full artifact remains the immutable provenance source.  Later replay rounds
+    open only one of these small hash-bound derivatives, never the monolithic NPZ.
+    """
+
+    skill_component = Path(skill_id)
+    if (
+        not skill_id
+        or skill_component.is_absolute()
+        or skill_component.name != skill_id
+        or skill_id in {".", ".."}
+        or max_examples < 1
+        or burn_in < 0
+    ):
+        raise ValueError("V8 replay shards require a skill and positive example cap")
+    if len(source_dataset_sha256) != 64 or any(
+        character not in "0123456789abcdef" for character in source_dataset_sha256
+    ):
+        raise ValueError("V8 replay shards require a sealed source dataset")
+    required = {"pixels", "action_history", "target_pixels", "actions", "weights"}
+    if missing := sorted(required.difference(dataset)):
+        raise ValueError(f"V8 replay shard source is missing: {', '.join(missing)}")
+    action_count = len(np.asarray(dataset["actions"]))
+    if action_count < 1:
+        raise ValueError("V8 replay shards require at least one source action")
+    for key in ("pixels", "action_history", "weights"):
+        if len(np.asarray(dataset[key])) != action_count:
+            raise ValueError("V8 replay shard source arrays disagree on action count")
+
+    shard_count = (action_count + max_examples - 1) // max_examples
+    metadata: list[dict[str, Any]] = []
+    for shard_index, train_start in enumerate(range(0, action_count, max_examples)):
+        context_start = max(0, train_start - burn_in)
+        stop = min(action_count, train_start + max_examples)
+        stored_count = stop - context_start
+        train_count = stop - train_start
+        relative = (
+            Path("self-skills")
+            / "replay"
+            / skill_id
+            / f"shard-{shard_index:06d}-of-{shard_count:06d}.npz"
+        )
+        path = run_directory / relative
+        episode_starts = np.zeros(stored_count, dtype=np.bool_)
+        episode_starts[0] = True
+        payload: dict[str, np.ndarray] = {
+            "pixels": np.asarray(dataset["pixels"])[context_start:stop],
+            "action_history": np.asarray(dataset["action_history"])[context_start:stop],
+            "target_pixels": np.asarray(dataset["target_pixels"]),
+            "actions": np.asarray(dataset["actions"])[context_start:stop],
+            "weights": np.asarray(dataset["weights"])[context_start:stop],
+            "episode_starts": episode_starts,
+            "replay_shard_protocol": np.asarray(SELF_GENERATED_REPLAY_SHARD_PROTOCOL),
+            "source_dataset_sha256": np.asarray(source_dataset_sha256),
+            "source_skill_id": np.asarray(skill_id),
+            "source_action_count": np.asarray(action_count, dtype=np.int64),
+            "source_action_offset": np.asarray(context_start, dtype=np.int64),
+            "source_context_start": np.asarray(context_start, dtype=np.int64),
+            "source_train_start": np.asarray(train_start, dtype=np.int64),
+            "source_train_stop": np.asarray(stop, dtype=np.int64),
+            "replay_train_offset": np.asarray(
+                train_start - context_start,
+                dtype=np.int64,
+            ),
+            "replay_shard_index": np.asarray(shard_index, dtype=np.int64),
+            "replay_shard_count": np.asarray(shard_count, dtype=np.int64),
+        }
+        if "compressed_to_original" in dataset:
+            payload["compressed_to_original"] = np.asarray(
+                dataset["compressed_to_original"]
+            )[context_start:stop]
+        _atomic_self_imitation_dataset(path, payload)
+        metadata.append(
+            {
+                "protocol": SELF_GENERATED_REPLAY_SHARD_PROTOCOL,
+                "file": relative.as_posix(),
+                "sha256": _sha256_file(path),
+                "stored_bytes": path.stat().st_size,
+                "shard_index": shard_index,
+                "shard_count": shard_count,
+                "source_dataset_sha256": source_dataset_sha256,
+                "source_action_count": action_count,
+                "source_start": context_start,
+                "source_context_start": context_start,
+                "source_train_start": train_start,
+                "source_stop": stop,
+                "context_example_count": train_start - context_start,
+                "train_example_count": train_count,
+                "example_count": stored_count,
+            }
+        )
+    if (
+        len(metadata) != shard_count
+        or metadata[-1]["source_stop"] != action_count
+        or sum(int(item["train_example_count"]) for item in metadata) != action_count
+    ):
+        raise RuntimeError("V8 replay shard admission did not cover the verified source")
+    return metadata
+
+
 def _self_imitation_windows(length: int, width: int = 256) -> list[tuple[int, int]]:
     if length < 1:
         return []
@@ -1348,9 +2471,7 @@ def _train_self_imitation_policy(
                 count = end - begin
                 observations = {
                     "pixels": torch.as_tensor(pixels[begin:end], device=policy.device),
-                    "action_history": torch.as_tensor(
-                        histories[begin:end], device=policy.device
-                    ),
+                    "action_history": torch.as_tensor(histories[begin:end], device=policy.device),
                     "target_pixels": torch.as_tensor(
                         np.repeat(target[None, ...], count, axis=0),
                         device=policy.device,
@@ -1578,7 +2699,7 @@ def _warm_start(
     }
 
 
-def _render_dashboard(status: Mapping[str, Any]) -> str:
+def _render_dashboard_legacy(status: Mapping[str, Any]) -> str:
     best = status.get("best_milestone", {})
     focus = status.get("training_focus", {})
     rewards = status.get("reward_components", {})
@@ -1594,7 +2715,12 @@ def _render_dashboard(status: Mapping[str, Any]) -> str:
         f'<div class="card"><span>{label}</span><strong>{value}</strong></div>'
         for label, value in (
             ("State", html.escape(str(status.get("state")))),
-            ("Combined actions", f"{int(status.get('total_actions', 0)):,}"),
+            (
+                "Explorer actions"
+                if status.get("mode") == "self_taught_v8"
+                else "Combined actions",
+                f"{int(status.get('total_actions', 0)):,}",
+            ),
             (
                 "Actions / second",
                 f"{float(status.get('actions_per_second', 0)):,.1f}",
@@ -1726,6 +2852,10 @@ rewards and verifies promotions; the actor boundary is shown explicitly below.</
 </main></body></html>"""
 
 
+def _render_dashboard(status: Mapping[str, Any]) -> str:
+    return render_ppo_dashboard(status)
+
+
 class PpoRunCallback(BaseCallback):
     def __init__(
         self,
@@ -1736,6 +2866,8 @@ class PpoRunCallback(BaseCallback):
         *,
         base_elapsed: float,
         started_at: str,
+        student_model: Any | None = None,
+        student_trainer: SequenceAwareStudentTrainer | None = None,
     ) -> None:
         super().__init__(verbose=0)
         self.run_directory = run_directory
@@ -1744,6 +2876,12 @@ class PpoRunCallback(BaseCallback):
         self.config = config
         self.base_elapsed = base_elapsed
         self.started_at = started_at
+        self.student_model = student_model
+        self.student_trainer = student_trainer
+        if _is_v8_mode(config.mode) != (student_model is not None):
+            raise ValueError("V8 requires one separate Student model")
+        if (student_model is None) != (student_trainer is None):
+            raise ValueError("Student model and optimizer must be configured together")
         self.clock_started = time.monotonic()
         self.last_status = 0.0
         self.last_narrative = 0.0
@@ -1758,27 +2896,38 @@ class PpoRunCallback(BaseCallback):
         self.stop_reason: str | None = None
         self.cached_run_bytes = 0
         self.cached_free_bytes = shutil.disk_usage(self.run_directory).free
+        run_manifest = json.loads(
+            (self.run_directory / "manifest.json").read_text(encoding="utf-8")
+        )
+        self.v7_denominator = (
+            dict(run_manifest["v7_denominator"])
+            if isinstance(run_manifest.get("v7_denominator"), Mapping)
+            else None
+        )
         self.consolidation = (
             BackwardConsolidation.from_dict(
-                json.loads(
-                    (self.run_directory / "consolidation.json").read_text(encoding="utf-8")
-                )
+                json.loads((self.run_directory / "consolidation.json").read_text(encoding="utf-8"))
             )
             if config.consolidation
             else None
         )
         self.self_skills = (
             SelfTaughtSkillLibrary.from_dict(
-                json.loads(
-                    (self.run_directory / "self-skills.json").read_text(encoding="utf-8")
-                )
+                json.loads((self.run_directory / "self-skills.json").read_text(encoding="utf-8"))
             )
-            if config.mode == "self_taught"
+            if _is_self_taught_mode(config.mode)
             else None
         )
         self.self_imitation_pending = bool(
             self.self_skills is not None and self.self_skills.imitation_pending
         )
+        self.last_student_replay_rollout = (
+            -1 if self.self_skills is None else self.self_skills.last_student_replay_rollout
+        )
+        self.exam_rng = random.Random(config.seed + 80_008)
+        if self.self_skills is not None and self.self_skills.exam_rng_state is not None:
+            self.exam_rng.setstate(_random_state_from_json(self.self_skills.exam_rng_state))
+        self.last_exam_skill_label: str | None = None
 
     def _write_consolidation(self) -> None:
         if self.consolidation is not None:
@@ -1794,9 +2943,7 @@ class PpoRunCallback(BaseCallback):
         return {
             "enabled": True,
             "active_start_index": self.consolidation.active_start_index,
-            "active_start_label": _milestone_label(
-                self.consolidation.active_start_index
-            ),
+            "active_start_label": _milestone_label(self.consolidation.active_start_index),
             "target_index": self.consolidation.target_index,
             "target_label": _milestone_label(self.consolidation.target_index),
             "active_window_successes": sum(window),
@@ -1805,9 +2952,7 @@ class PpoRunCallback(BaseCallback):
             "required_window": self.consolidation.window_size,
             "required_rate": self.consolidation.threshold,
             "gates_passed_count": len(self.consolidation.gates_passed),
-            "power_on_training_gate_passed": (
-                self.consolidation.power_on_training_gate_passed
-            ),
+            "power_on_training_gate_passed": (self.consolidation.power_on_training_gate_passed),
         }
 
     def _write_self_skills(self) -> None:
@@ -1824,6 +2969,39 @@ class PpoRunCallback(BaseCallback):
         weakest = self.self_skills.weakest_skills()
         active = weakest[0] if weakest else None
         window = [] if active is None else [bool(value) for value in active.get("window", [])]
+        original_actions = sum(
+            int(skill.get("original_action_count", skill["action_count"]))
+            for skill in self.self_skills.skills
+        )
+        distilled_actions = sum(int(skill["action_count"]) for skill in self.self_skills.skills)
+        sharded_skills = [
+            skill for skill in self.self_skills.skills if skill.get("replay_shards")
+        ]
+        replay_cursors = [int(skill.get("replay_cursor", 0)) for skill in sharded_skills]
+        coverage_cycles = [
+            int(skill.get("replay_cursor", 0)) // len(skill["replay_shards"])
+            for skill in sharded_skills
+        ]
+        report = self.self_skills.last_student_report or {}
+        diagnostics = dict(report.get("diagnostics", {}))
+        competence_losses = sum(
+            int(skill.get("competence_losses", 0)) for skill in self.self_skills.skills
+        )
+        composition_window = [bool(result) for result in self.self_skills.composition_window]
+        deepest_distilled = max(
+            self.self_skills.skills,
+            key=lambda skill: int(skill["target_index"]),
+            default=None,
+        )
+        deepest_competent = max(
+            (
+                skill
+                for skill in self.self_skills.skills
+                if bool(skill.get("competent", False))
+            ),
+            key=lambda skill: int(skill["target_index"]),
+            default=None,
+        )
         return {
             "enabled": True,
             "skills_discovered": len(self.self_skills.skills),
@@ -1837,6 +3015,135 @@ class PpoRunCallback(BaseCallback):
             "imitation_examples": self.self_skills.imitation_examples,
             "last_imitation_loss": self.self_skills.last_imitation_loss,
             "imitation_pending": self.self_skills.imitation_pending,
+            "distillation": {
+                "original_actions": original_actions,
+                "distilled_actions": distilled_actions,
+                "skills_distilled": sum(
+                    skill.get("distillation_audit_file") is not None
+                    for skill in self.self_skills.skills
+                ),
+                "compression_ratio": (
+                    distilled_actions / original_actions if original_actions else 1.0
+                ),
+                "best_index": (
+                    None
+                    if deepest_distilled is None
+                    else int(deepest_distilled["target_index"])
+                ),
+                "best_label": (
+                    None if deepest_distilled is None else deepest_distilled["target_label"]
+                ),
+                "total_oracle_calls": sum(
+                    int(skill.get("distillation_oracle_calls", 0))
+                    for skill in self.self_skills.skills
+                ),
+                "oracle_actions_replayed": sum(
+                    int(skill.get("distillation_oracle_actions_replayed", 0))
+                    for skill in self.self_skills.skills
+                ),
+                "edits_accepted": sum(
+                    int(skill.get("distillation_edits_accepted", 0))
+                    for skill in self.self_skills.skills
+                ),
+                "edits_rejected": sum(
+                    int(skill.get("distillation_edits_rejected", 0))
+                    for skill in self.self_skills.skills
+                ),
+            },
+            "student": {
+                "state": (
+                    "not_applicable"
+                    if not _is_v8_mode(self.config.mode)
+                    else (
+                        "training_from_self_discoveries"
+                        if self.self_skills.skills
+                        else "waiting_for_first_discovery"
+                    )
+                ),
+                "training_rounds": self.self_skills.student_training_rounds,
+                "optimizer_updates": self.self_skills.student_updates,
+                "examples": self.self_skills.student_examples,
+                "diagnostics": diagnostics,
+                "replay_memory": {
+                    "individual_skill_datasets": int(report.get("individual_skill_datasets", 0)),
+                    "active_composition_datasets": int(report.get("composition_datasets", 0)),
+                    "retained_examples": int(report.get("replay_examples_retained", 0)),
+                    "retained_bytes": int(report.get("replay_bytes_retained", 0)),
+                    "max_examples_per_individual_skill": int(
+                        report.get("max_examples_per_individual_skill", 0)
+                    ),
+                    "retained_example_ceiling": int(report.get("replay_example_ceiling", 0)),
+                    "train_example_ceiling": int(
+                        report.get("replay_train_example_ceiling", 0)
+                    ),
+                    "sampling_cycle_size": int(report.get("sampling_cycle_size", 0)),
+                    "skill_shards_total": sum(
+                        len(skill["replay_shards"]) for skill in sharded_skills
+                    ),
+                    "skill_shards_loaded": int(report.get("replay_shards_loaded", 0)),
+                    "shard_examples_loaded": int(
+                        report.get("replay_shard_examples_loaded", 0)
+                    ),
+                    "shard_train_examples_loaded": int(
+                        report.get("replay_shard_train_examples_loaded", 0)
+                    ),
+                    "shard_context_examples_loaded": int(
+                        report.get("replay_shard_context_examples_loaded", 0)
+                    ),
+                    "shard_bytes_read": int(report.get("replay_shard_bytes_read", 0)),
+                    "full_skill_artifacts_opened": int(
+                        report.get("replay_full_skill_artifacts_opened", 0)
+                    ),
+                    "cursor_min": min(replay_cursors, default=0),
+                    "cursor_max": max(replay_cursors, default=0),
+                    "minimum_completed_coverage_cycles": int(
+                        min(coverage_cycles, default=0)
+                    ),
+                    "shard_selections": list(
+                        report.get("replay_shard_selections", [])
+                    ),
+                },
+            },
+            "frozen_exams": {
+                "rounds": self.self_skills.frozen_exam_rounds,
+                "attempts": self.self_skills.total_rehearsal_attempts,
+                "successes": self.self_skills.total_rehearsal_successes,
+                "actions": self.self_skills.frozen_exam_actions,
+                "next_at_action": (
+                    self.self_skills.last_frozen_exam_actions
+                    + self.config.frozen_exam_interval_actions
+                ),
+                "current_skill": self.last_exam_skill_label,
+                "competence_losses": competence_losses,
+                "best_competent_index": (
+                    None
+                    if deepest_competent is None
+                    else int(deepest_competent["target_index"])
+                ),
+                "best_competent_label": (
+                    None if deepest_competent is None else deepest_competent["target_label"]
+                ),
+            },
+            "composition": {
+                "attempts": self.self_skills.composition_attempts,
+                "successes": self.self_skills.composition_successes,
+                "window_attempts": len(composition_window),
+                "window_successes": sum(composition_window),
+                "best_index": self.self_skills.best_composition_index,
+                "best_label": _milestone_label(self.self_skills.best_composition_index),
+                "hall_of_fame_completions": (self.self_skills.hall_of_fame_completions),
+                "training_datasets": len(self.self_skills.active_composition_replays()),
+                "archived_training_datasets": len(self.self_skills.composition_replays)
+                - len(self.self_skills.active_composition_replays()),
+                "training_actions": sum(
+                    int(item["action_count"])
+                    for item in self.self_skills.active_composition_replays()
+                ),
+                "build_failures": sum(
+                    outcome == "replay_failed"
+                    for outcome in self.self_skills.composition_build_outcomes.values()
+                ),
+            },
         }
 
     def elapsed(self) -> float:
@@ -1853,20 +3160,52 @@ class PpoRunCallback(BaseCallback):
         if latest.exists():
             os.replace(latest, previous)
         os.replace(temporary, latest)
+        run_manifest = json.loads(
+            (self.run_directory / "manifest.json").read_text(encoding="utf-8")
+        )
         checkpoint: dict[str, Any] = {
             "schema_version": 1,
-            "protocol": PPO_PROTOCOL,
-            "reward_protocol": PPO_REWARD_PROTOCOL,
+            "protocol": _ppo_protocol(self.config.mode),
+            "reward_protocol": _ppo_reward_protocol(self.config.mode),
             "model_file_sha256": _sha256_file(latest),
             "total_actions": self.model.num_timesteps,
             "elapsed_seconds": self.elapsed(),
             "config": self.config.public_dict(),
+            "source": run_manifest["source"],
+            "rom": run_manifest["rom"],
             "best_milestone": _load_curriculum_manifest(self.curriculum_directory)[
                 "best_milestone"
             ],
             "novelty_files": novelty_files,
             "resume_semantics": "model_optimizer_exact_environment_rollout_restarts",
         }
+        if isinstance(run_manifest.get("v7_denominator"), Mapping):
+            checkpoint["v7_denominator"] = dict(run_manifest["v7_denominator"])
+        if self.student_model is not None and self.student_trainer is not None:
+            student_latest = self.run_directory / "student-latest.zip"
+            student_previous = self.run_directory / "student-previous.zip"
+            student_temporary = self.run_directory / "student-checkpoint.tmp.zip"
+            self.student_model.save(student_temporary)
+            if student_latest.exists():
+                os.replace(student_latest, student_previous)
+            os.replace(student_temporary, student_latest)
+            optimizer_path = self.run_directory / "student-optimizer.pt"
+            optimizer_previous = self.run_directory / "student-optimizer.previous.pt"
+            if optimizer_path.exists():
+                os.replace(optimizer_path, optimizer_previous)
+            _atomic_torch_checkpoint(
+                optimizer_path,
+                self.student_trainer.optimizer_state_dict(),
+            )
+            checkpoint.update(
+                {
+                    "student_model_file": student_latest.name,
+                    "student_model_file_sha256": _sha256_file(student_latest),
+                    "student_optimizer_file": optimizer_path.name,
+                    "student_optimizer_file_sha256": _sha256_file(optimizer_path),
+                    "student_training_isolated_from_ppo": True,
+                }
+            )
         if self.consolidation is not None:
             self._write_consolidation()
             checkpoint["consolidation_file_sha256"] = _sha256_file(
@@ -1875,6 +3214,13 @@ class PpoRunCallback(BaseCallback):
         if self.self_skills is not None:
             self._write_self_skills()
             checkpoint.update(_checkpoint_self_skill_state(self.run_directory))
+        checkpoint.update(
+            _checkpoint_curriculum_state(
+                self.run_directory,
+                self.curriculum_directory,
+                protocol=_ppo_protocol(self.config.mode),
+            )
+        )
         _atomic_json(
             self.run_directory / "checkpoint.json",
             checkpoint,
@@ -1898,9 +3244,19 @@ class PpoRunCallback(BaseCallback):
                 path.stat().st_size for path in self.run_directory.rglob("*") if path.is_file()
             )
             self.cached_free_bytes = shutil.disk_usage(self.run_directory).free
+        checkpoint_hashes: dict[str, str] = {}
+        checkpoint_path = self.run_directory / "checkpoint.json"
+        if checkpoint_path.is_file():
+            checkpoint = json.loads(checkpoint_path.read_text(encoding="utf-8"))
+            explorer_hash = checkpoint.get("model_file_sha256")
+            student_hash = checkpoint.get("student_model_file_sha256")
+            if isinstance(explorer_hash, str):
+                checkpoint_hashes["explorer_sha256"] = explorer_hash
+            if isinstance(student_hash, str):
+                checkpoint_hashes["student_sha256"] = student_hash
         status = {
             "schema_version": 1,
-            "protocol": PPO_PROTOCOL,
+            "protocol": _ppo_protocol(self.config.mode),
             "state": state,
             "stop_reason": reason,
             "mode": self.config.mode,
@@ -1915,6 +3271,7 @@ class PpoRunCallback(BaseCallback):
             "ppo_updates": self.model.num_timesteps // max(1, rollout_size),
             "episodes": self.episodes,
             "best_milestone": manifest["best_milestone"],
+            "milestone_count": len(MILESTONES),
             "training_focus": (
                 {
                     "key": next_milestone.key,
@@ -1935,24 +3292,55 @@ class PpoRunCallback(BaseCallback):
             "episode_end_reasons": dict(sorted(self.episode_end_reasons.items())),
             "consolidation": self._consolidation_status(),
             "self_taught": self._self_taught_status(),
-            "reward_protocol": PPO_REWARD_PROTOCOL,
+            "checkpoints": checkpoint_hashes,
+            **(
+                {"v7_denominator": self.v7_denominator}
+                if self.v7_denominator is not None
+                else {}
+            ),
+            "policy_roles": (
+                {
+                    "explorer": "online PPO discovery",
+                    "student": "offline distilled self-replay",
+                    "shared_parameters": False,
+                    "competence_source": "frozen Student exams",
+                }
+                if _is_v8_mode(self.config.mode)
+                else {"explorer_and_student": "one shared policy"}
+            ),
+            "reward_protocol": _ppo_reward_protocol(self.config.mode),
             "novelty_scope": "persistent per worker across episodes and resumes",
             "information_boundary": (
                 "pixels + three recent actions; trainer-only RAM rewards and loop termination"
                 if self.config.mode == "pixels"
                 else (
-                    "pixels + three recent actions + a self-discovered target screen; no imported "
-                    "actions, route graph, target coordinates, or quest direction"
-                    if self.config.mode == "self_taught"
+                    "Explorer: pixels + three recent actions. Separate Student: the same input "
+                    "plus a three-frame self-observed goal clip. Trainer-only RAM grades rewards, "
+                    "replays, and exams and switches among self-generated goal clips at declared "
+                    "milestone endpoints during composition; no imported actions, route graph, "
+                    "coordinates, or authored quest plan"
+                    if _is_v8_mode(self.config.mode)
                     else (
-                    "pixels + three recent actions + trainer-built visited map + active goal/skill "
-                    "+ next certified route map; assisted teacher lane"
-                    if self.config.mode == "assisted"
-                    else "pixels + three recent actions + disclosed RAM state comparator"
+                        "pixels + three recent actions + a self-discovered target screen; "
+                        "trainer-only RAM retains V7's historical route/Mart/milestone watchdog "
+                        "shaping; no imported actions, actor-visible route graph, or target "
+                        "coordinates"
+                        if _is_self_taught_mode(self.config.mode)
+                        else (
+                            "pixels + three recent actions + trainer-built visited map + "
+                            "active goal/skill "
+                            "+ next certified route map; assisted teacher lane"
+                            if self.config.mode == "assisted"
+                            else "pixels + three recent actions + disclosed RAM state comparator"
+                        )
                     )
                 )
             ),
-            "resume_semantics": "exact model/optimizer; fresh environment rollouts",
+            "resume_semantics": (
+                "exact Explorer PPO and separate Student optimizer; fresh environment rollouts"
+                if _is_v8_mode(self.config.mode)
+                else "exact model/optimizer; fresh environment rollouts"
+            ),
             "dashboard_url": f"http://127.0.0.1:{self.config.dashboard_port}/index.html",
             "run_bytes": self.cached_run_bytes,
             "free_bytes": self.cached_free_bytes,
@@ -1969,8 +3357,17 @@ class PpoRunCallback(BaseCallback):
         reason: str | None = None,
     ) -> None:
         status = self._status(state, reason, refresh_disk=False)
+        student_accuracy = float(
+            status["self_taught"]
+            .get("student", {})
+            .get("diagnostics", {})
+            .get("action_accuracy", 0)
+        )
         path = self.run_directory / "NARRATIVE.md"
         first = not path.exists()
+        action_label = (
+            "Explorer actions" if self.config.mode == "self_taught_v8" else "Combined actions"
+        )
         with path.open("a", encoding="utf-8") as output:
             if first:
                 output.write("# Parallel PPO learning chronicle\n\n")
@@ -1978,7 +3375,7 @@ class PpoRunCallback(BaseCallback):
                 f"## {datetime.now(UTC).isoformat()} — {event}\n\n"
                 f"- Best verified milestone: **{status['best_milestone']['label']}**\n"
                 f"- Current lesson: **{status['training_focus']['label']}**\n"
-                f"- Combined actions: {status['total_actions']:,}\n"
+                f"- {action_label}: {status['total_actions']:,}\n"
                 f"- PPO updates: {status['ppo_updates']:,}\n"
                 f"- Verified promotions: {status['verified_promotions']:,}\n"
                 f"- Episodes: {status['episodes']:,}\n"
@@ -1998,6 +3395,19 @@ class PpoRunCallback(BaseCallback):
                 f"{status['self_taught'].get('skills_competent', 0)}\n"
                 f"- Self-imitation examples: "
                 f"{status['self_taught'].get('imitation_examples', 0):,}\n\n"
+                f"- Distilled self-generated actions: "
+                f"{status['self_taught'].get('distillation', {}).get('distilled_actions', 0):,}/"
+                f"{status['self_taught'].get('distillation', {}).get('original_actions', 0):,}\n"
+                f"- Separate Student updates: "
+                f"{status['self_taught'].get('student', {}).get('optimizer_updates', 0):,}\n"
+                f"- Separate Student action accuracy: "
+                f"{student_accuracy:.1%}\n"
+                f"- Frozen Student exams: "
+                f"{status['self_taught'].get('frozen_exams', {}).get('successes', 0)}/"
+                f"{status['self_taught'].get('frozen_exams', {}).get('attempts', 0)}\n"
+                f"- Power-on composition exams: "
+                f"{status['self_taught'].get('composition', {}).get('successes', 0)}/"
+                f"{status['self_taught'].get('composition', {}).get('attempts', 0)}\n\n"
                 f"- Battle successes: {status['battle_events'].get('success', 0):,}\n"
                 "- Battle exits without durable progress: "
                 f"{status['battle_events'].get('ended_without_progress', 0):,}\n\n"
@@ -2033,11 +3443,118 @@ class PpoRunCallback(BaseCallback):
         dataset_relative = f"self-skills/{skill_id}.npz"
         target_path = self.run_directory / target_relative
         dataset_path = self.run_directory / dataset_relative
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+
+        if _is_v8_mode(self.config.mode):
+            full_actions = [int(value) for value in verification["full_actions"]]
+            source_metadata, source_entry, prefix_length = _nearest_verified_lineage_prefix(
+                self.curriculum_directory,
+                full_actions,
+                target_index=progress.index,
+            )
+            original_actions = full_actions[prefix_length:]
+            if not original_actions:
+                raise ValueError("V8 discovery has no actions after its nearest verified state")
+            source_progress = _progress_from_value(source_entry["progress"])
+            source_snapshot = FrozenSnapshot.from_checkpoint_dict(source_entry["snapshot"])
+            distilled = _distill_verified_actions(
+                self.rom_path,
+                source_snapshot,
+                original_actions,
+                source_progress,
+                progress,
+                verification_id=skill_id,
+                successful_replays=(
+                    int(verification["edge_replays"]) + int(verification["power_on_replays"])
+                ),
+                max_attempts=self.config.distillation_attempts,
+            )
+            compressed_actions = [int(value) for value in distilled.actions]
+            dataset, target_clip = _collect_v8_student_dataset(
+                self.rom_path,
+                source_snapshot,
+                compressed_actions,
+                compressed_to_original=distilled.compressed_to_original,
+            )
+            temporary_target = target_path.with_suffix(".tmp.png")
+            Image.fromarray(target_clip[-1]).save(temporary_target, format="PNG")
+            os.replace(temporary_target, target_path)
+            _atomic_self_imitation_dataset(dataset_path, dataset)
+            dataset_sha256 = _sha256_file(dataset_path)
+            if self.student_trainer is None:
+                raise RuntimeError("V8 replay shard admission has no Student trainer")
+            replay_shards = _write_v8_replay_shards(
+                self.run_directory,
+                skill_id=skill_id,
+                dataset=dataset,
+                source_dataset_sha256=dataset_sha256,
+                max_examples=self.student_trainer.config.max_examples_per_dataset,
+                burn_in=self.student_trainer.config.burn_in,
+            )
+            audit_relative = f"self-skills/{skill_id}.distillation.json"
+            audit_path = self.run_directory / audit_relative
+            _atomic_json(
+                audit_path,
+                {
+                    "schema_version": 1,
+                    "protocol": PPO_V8_REWARD_PROTOCOL,
+                    "verification_id": skill_id,
+                    "source_entry_id": str(source_entry["entry_id"]),
+                    "source_milestone": source_progress.public_dict(),
+                    "target_entry_id": skill_id,
+                    "target_milestone": progress.public_dict(),
+                    "expected_target_snapshot_sha256": str(candidate["terminal_snapshot_sha256"]),
+                    "distillation_acceptance": (
+                        "same expanded trainer-observed gameplay state, full processed "
+                        "terminal visual, and game-area hash; emulator clocks may differ"
+                    ),
+                    "full_self_generated_action_count": len(full_actions),
+                    "source_lineage_action_count": prefix_length,
+                    "compressed_to_original": list(distilled.compressed_to_original),
+                    "original_to_compressed": list(distilled.original_to_compressed),
+                    "distillation": distilled.audit.as_dict(),
+                    "human_actions": [],
+                },
+            )
+            return {
+                "skill_id": skill_id,
+                "source_entry_id": str(source_metadata["entry_id"]),
+                "source_index": source_progress.index,
+                "target_entry_id": skill_id,
+                "target_index": progress.index,
+                "target_label": progress.label,
+                "target_frame_file": target_relative,
+                "target_frame_sha256": _sha256_file(target_path),
+                "dataset_file": dataset_relative,
+                "dataset_sha256": dataset_sha256,
+                "action_count": len(compressed_actions),
+                "original_action_count": len(original_actions),
+                "distillation_audit_file": audit_relative,
+                "distillation_audit_sha256": _sha256_file(audit_path),
+                "distillation_oracle_calls": distilled.audit.total_oracle_calls,
+                "distillation_oracle_actions_replayed": (
+                    distilled.audit.oracle_actions_replayed
+                ),
+                "distillation_edits_accepted": (
+                    distilled.audit.loop_deletions_accepted
+                    + distilled.audit.chunk_deletions_accepted
+                ),
+                "distillation_edits_rejected": (
+                    distilled.audit.loop_deletions_rejected
+                    + distilled.audit.chunk_deletions_rejected
+                ),
+                "target_clip_channels": int(target_clip.shape[0]),
+                "replay_shards": replay_shards,
+                "replay_shard_example_cap": (
+                    self.student_trainer.config.max_examples_per_dataset
+                ),
+                "replay_shard_burn_in": self.student_trainer.config.burn_in,
+            }
+
         target_frame = preprocess_apprentice_frame(
             np.asarray(Image.open(source_png).convert("RGB"))
         )
         temporary_target = target_path.with_suffix(".tmp.png")
-        target_path.parent.mkdir(parents=True, exist_ok=True)
         Image.fromarray(target_frame).save(temporary_target, format="PNG")
         os.replace(temporary_target, target_path)
         edge_actions = [int(value) for value in candidate["actions"]]
@@ -2071,14 +3588,579 @@ class PpoRunCallback(BaseCallback):
             self.self_imitation_pending = self.self_skills.imitation_pending
             self._write_self_skills()
 
+    def _refresh_v8_composition_replay(self) -> bool:
+        """Build one new replay-verified continuous chain when competence advances."""
+
+        if self.self_skills is None:
+            return False
+        chain = self._competent_skill_chain()
+        if len(chain) < 2:
+            changed = self.self_skills.activate_verified_composition(None)
+            if changed:
+                self._write_self_skills()
+            return changed
+        fingerprint = _v8_composition_fingerprint(chain)
+        outcome = self.self_skills.composition_build_outcomes.get(fingerprint)
+        if outcome == "verified":
+            changed = self.self_skills.activate_verified_composition(fingerprint)
+            if changed:
+                self._write_self_skills()
+            return changed
+        if outcome == "replay_failed":
+            return False
+        sources: dict[str, tuple[np.ndarray, np.ndarray]] = {}
+        for skill in chain:
+            path = self.run_directory / str(skill["dataset_file"])
+            if _sha256_file(path) != skill["dataset_sha256"]:
+                raise ValueError("V8 composition source dataset failed its hash")
+            audit_path = self.run_directory / str(skill["distillation_audit_file"])
+            if _sha256_file(audit_path) != skill["distillation_audit_sha256"]:
+                raise ValueError("V8 composition source audit failed its hash")
+            with np.load(path, allow_pickle=False) as archive:
+                actions = np.asarray(archive["actions"], dtype=np.int64)
+                target = np.asarray(archive["target_pixels"], dtype=np.uint8)
+            sources[str(skill["skill_id"])] = (actions, target)
+        try:
+            dataset, boundaries = _collect_v8_composition_dataset(
+                self.rom_path,
+                self.curriculum_directory,
+                chain,
+                sources,
+                burn_in=self.student_trainer.config.burn_in,
+                train_length=self.student_trainer.config.train_length,
+            )
+        except CompositionReplayRejected:
+            self.self_skills.record_composition_build_failure(fingerprint)
+            self._write_self_skills()
+            return False
+
+        composition_id = f"composition-{fingerprint[:24]}"
+        dataset_relative = f"self-skills/{composition_id}.npz"
+        audit_relative = f"self-skills/{composition_id}.audit.json"
+        dataset_path = self.run_directory / dataset_relative
+        audit_path = self.run_directory / audit_relative
+        _atomic_self_imitation_dataset(dataset_path, dataset)
+        dataset_hash = _sha256_file(dataset_path)
+        offsets = [int(value) for value in dataset["goal_switch_offsets"]]
+        full_offsets = [int(value) for value in dataset["full_goal_switch_offsets"]]
+        excerpt_offsets = [int(value) for value in dataset["excerpt_offsets"]]
+        _atomic_json(
+            audit_path,
+            {
+                "schema_version": 1,
+                "protocol": SELF_GENERATED_COMPOSITION_PROTOCOL,
+                "composition_id": composition_id,
+                "fingerprint": fingerprint,
+                "root_entry_id": self.self_skills.root_entry_id,
+                "skill_ids": [str(skill["skill_id"]) for skill in chain],
+                "source_artifacts": [
+                    {
+                        "skill_id": str(skill["skill_id"]),
+                        "dataset_sha256": str(skill["dataset_sha256"]),
+                        "distillation_audit_sha256": str(skill["distillation_audit_sha256"]),
+                        "competent_when_built": bool(skill.get("competent", False)),
+                    }
+                    for skill in chain
+                ],
+                "dataset_sha256": dataset_hash,
+                "action_count": int(len(dataset["actions"])),
+                "goal_switch_offsets": offsets,
+                "full_action_count": int(dataset["full_action_count"]),
+                "full_goal_switch_offsets": full_offsets,
+                "excerpt_offsets": excerpt_offsets,
+                "excerpt_full_ranges": np.asarray(dataset["excerpt_full_ranges"]).tolist(),
+                "boundaries": boundaries,
+                "successful_continuous_replays": 1,
+                "episode_starts": excerpt_offsets[:-1],
+                "goal_storage": "one clip per declared segment; expanded per sampled window",
+                "pixel_storage": "bounded switch excerpts only",
+                "hidden_state_resets_at_excerpt_boundaries": True,
+                "hidden_state_resets_at_goal_switches": False,
+                "frozen_exam_actions_used_for_training": False,
+                "human_actions": [],
+            },
+        )
+        admitted = self.self_skills.add_verified_composition(
+            composition_id=composition_id,
+            fingerprint=fingerprint,
+            skill_ids=[str(skill["skill_id"]) for skill in chain],
+            target_index=int(chain[-1]["target_index"]),
+            dataset_file=dataset_relative,
+            dataset_sha256=dataset_hash,
+            audit_file=audit_relative,
+            audit_sha256=_sha256_file(audit_path),
+            action_count=int(len(dataset["actions"])),
+            goal_switch_offsets=offsets,
+            full_action_count=int(dataset["full_action_count"]),
+            full_goal_switch_offsets=full_offsets,
+            excerpt_offsets=excerpt_offsets,
+            successful_replays=1,
+        )
+        if admitted:
+            self.self_imitation_pending = self.self_skills.imitation_pending
+            self._write_self_skills()
+        return admitted
+
+    def _load_v8_student_datasets(self) -> tuple[tuple[Any, ...], list[dict[str, Any]]]:
+        if self.self_skills is None or not self.self_skills.skills:
+            return (), []
+        paths: dict[str, Path] = {}
+        selections: list[dict[str, Any]] = []
+        for skill in self.self_skills.skills:
+            skill_id = str(skill["skill_id"])
+            if int(skill.get("replay_shard_example_cap", 0)) != (
+                self.student_trainer.config.max_examples_per_dataset
+            ):
+                raise ValueError("V8 replay shard cap disagrees with the Student configuration")
+            if int(skill.get("replay_shard_burn_in", -1)) != self.student_trainer.config.burn_in:
+                raise ValueError("V8 replay shard burn-in disagrees with Student configuration")
+            shard = self.self_skills.replay_shard(skill_id)
+            shard_path = _validate_hashed_run_artifact(
+                self.run_directory,
+                shard["file"],
+                shard["sha256"],
+                label="V8 bounded Student replay shard",
+            )
+            if shard_path.stat().st_size != int(shard["stored_bytes"]):
+                raise ValueError("V8 bounded Student replay shard size disagrees with ledger")
+            paths[skill_id] = shard_path
+            cursor = int(skill.get("replay_cursor", 0))
+            shard_count = len(skill["replay_shards"])
+            selections.append(
+                {
+                    "skill_id": skill_id,
+                    "cursor": cursor,
+                    "shard_index": int(shard["shard_index"]),
+                    "shard_count": shard_count,
+                    "coverage_cycle": cursor // shard_count,
+                    "source_start": int(shard["source_start"]),
+                    "source_context_start": int(shard["source_context_start"]),
+                    "source_train_start": int(shard["source_train_start"]),
+                    "source_stop": int(shard["source_stop"]),
+                    "context_examples": int(shard["context_example_count"]),
+                    "train_examples": int(shard["train_example_count"]),
+                    "stored_examples": int(shard["example_count"]),
+                    "stored_bytes": int(shard["stored_bytes"]),
+                }
+            )
+        for composition in self.self_skills.composition_replays:
+            if not bool(composition.get("active", False)):
+                continue
+            dataset_path = _validate_hashed_run_artifact(
+                self.run_directory,
+                composition["dataset_file"],
+                composition["dataset_sha256"],
+                label="V8 active composition dataset",
+            )
+            _validate_hashed_run_artifact(
+                self.run_directory,
+                composition["audit_file"],
+                composition["audit_sha256"],
+                label="V8 active composition audit",
+            )
+            composition_id = str(composition["composition_id"])
+            if composition_id in paths:
+                raise ValueError("V8 composition identifier collides with an individual skill")
+            paths[composition_id] = dataset_path
+        datasets = load_self_generated_datasets(
+            paths,
+        )
+        by_id = {dataset.skill_id: dataset for dataset in datasets}
+        for skill in self.self_skills.skills:
+            skill_id = str(skill["skill_id"])
+            dataset = by_id[skill_id]
+            shard = self.self_skills.replay_shard(skill_id)
+            if (
+                dataset.dataset_kind != "skill"
+                or dataset.source_action_count != int(skill["action_count"])
+                or dataset.source_action_offset != int(shard["source_start"])
+                or len(dataset) != int(shard["example_count"])
+                or dataset.train_offset
+                != int(shard["source_train_start"]) - int(shard["source_start"])
+                or dataset.trainable_examples != int(shard["train_example_count"])
+                or dataset.source_train_start != int(shard["source_train_start"])
+                or dataset.source_train_stop != int(shard["source_stop"])
+                or dataset.replay_shard_protocol != SELF_GENERATED_REPLAY_SHARD_PROTOCOL
+                or dataset.source_dataset_sha256 != str(skill["dataset_sha256"])
+                or dataset.replay_shard_index != int(shard["shard_index"])
+                or dataset.replay_shard_count != int(shard["shard_count"])
+                or dataset.target_pixels.shape
+                != (int(skill.get("target_clip_channels", 1)), 72, 80)
+            ):
+                raise ValueError("V8 individual dataset disagrees with its verified ledger")
+        for composition in self.self_skills.active_composition_replays():
+            dataset = by_id[str(composition["composition_id"])]
+            if (
+                dataset.dataset_kind != "composition"
+                or dataset.source_skill_ids != tuple(composition["skill_ids"])
+                or dataset.goal_switch_offsets
+                != tuple(int(value) for value in composition["goal_switch_offsets"])
+                or dataset.successful_replays != int(composition["successful_replays"])
+                or len(dataset) != int(composition["action_count"])
+                or dataset.excerpt_offsets != tuple(composition["excerpt_offsets"])
+            ):
+                raise ValueError("V8 composition dataset disagrees with its verified ledger")
+        return datasets, selections
+
+    def _train_v8_student(self) -> None:
+        if self.self_skills is None or self.student_trainer is None or not self.self_skills.skills:
+            return
+        rollout_size = self.config.rollout_steps * self.config.environments
+        rollout = self.model.num_timesteps // max(1, rollout_size)
+        due = rollout % self.config.student_replay_interval == 0
+        if not self.self_skills.imitation_pending and (
+            not due or rollout == self.last_student_replay_rollout
+        ):
+            return
+        self._refresh_v8_composition_replay()
+        datasets, shard_selections = self._load_v8_student_datasets()
+        replay = BalancedSkillReplay(
+            datasets,
+            self.student_trainer.config,
+            seed=self.config.seed + self.self_skills.student_training_rounds,
+            composition_boundary_cursor=self.self_skills.composition_boundary_cursor,
+        )
+        updates = self.config.student_replay_epochs * replay.sampling_cycle_size
+        report = self.student_trainer.train(replay, updates=updates)
+        self.self_skills.composition_boundary_cursor = replay.next_composition_boundary_cursor
+        measured = self.student_trainer.diagnose(datasets)
+        total = sum(item.examples for item in measured.values())
+        diagnostics = {
+            "action_nll": sum(item.action_nll * item.examples for item in measured.values())
+            / total,
+            "action_accuracy": sum(
+                item.action_accuracy * item.examples for item in measured.values()
+            )
+            / total,
+            "policy_entropy": sum(item.policy_entropy * item.examples for item in measured.values())
+            / total,
+            "demonstration_entropy": sum(
+                item.demonstration_entropy * item.examples for item in measured.values()
+            )
+            / total,
+        }
+        recorded = report.public_dict()
+        recorded["diagnostics"] = diagnostics
+        recorded["per_skill_diagnostics"] = {
+            skill_id: item.public_dict() for skill_id, item in sorted(measured.items())
+        }
+        recorded["individual_skill_datasets"] = sum(
+            dataset.dataset_kind == "skill" for dataset in datasets
+        )
+        recorded["composition_datasets"] = sum(
+            dataset.dataset_kind == "composition" for dataset in datasets
+        )
+        recorded["replay_examples_retained"] = sum(len(dataset) for dataset in datasets)
+        recorded["replay_bytes_retained"] = sum(dataset.retained_bytes for dataset in datasets)
+        recorded["max_examples_per_individual_skill"] = (
+            self.student_trainer.config.max_examples_per_dataset
+        )
+        recorded["replay_example_ceiling"] = recorded[
+            "individual_skill_datasets"
+        ] * (
+            self.student_trainer.config.max_examples_per_dataset
+            + self.student_trainer.config.burn_in
+        ) + sum(
+            len(dataset) for dataset in datasets if dataset.dataset_kind == "composition"
+        )
+        recorded["replay_train_example_ceiling"] = recorded[
+            "individual_skill_datasets"
+        ] * self.student_trainer.config.max_examples_per_dataset + sum(
+            dataset.trainable_examples
+            for dataset in datasets
+            if dataset.dataset_kind == "composition"
+        )
+        recorded["sampling_cycle_size"] = replay.sampling_cycle_size
+        recorded["replay_shards_total"] = sum(
+            len(skill.get("replay_shards", [])) for skill in self.self_skills.skills
+        )
+        recorded["replay_shards_loaded"] = len(shard_selections)
+        recorded["replay_shard_examples_loaded"] = sum(
+            int(item["stored_examples"]) for item in shard_selections
+        )
+        recorded["replay_shard_train_examples_loaded"] = sum(
+            int(item["train_examples"]) for item in shard_selections
+        )
+        recorded["replay_shard_context_examples_loaded"] = sum(
+            int(item["context_examples"]) for item in shard_selections
+        )
+        recorded["replay_shard_bytes_read"] = sum(
+            int(item["stored_bytes"]) for item in shard_selections
+        )
+        recorded["replay_full_skill_artifacts_opened"] = 0
+        recorded["replay_shard_selections"] = shard_selections
+        recorded["replay_cursor_min"] = min(
+            (int(item["cursor"]) for item in shard_selections),
+            default=0,
+        )
+        recorded["replay_cursor_max"] = max(
+            (int(item["cursor"]) for item in shard_selections),
+            default=0,
+        )
+        recorded["replay_coverage_cycle_min"] = min(
+            (int(item["coverage_cycle"]) for item in shard_selections),
+            default=0,
+        )
+        self.self_skills.advance_replay_cursors(
+            [str(item["skill_id"]) for item in shard_selections]
+        )
+        self.self_skills.record_student_training(recorded)
+        self.self_imitation_pending = self.self_skills.imitation_pending
+        self.last_student_replay_rollout = rollout
+        self.self_skills.last_student_replay_rollout = rollout
+        self._write_self_skills()
+        self._checkpoint()
+        self._narrative("Student replayed distilled self-discovered skills")
+
+    def _v8_target_clip(self, skill: Mapping[str, Any]) -> np.ndarray:
+        if self.self_skills is None:
+            raise RuntimeError("Frozen Student exam has no self-generated skill ledger")
+        shard = self.self_skills.replay_shard(str(skill["skill_id"]))
+        path = _validate_hashed_run_artifact(
+            self.run_directory,
+            shard["file"],
+            shard["sha256"],
+            label="Frozen Student exam target shard",
+        )
+        with np.load(path, allow_pickle=False) as archive:
+            target = np.asarray(archive["target_pixels"], dtype=np.uint8)
+        if target.shape != (3, 72, 80):
+            raise ValueError("V8 frozen exam requires a three-frame self-observed goal")
+        return target
+
+    def _predict_student_action(
+        self,
+        observation: Mapping[str, np.ndarray],
+        recurrent_state: Any | None,
+        *,
+        episode_start: bool,
+    ) -> tuple[int, Any]:
+        if self.student_model is None:
+            raise RuntimeError("Frozen Student exam has no Student model")
+        action, next_state = self.student_model.predict(
+            observation,
+            state=recurrent_state,
+            episode_start=np.asarray([episode_start], dtype=np.bool_),
+            deterministic=True,
+        )
+        return int(np.asarray(action).reshape(-1)[0]), next_state
+
+    def _run_frozen_skill_attempt(
+        self,
+        skill: Mapping[str, Any],
+    ) -> tuple[bool, int, int]:
+        manifest = _load_curriculum_manifest(self.curriculum_directory)
+        source_metadata = next(
+            (
+                entry
+                for entry in manifest["entries"]
+                if str(entry["entry_id"]) == str(skill["source_entry_id"])
+            ),
+            None,
+        )
+        if source_metadata is None:
+            raise ValueError("Frozen Student exam source is missing")
+        source = _load_curriculum_entry(self.curriculum_directory, source_metadata)
+        inherited = _progress_from_value(source["progress"])
+        target_index = int(skill["target_index"])
+        target_clip = self._v8_target_clip(skill)
+        limit = max(
+            1,
+            int(np.ceil(int(skill["action_count"]) * self.config.frozen_exam_action_multiplier)),
+        )
+        recurrent_state: Any | None = None
+        recent: deque[int] = deque([-1] * ACTION_HISTORY_LENGTH, maxlen=ACTION_HISTORY_LENGTH)
+        best = inherited.index
+        actions = 0
+        with PokemonRedEmulator(self.rom_path) as emulator:
+            emulator.load_state(FrozenSnapshot.from_checkpoint_dict(source["snapshot"]).thaw())
+            reader = PokemonRedStateReader(emulator)
+            current = preprocess_apprentice_frame(emulator.screen_rgb())
+            previous = current
+            for step in range(limit):
+                action, recurrent_state = self._predict_student_action(
+                    {
+                        "pixels": np.stack((previous, current)),
+                        "action_history": _action_history(recent),
+                        "target_pixels": target_clip,
+                    },
+                    recurrent_state,
+                    episode_start=step == 0,
+                )
+                actions += 1
+                if not _execute_action(emulator, action):
+                    break
+                recent.append(action)
+                previous = current
+                current = preprocess_apprentice_frame(emulator.screen_rgb())
+                state = reader.read()
+                progress = milestone_progress_for_state(state, inherited=inherited)
+                best = max(best, progress.index)
+                if progress.index >= target_index:
+                    return True, best, actions
+        return False, best, actions
+
+    def _competent_skill_chain(self) -> list[dict[str, Any]]:
+        if self.self_skills is None:
+            return []
+        by_source: dict[str, list[dict[str, Any]]] = {}
+        for skill in self.self_skills.skills:
+            if bool(skill.get("competent", False)):
+                by_source.setdefault(str(skill["source_entry_id"]), []).append(skill)
+
+        def best_path(
+            current: str,
+            visiting: frozenset[str],
+        ) -> list[dict[str, Any]]:
+            if current in visiting:
+                return []
+            candidates = [
+                [
+                    skill,
+                    *best_path(
+                        str(skill["target_entry_id"]),
+                        visiting | frozenset({current}),
+                    ),
+                ]
+                for skill in by_source.get(current, [])
+            ]
+            if not candidates:
+                return []
+            return max(
+                candidates,
+                key=lambda path: (
+                    int(path[-1]["target_index"]),
+                    len(path),
+                    tuple(str(item["skill_id"]) for item in path),
+                ),
+            )
+
+        return best_path(self.self_skills.root_entry_id, frozenset())
+
+    def _run_frozen_composition_attempt(
+        self,
+        chain: list[dict[str, Any]],
+    ) -> tuple[bool, int]:
+        if not chain:
+            return False, 0
+        manifest = _load_curriculum_manifest(self.curriculum_directory)
+        root_metadata = next(
+            entry
+            for entry in manifest["entries"]
+            if str(entry["entry_id"]) == str(chain[0]["source_entry_id"])
+        )
+        root = _load_curriculum_entry(self.curriculum_directory, root_metadata)
+        inherited = _progress_from_value(root["progress"])
+        targets = [self._v8_target_clip(skill) for skill in chain]
+        limit = max(
+            1,
+            int(
+                np.ceil(
+                    sum(int(skill["action_count"]) for skill in chain)
+                    * self.config.frozen_exam_action_multiplier
+                )
+            ),
+        )
+        recent: deque[int] = deque([-1] * ACTION_HISTORY_LENGTH, maxlen=ACTION_HISTORY_LENGTH)
+        recurrent_state: Any | None = None
+        current_skill = 0
+        actions = 0
+        with PokemonRedEmulator(self.rom_path) as emulator:
+            emulator.load_state(FrozenSnapshot.from_checkpoint_dict(root["snapshot"]).thaw())
+            reader = PokemonRedStateReader(emulator)
+            current = preprocess_apprentice_frame(emulator.screen_rgb())
+            previous = current
+            for step in range(limit):
+                action, recurrent_state = self._predict_student_action(
+                    {
+                        "pixels": np.stack((previous, current)),
+                        "action_history": _action_history(recent),
+                        "target_pixels": targets[current_skill],
+                    },
+                    recurrent_state,
+                    episode_start=step == 0,
+                )
+                actions += 1
+                if not _execute_action(emulator, action):
+                    break
+                recent.append(action)
+                previous = current
+                current = preprocess_apprentice_frame(emulator.screen_rgb())
+                progress = milestone_progress_for_state(reader.read(), inherited=inherited)
+                while current_skill < len(chain) and progress.index >= int(
+                    chain[current_skill]["target_index"]
+                ):
+                    current_skill += 1
+                if current_skill == len(chain):
+                    return True, actions
+        return False, actions
+
+    def _run_frozen_exam_round(self) -> bool:
+        if self.self_skills is None or self.student_model is None:
+            return False
+        if not self.self_skills.skills:
+            self.self_skills.last_frozen_exam_actions = self.model.num_timesteps
+            self._write_self_skills()
+            return False
+        manifest = _load_curriculum_manifest(self.curriculum_directory)
+        choice = choose_v8_self_taught_episode(
+            manifest["entries"],
+            self.self_skills,
+            self.exam_rng,
+            frontier_probability=0,
+        )
+        previous_mode = bool(self.student_model.policy.training)
+        self.student_model.policy.set_training_mode(False)
+        actions = 0
+        competence_passed = False
+        try:
+            if choice.skill_id is not None:
+                skill = self.self_skills.skill(choice.skill_id)
+                self.last_exam_skill_label = str(skill["target_label"])
+                success, best, used = self._run_frozen_skill_attempt(skill)
+                actions += used
+                competence_passed |= self.self_skills.record_episode(
+                    mode=choice.mode,
+                    skill_id=choice.skill_id,
+                    best_reached_index=(int(skill["target_index"]) if success else best),
+                )
+            else:
+                chain = self._competent_skill_chain()
+                self.last_exam_skill_label = "Power-on composition"
+                target_index = int(chain[-1]["target_index"]) if chain else 0
+                hall_of_fame_target = (
+                    target_index > 0 and MILESTONES[target_index - 1].key == HALL_OF_FAME_KEY
+                )
+                success, used = self._run_frozen_composition_attempt(chain)
+                actions += used
+                self.self_skills.record_composition_exam(
+                    success=success,
+                    actions=used,
+                    target_index=target_index,
+                    hall_of_fame_target=hall_of_fame_target,
+                )
+        finally:
+            self.student_model.policy.set_training_mode(previous_mode)
+        self.self_skills.record_frozen_exam_round(actions=actions)
+        self.self_skills.last_frozen_exam_actions = self.model.num_timesteps
+        self.self_skills.exam_rng_state = _random_state_to_json(self.exam_rng.getstate())
+        self._write_self_skills()
+        self._checkpoint()
+        self._narrative(f"frozen Student exam: {self.last_exam_skill_label or 'unknown skill'}")
+        return competence_passed
+
     def _on_rollout_start(self) -> None:
+        if _is_v8_mode(self.config.mode):
+            self._train_v8_student()
+            return
         if self.self_skills is None or not self.self_imitation_pending:
             return
         skills = self.self_skills.skills
-        selected = skills if len(skills) <= 8 else [
-            skills[int(index)]
-            for index in np.linspace(0, len(skills) - 1, num=8, dtype=int)
-        ]
+        selected = (
+            skills
+            if len(skills) <= 8
+            else [skills[int(index)] for index in np.linspace(0, len(skills) - 1, num=8, dtype=int)]
+        )
         datasets: list[Path] = []
         for skill in selected:
             path = self.run_directory / str(skill["dataset_file"])
@@ -2116,9 +4198,7 @@ class PpoRunCallback(BaseCallback):
                 replay_passes=self.config.promotion_replays,
             )
             source_png = candidate_path.with_suffix("").with_suffix(".png")
-            prepared_skill = self._prepare_self_generated_skill(
-                verification, progress, source_png
-            )
+            prepared_skill = self._prepare_self_generated_skill(verification, progress, source_png)
             admit_verified_candidate(self.curriculum_directory, verification)
             self._commit_self_generated_skill(prepared_skill)
             if self.consolidation is not None:
@@ -2194,6 +4274,14 @@ class PpoRunCallback(BaseCallback):
             if isinstance(candidate, str):
                 self._handle_candidate(Path(candidate))
 
+        if (
+            _is_v8_mode(self.config.mode)
+            and self.self_skills is not None
+            and self.model.num_timesteps - self.self_skills.last_frozen_exam_actions
+            >= self.config.frozen_exam_interval_actions
+        ):
+            self_skill_passed |= self._run_frozen_exam_round()
+
         if competence_gate_passed:
             self._narrative("training competence gate expanded one checkpoint backward")
         if self_skill_passed:
@@ -2214,7 +4302,7 @@ class PpoRunCallback(BaseCallback):
                 self.stop_reason = "low_disk_space"
             elif self.cached_run_bytes >= self.config.max_output_bytes:
                 self.stop_reason = "output_limit"
-            elif status["best_milestone"]["key"] == HALL_OF_FAME_KEY:
+            elif _hall_of_fame_stop_is_verified(self.config.mode, status, self.self_skills):
                 self.stop_reason = "hall_of_fame_verified"
             self.last_status = now
         if now - self.last_narrative >= self.config.narrative_seconds:
@@ -2249,11 +4337,22 @@ def run_parallel_ppo(
     *,
     resume: bool = False,
     policy_source: Path | None = None,
+    v7_denominator: Path | None = None,
 ) -> dict[str, Any]:
-    verify_rom(rom_path)
+    rom = verify_rom(rom_path).public_dict()
+    source = detect_source_provenance(include_untracked=_is_v8_mode(config.mode)).public_dict()
+    if _is_v8_mode(config.mode):
+        _require_reproducible_v8_source(source)
+    if v7_denominator is not None and (not _is_v8_mode(config.mode) or resume):
+        raise ValueError("A V7 denominator may be locked only when a fresh V8 run begins")
+    denominator_snapshot = (
+        _snapshot_v7_denominator(v7_denominator)
+        if v7_denominator is not None
+        else None
+    )
     if policy_source is not None and not config.consolidation:
         raise ValueError("A retained policy source requires consolidation mode")
-    if config.mode == "self_taught" and policy_source is not None:
+    if _is_self_taught_mode(config.mode) and policy_source is not None:
         raise ValueError("Self-taught PPO cannot import a predecessor policy")
     run_directory = run_directory.expanduser().resolve()
     if run_directory.exists() and not resume:
@@ -2263,7 +4362,11 @@ def run_parallel_ppo(
         (run_directory / name).mkdir(exist_ok=True)
     curriculum_directory = run_directory / "curriculum"
     if not curriculum_directory.exists():
-        freeze_verified_curriculum(curriculum_source, curriculum_directory)
+        freeze_verified_curriculum(
+            curriculum_source,
+            curriculum_directory,
+            target_protocol=_ppo_protocol(config.mode),
+        )
         if config.power_on_only:
             _retain_power_on_only(curriculum_directory)
     consolidation_path = run_directory / "consolidation.json"
@@ -2276,7 +4379,7 @@ def run_parallel_ppo(
         )
         _atomic_json(consolidation_path, consolidation.public_dict())
     self_skills_path = run_directory / "self-skills.json"
-    if config.mode == "self_taught" and not self_skills_path.exists() and not resume:
+    if _is_self_taught_mode(config.mode) and not self_skills_path.exists() and not resume:
         curriculum_manifest = _load_curriculum_manifest(curriculum_directory)
         library = SelfTaughtSkillLibrary.initialize(
             curriculum_manifest["entries"],
@@ -2284,22 +4387,56 @@ def run_parallel_ppo(
             threshold=config.competence_threshold,
         )
         _atomic_json(self_skills_path, library.public_dict())
-    source = detect_source_provenance().public_dict()
     started_at = datetime.now(UTC).isoformat()
     base_elapsed = 0.0
     checkpoint_path = run_directory / "checkpoint.json"
     model_path = run_directory / "ppo-latest.zip"
+    student_model_path = run_directory / "student-latest.zip"
+    student_optimizer_path = run_directory / "student-optimizer.pt"
     retained_policy_path: Path | None = None
     retained_policy_info: dict[str, Any] | None = None
     novelty_by_rank: dict[int, str] = {}
     if resume:
         checkpoint = json.loads(checkpoint_path.read_text(encoding="utf-8"))
-        if checkpoint.get("protocol") != PPO_PROTOCOL:
+        if checkpoint.get("protocol") != _ppo_protocol(config.mode):
             raise ValueError("PPO checkpoint uses a different protocol")
         if checkpoint.get("config") != config.public_dict():
             raise ValueError("PPO resume configuration does not match")
-        if _sha256_file(model_path) != checkpoint.get("model_file_sha256"):
-            raise ValueError("PPO model does not match its checkpoint")
+        _validate_checkpoint_identity(
+            checkpoint,
+            source=source,
+            rom=rom,
+            required=_is_v8_mode(config.mode),
+        )
+        run_manifest = json.loads(
+            (run_directory / "manifest.json").read_text(encoding="utf-8")
+        )
+        if _is_v8_mode(config.mode) and checkpoint.get("v7_denominator") != (
+            run_manifest.get("v7_denominator")
+        ):
+            raise ValueError("V8 denominator identity does not match its checkpoint")
+        if checkpoint.get("curriculum_checkpoint_file") is not None:
+            _restore_curriculum_state(
+                run_directory,
+                curriculum_directory,
+                checkpoint,
+                protocol=_ppo_protocol(config.mode),
+            )
+        elif _is_v8_mode(config.mode):
+            raise ValueError("V8 checkpoint has no bound curriculum snapshot")
+        else:
+            legacy_curriculum = _load_curriculum_manifest(curriculum_directory)
+            if legacy_curriculum.get("best_milestone") != checkpoint.get("best_milestone"):
+                raise ValueError("Legacy PPO curriculum moved beyond its checkpoint")
+        try:
+            model_path = _resolve_checkpoint_artifact(
+                run_directory,
+                latest_name="ppo-latest.zip",
+                previous_name="ppo-previous.zip",
+                expected_sha256=checkpoint.get("model_file_sha256"),
+            )
+        except ValueError as error:
+            raise ValueError("PPO model does not match its checkpoint") from error
         if config.consolidation:
             expected_consolidation_hash = checkpoint.get("consolidation_file_sha256")
             if (
@@ -2307,15 +4444,65 @@ def run_parallel_ppo(
                 or _sha256_file(consolidation_path) != expected_consolidation_hash
             ):
                 raise ValueError("PPO consolidation state does not match its checkpoint")
-        if config.mode == "self_taught":
+        if _is_self_taught_mode(config.mode):
             library = _restore_self_skill_state(run_directory, checkpoint)
             for skill in library.skills:
                 for file_key, hash_key in (
                     ("target_frame_file", "target_frame_sha256"),
                     ("dataset_file", "dataset_sha256"),
+                    ("distillation_audit_file", "distillation_audit_sha256"),
                 ):
-                    if _sha256_file(run_directory / str(skill[file_key])) != skill[hash_key]:
-                        raise ValueError("PPO self-taught skill artifact failed its hash")
+                    if skill.get(file_key) is None:
+                        continue
+                    _validate_hashed_run_artifact(
+                        run_directory,
+                        skill[file_key],
+                        skill.get(hash_key),
+                        label="PPO self-taught skill artifact",
+                    )
+                for shard in skill.get("replay_shards", []):
+                    shard_path = _validate_hashed_run_artifact(
+                        run_directory,
+                        shard["file"],
+                        shard["sha256"],
+                        label="PPO bounded replay shard",
+                    )
+                    if shard_path.stat().st_size != int(shard["stored_bytes"]):
+                        raise ValueError("PPO bounded replay shard size disagrees with ledger")
+            for composition in library.composition_replays:
+                for file_key, hash_key in (
+                    ("dataset_file", "dataset_sha256"),
+                    ("audit_file", "audit_sha256"),
+                ):
+                    _validate_hashed_run_artifact(
+                        run_directory,
+                        composition[file_key],
+                        composition.get(hash_key),
+                        label="PPO composition replay artifact",
+                    )
+        if _is_v8_mode(config.mode):
+            if checkpoint.get("student_model_file") != "student-latest.zip":
+                raise ValueError("V8 checkpoint has no separate Student model")
+            try:
+                student_model_path = _resolve_checkpoint_artifact(
+                    run_directory,
+                    latest_name="student-latest.zip",
+                    previous_name="student-previous.zip",
+                    expected_sha256=checkpoint.get("student_model_file_sha256"),
+                )
+            except ValueError as error:
+                raise ValueError("V8 Student model does not match its checkpoint") from error
+            if checkpoint.get("student_optimizer_file") != "student-optimizer.pt":
+                raise ValueError("V8 checkpoint has no separate Student optimizer")
+            try:
+                student_optimizer_path = _resolve_checkpoint_artifact(
+                    run_directory,
+                    latest_name="student-optimizer.pt",
+                    previous_name="student-optimizer.previous.pt",
+                    expected_sha256=checkpoint.get("student_optimizer_file_sha256"),
+                )
+            except ValueError as error:
+                raise ValueError("V8 Student optimizer does not match its checkpoint") from error
         novelty_files = checkpoint.get("novelty_files")
         if not isinstance(novelty_files, list):
             raise ValueError("PPO checkpoint has no persistent novelty memory")
@@ -2359,17 +4546,23 @@ def run_parallel_ppo(
             run_directory / "manifest.json",
             {
                 "schema_version": 1,
-                "protocol": PPO_PROTOCOL,
+                "protocol": _ppo_protocol(config.mode),
                 "config": config.public_dict(),
                 "source": source,
+                "rom": rom,
                 "actor_mode": config.mode,
                 "human_demonstrations": [],
                 "self_generated_verified_curriculum": True,
                 "curriculum_source": curriculum_source.name,
                 "novelty_scope": "persistent per worker across episodes and resumes",
-                "reward_protocol": PPO_REWARD_PROTOCOL,
+                "reward_protocol": _ppo_reward_protocol(config.mode),
                 "rom_path_recorded": False,
                 "resume_semantics": "model_optimizer_exact_environment_rollout_restarts",
+                **(
+                    {"v7_denominator": denominator_snapshot}
+                    if denominator_snapshot is not None
+                    else {}
+                ),
                 "policy_initialization": (
                     {
                         "kind": "random_untrained_policy",
@@ -2383,6 +4576,12 @@ def run_parallel_ppo(
         )
         if retained_policy_path is None and not config.random_initialization:
             learner_path = learner_copy
+
+    _ensure_run_manifest_identity(
+        run_directory / "manifest.json",
+        source=source,
+        rom=rom,
+    )
 
     env_fns = [
         partial(
@@ -2398,7 +4597,7 @@ def run_parallel_ppo(
                 rank=rank,
                 frontier_probability=config.frontier_probability,
                 consolidation=config.consolidation,
-                self_taught=config.mode == "self_taught",
+                self_taught=_is_self_taught_mode(config.mode),
                 novelty_checkpoint_file=novelty_by_rank.get(rank),
             ),
         )
@@ -2444,10 +4643,50 @@ def run_parallel_ppo(
                 privileged=config.mode == "privileged",
                 assisted=config.mode == "assisted",
             )
-            manifest = json.loads(
-                (run_directory / "manifest.json").read_text(encoding="utf-8")
-            )
+            manifest = json.loads((run_directory / "manifest.json").read_text(encoding="utf-8"))
             manifest["warm_start"] = seed_info
+            _atomic_json(run_directory / "manifest.json", manifest)
+    student_model: Any | None = None
+    student_trainer: SequenceAwareStudentTrainer | None = None
+    if _is_v8_mode(config.mode):
+        if resume:
+            student_model = RecurrentPPO.load(student_model_path, device="cpu")
+        else:
+            temporary_seed = run_directory / "student-seed.tmp.zip"
+            model.save(temporary_seed)
+            try:
+                student_model = RecurrentPPO.load(temporary_seed, device="cpu")
+            finally:
+                temporary_seed.unlink(missing_ok=True)
+        student_config = SequenceTrainingConfig(
+            burn_in=config.student_burn_in,
+            train_length=config.student_train_horizon,
+            stride=max(1, config.student_train_horizon // 2),
+            learning_rate=config.student_learning_rate,
+            diagnostic_chunk_length=max(128, config.student_train_horizon * 4),
+        )
+        student_trainer = SequenceAwareStudentTrainer(
+            student_model,
+            student_config,
+        )
+        if resume:
+            optimizer_state = torch.load(
+                student_optimizer_path,
+                map_location="cpu",
+                weights_only=True,
+            )
+            student_trainer.load_optimizer_state_dict(optimizer_state)
+        else:
+            manifest = json.loads((run_directory / "manifest.json").read_text(encoding="utf-8"))
+            manifest["v8_architecture"] = {
+                "explorer": "PPO policy updated only from online blind exploration",
+                "student": "independent recurrent policy updated only from self-generated replay",
+                "initial_parameters_identical": True,
+                "shared_parameters_after_initialization": False,
+                "human_demonstrations": [],
+                "goal_observation": "three self-observed terminal frames",
+                "competence_authority": "frozen deterministic Student exams",
+            }
             _atomic_json(run_directory / "manifest.json", manifest)
     callback = PpoRunCallback(
         run_directory,
@@ -2456,6 +4695,8 @@ def run_parallel_ppo(
         config,
         base_elapsed=base_elapsed,
         started_at=started_at,
+        student_model=student_model,
+        student_trainer=student_trainer,
     )
     server = _start_server(run_directory, config.dashboard_port)
     reason = "completed"

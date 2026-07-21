@@ -39,3 +39,22 @@ def test_source_provenance_hides_unavailable_git_details(
     provenance = detect_source_provenance(tmp_path)
 
     assert provenance.public_dict() == {"git_commit": "unknown", "worktree_dirty": "unknown"}
+
+
+def test_source_provenance_can_include_untracked_files(
+    monkeypatch: object,
+    tmp_path: Path,
+) -> None:
+    calls: list[tuple[str, ...]] = []
+
+    def completed(command: list[str], **_kwargs: object) -> subprocess.CompletedProcess[str]:
+        calls.append(tuple(command))
+        output = "a" * 40 if "rev-parse" in command else "?? src/new_module.py"
+        return subprocess.CompletedProcess(command, 0, stdout=output, stderr="")
+
+    monkeypatch.setattr(subprocess, "run", completed)  # type: ignore[attr-defined]
+
+    provenance = detect_source_provenance(tmp_path, include_untracked=True)
+
+    assert provenance.worktree_dirty is True
+    assert "--untracked-files=all" in calls[1]

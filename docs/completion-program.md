@@ -1,6 +1,6 @@
 # The Hall of Fame completion program
 
-> **Status, 2026-07-20:** Q0 passed; the concluded Q1 trial reached `left_home` in one of two seeds
+> **Status, 2026-07-21:** Q0 passed; the concluded Q1 trial reached `left_home` in one of two seeds
 > and therefore failed its predeclared two-seed gate. The successful seed preserved a 419-action
 > power-on lineage and passed all three semantic promotion replays. Across both seeds, 40,000
 > exploration actions caused 954,704 replay actions. This earns the narrow H3 claim that the
@@ -17,10 +17,13 @@
 > Version 5.1 then verified Pallet Town, Oak's Lab, Parcel delivery, and the Pokédex before a
 > 3,035,252-action plateau. Version 5.2 then verified Route 1 but exposed that replayed fragments did
 > not prove one policy retained the route. Version 6 retained the policy but closed its million-
-> action diagnostic at 5/10, below its 8/10 first composition gate. The active successor is Version
-> 7: begin again from random weights and
-> power-on only, then create visual skills solely from the run's own verified discoveries. Frozen
-> local and unassisted power-on exams remain later gates.
+> action diagnostic at 5/10, below its 8/10 first composition gate. Version 7 began again from
+> random weights and power-on only, then created visual skills solely from the run's own verified
+> discoveries. Its active long run remains unchanged as the denominator. Version 8 is implemented
+> beside it: separate PPO Explorers, replay-backed self-trajectory distillation, a
+> recurrent Student, prerequisites, and frozen exams. Its first real-ROM mechanism canary passed
+> through two clean resumes on one trivial `game_started` edge; no causal-learning, production
+> competence, later-game, or Hall-of-Fame policy result is claimed.
 
 ### Implementation ledger
 
@@ -42,7 +45,12 @@
 | Version 5.2 northbound chapter curriculum | 🟨 Current qualification | Ten map-level steps lead from the Pokédex through Pewter Gym, with bounded trap-recovery credit and no pixels-only claim |
 | Version 6 retained-policy consolidation | ✅ Engineering canary passed | One continuing PPO policy alternates discovery with backward rehearsal; its ledger separates verified frontier from rolling training competence |
 | Version 7 self-taught hierarchy | ✅ Engineering canary passed | Random power-on policy imported no actions or parameters, discovered two verified opening skills, and applied direct self-imitation; 8/10 and clean-start composition remain unproved |
-| Pixels-only student and clean exam | ⬜ Not started | Teacher trajectories may become self-generated demonstrations, but H5 requires frozen restore-free power-on attempts without the aids |
+| Version 8 distilled Student | ✅ Mechanism and clean resume qualified | In 5,248 Explorer actions one 256-action `game_started` edge distilled to 254 with final replay, the separate Student made eight updates, and two clean resumes preserved model/optimizer/ledger hashes; causality and useful competence remain unproved |
+| Version 8 checkpoint-separated grading | ✅ Implemented and checked | One deterministic grade per Student checkpoint every 16,384 Explorer actions; 8/10 spans ten versions. The canary's duplicate 2/2 and 14/14 are superseded mechanism history, not robustness evidence |
+| Version 8 comparison denominator lock | ✅ Implemented and checked | Fresh V8 can read-only pair a running/finished V7 checkpoint with its latest/previous model hash, seal a path-free baseline in its manifest, and refuse to move it on resume |
+| Version 8 self-generated composition training | ✅ Implemented and checked | A full competent chain must replay continuously from power-on before bounded goal-switch excerpts enter the Student. Active-prefix, replay-balance, admission-time immutable shards, persistent coverage cursors, provenance, and failure-ledger controls are checked; learned multi-skill behavior is not |
+| Version 8 real-ROM composition verifier | ✅ Mechanism checked | A stored 289-action two-skill opening and a four-noop save/load fixture pass exact stable visual-plus-RAM endpoint checks; wrong endpoints fail closed. This repaired a save/load-volatile PyBoy game-area hash and does not show Student competence |
+| Goal-conditioned Student clean composition | ⬜ Not demonstrated | Historical repeated power-on checks reached only `game_started`; no valid multi-skill chain or H5-relevant later gameplay has been graded under the corrected protocol. V8's RAM-triggered self-generated goal playlist must remain disclosed |
 
 ## The destination
 
@@ -143,7 +151,7 @@ Evaluated object: POPULATION
 Human interventions: 0 during recorded branches
 ```
 
-An example strongest final evaluation card is:
+An example unaided pixel-only final evaluation card is:
 
 ```text
 Actor: PIXEL-ACTOR
@@ -153,6 +161,21 @@ Evaluated object: FIXED-POLICY
 Checkpoint assistance during attempt: none
 Human interventions: 0
 ```
+
+V8's restore-free composition evaluation uses a different, equally explicit card. One frozen
+Student chooses every button, but the RAM referee remains enabled to switch an ordered playlist of
+the run's self-generated visual targets at declared milestones:
+
+```text
+Actor: PIXEL-ACTOR + SELF-GENERATED VISUAL GOAL
+Evaluation information: RAM-TRIGGERED DECLARED GOAL SWITCHES
+Start: POWER-ON
+Evaluated object: FIXED-POLICY IN A FROZEN GOAL-CONDITIONED HIERARCHY
+Checkpoint assistance during attempt: none
+Authored quest direction / controller actions / human interventions: 0
+```
+
+That is completion under a declared goal-switching protocol, not unaided pixel-only autonomy.
 
 ## Claim ladder
 
@@ -166,7 +189,7 @@ the lower evidence.
 | H2 | **One frozen policy learned a local skill.** | A fixed policy passes a predeclared skill evaluation from held-out local starts. | That it can reach those starts or play end to end. |
 | H3 | **The expedition reached a milestone.** | A checkpoint-assisted lineage reaches a named milestone and its complete action lineage replays from power-on under the frozen verifier. | That one model can reach it independently. |
 | H4 | **The evolutionary system discovered a complete solution.** | The complete winning action lineage replays from power-on through a machine-checked Hall-of-Fame event without intervention. | That one policy learned the complete solution. |
-| H5 | **One frozen policy completed Pokémon Red.** | One fixed model starts from power-on and reaches the Hall of Fame, with no snapshot restore, model update, script, or human input during the attempt. Every planned attempt is reported. | Robustness outside the declared emulator and starting distribution. |
+| H5 | **One frozen policy completed Pokémon Red under the declared evaluation wrapper.** | One fixed model starts from power-on and chooses every button through the Hall of Fame, with no snapshot restore, model update, authored action script, or human input during the attempt. Every planned attempt and any trainer-side goal-switching rule are reported. | Robustness outside the declared emulator and starting distribution; unaided pixel-only autonomy when RAM-triggered goal switching is enabled. |
 | H6 | **The learned policy completes reliably.** | The fixed model meets a success threshold frozen in advance across a held-out set of RNG/start-timing conditions or other declared perturbations. | General intelligence or ability on other games. |
 
 For H3 and H4, every promoted major milestone must replay successfully three times before it is
@@ -462,11 +485,14 @@ memory, or control. The model path is therefore staged.
 4. **Train local capabilities from a checkpoint distribution.** Navigation, dialogue advance,
    menu control, and battles receive their own measurable evaluations while sharing a compatible
    visual backbone where useful.
-5. **Distill self-generated successful and recovery trajectories.** No human walkthrough is
-   required for the main track.
-6. **Fine-tune end to end with rehearsal.** Earlier milestones remain in the training distribution
+5. **Distill self-generated successful and recovery trajectories.** Every proposed loop or chunk
+   removal must preserve the protected outcome under replay; no human walkthrough is required for
+   the main track.
+6. **Train a separate recurrent Student with rehearsal and frozen exams.** Earlier skills remain in
+   balanced sequence replay, while competence can be revoked after retention failures.
+7. **Fine-tune or compose end to end without hiding the control rule.** Earlier milestones remain in the training distribution
    so later progress does not cause catastrophic forgetting.
-7. **Freeze and evaluate one policy.** Completion is decided by Hall-of-Fame outcomes, not return.
+8. **Freeze and evaluate one policy.** Completion is decided by Hall-of-Fame outcomes, not return.
 
 Whether the final controller uses one network with several heads or a learned router among skill
 policies is an experiment, not a foregone conclusion. A hybrid can support H5 if every component

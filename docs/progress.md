@@ -8,11 +8,15 @@
 > improved its first composition window from 0/10 to 5/10, but failed the required 8/10 gate after
 > one million actions. Version 7 resets the main question: random
 > parameters, power-on only, no imported actions, and no authored route reward. It may imitate and
-> rehearse only transitions it discovers and replay-verifies itself. Frozen restore-free evaluation
-> remains the separate and harder claim.
+> rehearse only transitions it discovers and replay-verifies itself. Its current long run remains
+> untouched as the denominator. Version 8 now separates its noisy PPO
+> Explorer from a recurrent Student, compress only replay-preserving edits, and grade learning in
+> frozen exams. Its first real-ROM mechanism and clean-resume canary passed on one trivial
+> `game_started` skill. Useful learning, multi-skill retention, and later-game restore-free
+> evaluation remain separate and harder claims.
 
-- **Current stage:** Version 6 is closed; Version 7 passed its random-start self-generated-skill
-  canary and is beginning the longer self-taught trial
+- **Current stage:** Version 7's longer self-taught run is the live denominator; Version 8's
+  mechanism and clean resume are qualified, while causal learning remains unproved
 - **Status date:** 2026-07-21
 
 **Most important caveat:** Q1 verified one replayable house-exit lineage, but the acting suffix
@@ -95,6 +99,20 @@ flowchart LR
 | Version 6 one-million-action consolidation diagnostic | ✅ Preserved negative result | E3 training | It closed at 1,001,476 actions, 978 updates, and 390 episodes. The retained policy succeeded in 11/206 earlier-start attempts and ended at 5/10, below the required 8/10; no backward or power-on gate passed |
 | Version 7 begins without an inherited solution | ✅ Qualified engineering | E3 pipeline | Manifest records random untrained parameters, zero imported actions/parameters, no demonstrations, and power-on only; 25 inherited later entries were deleted before the real-ROM canary |
 | Version 7 creates skills from its own play | ✅ Replay verified | E3 checkpoint-assisted | In 8,192 actions the random policy verified game start and the ground floor, created two hashed visual/action skills, trained eight imitation updates over 2,048 examples, and reproduced the ground-floor skill once; 8/10 competence remains untested |
+| Live Version 7 denominator snapshot | 🟨 Active, unchanged | E3 training snapshot | At `2026-07-21T17:29:11Z`: 6,466,564 actions, Route 1, seven discoveries, zero competent skills, 19/1,274 rehearsals, and 66,560 imitation examples; this is not its terminal result |
+| Version 8 separation-and-distillation mechanism runs on the real ROM | ✅ Qualified engineering | E3 pipeline | Canary `parallel-ppo-v8-resume-canary-20260721-seed20260791` stopped/resumed twice and ended `stop_requested` at 5,248 Explorer actions / 48.038s; one 256-action `game_started` edge distilled to 254 with final replay verified; separate Student model, optimizer, and ledger hashes matched |
+| Version 8 Student training and frozen exam wiring work | ✅ Qualified engineering | E3 pipeline | Eight Student rounds/updates trained on 128 examples; final NLL 2.06915 and accuracy 16.14%. The old 2/2 local and 14/14 power-on deterministic duplicates covered only `game_started`; they are superseded historical wiring, not robustness evidence |
+| Version 8 trains self-generated skill handoffs | ✅ Implemented and checked | E2 | A continuous power-on replay must verify every protected endpoint before bounded goal-switch excerpts enter training. Only the deepest competent composition is active; one ticket per constituent skill, persisted boundary rotation, uniform action weights, immutable ≤512-loss-example replay shards, hashes, and failure ledgers passed 61 focused tests after the final schema tweak. No multi-skill real-ROM Student success is claimed |
+| Version 8 bounded replay covers full skills without routine full-file I/O | ✅ Implemented and checked | E2 | Admission writes hash-bound shards with disjoint loss-bearing ranges plus loss-free predecessor context. One persistent cursor selects one shard per skill per round; tests observe shard indices 0,1,2,0 across serialization and zero full-source opens. The full NPZ remains provenance-only until resume/full audit |
+| Version 8 composition verifier survives save/load | ✅ Real-ROM mechanism checked | E3 pipeline | PyBoy's game-area hash proved save/load-volatile, so composition uses an exact stable processed-visual-plus-RAM signature while distillation keeps the stricter hash. Stored 230+59-action and four-noop chains pass; wrong endpoints fail closed. This is verifier evidence, not learned competence |
+| Version 8 competence grades span Student versions | ✅ Implemented and checked | E2 | Exactly one deterministic attempt is allowed per Student checkpoint at a 16,384-action cadence; 8/10 requires ten distinct checkpoint versions. The all-66 local opportunity floor is 10,813,440 Explorer actions before discovery/composition cost |
+| Version 8 launch and checkpoint provenance fail closed | ✅ Implemented and checked | E2 | Launch requires a clean commit including untracked files; checkpoints bind source, verified ROM, curriculum, Explorer, Student, Student optimizer, and checkpoint-specific ledger. V7 serialization remains legacy-compatible |
+| Version 8 locks its V7 denominator once | ✅ Implemented and checked | E2 | Fresh `--v7-denominator` read-only pairs a V7 checkpoint with its hash-matching latest/previous model and seals only path-free ID, Explorer actions, milestone, hashes, state, and timestamps. Resume reuses the manifest and rejects re-locking |
+| Version 8 repeated artifact fallback survives | ✅ Unit checked | E2 | A matching `previous` generation is copied atomically back to `latest` without consuming the fallback, then recovered again after a simulated second interrupted rotation; a full process-kill real-ROM twin remains pending |
+| Version 8 reward/watchdog excludes authored routes | ✅ Implemented and checked | E2 | With navigation/Mart weights disabled, reward tracking skips route guidance, active-goal lookup, and Mart calculations; new position and general durable consequences may reset the timer, while route distance, milestone index, and Mart script cannot. V7 retains its historical watchdog shaping and is not fully blind at that boundary |
+| Version 8 dashboard separates the evidence | ✅ Implemented and checked | E2 | Four depth meters, Hall-of-Fame count, Explorer/Student hashes, locked V7 denominator, honest distillation fallbacks, Explorer-action clock, shard stored/owned/context footprint, bytes, coverage, zero full-source opens, and RAM milestone goal-switch disclosure are visible independently |
+| Version 8 composition boundary is explicit | ✅ Implemented and documented | E2 | One frozen Student chooses every button, but a trainer-side RAM referee switches an ordered playlist of self-generated visual targets at declared milestones; this is goal-conditioned hierarchical control, not unaided pixel-only autonomy |
+| Version 8 improves on Version 7 | ⬜ Not demonstrated | E0 | V7 must finish unchanged and V8 needs a matched multi-skill comparison of frozen success, actions, emulator-hours, replay cost, and forgetting; the 5,248-action trivial canary is not comparable with the 6.47-million-action V7 snapshot |
 | One retained model composes the route from power-on | ⬜ Not demonstrated | E0 | Backward training and frozen evaluation gates must expand to power-on before this claim exists |
 | Reverse curriculum reaches the complete opening horizon | ✅ Completed in development scope | E3 development | Seven adaptive rungs completed in 480 attempts with 451 successes; the final full-horizon rung passed 29/30 twice, but weights changed between attempts and no held-out H2 evaluation exists |
 | The apprentice-guided expedition continues beyond `left_home` | 🟨 Active | E1 | Frozen pixel-policy actions and seeded exploration now feed Archive v2's full 66-milestone search; no later verified milestone is claimed before run evidence exists |
@@ -212,17 +230,21 @@ A compact future update can use this table:
 
 ## Next evidence targets
 
-The immediate goal is not a flashy success clip. It is a trustworthy first remembered step.
+The immediate goal is not a longer reward curve. It is evidence that a separately frozen Student
+can reproduce something the Explorer discovered without receiving a human answer.
 
-1. Run Version 5 from Version 4's frozen, hash-validated Viridian curriculum with the
-   150-million-action safety ceiling, hourly narrative entries, live frames, and storage guards.
-2. Require `entered_viridian_mart` and every later milestone to pass the unchanged replay gate;
-   reward, PPO updates, and proximity alone remain diagnostics.
-3. Preserve the Version-5 teacher trajectory and failure denominator for later skill distillation.
-4. Add micro-lessons only when a measured frontier plateau identifies a missing behavior; record
-   every intervention and reject any renewable reward loop before resuming.
-5. Distill verified teacher behavior into a pixels-plus-action-history student, remove training
-   aids, and evaluate frozen policies from power-on before making an autonomous-play claim.
+1. Preserve the active V7 trial and terminal denominator under its original protocol.
+2. Extend the passed one-skill mechanism canary into a multi-skill prerequisite test under the
+   corrected one-grade-per-checkpoint, ten-version, 8/10 competence rule.
+3. Add a deliberate hard-crash twin after the two successful clean stop/resume cycles, and verify
+   the full Explorer/Student/optimizer/ledger/dataset/worker-memory boundary.
+4. Measure Student causality against chance and appropriate raw-trace/shared-policy controls; the
+   old duplicate 2/2 and 14/14 `game_started` results are superseded as evidence.
+5. Report every frozen local attempt and compare its success with Student loss and action accuracy;
+   neither fit metric is a substitute for the denominator.
+6. Attempt restore-free power-on composition only after the prerequisite chain is locally competent.
+   Report the trainer-side RAM goal switches and ordered self-generated clip playlist as part of
+   the evaluated hierarchy; do not describe a success as unaided pixel-only autonomy.
 
 See [Roadmap](roadmap.md) for acceptance gates and [Visual storytelling](visual-storytelling.md) for
 how those results should be shown.

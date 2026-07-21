@@ -2,6 +2,27 @@
 
 Version 7 is an architectural and philosophical reset.
 
+> **Denominator note, 2026-07-21:** the active V7 long run continues under this exact protocol.
+> Version 8 is implemented and qualified separately at the mechanism level; it does not modify
+> V7's running process, raw datasets, shared PPO/self-imitation network, scheduler, or declared
+> result. This preserves a real comparison instead of upgrading the baseline after observing it. See
+> [Version 8: separate discovery from learning](version-8-distilled-student.md).
+
+At `2026-07-21T17:29:11Z`, this unchanged run's live snapshot was 6,466,564 actions, Route 1,
+seven discoveries, zero competent skills, 19/1,274 rehearsals, and 66,560 imitation examples. It is
+an interim denominator, not the terminal V7 result.
+
+Final-audit compatibility rules protect that active run. V8-only controls are omitted from V7's
+serialized configuration so its saved config still matches the format with which it launched. If
+a legacy manifest lacks explicit ROM identity, resume backfills the identity only after verifying
+the supplied ROM and does not rewrite the manifest's recorded source provenance.
+
+V7's historical stagnation watchdog is a disclosed limitation: it can treat authored route
+distance, milestone index, and Viridian Mart script as useful progress for termination timing.
+Those values do not enter the actor or choose a button, but the watchdog boundary is not fully
+blind. V7 retains this behavior so resume does not silently change the live denominator. V8 removes
+the channel instead of retroactively improving V7.
+
 The project originally asked whether an agent could encounter Pokémon Red without being told how
 to play. Successive versions drifted toward a different experiment: a trainer named the next
 problem, restored a nearby checkpoint, added a reward for that problem, and waited for PPO to solve
@@ -276,3 +297,15 @@ ground floor, saves those discoveries as its own visual memories, and trains on 
 did correctly.
 
 That is not the ending. It is the moment the original experiment begins again with better tools.
+
+## The successor question
+
+V7 deliberately makes one recurrent network explore and imitate. It also preserves every action in
+a verified edge as a training target. Those are testable choices, not permanent definitions of
+self-teaching. V8 keeps V7's source-of-knowledge rule while asking whether replay can remove
+unnecessary loops and whether a separate recurrent Student can retain the result without later PPO
+updates overwriting it.
+
+Until V8 passes its qualification and frozen attempts, this is a hypothesis rather than an
+improvement. V7's complete denominator—including failed skills, raw action counts, forgetting, and
+compute—remains part of the final report either way.

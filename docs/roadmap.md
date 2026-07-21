@@ -7,9 +7,12 @@
 > remain unchanged. Version 5.1 reached the Pokédex and exposed a 3,035,252-action plateau;
 > Version 5.2 reached Route 1 but showed that verified slices do not prove one policy composed them.
 > Version 6 retained the policy but finished at 5/10, short of its 8/10 first connection gate.
-> Version 7 is now the active
-> reset: random power-on learning, no imported answer, and visual skills produced only by the same
-> run's verified discoveries.
+> Version 7 is the live denominator: random power-on learning, no imported answer, and visual
+> skills produced only by the same run's verified discoveries. Version 8 is the active engineering
+> successor. It keeps those information rules, leaves the V7 run untouched, separates PPO
+> exploration from a recurrent Student, distills only replay-preserving edits, and moves competence
+> into frozen exams. Its first 5,248-action real-ROM mechanism and clean-resume canary passed on one
+> trivial `game_started` skill. That qualifies wiring, not learning or later-game progress.
 
 ## Completed blind-discovery arc
 
@@ -60,12 +63,40 @@
     self-generated visual skills, direct self-imitation, weakest-skill scheduling, and 8/10 gates.
 24. ✅ Pass the first real-ROM V7 mechanism canary: two self-discovered skills and actual
     recurrent imitation updates from zero imported actions or parameters.
-25. 🟨 Run the longer self-taught pretrial and measure discovery, imitation loss, rehearsal
-    competence, forgetting, and clean-start composition separately.
-26. ⬜ Run frozen power-on exams at declared intervals without checkpoint restoration or updates.
-27. ⬜ Add learned specialist heads only if self-discovered skill evidence shows the shared visual
+25. 🟨 Preserve the longer V7 self-taught trial unchanged as the denominator; report discovery,
+    imitation, rehearsal, forgetting, and composition under its original protocol. A fresh V8 run
+    can now seal a path-free, hash-matched read-only checkpoint using `--v7-denominator`; resume
+    cannot move that lock.
+26. ✅ Implement [Version 8](version-8-distilled-student.md): nearest-prefix skill boundaries,
+    replay-backed loop/chunk removal, short visual goal clips, a separately optimized recurrent
+    Student, balanced sequence replay with burn-in, prerequisite scheduling, and competence
+    revocation.
+27. 🟨 Bind Explorer, Student, both optimizers, distillation audits, datasets, scheduler, exam
+    denominator, four worker memories, and action counter into one fail-closed resume set. Two clean
+    resumes now preserve matching Student model/optimizer/ledger hashes. Final audit binds exact
+    clean source including untracked detection, verified ROM, and frozen curriculum. Re-promotion
+    from a matching `previous` artifact survives a simulated second interrupted rotation; deliberate
+    process-kill real-ROM evidence remains. Routine checkpoints now validate new/changed shards and
+    new/active compositions while trusting unchanged archives only through the last committed seal;
+    resume/full audit still verifies every artifact.
+28. 🟨 Pass algorithm, real-ROM mechanism, frozen-exam, crash-twin, and production-shaped canaries.
+    The first mechanism/frozen-exam/clean-resume canary passed at 5,248 actions. A later stored-action
+    real-ROM test accepted the corrected two-skill save/load-stable composition verifier and
+    rejected wrong endpoints. A hard-crash twin, ten-distinct-checkpoint 8/10 window, and learned
+    multi-skill behavior remain. Its old duplicate 2/2 is superseded as robustness evidence. Do not
+    convert wiring into learning.
+29. ⬜ Run matched V7/V8 analysis after the V7 denominator closes; show raw/compressed actions,
+    Student fit, every frozen attempt, retention losses, and compute.
+30. 🟨 Train and evaluate restore-free power-on composition only after prerequisite local exams
+    pass. The training mechanism now verifies a full self-generated chain and retains bounded
+    goal-switch excerpts with active-prefix and replay-balance controls. Immutable admission-time
+    skill shards bound routine I/O while persistent cursors cover the full source across resumes;
+    multi-skill real-ROM Student behavior remains unproved. Disclose evaluation's trainer-side RAM switches through the
+    ordered self-generated goal playlist; this is a frozen goal-conditioned hierarchy, not unaided
+    pixel-only autonomy.
+31. ⬜ Add learned specialist heads only if self-discovered skill evidence shows the shared visual
     target is insufficient; do not pre-author navigation, battle, or menu solutions.
-28. ✅ Replace Monkey in the four-lane pretrial dashboard.
+32. ✅ Replace Monkey in the four-lane pretrial dashboard.
 
 ## Later informed-agent roadmap
 
@@ -88,9 +119,11 @@ flowchart TD
     REF --> P1["✅ Q0<br/>Checkpoint expedition runner"]
     P1 --> Q1["🟨 Q1<br/>H3 reached; gate 1/2"]
     Q1 --> SC["✅ Archive v2<br/>qualified substrate"]
-    SC --> VA["🟨 CURRENT<br/>Visual Apprentice house-exit skill"]
-    VA --> EM["⬜ Matched emitter comparison"]
-    EM --> SK["⬜ Reusable navigation and battle behavior"]
+    SC --> VA["✅ Visual Apprentice<br/>one-route mechanism"]
+    VA --> V6["✅ V6<br/>composition failure measured"]
+    V6 --> V7["🟨 V7<br/>live self-taught denominator"]
+    V7 --> V8["🟨 V8<br/>separate distilled Student"]
+    V8 --> SK["⬜ Frozen local competence"]
     SK --> HY["⬜ PLANNED<br/>Planner + memory + watchdog"]
     HY --> P2["⬜ PLANNED<br/>Phase 2: defeat Brock"]
     P2 --> AB["🧭 LATER<br/>Controlled agent comparisons"]
@@ -242,28 +275,32 @@ knowledge, and tool access must be reported rather than compressed into a single
 
 ## Near-term work queue
 
-The selection/mutation branch is concluded. The immediate queue follows the horizon failure it
-revealed.
+1. **Do not move the denominator** — let the already-running V7 trial finish or reach its declared
+   stop under the exact configuration it started with. Preserve terminal hashes and every failure.
+2. **Extend the qualified mechanism** — the one-skill `game_started` canary passed distillation,
+   separate Student updates, historical frozen-attempt wiring, and two clean resumes. Next use
+   the now-qualified multi-edge composition verifier with a learned Student and collect one
+   deterministic grade from each of ten Student checkpoints for the 8/10 rule.
+3. **Keep evidence visible** — retain original/compressed action counts, compression audit cost,
+   Student fit and entropy, all exam attempts, competence losses, and four distinct depth meters on
+   the dashboard and in hourly Markdown chapters.
+4. **Finish durability qualification** — the fallback artifact now survives a simulated second
+   interrupted rotation. Add a deliberate process-kill real-ROM twin to the two passed clean
+   stop/resume cycles and verify the entire bound checkpoint set.
+5. **Run the matched comparison** — compare V7's shared-policy raw-trace method with V8's separate
+   distilled Student using disclosed actions, emulator-hours, replay calls, and wall time.
+6. **Attempt clean composition** — only locally competent prerequisite chains become eligible for
+   a frozen power-on attempt. Checkpoint-assisted local success remains a separate meter. The
+   report must name the RAM-triggered switching of self-generated visual goals rather than imply
+   unaided pixel-only autonomy. First show whether the verified bounded switch excerpts actually
+   improve the frozen Student; their existence alone is training-data evidence.
+7. **Continue toward the Hall of Fame** — repeat discovery, distillation, retention, and composition
+   without writing an obstacle-specific solution whenever the frontier stalls.
 
-1. **Freeze Q1** — preserve the complete 1/2 result, 419-action successful lineage, and all failed
-   branches as the random checkpoint-search denominator.
-2. **Scaling foundation** — ✅ stream lineages, index replay counts, validate ancestry
-   topologically, and replace recursive per-action disk scans with bounded monitoring.
-3. **Archive v2 qualification** — ✅ continuous, graceful-resume, and hard-crash real-ROM trials
-   reached exact budgets; ordinary edge replay stayed bounded and the crash twin's deterministic
-   terminal state matched its uninterrupted control.
-4. **Visual Apprentice pilot** — 🟨 the immutable extractor, 468,312-parameter recurrent policy,
-   CPU overfit trainer, frozen reload, and clean-power-on evaluator are implemented and checked;
-   run the two-extraction data gate, offline overfit, and live emulator gate, then gather
-   independent/recovery branches under [Visual Apprentice v1](visual-apprentice.md).
-5. **Emitter comparison** — compare optimized action-sequence, recurrent visual, and hybrid
-   emitters under the unchanged two-seed Q1 gate.
-6. **Dual-frame evidence** — retain the exact semantic event frame and a separately labeled stable
-   narrative frame after transitions.
-7. **Opening curriculum** — only after a new emitter passes Q1, extend checkpoint exploration through Oak, starter,
-   rival, Parcel, and Pokédex.
-8. **Learned-policy track** — use self-generated successful and recovery traces to train bounded
-   visual skills before attempting one frozen end-to-end policy.
+The corrected exam cadence fits the ceiling arithmetically: `66 × 10 × 16,384 = 10,813,440`
+Explorer actions, about 10.8 million, for the local-grade opportunity floor across all catalogue
+outcomes. Discovery, replay, Student training, composition, and recovery make the real requirement
+higher.
 
 ## What is deliberately not promised
 

@@ -41,6 +41,16 @@
 > checkpoints, and route reward. The new protagonist begins at power-on with random weights and can
 > study only successes it generated itself. Its first canary unexpectedly reaches the ground floor,
 > giving the story a genuine restart rather than another patched obstacle.
+> V8 supplies the next causal question without rewriting that result. The live V7 run remains the
+> denominator. Its one network both explores under noisy PPO and imitates raw verified traces. V8
+> draws two characters: an orange Explorer that wanders and a blue Student that studies only
+> replay-distilled self-generated sequences. Loss remains a practice graphic; frozen exam tiles
+> decide competence. The first real-ROM canary now gives this planned chapter a mechanism beat:
+> distillation, separate updates, frozen attempts, and two clean resumes worked for `game_started`.
+> Its duplicate deterministic attempts are now explicitly superseded as robustness evidence. The
+> corrected visual is one grade, then 16,384 Explorer actions, then a new Student checkpoint; 8/10
+> spans ten versions. It does not yet supply the learning payoff; chance and useful later skills
+> remain untested.
 
 This document is a production guide for telling the project's story without getting ahead of the
 evidence. The detailed Episode 0 section preserves the original before-training production plan;
@@ -74,11 +84,108 @@ the next test, and lets the evidence change the plan.
 | 7. Ten steps north | Can chapter-scale lessons compose navigation, gates, encounters, and a Gym? | A replay-verified Boulder Badge or the exact step where the curriculum fails |
 | 8. One brain, not a scrapbook | Can one retained model connect the verified fragments as its training start moves backward? | Separate discovery and competence meters, including every failed rolling gate |
 | 9. We became the walkthrough | Can the agent restart with no inherited answer and teach itself from its own discoveries? | Random-start visual skills, imitation evidence, competence windows, and the first clean-start exam |
-| 10. Nature or nurture? | Which progress came from pixels, rewards, RAM, or selection? | Successor comparisons with declared information budgets |
-| 11. The clean exam | Can the self-taught library become one frozen, restore-free policy? | Every power-on attempt, intervention count, and success denominator |
+| 10. The discoverer and the student | Does replay-distilling the agent's own routes into a separate recurrent Student create competence that survives frozen exams? | Unchanged V7 denominator, raw/compressed audit, all local exams, and an honest architecture verdict |
+| 11. Nature or nurture? | Which progress came from pixels, rewards, RAM, replay, or selection? | Successor comparisons with declared information and compute budgets |
+| 12. The clean exam | Can the self-taught library become one frozen, restore-free policy? | Every power-on attempt, intervention count, and success denominator |
 
 Do not promise a full playthrough in the first episode. Promise an investigation with the next
 milestone close enough to be credible.
+
+## Planned Episode 10: “The Discoverer and the Student”
+
+**Central question:** V7 found its own lessons. Was one noisy network capable of both discovering
+and retaining them, or did those jobs need to be separated?
+
+**Cold open:** show one successful route as a chaotic controller timeline. Delete a large section.
+The replay fails. Restore it. Delete a smaller loop. The replay passes. Freeze on the caption:
+**THE GAME EDITED THIS LESSON, NOT ME.**
+
+### Beat 1 — Keep the denominator alive
+
+- Put V7 and V8 protocol cards side by side.
+- Lock the V7 card visually and explain that the already-running trial was neither stopped nor
+  upgraded after seeing its behavior.
+- Briefly show `--v7-denominator` pairing the V7 checkpoint with its hash-matching model, then erase
+  the private path. Leave only run ID, Explorer actions, milestone, two short hashes, and the lock
+  time. On resume, the card stays fixed.
+- Show common inputs and prohibited assistance: no demonstrations, imported actions, previous
+  weights, route graph, coordinates, or semantic actor goal.
+
+### Beat 2 — One brain, two gradients
+
+- Use an orange arrow for PPO exploration and a blue arrow for self-imitation entering the same V7
+  network.
+- Explain that a verified success proves the route worked but not that every detour is worth
+  copying.
+- Avoid saying PPO “erased” a skill unless checkpoint comparisons actually demonstrate it. Present
+  overwrite as the hypothesis V8 tests.
+
+### Beat 3 — Replay as the editor
+
+- Draw the original action count as a long bar.
+- Animate repeated-state loop proposals and chunk proposals.
+- Show rejected edits returning to the bar and accepted edits shortening it.
+- Keep oracle calls, original actions, compressed actions, and ratio on screen. A 90-percent
+  reduction is not automatically better if frozen success falls.
+
+### Beat 4 — Split the cast
+
+- Orange Explorer: four live games, PPO updates, novelty, discoveries.
+- Blue Student: contiguous replay windows, recurrent burn-in, balanced skill sampling, separate
+  optimizer.
+- Put each full verified NPZ behind a provenance seal. Beside it, show immutable replay shards with
+  at most 512 colored loss examples and a gray burn-in prefix; highlight only the shard selected by
+  the persisted cursor and display **FULL SOURCE OPENS: 0**.
+- The verifier and scheduler stay gray and outside both controller loops. Display
+  `PRIVILEGED TRAINER / NO BUTTON AUTHORITY` rather than hiding their RAM access.
+
+### Beat 5 — Practice is not proof
+
+- Let action loss and accuracy animate upward or downward.
+- Close a visible door labeled **FROZEN EXAM**.
+- Reset Student memory, freeze its weights, and show one local grade. Advance 16,384 Explorer
+  actions, label the new Student checkpoint, then add the next tile. The ten-tile strip must contain
+  ten checkpoint hashes rather than ten duplicate resets.
+- A passing local skill moves one prerequisite node from hollow to filled. A later retention failure
+  can empty it again.
+
+### Beat 6 — Four progress lines
+
+End with four distinct horizontal meters:
+
+1. furthest discovery;
+2. furthest replay-distilled skill;
+3. furthest locally competent prerequisite chain; and
+4. furthest restore-free frozen composition from power-on.
+
+Never merge them into one “AI progress” percentage. If the first line advances while the fourth
+does not, that gap is the result.
+
+On the fourth line, visibly mark each trainer-side RAM goal switch. The ordered target clips all
+come from the run's own discoveries and the frozen Student still presses every button, but this is
+goal-conditioned hierarchical control. Narrate a success as completion under the declared
+switching protocol, not unaided pixel-only autonomy.
+
+Use the real-ROM composition regression as a short engineering reveal: a live state and reloaded
+snapshot agree on processed pixels and exact gameplay RAM while PyBoy's broader game-area hash
+changes. Cross out only that volatile field, then show the stored 230+59-action opening pass and a
+wrong endpoint fail. Keep **MECHANISM TEST — NOT STUDENT COMPETENCE** on screen throughout.
+
+### Honest endings
+
+- **Mechanism fails:** V8 cannot reproduce artifacts, separate checkpoints, or no-update exams.
+  Stop before a long run and make the engineering failure the ending.
+- **Fit without competence:** Student loss falls but frozen success stays flat. The cleaner dataset
+  did not solve compounding error.
+- **Local but not composed:** individual nodes pass while power-on attempts fail. The hierarchy,
+  goal switching, or memory horizon becomes the next question.
+- **Matched improvement:** V8 beats the complete V7 frozen denominator under disclosed compute.
+  Call it evidence for separation and distillation, not evidence of understanding the whole game.
+
+**Do not claim:** a V8 canary is a learned result; compressed actions are an optimal route; a local
+snapshot exam is clean-start play; the scheduler is a planner learned by the agent; or Hall-of-Fame
+capability before one frozen restore-free attempt actually reaches it. If that attempt uses V8's
+RAM-triggered self-generated goal playlist, do not call it an unaided pixels-only playthrough.
 
 ## Featured completed episode: “What If Luck Could Reproduce?”
 
