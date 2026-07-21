@@ -9,8 +9,10 @@
 > reached Route 1 with seven skills but passed only 1/47, leaving zero competent skills. Version 9
 > now implements consecutive edges and replay-verified successes produced by the Student in reverse
 > closed-loop practice, including graph/checkpoint binding, terminal counts, bounded rotating
-> replay, and the 27/30×2 gate. PPO recovery is deferred and disabled; no V9 real-ROM canary or
-> live result is claimed. See [Version 9](version-9-self-correcting-student.md).
+> replay, and the 27/30×2 gate. After a failed overrun/reporting diagnostic, the corrected V9
+> canary qualified mechanism, observability, and wall-time control at 0/3 frozen exams. PPO recovery
+> is deferred and disabled; competence is not claimed. See
+> [Version 9](version-9-self-correcting-student.md).
 
 ## Active Version-9 implementation boundary
 

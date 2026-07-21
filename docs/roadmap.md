@@ -17,8 +17,10 @@
 > wiring, not learning or later-game progress. V8 is closed.
 > [Version 9](version-9-self-correcting-student.md) is the engineering-checked successor:
 > consecutive edges, BC warm start, exact-target reverse closed-loop practice, bounded success
-> replay, terminal counts, and checkpoint rollback. PPO recovery remains deferred and no V9
-> real-ROM canary or live result is claimed.
+> replay, terminal counts, and checkpoint rollback. A failed first canary exposed wall-time and
+> report-merge defects; commit `e1ea199` repaired them, and the corrected 144-second canary
+> qualified mechanism, observability, and campaign timing at 0/3 frozen exams. PPO recovery remains
+> deferred, and learned competence is not claimed.
 
 ## Completed blind-discovery arc
 
@@ -107,14 +109,18 @@
     canonical-Student BC warm start, reverse closed-loop practice, success-only replay admission,
     exact target signatures, bounded rotating replay, terminal counts, graph/checkpoint binding,
     persisted attempt scheduling, the 27/30×2 gate, and unchanged strict exams. The current suite
-    passes 271 non-integration plus 12 integration checks; do not call that behavioral qualification.
-32. ⬜ Run the V9 real-ROM mechanism canary, then a matched BC-only ablation and strict frozen
-    evaluation before a long or behavioral claim.
-33. ⬜ Keep recurrent PPO recovery disabled until item 32 passes; then freeze an automatic
+    passes 276 non-integration plus 12 integration checks; do not call that behavioral qualification.
+32. ✅ Qualify the V9 real-ROM mechanism boundary. Preserve the failed 248.801-second overrun;
+    after `e1ea199`, the corrected run ended at a 144.082-second campaign clock against 144.0,
+    retained all 22 practice outcomes, and passed 0/3 frozen exams.
+33. 🟨 Run the longer V9 campaign under the qualified cancellation/reporting boundary, then a
+    matched BC-only ablation before a causal learning claim.
+34. ⬜ Keep recurrent PPO recovery disabled until the longer self-correcting result and matched
+    ablation justify it; then freeze an automatic
     no-success trigger, same actor boundary, canonical-Student update protocol, and matched budget.
-34. ⬜ Add learned specialist heads only if self-discovered skill evidence shows the shared visual
+35. ⬜ Add learned specialist heads only if self-discovered skill evidence shows the shared visual
     target is insufficient; do not pre-author navigation, battle, or menu solutions.
-35. ✅ Replace Monkey in the four-lane pretrial dashboard.
+36. ✅ Replace Monkey in the four-lane pretrial dashboard.
 
 ## Later informed-agent roadmap
 

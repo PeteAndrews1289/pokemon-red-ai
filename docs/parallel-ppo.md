@@ -7,9 +7,10 @@
 > clean source-bound V8 canary reached Oak's lab, created four distilled skills, survived two
 > resumes, and passed 0/7 frozen exams. That qualifies the pipeline. The final longer V8 run reached
 > Route 1 with seven skills but finished at 1/47 and zero competent skills, so causal learning and
-> later-game behavior remain unproved. V8 is closed; the engineering-checked, canary-pending
-> [Version 9](version-9-self-correcting-student.md) tests closed-loop self-correction without
-> weakening this exam boundary.
+> later-game behavior remain unproved. V8 is closed. The corrected
+> [Version 9](version-9-self-correcting-student.md) canary qualifies closed-loop mechanism,
+> observability, and wall-time control at 0/3 frozen exams; it does not weaken the exam boundary or
+> establish competence.
 
 ## Why this lane exists
 

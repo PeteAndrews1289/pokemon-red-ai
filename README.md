@@ -11,8 +11,8 @@ The original game-naive, pixels-only condition remains a strict control. The Q0/
 baseline deliberately used a seeded random action emitter and a sealed, read-only referee; the next
 trials compare learned or optimized emitters under the same checkpoint and replay rules.
 
-> **Current status: V8 closes with a qualified pipeline and a final 1/47 frozen-exam result;
-> Version 9's self-correction mechanics are implemented, but its real-ROM canary has not run.**
+> **Current status: V8 closes with a final 1/47 frozen-exam result; Version 9's corrected real-ROM
+> canary qualifies mechanism, observability, and wall-time control—not learned competence.**
 > Stage 0 memorized and exactly replayed its one 419-action house-exit route. Reverse curriculum
 > completed that opening in development, and Frontier Apprentice proved that network updates can be
 > gated behind replay-verified milestones. Its limitation was equally important: almost every
@@ -85,10 +85,19 @@ trials compare learned or optimized emitters under the same checkpoint and repla
 > aggregated training set; every failure remains in the denominator. Consecutive graph binding,
 > exact-target closed-loop verification, terminal-reason accounting, bounded rotating success
 > replay, checkpoint-bound practice rollback, and the two-window 27/30 practice gate are now
-> implemented. The current engineering suite passes 271 non-integration plus 12 integration checks
-> (283 total). A recurrent PPO recovery lane remains a future automatic escalation and is disabled.
-> Strict checkpoint-separated exams remain unchanged. No V9 real-ROM canary, learned skill, or
-> live-game progress is claimed. See
+> implemented. An initial 180-second V9 canary exposed a synchronous wall-time overrun and a report-
+> merging bug in which immediate success reports replaced richer periodic diagnostics. It was
+> manually stopped at 248.801 seconds after 12,360
+> actions, three promotions through `Stepped outside`, 19/22 exact practice outcomes, and 0/3
+> frozen exams. It remains failed-but-useful pre-hardening evidence. Commit `e1ea199` added
+> cancellation and report merging. The authoritative replacement then ended by `duration_limit`
+> after 144.082 seconds against a 144.0-second budget. It processed 12,520 Explorer actions,
+> reached the ground floor, built three skills, recorded 16/22 exact-target practice attempts with
+> two wrong-state and four timeouts, retained 16 verified successes, and passed 0/3 frozen exams.
+> The current engineering suite passes 276 non-integration plus 12 integration checks (288 total).
+> A recurrent PPO recovery lane remains disabled. Strict checkpoint-separated exams remain
+> unchanged. V9's mechanism, observability, and wall-time boundary are qualified; learned
+> competence and later-game progress are not. See
 > [Let the Student practice being wrong](docs/version-9-self-correcting-student.md).
 
 The current code preserves every historical runner, including Monkey, Archivist, online learners,
@@ -134,7 +143,7 @@ current implementation hypothesis is
 | Preserved random comparison | Monkey vs. pixels-only Archivist under matched budgets |
 | Completed 90-minute pretrial | Evolution reached tier 1; online learners plateaued around Pallet Town and Route 1 |
 | Concluded neural experiment | Six inherited-archive lanes all failed the second-map/party gate under equal fuel |
-| Current completion work | V8 closed after a qualified 0/7 canary and a longer 1/47 final run; V9 self-correction is engineering-checked, with no real-ROM canary or live success yet |
+| Current completion work | V8 closed after a 0/7 canary and 1/47 final run; the corrected V9 canary qualifies mechanism, observability, and wall-time at 0/3 frozen exams, not competence |
 | North star | First discover a replayable Hall-of-Fame lineage, then train and evaluate one frozen pixel policy |
 
 ## The journey
@@ -153,7 +162,7 @@ flowchart LR
     FR --> PPO["🟨 Parallel PPO<br/>learn from every rollout"]
     PPO --> V7["🟨 V7<br/>unchanged denominator"]
     V7 --> V8["✅ V8<br/>0/7 canary; 1/47 final"]
-    V8 --> V9["🟨 V9<br/>engineering checked; canary next"]
+    V8 --> V9["✅ V9 mechanism<br/>0/3; competence open"]
     V9 --> HF["⬜ Hall of Fame<br/>one frozen policy"]
 ```
 
@@ -326,7 +335,7 @@ Start with [the documentation hub](docs/index.md), or jump directly to:
 - [Version 5.2: the road to Brock](docs/version-5-2-northbound.md) — completed predecessor evidence, ten northbound lessons, recovery reward, and video narrative
 - [Version 7: let a new player teach itself](docs/version-7-self-taught.md) — random power-on start, self-generated visual skills, direct self-imitation, competence gates, and canary evidence
 - [Version 8: separate discovery from learning](docs/version-8-distilled-student.md) — qualified 0/7 canary, longer 1/47 final run, unchanged V7 denominator, replay-backed compression, separate Explorer and Student, and lessons learned
-- [Version 9: let the Student practice being wrong](docs/version-9-self-correcting-student.md) — exposure bias, consecutive edges, reverse closed-loop practice, success-only aggregation, deferred automatic PPO recovery, strict exams, qualification gates, and video narrative
+- [Version 9: let the Student practice being wrong](docs/version-9-self-correcting-student.md) — exposure bias, consecutive edges, reverse closed-loop practice, the failed and corrected canaries, success-only aggregation, strict 0/3 exams, and video narrative
 - [Version 6: remember the journey](docs/version-6-consolidation.md) — retained PPO weights, backward competence gates, failed and passed canaries, and the new claim ladder
 - [Append-only decision register](docs/decision-register.md) — accepted, rejected, retired, superseded, and failed ideas with their evidence
 - [Progress](docs/progress.md) — current evidence, status, and reporting rules

@@ -6,13 +6,15 @@ frozen exams. It changes the Student's training distribution: after a behavioral
 start, the Student must act in the emulator, encounter the states caused by its own choices, and
 earn any additional training trajectory through exact success.
 
-> **Status on 2026-07-21:** the first-stage engineering path is implemented and checked. The
+> **Status on 2026-07-21:** the first-stage engineering and real-ROM mechanism path is qualified. The
 > canonical Student receives behavioral cloning, reverse closed-loop practice, and success-only
 > aggregation of exact-target, replay-verified Student rollouts. Consecutive graph hashes, complete
 > terminal-reason counters, bounded rotating success replay, checkpoint-bound practice rollback,
-> and the two-window 27/30 gate are integrated. The current suite passes 271 non-integration plus
-> 12 integration checks, 283 total. No V9 real-ROM canary, frozen-exam success, or live-game
-> progress is claimed. Recurrent PPO recovery remains a disabled, unimplemented later escalation.
+> and the two-window 27/30 gate are integrated. The corrected real-ROM canary exercised those paths,
+> reporting, and the wall-time boundary, then passed 0/3 frozen exams. The current suite passes 276
+> non-integration plus 12 integration checks, 288 total. Mechanism, observability, and wall-time
+> control qualify; learned competence and later-game progress do not. Recurrent PPO recovery
+> remains a disabled, unimplemented later escalation.
 
 ## The result V8 leaves behind
 
@@ -58,6 +60,56 @@ The honest V8 conclusion is:
 
 V9 begins from that failure rather than relabeling either the four-item canary library or the
 seven-item longer-run library as learning.
+
+## Qualification: keep the broken canary, trust the corrected one
+
+### Pre-hardening diagnostic
+
+The first real-ROM run, `parallel-ppo-v9-canary-20260721-seed20260801`, was configured for 180
+seconds. Synchronous campaign work overran that boundary; a manual STOP ended it at 248.801 seconds
+and 12,360 Explorer actions. It reached milestone index 3, `left_home` / `Stepped outside`, with
+three verified promotions, zero promotion failures, and six skills. Practice produced 19 exact
+targets and three timeouts in 22 attempts; all three frozen exams failed.
+
+That run also exposed an observability defect. Each immediate success-only
+`record_student_training()` report replaced the richer periodic Student report instead of merging
+with it, so dashboard diagnostics could collapse to empty or zero-valued fields. The manual STOP
+made the defect visible; shutdown did not cause it. The run is useful evidence for the closed-loop
+path and for two failed engineering assumptions, but it is not the authoritative qualification.
+
+Commit `e1ea199` (`Keep V9 work inside campaign boundaries`) added cancellation checks around
+synchronous campaign work and merged immediate success reports with the richer periodic status.
+
+### Authoritative corrected canary
+
+Run `parallel-ppo-v9-canary2-20260721-seed20260802` started at
+`2026-07-21T21:31:41.473766Z` and wrote its final status at
+`2026-07-21T21:34:08.155927Z`, a 146.682-second process span including roughly 2.6 seconds of setup
+and finalization. Its measured campaign clock was 144.082 seconds against a configured 144.0-second
+budget, and it ended automatically with `duration_limit`.
+
+| Measure | Corrected canary result | Honest interpretation |
+| --- | ---: | --- |
+| Explorer actions / rate | 12,520 / 86.895 actions/s | Campaign work remained inside the measured wall-time boundary |
+| Explorer PPO | 12 updates | Explorer training ran; this is not Student competence |
+| Furthest discovery | Index 2, `Reached the ground floor` | Two verified promotions, zero promotion failures |
+| Skills | 3 | Enough to exercise normalized skill and practice scheduling paths |
+| Student training | 20 rounds / 64 optimizer updates / 1,400 examples | The separate Student and status merge remained observable |
+| Final Student fit | Accuracy 0.1415313 / NLL 2.211105 | Near-chance fit diagnostic, not learning evidence |
+| Practice attempts | 16/22 exact target (72.727%) | Two wrong-state outcomes and four timeouts preserve the full denominator |
+| Success-only admission | 16 retained / 32 updates | Only replay-verified exact-target attempts trained |
+| Aggregated replay, last round | 3 datasets / 39 examples / 20,000 bytes | Bounded rotating success replay was visible rather than overwritten |
+| Frozen local exams | 0/3 | No skill became competent |
+| Run storage | 42,336,864 bytes | Canary artifact footprint, not a long-run estimate |
+
+The allowed conclusion is narrow:
+
+> V9's mechanism, observability, and campaign wall-time control qualified on the supported ROM.
+> The Student did not demonstrate competence.
+
+Practice success is assisted training evidence. It starts from disclosed reverse-rung snapshots and
+cannot replace a frozen exam. The 16/22 practice result beside 0/3 exams is exactly why the two
+meters remain separate.
 
 ## The suspected failure: exposure bias
 
@@ -489,8 +541,9 @@ Every hourly Markdown chapter should answer:
 
 ## Qualification ladder
 
-V9 earns a behavioral claim in stages. The current 283-check engineering suite exercises stages
-1–4 at E2; it does not substitute for stage 5's real-ROM V9 canary.
+V9 earns a behavioral claim in stages. The current 288-check engineering suite covers stages 1–4
+at E2, and the corrected canary passes stage 5 at E3 mechanism scope. Neither establishes
+competence.
 
 1. **✅ Engineering-checked normalization:** consecutive source/target identity, exact lineage coverage,
    no added actions, stable hashes, and corrupted-edge rejection.
@@ -501,12 +554,13 @@ V9 earns a behavioral claim in stages. The current 283-check engineering suite e
 4. **✅ Engineering-checked reverse-rung and recovery state:** start expands only after the two
    consecutive 27/30 windows; terminal counters, rotating reservoirs, graph hashes, and checkpoint-
    bound rollback remain consistent.
-5. **⬜ Real-ROM V9 mechanism canary:** at least one already-known opening edge exercises BC warm
-   start, closed-loop attempt, replay admission, checkpoint, and dashboard.
-6. **Matched BC ablation:** same normalized data, initialization, update/action budget, and frozen
+5. **✅ Real-ROM V9 mechanism canary:** the corrected 144-second campaign exercises BC warm
+   start, closed-loop attempts, replay admission, bounded aggregation, complete terminal reporting,
+   frozen exams, and the wall-time boundary. Its 0/3 exam result grants no competence.
+6. **⬜ Matched BC ablation:** same normalized data, initialization, update/action budget, and frozen
    exams with and without success aggregation.
-7. **Frozen local evaluation:** distinct-checkpoint grades test whether the first edge becomes
-   competent without counting practice successes.
+7. **🟨 Frozen local evaluation:** the canary exercised three distinct grades and failed 0/3.
+   The declared competence denominator remains open and may not count practice successes.
 8. **PPO fallback qualification:** only after stages 1–7 may the predeclared automatic escalation
    be enabled and compared with the non-PPO V9 lane.
 9. **Restore-free composition:** only locally competent consecutive edges may be attempted from
@@ -541,6 +595,7 @@ out of the story.
 | Normalized edge replays | “The run's own lineage was cut into exact consecutive lessons.” | “The Student understands the route.” |
 | Near-target practice succeeds | “The Student solved this disclosed training rung.” | “It can reach that rung from power-on.” |
 | Student success enters aggregation | “One on-policy route replayed to the protected outcome.” | “Self-correction caused competence.” |
+| Corrected V9 canary | “Mechanism, observability, and campaign timing qualified; frozen exams were 0/3.” | “V9 learned a skill.” |
 | Frozen edge exam reaches 8/10 | “Eight of ten checkpoint-separated Student versions reproduced this edge from its exact source.” | “One model is robust from power-on.” |
 | Frozen composition passes | “One frozen goal-conditioned Student connected this chain without restores.” | “It beat Pokémon Red unaided.” |
 | PPO fallback later helps | “Predeclared same-boundary PPO improved the declared metric under this budget.” | “PPO was active in the initial V9 result.” |
@@ -580,13 +635,23 @@ ASSISTANCE** so the audience never confuses a reverse rung with clean-start play
 When the Student succeeds, replay its actions. A green path enters the dataset only after the
 verifier stamp. Failed paths remain on the denominator wall but do not become arrows to imitate.
 
-### Beat 6 — Show the emergency lever, keep it covered
+### Beat 6 — Let the lab fail on camera
+
+Put 180 seconds on screen and let the first canary cross it. Show the immediate success reports
+replacing richer periodic diagnostics, then the manual STOP at 248.801. Explain that this is not an
+agent failure; it is a measuring-instrument failure. Keep the run in the story.
+
+Cut to commit `e1ea199`, then rerun. Separate the 146.682-second process span from the 144.082-second
+campaign clock, show all 22 terminal outcomes, and freeze on 0/3. The honest line is: “We qualified
+the experiment, not the intelligence.”
+
+### Beat 7 — Show the emergency lever, keep it covered
 
 Draw a lever labeled **AUTOMATIC PPO RECOVERY** behind glass. Explain its predeclared trigger and
 same observation boundary, then leave it disabled for the initial qualification. This turns restraint
 into visible scientific design rather than an omitted implementation detail.
 
-### Beat 7 — Return to the exam door
+### Beat 8 — Return to the exam door
 
 Put BC-only and self-correcting Student checkpoints side by side under the same budget. Freeze both.
 Count every attempt. If both fail, that is the result. If V9 improves, the matched ablation makes the
@@ -602,7 +667,7 @@ The first meaningful V9 result is not another discovery. It is one normalized ed
 4. aggregation changes a later Student checkpoint; and
 5. a strict frozen edge exam improves under the declared denominator.
 
-Until that exists, V9 is an engineering-checked hypothesis without a real-ROM behavioral result.
-Its purpose is not to guarantee the Hall of Fame. Its purpose is to make the Student practice the
-state distribution it creates, without smuggling in a walkthrough and without weakening the exam
-that exposed V8's failure.
+Until that exists, V9 is a mechanism-qualified hypothesis without a learned-competence result. Its
+purpose is not to guarantee the Hall of Fame. Its purpose is to make the Student practice the state
+distribution it creates, without smuggling in a walkthrough and without weakening the exam that
+exposed V8's failure.

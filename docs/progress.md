@@ -19,12 +19,15 @@
 > V8 is closed as a qualified mechanism with a negative behavioral result. Version 9 now has
 > engineering-checked consecutive edges, BC warm start, reverse closed-loop practice, exact-target
 > replay admission, bounded rotating success replay, terminal-reason accounting, and checkpoint-
-> bound rollback. No V9 real-ROM canary or live result exists yet; its PPO recovery design remains
-> deferred and disabled.
+> bound rollback. Its first real-ROM canary exposed a wall-time overrun and overwritten diagnostics,
+> then commit `e1ea199` fixed cancellation and report merging. The authoritative replacement ended
+> within 0.082 seconds of its 144-second limit, exercised 22 closed-loop attempts and success-only
+> aggregation, and finished at 0/3 frozen exams. V9 mechanism, observability, and wall-time control
+> are qualified; competence is not. PPO recovery remains deferred and disabled.
 
 - **Current stage:** Version 7 remains the locked denominator; Version 8 is closed after its 0/7
-  qualification canary and 1/47 final run; Version 9 self-correction is engineering-checked but
-  awaits a real-ROM canary
+  qualification canary and 1/47 final run; Version 9 mechanism qualification passed at 0/3 frozen
+  exams, and its long behavioral run is next
 - **Status date:** 2026-07-21
 
 **Most important caveat:** Q1 verified one replayable house-exit lineage, but the acting suffix
@@ -126,12 +129,15 @@ flowchart LR
 | Version 8 dashboard separates the evidence | ✅ Implemented and checked | E2 | Four depth meters, Hall-of-Fame count, Explorer/Student hashes, locked V7 denominator, honest distillation fallbacks, Explorer-action clock, shard stored/owned/context footprint, bytes, coverage, zero full-source opens, and RAM milestone goal-switch disclosure are visible independently |
 | Version 8 composition boundary is explicit | ✅ Implemented and documented | E2 | One frozen Student chooses every button, but a trainer-side RAM referee switches an ordered playlist of self-generated visual targets at declared milestones; this is goal-conditioned hierarchical control, not unaided pixel-only autonomy |
 | Version 8 improves on Version 7 | ⬜ Not demonstrated | E0 | V7 must finish unchanged and V8 needs a matched multi-skill comparison of frozen success, actions, emulator-hours, replay cost, and forgetting; the short V8 qualification canaries are not comparable with the multi-million-action V7 denominator |
-| Version 9 self-correcting Student | 🟨 Engineering checked; canary pending | E2 | The integrated V9 path keeps canonical-Student BC, normalizes consecutive self-generated edges, practices reverse rungs under live Student actions, and admits only exact-target, replay-verified Student successes. The current suite passes 271 non-integration plus 12 integration checks (283 total). No V9 real-ROM canary, frozen success, or live progress is claimed |
+| Version 9 pre-hardening canary | 🟨 Failed usefully | E3 diagnostic | Run `parallel-ppo-v9-canary-20260721-seed20260801` was configured for 180s but synchronous work overran; manual STOP ended it at 248.801s / 12,360 actions. It reached `Stepped outside`, built six skills, and recorded 19/22 exact practice outcomes plus 0/3 frozen exams. Immediate success reports replaced richer periodic dashboard diagnostics; STOP exposed but did not cause the defect. It is not the authoritative qualification |
+| Version 9 corrected qualification | ✅ Mechanism qualified; competence absent | E3 pipeline | After commit `e1ea199`, run `parallel-ppo-v9-canary2-20260721-seed20260802` ended `duration_limit` at 144.082s against 144.0s. It processed 12,520 actions at 86.895/s, made 12 PPO updates, reached the ground floor with two promotions/three skills, and had zero promotion failures. Mechanism, observability, and wall-time control qualify; 0/3 frozen exams prove no competent skill |
+| Version 9 self-correcting Student | ✅ Engineering and canary path qualified | E2 / E3 pipeline | The current suite passes 276 non-integration plus 12 integration checks (288 total). The corrected canary completed 20 Student rounds, 64 updates, and 1,400 examples; fit ended at 0.1415313 accuracy / 2.211105 NLL. This is working machinery, not useful learning |
 | Version 9 consecutive skill graph | ✅ Implemented and checked | E2 | Protocol `self-generated-consecutive-skill-graph-v1` derives replay-local nodes from exact first hits plus stable-state/private-snapshot hashes, rejects missing, non-monotonic, duplicate, or incomplete edges, and hash-binds the graph audit into each skill and checkpoint validation |
 | Version 9 reverse-practice core | ✅ Implemented and checked | E2 | Protocol `v9-student-closed-loop-reverse-practice-v1` uses 8/16/32/64-to-full rungs, two non-overlapping 27/30 promotion windows, 25% deterministic retention, and exact persisted choice/seed. Exact-target signatures reject ordinal-only success; all attempts enter bounded terminal-reason counters |
 | Version 9 success replay and rollback | ✅ Implemented and checked | E2 | Only replay-verified exact-target Student rollouts may enter a deterministic per-rung reservoir. Retained successes are split into immutable bounded shards and rotate through Student replay. The hash-bound practice snapshot rolls live scheduling, windows, denominator, reservoir, and provenance back to the same Student checkpoint generation on resume |
+| Version 9 closed-loop practice observability | ✅ Real-ROM mechanism checked | E3 pipeline | The corrected canary recorded 16/22 exact targets (72.727%), two wrong-state outcomes, and four timeouts; retained 16 successes; applied 32 success-only updates; and exposed three aggregated datasets / 39 examples / 20,000 bytes in the last replay round. These are assisted practice metrics, not competence |
 | Version 9 automatic PPO recovery | ⬜ Deferred and disabled | E0 | A future no-success trigger may escalate the canonical Student to same-boundary recurrent PPO. It is not implemented or active in initial qualification and cannot be claimed before closed-loop plumbing plus a matched BC-only ablation pass |
-| Version 9 strict frozen evaluation | ⬜ Not run | E0 behavioral | Reverse-rung success and aggregated rollouts remain training evidence only. Competence still requires one grade per distinct frozen Student checkpoint and restore-free composition remains a separate power-on test |
+| Version 9 strict frozen evaluation | 🟨 Exercised; 0/3 | E3 denominator | Three frozen attempts all failed. Reverse-rung success and aggregated rollouts remain training evidence only; competence still requires the full checkpoint-separated gate and restore-free composition remains a separate power-on test |
 | One retained model composes the route from power-on | ⬜ Not demonstrated | E0 | Backward training and frozen evaluation gates must expand to power-on before this claim exists |
 | Reverse curriculum reaches the complete opening horizon | ✅ Completed in development scope | E3 development | Seven adaptive rungs completed in 480 attempts with 451 successes; the final full-horizon rung passed 29/30 twice, but weights changed between attempts and no held-out H2 evaluation exists |
 | The apprentice-guided expedition continues beyond `left_home` | 🟨 Active | E1 | Frozen pixel-policy actions and seeded exploration now feed Archive v2's full 66-milestone search; no later verified milestone is claimed before run evidence exists |

@@ -45,8 +45,14 @@
 > declared no-success condition, yet it stays behind glass—unimplemented, disabled, and unclaimed
 > for the initial qualification. The closed-loop path itself is now engineering-checked: exact
 > target identity, terminal-reason counts, bounded rotating success replay, graph hash binding,
-> checkpoint rollback, and the two-window 27/30 gate are implemented. That is still not a real-ROM
-> V9 behavioral result.
+> checkpoint rollback, and the two-window 27/30 gate are implemented. The first real-ROM attempt
+> then failed usefully: its 180-second campaign overran to 248.801 seconds while immediate success
+> reports replaced richer periodic dashboard diagnostics. The project kept the failure, fixed
+> cancellation and report
+> merging, and reran. The authoritative canary stopped itself at 144.082 seconds against 144.0,
+> recorded every one of 22 practice outcomes, retained 16 exact successes, and exposed bounded
+> aggregation—but its frozen exam door still read 0/3. V9's mechanism, observability, and wall-time
+> boundary are qualified. Learning is not.
 
 ## The question
 
@@ -72,9 +78,9 @@ journey without those restores before the project says one model learned the gam
 **The checkpoint expedition has replayed named transitions. V8's committed canary built four
 self-generated lessons through Oak's lab and failed 0/7 frozen exams; its later final run built
 seven through Route 1, improved offline fit, but finished at 1/47 with zero competent skills. V9's
-closed-loop self-correction mechanics now pass the 283-check engineering suite, but no V9 real-ROM
-canary or learned result exists, and no self-taught policy has passed a production multi-skill or
-whole-game evaluation.**
+closed-loop self-correction mechanics now pass the 288-check engineering suite, and its corrected
+real-ROM canary qualifies mechanism, observability, and wall-time control. That canary passed 0/3
+frozen exams, so no V9 competent skill or production multi-skill/whole-game result exists.**
 
 Phase 0 built the measuring instrument: a reproducible emulator harness that can start the exact
 same game, issue timed controller inputs, observe a small and disclosed slice of state, restore an
@@ -94,7 +100,7 @@ test sequence used to prove that the laboratory works.
 | Question | Current answer |
 | --- | --- |
 | Has an AI learned to play Pokémon Red? | No. |
-| Has online reinforcement learning begun? | Yes, in development pretrials; no frozen task evaluation has been claimed. |
+| Has online reinforcement learning begun? | Yes. Frozen attempts have been recorded, but no current self-taught lane has demonstrated a competent multi-skill policy. |
 | Does Pure Monkey learn? | No; it is now a preserved and retired random baseline. |
 | Has neuroevolution begun? | Yes. It inherited game-start behavior, but all six follow-up lanes failed the second-map gate. |
 | Has the checkpoint expedition left the house? | Once in two bounded random-emitter seeds; the lineage replayed, but the Q1 robustness gate failed. |
@@ -112,8 +118,10 @@ test sequence used to prove that the laboratory works.
 | Why did V8 close? | Its final longer run spent 784,386 Explorer actions and 2,513 Student updates, reached Route 1, built seven lessons, and raised fit to 53.0817%, yet passed only 1/47 frozen exams. Zero skills became competent and no composition ran. More cloning improved fit without establishing reliable behavior. |
 | What does V9 change? | It tests exposure bias with exact consecutive edges, BC warm start, reverse closed-loop Student practice, and success-only replay-verified aggregation. Exact-target checking, full terminal counts, graph/checkpoint binding, rotating bounded replay, and the 27/30×2 gate are implemented. The actor still sees only pixels, its action history, and a self-generated visual goal. |
 | Is PPO already rescuing V9? | No. Same-boundary recurrent PPO is a deferred automatic-escalation design for a future no-success rung. It is not implemented or active in initial qualification. |
-| Has V9 worked? | Not behaviorally. The current suite passes 271 non-integration plus 12 integration checks, but no V9 real-ROM canary, frozen-exam success, or live-game progress is claimed. |
-| What comes next? | Run the real-ROM V9 mechanism canary, then the matched BC-only ablation and strict frozen exams before enabling PPO fallback or launching a long run. |
+| What happened in the first V9 canary? | It reached `Stepped outside` and 19/22 exact practice outcomes, but synchronous work overran a 180-second budget to 248.801 seconds. Immediate success reports also replaced richer periodic diagnostics. Manual STOP exposed both defects; it did not cause the reporting bug. |
+| What did the corrected V9 canary prove? | Commit `e1ea199` fixed cancellation/report merging. The replacement honored 144.0 seconds within 0.082 seconds, ran 22 fully classified practice attempts, retained 16 verified successes, and exposed success-only replay. It qualifies mechanism, observability, and wall-time—not competence. |
+| Has V9 learned a skill? | Not demonstrated. The corrected canary passed 0/3 frozen exams, with zero competent skills. The current suite passes 276 non-integration plus 12 integration checks. |
+| What comes next? | Run a longer V9 campaign under the qualified boundary, then compare with the matched BC-only ablation before enabling PPO fallback or making a learning claim. |
 
 Keeping this table current is part of the project. A small true claim is more valuable than a large
 ambiguous one.

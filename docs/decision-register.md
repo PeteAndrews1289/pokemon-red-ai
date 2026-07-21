@@ -1632,6 +1632,67 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
   or implementation status. DR-0054 remains the V9 design decision; this entry records the later V8
   run and engineering integration. Not yet superseded.
 
+## DR-0056 — Qualify V9's campaign boundary before the long run
+
+- **Date:** 2026-07-21
+- **Status:** Accepted; mechanism qualification passed, learned competence not demonstrated
+- **Scope:** Real-ROM canaries, synchronous cancellation, status/report merging, wall-time
+  accounting, practice observability, frozen evidence, and authorization for a longer V9 campaign
+- **Decision:** Preserve the first V9 canary as a failed pre-hardening diagnostic, repair the two
+  engineering defects it exposed, and make the corrected second canary authoritative. Qualify V9
+  only for mechanism, observability, and measured campaign wall-time. Proceed to a declared longer
+  V9 run without lowering frozen competence rules or enabling recurrent PPO recovery.
+- **Alternatives considered:** Ignore the overrun because useful practice occurred; report 248.801
+  seconds as if it were the configured 180; delete the first canary; infer missing diagnostics from
+  other files; blame manual STOP for the overwritten panel; accept practice success as competence;
+  skip the corrected canary; or enable the future PPO fallback before the self-correcting lane has a
+  longer result.
+- **Pre-hardening evidence:** Run `parallel-ppo-v9-canary-20260721-seed20260801` was configured for
+  180 seconds but synchronous work crossed the boundary. Manual STOP ended it at 248.801 seconds
+  and 12,360 Explorer actions. It reached index 3, `left_home` / `Stepped outside`, with three
+  promotions, zero promotion failures, and six skills. Practice ended 19/22 exact target with three
+  timeouts; frozen exams ended 0/3. Each immediate success-only `record_student_training()` report
+  replaced rather than merged the richer periodic Student report, leaving empty/zero dashboard
+  diagnostics. STOP exposed that existing merge defect; shutdown did not create it.
+- **Hardening:** Commit `e1ea199` (`Keep V9 work inside campaign boundaries`) added cancellation
+  checks around synchronous campaign work and report merging that preserves richer periodic
+  diagnostics when immediate success-only updates arrive.
+- **Authoritative evidence:** Run `parallel-ppo-v9-canary2-20260721-seed20260802` started at
+  `2026-07-21T21:31:41.473766Z` and wrote final status at
+  `2026-07-21T21:34:08.155927Z`. Those timestamps span 146.682 seconds including roughly 2.6
+  seconds of setup/finalization. The campaign clock measured 144.082 seconds against the declared
+  144.0-second budget and ended automatically with `duration_limit`. It processed 12,520 Explorer
+  actions at 86.895/s, made 12 PPO updates, reached index 2 (`Reached the ground floor`), produced
+  two promotions with zero promotion failures, and held three skills. Run storage was 42,336,864
+  bytes.
+- **Student/practice evidence:** The Student completed 20 rounds, 64 optimizer updates, and 1,400
+  examples; final action accuracy was 0.1415313 and NLL was 2.211105. Practice produced 16/22 exact
+  targets (72.727%), two `milestone_wrong_state` outcomes, and four timeouts. Sixteen successes were
+  retained and caused 32 success-only updates. The last bounded replay round exposed three
+  aggregated practice datasets, 39 train examples, and 20,000 bytes. Frozen exams ended 0/3 with
+  zero competent skills.
+- **Engineering evidence:** The current suite passes 276 non-integration plus 12 integration checks,
+  288 total. Together with the corrected real-ROM canary, this supports the narrow mechanism,
+  observability, and campaign-clock claim. It does not support useful learning, reverse-rung
+  completion, composition, later-game progress, or Hall-of-Fame behavior.
+- **Consequence:** Reports must distinguish process timestamp span from measured campaign clock,
+  show all terminal reasons, retain both canaries, and pair practice success with frozen exams.
+  The longer V9 run may use the corrected boundary, but 0/3 remains its starting behavioral
+  evidence. The BC-only ablation remains required before attributing later improvement to
+  self-correction. PPO recovery remains disabled.
+- **Narrative value:** Let the first canary visibly overrun its timer while its diagnostic panel
+  goes blank, then stop the experiment rather than cutting around it. Explain that frequent small
+  training reports were replacing the richer report. Apply the fix, rerun the same chapter, and
+  show the timer stop within 0.082 seconds of its campaign budget while all 22 outcomes remain
+  visible. End on 0/3: trustworthy failure is the qualification victory.
+- **Revisit when:** The long V9 run closes; campaign clock exceeds its bound; report merging loses a
+  richer field; practice denominators disagree with ledgers; a skill crosses the frozen gate; the
+  matched BC-only ablation changes causal interpretation; or PPO recovery becomes eligible under a
+  separate declaration.
+- **Supersedes / superseded by:** Extends DR-0055 without rewriting its then-current canary-pending
+  status. DR-0055 remains the V8 closure and V9 engineering-integration record; this entry records
+  the later real-ROM qualification and hardening. Not yet superseded.
+
 ## Unresolved decisions
 
 These are questions, not hidden commitments. Each becomes a numbered entry when evidence supports

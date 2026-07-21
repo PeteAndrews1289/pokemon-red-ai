@@ -2,6 +2,29 @@
 
 ## Unreleased — Version 9 self-correcting Student
 
+- Preserved the first V9 real-ROM canary,
+  `parallel-ppo-v9-canary-20260721-seed20260801`, as a failed pre-hardening diagnostic. It was
+  configured for 180 seconds but synchronous work overran the wall-time boundary; a manual STOP
+  ended it at 248.801 seconds and 12,360 Explorer actions. It reached index 3, `Stepped outside`,
+  with three promotions and six skills. Closed-loop practice recorded 19/22 exact targets and
+  three timeouts; frozen exams ended 0/3. Immediate success-only training reports replaced rather
+  than merged richer periodic dashboard diagnostics, so those fields are not treated as an
+  authoritative final report. Manual STOP exposed the defect; shutdown did not cause it.
+- Fixed synchronous campaign cancellation and status/report merging in commit `e1ea199`. The
+  authoritative qualification canary,
+  `parallel-ppo-v9-canary2-20260721-seed20260802`, ran from
+  `2026-07-21T21:31:41.473766Z` to `21:34:08.155927Z`, a 146.682-second process span including
+  roughly 2.6 seconds of setup/finalization. Its campaign clock honored the 144.0-second budget,
+  ending `duration_limit` at 144.082 seconds with 12,520 Explorer actions at 86.895/s, 12 PPO
+  updates, two promotions, zero promotion failures, and three skills through index 2, the ground
+  floor.
+- Qualified V9 mechanism, observability, and wall-time control—not competence. The authoritative
+  canary completed 20 Student rounds, 64 optimizer updates, and 1,400 examples; final action
+  accuracy was 0.1415313 and NLL 2.211105. Practice reached 16/22 exact targets (72.727%), with two
+  wrong-state outcomes and four timeouts. It retained 16 replay-verified successes, applied 32
+  success-only updates, and exposed three aggregated practice datasets containing 39 examples and
+  20,000 bytes in the last replay round. Frozen exams ended 0/3, zero skills were competent, and
+  no learning success is claimed. The run occupied 42,336,864 bytes.
 - Recorded V8's final longer run,
   `parallel-ppo-v8-distilled-student-8h-20260721-seed20260793`. It ended by explicit stop request
   after 5,668.623 seconds, from `2026-07-21T18:52:49Z` to `20:27:21Z`, with 784,386 Explorer
@@ -18,8 +41,9 @@
   is overwritten by the longer run.
 - Integrated V9 as an engineering-checked response to exposure bias. Behavioral cloning remains
   the canonical Student's warm start, but the Student must then act closed loop on states produced
-  by its own buttons. The current suite passes 271 non-integration and 12 integration checks, 283
-  total. No V9 real-ROM canary, frozen success, or live progress is claimed.
+  by its own buttons. The current suite passes 276 non-integration and 12 integration checks, 288
+  total. The corrected real-ROM canary qualifies the mechanism and reporting boundary, not frozen
+  competence or later-game progress.
 - Implemented consecutive edge normalization under `self-generated-consecutive-skill-graph-v1`:
   derive
   exact adjacent source-to-next-target lessons from replay-local first hits, bind original offsets,

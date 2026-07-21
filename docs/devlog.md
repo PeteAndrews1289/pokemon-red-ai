@@ -1,5 +1,41 @@
 # Development log
 
+## 2026-07-21 — The timer had to become part of the experiment
+
+- Ran the first V9 real-ROM canary,
+  `parallel-ppo-v9-canary-20260721-seed20260801`, under a configured 180-second limit. Synchronous
+  campaign work did not return to the outer wall-time check promptly, so the campaign
+  passed its budget. A manual STOP ended it at 248.801 seconds and 12,360 Explorer actions.
+- Preserved the failed canary rather than hiding it. It reached milestone index 3,
+  `left_home` / `Stepped outside`, with three promotions, zero promotion failures, and six skills.
+  Closed-loop practice recorded 19 exact targets and three timeouts in 22 attempts. Frozen exams
+  ended 0/3. Immediate success-only training reports replaced rather than merged the richer
+  periodic dashboard diagnostics, so its final Student/replay panel is not authoritative. Manual
+  STOP exposed the defect; shutdown did not cause it.
+- Fixed cancellation through synchronous campaign work and merged partial/final status sections in
+  commit `e1ea199` (`Keep V9 work inside campaign boundaries`). The fix makes elapsed wall time and
+  reporting part of qualification rather than treating them as dashboard polish.
+- Ran the authoritative replacement,
+  `parallel-ppo-v9-canary2-20260721-seed20260802`, from
+  `2026-07-21T21:31:41.473766Z` to `2026-07-21T21:34:08.155927Z`. The 146.682-second process span
+  includes roughly 2.6 seconds of setup/finalization. The measured campaign clock ended
+  automatically with `duration_limit` at 144.082 seconds against a configured 144.0 seconds.
+- Recorded 12,520 Explorer actions at 86.895 actions/second, 12 PPO updates, two verified promotions,
+  zero promotion failures, and three skills through milestone index 2, `Reached the ground floor`.
+  The run occupied 42,336,864 bytes.
+- Recorded 20 Student rounds, 64 optimizer updates, and 1,400 examples. Final action accuracy was
+  0.1415313 and NLL 2.211105. These are fit diagnostics, not evidence of competence.
+- The real-ROM practice denominator stayed complete: 16/22 exact targets (72.727%), two
+  `milestone_wrong_state`, and four `timeout`. Sixteen replay-verified successes were retained and
+  caused 32 success-only updates. The last bounded replay round exposed three aggregated practice
+  datasets containing 39 train examples and 20,000 bytes.
+- Frozen exams ended 0/3, with zero competent skills and no composition. The V9 canary therefore
+  qualifies mechanism, observability, and wall-time control. It does not demonstrate that the
+  Student learned a reliable skill or that V9 will progress through the game.
+- Passed the expanded engineering suite: 276 non-integration plus 12 integration checks, 288 total.
+  The next legitimate step is a declared longer V9 run with unchanged frozen competence rules;
+  recurrent PPO recovery remains disabled.
+
 ## 2026-07-21 — Better imitation was still not competence
 
 - Stopped the longer V8 pretrial by request and preserved its terminal artifacts under run ID
