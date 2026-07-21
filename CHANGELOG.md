@@ -13,12 +13,17 @@
   self-discovered target screen during rehearsal.
 - Added dashboard and narrative measures for discovered skills, competent skills, weakest-skill
   window, imitation updates, and examples.
-- Passed 187 tests with the private ROM, including a real recurrent self-imitation gradient update
+- Added a checkpoint-specific self-skill ledger. Resume restores the exact ledger paired with the
+  saved model, so later competence or imitation bookkeeping cannot invalidate crash recovery.
+- Passed 188 tests with the private ROM, including a real recurrent self-imitation gradient update
   and restart-safe pending self-imitation state.
 - Passed the first 8,192-action, four-worker V7 canary from random parameters and power-on only. It
   discarded 25 inherited entries, imported zero parameters/actions, replay-verified game start and
   the ground floor, created two skills, trained eight imitation updates over 2,048 examples, and
   reproduced the ground-floor skill once with zero verification failures and matching hashes.
+- Preserved the first longer-launch preflight. It reached five verified milestones through starter
+  selection in 41,256 actions, then stopped cleanly when checkpoint/ledger crash atomicity was
+  identified for hardening before the overnight run.
 
 - Added Version 6 retained-policy consolidation. A new campaign may import one clean, hash-valid,
   architecture-compatible Version-5.2-or-later PPO policy and optimizer instead of restarting from

@@ -193,7 +193,7 @@ discoveries, imitation work, competence, failures, battle outcomes, loops, and a
 
 ## Engineering evidence
 
-The implementation passed 187 tests with the supported private ROM. New checks cover:
+The implementation passed 188 tests with the supported private ROM. New checks cover:
 
 - the random/power-on-only configuration gate;
 - target-screen feature dimensions;
@@ -203,7 +203,8 @@ The implementation passed 187 tests with the supported private ROM. New checks c
 - rolling competence;
 - weakest-skill scheduling;
 - persistence and imitation accounting;
-- restart-safe pending self-imitation state; and
+- restart-safe pending self-imitation state;
+- checkpoint-specific ledger rollback when live bookkeeping moves ahead of the saved model; and
 - the existing replay, checkpoint, privacy, documentation, and ROM integration suite.
 
 ## First real-ROM canary
@@ -227,6 +228,12 @@ memories matched their recorded hashes.
 
 This canary qualifies the complete learning loop. It does not establish 8/10 competence, robustness,
 or progression beyond the house.
+
+The first longer-launch preflight then reached starter selection with five verified self-generated
+skills in 41,256 actions. It was deliberately stopped when a durability audit found that the live
+skill ledger could advance after the most recent model checkpoint. V7 now freezes a separate ledger
+copy with every model checkpoint and restores that exact pair after interruption. The preflight is
+preserved as mechanism evidence, not relabeled as the overnight trial.
 
 ## What would falsify the approach
 

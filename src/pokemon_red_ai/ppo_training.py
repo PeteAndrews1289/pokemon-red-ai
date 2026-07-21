@@ -112,6 +112,41 @@ def _atomic_json(path: Path, value: object) -> None:
     os.replace(temporary, path)
 
 
+def _checkpoint_self_skill_state(run_directory: Path) -> dict[str, str]:
+    """Freeze the mutable skill ledger beside the model checkpoint."""
+
+    live = run_directory / "self-skills.json"
+    snapshot = run_directory / "self-skills.checkpoint.json"
+    value = json.loads(live.read_text(encoding="utf-8"))
+    SelfTaughtSkillLibrary.from_dict(value)
+    _atomic_json(snapshot, value)
+    return {
+        "self_skills_checkpoint_file": snapshot.name,
+        "self_skills_file_sha256": _sha256_file(snapshot),
+    }
+
+
+def _restore_self_skill_state(
+    run_directory: Path,
+    checkpoint: Mapping[str, Any],
+) -> SelfTaughtSkillLibrary:
+    """Roll the live ledger back to the exact state paired with the saved model."""
+
+    filename = checkpoint.get("self_skills_checkpoint_file")
+    if filename != "self-skills.checkpoint.json":
+        raise ValueError("PPO checkpoint has no valid self-taught skill snapshot")
+    snapshot = run_directory / filename
+    if (
+        not snapshot.is_file()
+        or _sha256_file(snapshot) != checkpoint.get("self_skills_file_sha256")
+    ):
+        raise ValueError("PPO self-taught skill snapshot does not match its checkpoint")
+    value = json.loads(snapshot.read_text(encoding="utf-8"))
+    library = SelfTaughtSkillLibrary.from_dict(value)
+    _atomic_json(run_directory / "self-skills.json", value)
+    return library
+
+
 def _atomic_gzip_json(path: Path, value: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".tmp")
@@ -1839,9 +1874,7 @@ class PpoRunCallback(BaseCallback):
             )
         if self.self_skills is not None:
             self._write_self_skills()
-            checkpoint["self_skills_file_sha256"] = _sha256_file(
-                self.run_directory / "self-skills.json"
-            )
+            checkpoint.update(_checkpoint_self_skill_state(self.run_directory))
         _atomic_json(
             self.run_directory / "checkpoint.json",
             checkpoint,
@@ -2275,15 +2308,7 @@ def run_parallel_ppo(
             ):
                 raise ValueError("PPO consolidation state does not match its checkpoint")
         if config.mode == "self_taught":
-            if (
-                not self_skills_path.is_file()
-                or _sha256_file(self_skills_path)
-                != checkpoint.get("self_skills_file_sha256")
-            ):
-                raise ValueError("PPO self-taught skill state does not match its checkpoint")
-            library = SelfTaughtSkillLibrary.from_dict(
-                json.loads(self_skills_path.read_text(encoding="utf-8"))
-            )
+            library = _restore_self_skill_state(run_directory, checkpoint)
             for skill in library.skills:
                 for file_key, hash_key in (
                     ("target_frame_file", "target_frame_sha256"),

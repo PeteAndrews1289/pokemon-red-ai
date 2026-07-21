@@ -20,7 +20,7 @@
 - Removed authored quest-direction reward from V7 by zeroing named milestones, Mart lessons,
   active-route potential, and landmark recovery. General novelty and consequence signals remain
   trainer-only; referee labels never enter the policy.
-- Passed 187 tests with the real ROM, including a real recurrent self-imitation gradient update and
+- Passed 188 tests with the real ROM, including a real recurrent self-imitation gradient update and
   persistence of pending imitation work across restarts.
 - Passed the first four-worker V7 canary from random weights and power-on only. It discarded 25
   inherited entries, imported zero actions/parameters, and reached two replay-verified milestones
@@ -30,6 +30,14 @@
 - Verified the terminal model, self-skill ledger, two target images, two compressed datasets, and
   all four novelty memories against their hashes. The canary qualifies the loop, not 8/10 skill
   competence or a complete opening.
+- Launched the first longer V7 preflight from clean commit `7ae26e0`. In 41,256 actions it created
+  five skills through starter selection, applied 66 self-imitation updates over at least 16,896
+  examples, and recorded zero promotion failures. It was stopped deliberately rather than treated
+  as the long run after a crash-recovery audit found that the mutable skill ledger could move ahead
+  of its saved model between checkpoints.
+- Added a checkpoint-specific skill-ledger snapshot and resume rollback. A hard restart now loads
+  the exact model/ledger pair and ignores later uncheckpointed ledger changes instead of rejecting
+  the run. A regression changes the live ledger after checkpoint and proves the saved copy wins.
 - Closed V6 at its declared diagnostic boundary: 1,001,476 actions, 978 updates, 390 episodes, and
   4,371.17 seconds. Its first consolidation edge succeeded 11 times in 206 attempts and improved
   from an opening 0/10 to a terminal 5/10, but failed the 8/10 gate. It passed no backward gate and

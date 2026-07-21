@@ -27,13 +27,16 @@ from pokemon_red_ai.ppo_training import (
     ParallelPpoConfig,
     PokemonPpoFeatures,
     VisualStagnationTracker,
+    _checkpoint_self_skill_state,
     _copy_retained_ppo_policy,
     _remaining_action_budget,
     _remap_warm_start_lstm_input,
     _render_dashboard,
+    _restore_self_skill_state,
     _state_vector,
     _train_self_imitation_policy,
 )
+from pokemon_red_ai.self_taught import SelfTaughtSkillLibrary
 from pokemon_red_ai.state import PokemonRedState
 
 
@@ -102,6 +105,29 @@ def test_retained_policy_copy_requires_clean_compatible_terminal_evidence(
 def test_retained_policy_gets_a_fresh_budget_but_resume_does_not() -> None:
     assert _remaining_action_budget(8_192, 8_192, resume=False) == 8_192
     assert _remaining_action_budget(8_192, 4_096, resume=True) == 4_096
+
+
+def test_self_taught_resume_rolls_live_ledger_back_to_model_checkpoint(
+    tmp_path: Path,
+) -> None:
+    initial = SelfTaughtSkillLibrary.initialize(
+        [{"entry_id": "root", "milestone_index": 0}],
+        window_size=10,
+        threshold=0.8,
+    )
+    (tmp_path / "self-skills.json").write_text(
+        json.dumps(initial.public_dict()), encoding="utf-8"
+    )
+    checkpoint = _checkpoint_self_skill_state(tmp_path)
+    changed = initial.public_dict()
+    changed["imitation_updates"] = 99
+    (tmp_path / "self-skills.json").write_text(json.dumps(changed), encoding="utf-8")
+
+    restored = _restore_self_skill_state(tmp_path, checkpoint)
+
+    assert restored.imitation_updates == 0
+    live = json.loads((tmp_path / "self-skills.json").read_text(encoding="utf-8"))
+    assert live["imitation_updates"] == 0
 
 
 def test_self_imitation_updates_recurrent_policy_from_its_own_dataset(
