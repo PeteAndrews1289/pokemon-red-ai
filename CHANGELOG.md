@@ -2,6 +2,25 @@
 
 ## Unreleased — Version 9 self-correcting Student
 
+- Declared and launched active campaign
+  `parallel-ppo-v9-self-correcting-8h-20260721-seed20260809` from source commit `d1c0c0d` at
+  `2026-07-21T21:43:57.163627Z`. Its immutable launch contract is seed 20260809, eight hours,
+  150,000,000 actions, four environments, 256 rollout steps, strict reverse practice at two
+  consecutive 27/30 windows, practice interval 4 with two attempts, frozen exams every 16,384
+  Explorer actions, a 100 GiB output cap, and a 50 GiB free-space floor. Dashboard port is 8774.
+- Kept the long run fresh-start. Its V8 source contributes only the power-on root curriculum state;
+  no V8 weights, controller actions, or learned skills enter V9. No mid-run rule change is allowed.
+- Recorded the first exam-boundary snapshot as provisional E1 live evidence: at 161.420 seconds and
+  16,388 Explorer actions (101.524/s), the run had 16 PPO updates, two verified promotions, three
+  skills, and milestone index 2, `Reached the ground floor`. The Student had 13 rounds, 60 updates,
+  0.1396277 action accuracy, and 2.105477 NLL. Practice was 7/8 exact target with one timeout,
+  seven retained successes, and 14 success-only updates. The one 556-action frozen exam failed;
+  zero skills were competent and no composition ran. These are not terminal results or evidence of
+  a trend.
+- Rejected two background handoffs that both failed before creating the run: a generic `nohup`
+  handoff and a launchd service whose context lacked permission to access the external SSD. The
+  successful detached user-session launch preserves the interactive user's permissions and adds
+  sleep prevention; no failed launcher changed the experiment state.
 - Preserved the first V9 real-ROM canary,
   `parallel-ppo-v9-canary-20260721-seed20260801`, as a failed pre-hardening diagnostic. It was
   configured for 180 seconds but synchronous work overran the wall-time boundary; a manual STOP

@@ -20,7 +20,8 @@
 > replay, terminal counts, and checkpoint rollback. A failed first canary exposed wall-time and
 > report-merge defects; commit `e1ea199` repaired them, and the corrected 144-second canary
 > qualified mechanism, observability, and campaign timing at 0/3 frozen exams. PPO recovery remains
-> deferred, and learned competence is not claimed.
+> deferred, and learned competence is not claimed. The exact eight-hour fresh-start campaign is now
+> active under commit `d1c0c0d`; its first 0/1 exam checkpoint remains provisional.
 
 ## Completed blind-discovery arc
 
@@ -113,8 +114,11 @@
 32. ✅ Qualify the V9 real-ROM mechanism boundary. Preserve the failed 248.801-second overrun;
     after `e1ea199`, the corrected run ended at a 144.082-second campaign clock against 144.0,
     retained all 22 practice outcomes, and passed 0/3 frozen exams.
-33. 🟨 Run the longer V9 campaign under the qualified cancellation/reporting boundary, then a
-    matched BC-only ablation before a causal learning claim.
+33. 🟨 Run the declared eight-hour V9 campaign under the qualified boundary: fresh power-on,
+    root curriculum only, commit `d1c0c0d`, four environments, 27/30×2 practice, exams every
+    16,384 actions, and no mid-run edits. First checkpoint: 16,388 actions, ground floor, 7/8
+    practice, 0/1 frozen, zero competent; provisional E1 only. Run a matched BC-only ablation before
+    a causal learning claim.
 34. ⬜ Keep recurrent PPO recovery disabled until the longer self-correcting result and matched
     ablation justify it; then freeze an automatic
     no-success trigger, same actor boundary, canonical-Student update protocol, and matched budget.

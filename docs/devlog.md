@@ -1,5 +1,32 @@
 # Development log
 
+## 2026-07-21 — Freeze the rules, then let V9 run
+
+- Declared active run `parallel-ppo-v9-self-correcting-8h-20260721-seed20260809` against source
+  commit `d1c0c0d`. It began at `2026-07-21T21:43:57.163627Z` with seed 20260809.
+- Froze the campaign budget before reading results: eight hours, 150,000,000-action safety ceiling,
+  four emulator environments, 256-step rollouts, 100 GiB output cap, 50 GiB free-space floor, and
+  dashboard port 8774. Frozen exams occur every 16,384 Explorer actions.
+- Kept the strict self-correction protocol unchanged: reverse-rung promotion requires 27/30 twice,
+  practice runs every four Explorer rollouts with two attempts, terminal reasons remain complete,
+  only replay-verified exact successes aggregate, and PPO recovery stays disabled.
+- Began from fresh power-on. The V8 source supplies only the root curriculum state required to boot
+  the new expedition. V8 model weights, optimizer state, controller actions, distilled skills, and
+  success buffers do not enter the run.
+- Rejected two background handoffs after both failed before creating a run. The generic `nohup`
+  attempt did not survive as the campaign owner. The launchd wrapper could not access the external
+  SSD under its service permissions. A detached user-session process succeeded, preserving the
+  same filesystem authority as the interactive launch while adding sleep prevention.
+- Recorded the first scheduled exam boundary at 16,388 Explorer actions and 161.420 seconds as E1
+  live telemetry. Throughput was 101.524 actions/second; the Explorer had 16 PPO updates, two
+  verified promotions, three skills, and milestone index 2, `Reached the ground floor`.
+- At that same boundary, the Student had completed 13 rounds and 60 optimizer updates. Action
+  accuracy was 0.1396277 and NLL was 2.105477. Practice recorded seven exact targets and one timeout
+  across eight attempts, retained seven successes, and applied 14 success-only updates.
+- The first frozen exam used 556 actions and failed 0/1. Zero skills were competent and zero
+  compositions ran. One early grade cannot establish a trend, so none of these figures is a final
+  V9 result. The run continues under its original declaration; no mid-run rule changes are allowed.
+
 ## 2026-07-21 — The timer had to become part of the experiment
 
 - Ran the first V9 real-ROM canary,

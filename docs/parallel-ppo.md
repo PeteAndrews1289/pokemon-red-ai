@@ -10,7 +10,8 @@
 > later-game behavior remain unproved. V8 is closed. The corrected
 > [Version 9](version-9-self-correcting-student.md) canary qualifies closed-loop mechanism,
 > observability, and wall-time control at 0/3 frozen exams; it does not weaken the exam boundary or
-> establish competence.
+> establish competence. Its eight-hour fresh-start campaign is active under a frozen protocol; the
+> first 0/1 exam checkpoint is provisional, not a learning result.
 
 ## Why this lane exists
 

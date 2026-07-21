@@ -1693,6 +1693,65 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
   status. DR-0055 remains the V8 closure and V9 engineering-integration record; this entry records
   the later real-ROM qualification and hardening. Not yet superseded.
 
+## DR-0057 — Freeze the active long V9 campaign before interpreting it
+
+- **Date:** 2026-07-21
+- **Status:** Accepted and active; all observations are provisional until terminal audit
+- **Scope:** Long-run identity, source boundary, action/time/storage budgets, parallelism, practice
+  and exam cadence, operational handoff, first live checkpoint, and change control
+- **Decision:** Launch one eight-hour fresh-start V9 campaign under the corrected qualification
+  boundary, record its exact protocol before interpreting behavior, and permit no mid-run rule
+  changes. Treat dashboard snapshots as E1 live telemetry only. Competence remains defined by the
+  unchanged frozen gate, not practice success or a rising training metric.
+- **Run identity:** `parallel-ppo-v9-self-correcting-8h-20260721-seed20260809`; source commit
+  `d1c0c0d`; seed 20260809; start `2026-07-21T21:43:57.163627Z`.
+- **Fresh-start boundary:** The campaign begins from power-on. Its V8 source contributes only the
+  root curriculum state. V8 model/optimizer weights, controller actions, distilled skills,
+  successful practice records, and learned policy state are excluded. This is an initialization
+  dependency, not a transferred solution.
+- **Frozen protocol:** Eight-hour campaign limit; 150,000,000-action safety ceiling; four emulator
+  environments; 256-step rollouts; reverse-practice promotion at 27/30 exact successes in two
+  consecutive non-overlapping windows; practice every four Explorer rollouts with two attempts;
+  frozen exam every 16,384 Explorer actions; 100 GiB output cap; 50 GiB free-space floor; dashboard
+  port 8774; PPO recovery disabled. The action ceiling is a guard, not a prediction that eight
+  hours will approach 150 million actions.
+- **Operational decision:** Reject the generic `nohup` handoff and launchd wrapper after both failed
+  before run creation. Launchd's service context lacked external-SSD access. Use a detached user
+  session that preserves the interactive user's filesystem permissions and adds sleep prevention.
+  The failed launchers consumed no experiment actions and created no competing run. Do not publish
+  private absolute storage paths.
+- **First-boundary observation:** At the first scheduled exam boundary, status reported 161.420
+  seconds, 16,388 Explorer actions at 101.524/s, 16 PPO updates, milestone index 2 (`Reached the
+  ground floor`), two promotions, and three skills. The Student reported 13 rounds, 60 optimizer
+  updates, 0.1396277 action accuracy, and 2.105477 NLL. Practice produced seven exact targets and
+  one timeout across eight attempts, retained seven successes, and applied 14 success-only updates.
+  The one frozen exam consumed 556 actions and failed 0/1; zero skills were competent and zero
+  composition attempts ran.
+- **Interpretation:** This snapshot proves only that the declared live run exists and the qualified
+  machinery continues to emit coherent fields. One failed exam cannot establish stagnation, and
+  7/8 assisted practice cannot establish competence. No trend, causal improvement, later-game
+  progress, or terminal V9 result is claimed.
+- **Alternatives considered:** Warm-start from V8's Student or seven skills; import V8 action
+  sequences; shorten the 27/30×2 gate after seeing early results; increase practice frequency
+  mid-run; treat the first practice percentage as success; restart after the first 0/1; enable PPO
+  recovery; continue trying a service wrapper with different permissions after the campaign had
+  already started; or report a live dashboard value as final evidence.
+- **Consequence:** Every update must carry the observation timestamp/action count and provisional
+  label. The run continues until its declared terminal condition or an operational safety stop.
+  Any desired rule change becomes a new run ID and decision entry. Final reporting must include all
+  frozen attempts, terminal reasons, Student versions, practice/verification/exam cost, storage,
+  interruptions, and the unchanged source boundary.
+- **Narrative value:** Show the launch card before the dashboard: commit, seed, fresh-start boundary,
+  eight-hour clock, action/storage guards, and exam cadence. Briefly show two launchers fail without
+  creating the experiment, then the detached user session succeeds. At 16,388 actions, place 7/8
+  assisted practice beside 0/1 frozen evaluation and leave the story unresolved. The discipline is
+  refusing to turn an early number into an ending.
+- **Revisit when:** The run terminates; an operational safety stop occurs; a checkpoint/resume
+  changes declared state; the full 27/30×2 gate passes or fails; a skill becomes competent; report
+  fields diverge; storage crosses a guard; or a different protocol is proposed.
+- **Supersedes / superseded by:** Extends DR-0056's authorization into an exact active-run contract.
+  It does not rewrite the two V9 canaries or V8 history. Not yet superseded.
+
 ## Unresolved decisions
 
 These are questions, not hidden commitments. Each becomes a numbered entry when evidence supports

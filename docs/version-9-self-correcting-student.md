@@ -14,7 +14,8 @@ earn any additional training trajectory through exact success.
 > reporting, and the wall-time boundary, then passed 0/3 frozen exams. The current suite passes 276
 > non-integration plus 12 integration checks, 288 total. Mechanism, observability, and wall-time
 > control qualify; learned competence and later-game progress do not. Recurrent PPO recovery
-> remains a disabled, unimplemented later escalation.
+> remains a disabled, unimplemented later escalation. The declared eight-hour fresh-start V9
+> campaign is active; its first 0/1 frozen checkpoint is provisional E1 live telemetry, not a result.
 
 ## The result V8 leaves behind
 
@@ -110,6 +111,68 @@ The allowed conclusion is narrow:
 Practice success is assisted training evidence. It starts from disclosed reverse-rung snapshots and
 cannot replace a frozen exam. The 16/22 practice result beside 0/3 exams is exactly why the two
 meters remain separate.
+
+## Active long campaign declaration
+
+Run `parallel-ppo-v9-self-correcting-8h-20260721-seed20260809` began at
+`2026-07-21T21:43:57.163627Z` from source commit `d1c0c0d` with seed 20260809. This section freezes
+the protocol while it is running; it does not promote live telemetry into a final result.
+
+| Launch field | Declared value |
+| --- | --- |
+| Start | Fresh power-on |
+| V8 contribution | Root curriculum state only; no weights, optimizer, actions, distilled skills, or success buffer |
+| Campaign limit | 8 hours |
+| Action safety ceiling | 150,000,000 Explorer actions |
+| Parallelism | 4 emulator environments |
+| Explorer rollout | 256 steps per environment |
+| Reverse-practice gate | 27/30 successes in two consecutive non-overlapping windows |
+| Practice cadence | Every 4 Explorer rollouts, 2 attempts |
+| Frozen-exam cadence | Every 16,384 Explorer actions |
+| Storage guard | 100 GiB output cap; 50 GiB minimum free space |
+| Dashboard | Local port 8774 |
+| PPO recovery | Disabled |
+| Mid-run protocol edits | Forbidden |
+
+The V8 root is a bootstrapping state, not a transferred solution. The active Student and Explorer
+begin without V8 model parameters. No V8 controller action, learned skill, replay success, or
+optimizer state enters the campaign. Calling this “fresh power-on” would be misleading without that
+boundary, so both facts are recorded together.
+
+### First scheduled exam-boundary snapshot
+
+At the first 16,384-action exam cadence, the status writer had recorded 16,388 Explorer actions.
+The following snapshot is **provisional E1 live evidence**:
+
+| Measure | First-boundary value |
+| --- | ---: |
+| Campaign elapsed | 161.420 s |
+| Explorer actions / rate | 16,388 / 101.524 actions/s |
+| Explorer PPO updates | 16 |
+| Furthest discovery | Index 2, `Reached the ground floor` |
+| Promotions / skills | 2 / 3 |
+| Student training | 13 rounds / 60 optimizer updates |
+| Student diagnostics | Accuracy 0.1396277 / NLL 2.105477 |
+| Practice | 7/8 exact target; 1 timeout |
+| Success-only state | 7 retained successes / 14 updates |
+| Frozen exam | 0/1 over 556 actions |
+| Competent skills / composition | 0 / 0 |
+
+One exam failure cannot establish a learning curve, and 7/8 assisted near-target practice cannot
+replace it. The active run may later improve, remain flat, fail operationally, or close without a
+competent skill. Only its terminal artifacts and complete denominator will decide the result.
+
+### Operational handoff
+
+Two background-launch approaches failed before the campaign directory was created. A generic
+`nohup` handoff was rejected after it failed to become the durable owner. A launchd service wrapper
+was also rejected because its service context could not access the external SSD. Neither attempt
+consumed experiment actions or changed the protocol.
+
+The successful launch uses a detached user session. It retains the interactive user's filesystem
+permissions and adds sleep prevention, allowing the monitor to turn off without suspending the
+campaign. This is an operational choice, not a model or training change. Documentation intentionally
+omits private absolute storage paths.
 
 ## The suspected failure: exposure bias
 
@@ -565,7 +628,9 @@ competence.
    be enabled and compared with the non-PPO V9 lane.
 9. **Restore-free composition:** only locally competent consecutive edges may be attempted from
    power-on under one frozen Student.
-10. **Long comparison:** compare V7, V8, V9 BC-only, V9 self-correcting, and any PPO-enabled V9 with
+10. **🟨 Long self-correcting campaign:** the eight-hour fresh-start run is active under the
+    frozen declaration. Its first 0/1 exam checkpoint is provisional; terminal evidence is pending.
+11. **Long comparison:** compare V7, V8, V9 BC-only, V9 self-correcting, and any PPO-enabled V9 with
     separate compute and attempt denominators.
 
 ## Falsifiers and stop conditions
@@ -670,4 +735,5 @@ The first meaningful V9 result is not another discovery. It is one normalized ed
 Until that exists, V9 is a mechanism-qualified hypothesis without a learned-competence result. Its
 purpose is not to guarantee the Hall of Fame. Its purpose is to make the Student practice the state
 distribution it creates, without smuggling in a walkthrough and without weakening the exam that
-exposed V8's failure.
+exposed V8's failure. The active long run does not change this wording until it closes and its full
+frozen denominator is audited.

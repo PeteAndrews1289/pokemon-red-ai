@@ -23,11 +23,14 @@
 > then commit `e1ea199` fixed cancellation and report merging. The authoritative replacement ended
 > within 0.082 seconds of its 144-second limit, exercised 22 closed-loop attempts and success-only
 > aggregation, and finished at 0/3 frozen exams. V9 mechanism, observability, and wall-time control
-> are qualified; competence is not. PPO recovery remains deferred and disabled.
+> are qualified; competence is not. The declared eight-hour V9 campaign is now active from fresh
+> power-on under commit `d1c0c0d`; V8 supplies only the root curriculum state. Its first 16,384-
+> action exam boundary was 0/1 with zero competent skills. That snapshot is provisional E1 live
+> telemetry, not a trend or terminal result. PPO recovery remains deferred and disabled.
 
 - **Current stage:** Version 7 remains the locked denominator; Version 8 is closed after its 0/7
   qualification canary and 1/47 final run; Version 9 mechanism qualification passed at 0/3 frozen
-  exams, and its long behavioral run is next
+  exams, and its declared long behavioral run is active with only provisional evidence
 - **Status date:** 2026-07-21
 
 **Most important caveat:** Q1 verified one replayable house-exit lineage, but the acting suffix
@@ -132,6 +135,9 @@ flowchart LR
 | Version 9 pre-hardening canary | 🟨 Failed usefully | E3 diagnostic | Run `parallel-ppo-v9-canary-20260721-seed20260801` was configured for 180s but synchronous work overran; manual STOP ended it at 248.801s / 12,360 actions. It reached `Stepped outside`, built six skills, and recorded 19/22 exact practice outcomes plus 0/3 frozen exams. Immediate success reports replaced richer periodic dashboard diagnostics; STOP exposed but did not cause the defect. It is not the authoritative qualification |
 | Version 9 corrected qualification | ✅ Mechanism qualified; competence absent | E3 pipeline | After commit `e1ea199`, run `parallel-ppo-v9-canary2-20260721-seed20260802` ended `duration_limit` at 144.082s against 144.0s. It processed 12,520 actions at 86.895/s, made 12 PPO updates, reached the ground floor with two promotions/three skills, and had zero promotion failures. Mechanism, observability, and wall-time control qualify; 0/3 frozen exams prove no competent skill |
 | Version 9 self-correcting Student | ✅ Engineering and canary path qualified | E2 / E3 pipeline | The current suite passes 276 non-integration plus 12 integration checks (288 total). The corrected canary completed 20 Student rounds, 64 updates, and 1,400 examples; fit ended at 0.1415313 accuracy / 2.211105 NLL. This is working machinery, not useful learning |
+| Version 9 declared long campaign | 🟨 Active; first checkpoint only | E1 live | Run `parallel-ppo-v9-self-correcting-8h-20260721-seed20260809` started from fresh power-on under commit `d1c0c0d`, seed 20260809. Contract: 8h, 150M-action ceiling, 4×256 rollout, 27/30×2 practice, interval 4 / two attempts, exams every 16,384 actions, 100 GiB output cap, and 50 GiB free floor. V8 contributes only the root state; no weights/actions/skills. No mid-run rule changes are allowed |
+| Version 9 first long-run exam boundary | 🟨 Provisional, not a result | E1 live | At 161.420s / 16,388 actions / 101.524 actions/s: ground floor, two promotions, three skills, 16 PPO updates. Student: 13 rounds, 60 updates, 0.1396277 accuracy, 2.105477 NLL. Practice: 7/8 exact, one timeout, seven retained, 14 success-only updates. Frozen exam: 0/1 over 556 actions, zero competent skills, zero compositions |
+| Version 9 operational handoff | ✅ Active process created under user session | E1 operations | `nohup` and launchd handoffs failed before run creation; launchd lacked external-SSD access. A detached user-session process succeeded with the same filesystem permissions and sleep prevention. These launcher failures did not alter the run or its protocol |
 | Version 9 consecutive skill graph | ✅ Implemented and checked | E2 | Protocol `self-generated-consecutive-skill-graph-v1` derives replay-local nodes from exact first hits plus stable-state/private-snapshot hashes, rejects missing, non-monotonic, duplicate, or incomplete edges, and hash-binds the graph audit into each skill and checkpoint validation |
 | Version 9 reverse-practice core | ✅ Implemented and checked | E2 | Protocol `v9-student-closed-loop-reverse-practice-v1` uses 8/16/32/64-to-full rungs, two non-overlapping 27/30 promotion windows, 25% deterministic retention, and exact persisted choice/seed. Exact-target signatures reject ordinal-only success; all attempts enter bounded terminal-reason counters |
 | Version 9 success replay and rollback | ✅ Implemented and checked | E2 | Only replay-verified exact-target Student rollouts may enter a deterministic per-rung reservoir. Retained successes are split into immutable bounded shards and rotate through Student replay. The hash-bound practice snapshot rolls live scheduling, windows, denominator, reservoir, and provenance back to the same Student checkpoint generation on resume |

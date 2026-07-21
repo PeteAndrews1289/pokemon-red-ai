@@ -11,8 +11,8 @@ The original game-naive, pixels-only condition remains a strict control. The Q0/
 baseline deliberately used a seeded random action emitter and a sealed, read-only referee; the next
 trials compare learned or optimized emitters under the same checkpoint and replay rules.
 
-> **Current status: V8 closes with a final 1/47 frozen-exam result; Version 9's corrected real-ROM
-> canary qualifies mechanism, observability, and wall-time control—not learned competence.**
+> **Current status: V9's mechanism is qualified and its declared eight-hour fresh-start campaign is
+> live. The first 0/1 exam checkpoint is provisional, not a learning result.**
 > Stage 0 memorized and exactly replayed its one 419-action house-exit route. Reverse curriculum
 > completed that opening in development, and Frontier Apprentice proved that network updates can be
 > gated behind replay-verified milestones. Its limitation was equally important: almost every
@@ -97,7 +97,14 @@ trials compare learned or optimized emitters under the same checkpoint and repla
 > The current engineering suite passes 276 non-integration plus 12 integration checks (288 total).
 > A recurrent PPO recovery lane remains disabled. Strict checkpoint-separated exams remain
 > unchanged. V9's mechanism, observability, and wall-time boundary are qualified; learned
-> competence and later-game progress are not. See
+> competence and later-game progress are not.
+> The active run `parallel-ppo-v9-self-correcting-8h-20260721-seed20260809` began from fresh
+> power-on at `2026-07-21T21:43:57.163627Z` under source commit `d1c0c0d`, seed 20260809, an
+> eight-hour/150-million-action ceiling, and the same strict 27/30×2 practice gate. V8 contributes
+> only the root curriculum state—no weights, actions, or skills. At the first 16,384-action exam
+> boundary it had 16,388 actions, reached the ground floor, built three skills, recorded 7/8 exact
+> practice outcomes, and failed its sole frozen exam. Those numbers are provisional E1 live
+> telemetry, not final evidence. See
 > [Let the Student practice being wrong](docs/version-9-self-correcting-student.md).
 
 The current code preserves every historical runner, including Monkey, Archivist, online learners,
@@ -143,7 +150,7 @@ current implementation hypothesis is
 | Preserved random comparison | Monkey vs. pixels-only Archivist under matched budgets |
 | Completed 90-minute pretrial | Evolution reached tier 1; online learners plateaued around Pallet Town and Route 1 |
 | Concluded neural experiment | Six inherited-archive lanes all failed the second-map/party gate under equal fuel |
-| Current completion work | V8 closed after a 0/7 canary and 1/47 final run; the corrected V9 canary qualifies mechanism, observability, and wall-time at 0/3 frozen exams, not competence |
+| Current completion work | V9's qualified mechanism is running an eight-hour fresh-start campaign; first-boundary 0/1 is provisional E1 telemetry, not competence or a final result |
 | North star | First discover a replayable Hall-of-Fame lineage, then train and evaluate one frozen pixel policy |
 
 ## The journey
@@ -162,8 +169,9 @@ flowchart LR
     FR --> PPO["🟨 Parallel PPO<br/>learn from every rollout"]
     PPO --> V7["🟨 V7<br/>unchanged denominator"]
     V7 --> V8["✅ V8<br/>0/7 canary; 1/47 final"]
-    V8 --> V9["✅ V9 mechanism<br/>0/3; competence open"]
-    V9 --> HF["⬜ Hall of Fame<br/>one frozen policy"]
+    V8 --> V9["✅ V9 mechanism<br/>0/3 qualification"]
+    V9 --> LONG["🟨 V9 long run<br/>active; evidence provisional"]
+    LONG --> HF["⬜ Hall of Fame<br/>one frozen policy"]
 ```
 
 GitHub issues and experiment records will attach evidence to this roadmap. A checked engineering

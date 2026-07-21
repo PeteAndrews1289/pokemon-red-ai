@@ -11,7 +11,8 @@
 > closed-loop practice, including graph/checkpoint binding, terminal counts, bounded rotating
 > replay, and the 27/30×2 gate. After a failed overrun/reporting diagnostic, the corrected V9
 > canary qualified mechanism, observability, and wall-time control at 0/3 frozen exams. PPO recovery
-> is deferred and disabled; competence is not claimed. See
+> is deferred and disabled; competence is not claimed. The exact eight-hour fresh-start campaign is
+> active under commit `d1c0c0d`; its first 0/1 checkpoint is provisional live evidence. See
 > [Version 9](version-9-self-correcting-student.md).
 
 ## Active Version-9 implementation boundary

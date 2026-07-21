@@ -36,7 +36,8 @@ has engineering-checked consecutive edges, exact-target reverse closed-loop prac
 bounded replay, terminal counters, and checkpoint rollback. Its first real-ROM canary exposed a
 wall-time overrun and report-merge defect; the corrected 144-second canary qualified mechanism,
 observability, and campaign timing while passing 0/3 frozen exams. Competence remains open, and the
-future PPO recovery lane remains disabled.
+future PPO recovery lane remains disabled. A declared eight-hour run is active from fresh power-on
+under commit `d1c0c0d`; its first 0/1 exam checkpoint is provisional E1 live evidence.
 
 ## Start here
 
@@ -95,7 +96,8 @@ flowchart LR
     P --> V6["✅ Version 6<br/>composition failure measured"]
     V6 --> V7["🟨 Version 7<br/>live denominator"]
     V7 --> V8["✅ Version 8<br/>0/7 canary; 1/47 final"]
-    V8 --> V9["✅ Version 9 mechanism<br/>0/3; competence open"]
+    V8 --> V9["✅ Version 9 mechanism<br/>0/3 qualification"]
+    V9 --> L9["🟨 Version 9 long run<br/>active; provisional"]
 ```
 
 The diagram shows project position, not game progress. Reaching the game-start state is a narrow

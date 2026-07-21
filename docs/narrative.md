@@ -54,6 +54,15 @@
 > aggregation—but its frozen exam door still read 0/3. V9's mechanism, observability, and wall-time
 > boundary are qualified. Learning is not.
 
+> **Live turn:** the rules are now frozen for the declared eight-hour V9 run. It starts from fresh
+> power-on; V8 contributes only the power-on root curriculum state, not a brain, action sequence, or
+> skill library. Two attempted background handoffs failed before creating a run—including a launchd
+> service that could not access the external SSD—so the experiment moved to a detached user session
+> with the same permissions and sleep prevention. At the first exam boundary the Explorer had
+> reached the ground floor and practice was 7/8 exact, but the frozen Student was 0/1. That is a
+> timestamped live checkpoint, not a verdict. The story now has to resist both premature optimism
+> and premature failure while the unchanged protocol accumulates its denominator.
+
 ## The question
 
 Can an AI learn to make meaningful progress through Pokémon Red—and can we explain what it is
@@ -80,7 +89,9 @@ self-generated lessons through Oak's lab and failed 0/7 frozen exams; its later 
 seven through Route 1, improved offline fit, but finished at 1/47 with zero competent skills. V9's
 closed-loop self-correction mechanics now pass the 288-check engineering suite, and its corrected
 real-ROM canary qualifies mechanism, observability, and wall-time control. That canary passed 0/3
-frozen exams, so no V9 competent skill or production multi-skill/whole-game result exists.**
+frozen exams. A fresh-start eight-hour V9 campaign is active, but its first 0/1 exam snapshot is
+only provisional E1 live evidence. No V9 competent skill or production multi-skill/whole-game
+result exists.**
 
 Phase 0 built the measuring instrument: a reproducible emulator harness that can start the exact
 same game, issue timed controller inputs, observe a small and disclosed slice of state, restore an
@@ -121,7 +132,10 @@ test sequence used to prove that the laboratory works.
 | What happened in the first V9 canary? | It reached `Stepped outside` and 19/22 exact practice outcomes, but synchronous work overran a 180-second budget to 248.801 seconds. Immediate success reports also replaced richer periodic diagnostics. Manual STOP exposed both defects; it did not cause the reporting bug. |
 | What did the corrected V9 canary prove? | Commit `e1ea199` fixed cancellation/report merging. The replacement honored 144.0 seconds within 0.082 seconds, ran 22 fully classified practice attempts, retained 16 verified successes, and exposed success-only replay. It qualifies mechanism, observability, and wall-time—not competence. |
 | Has V9 learned a skill? | Not demonstrated. The corrected canary passed 0/3 frozen exams, with zero competent skills. The current suite passes 276 non-integration plus 12 integration checks. |
-| What comes next? | Run a longer V9 campaign under the qualified boundary, then compare with the matched BC-only ablation before enabling PPO fallback or making a learning claim. |
+| What is running now? | `parallel-ppo-v9-self-correcting-8h-20260721-seed20260809`: fresh power-on, commit `d1c0c0d`, seed 20260809, eight hours, four environments, strict 27/30×2 practice, 150M safety ceiling, and no V8 weights/actions/skills. |
+| What does its first checkpoint say? | At 16,388 actions the Explorer had reached the ground floor and practice was 7/8 exact, but the sole 556-action frozen exam failed. Zero skills were competent. This is provisional E1 telemetry, not a trend. |
+| Can the rules change while it runs? | No. Budget, practice, exams, actor boundary, storage limits, and disabled PPO recovery are frozen. Operational launch failures happened before run creation and did not change the experiment. |
+| What comes next? | Let the declared V9 campaign close under its original rules, report every attempt, then compare with the matched BC-only ablation before enabling PPO fallback or making a causal learning claim. |
 
 Keeping this table current is part of the project. A small true claim is more valuable than a large
 ambiguous one.
