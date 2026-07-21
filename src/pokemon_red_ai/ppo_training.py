@@ -11,7 +11,7 @@ import threading
 import time
 import uuid
 from collections import Counter, deque
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from functools import partial
@@ -132,6 +132,10 @@ V9_CONFIG_FIELDS = frozenset(
 V9_PRACTICE_TERMINAL_REASONS = frozenset(
     {"exact_target", "timeout", "emulator_stopped", "milestone_wrong_state"}
 )
+V9_PRACTICE_CANCELLATION_REASONS = frozenset(
+    {"stop_requested", "duration_limit", "action_limit", "low_disk_space", "output_limit"}
+)
+V9_DISK_BUDGET_REFRESH_SECONDS = 1.0
 PRIVILEGED_STATE_SIZE = 24
 ACTION_HISTORY_LENGTH = 3
 MAP_MEMORY_SIZE = 64
@@ -143,6 +147,38 @@ MAP_CONTEXT_SIZE = 4
 
 class CompositionReplayRejected(RuntimeError):
     """A verified skill chain did not compose continuously from power-on."""
+
+
+class V9PracticeCancelled(RuntimeError):
+    """A campaign boundary interrupted practice before it could become training data."""
+
+    def __init__(self, reason: str) -> None:
+        if reason not in V9_PRACTICE_CANCELLATION_REASONS:
+            raise ValueError("V9 Student practice cancellation reason is unsupported")
+        super().__init__(reason)
+        self.reason = reason
+
+
+def _check_v9_practice_cancellation(
+    cancellation_check: Callable[[], str | None] | None,
+) -> None:
+    if cancellation_check is None:
+        return
+    reason = cancellation_check()
+    if reason is not None:
+        raise V9PracticeCancelled(reason)
+
+
+def _merge_v9_success_student_report(
+    previous: Mapping[str, Any] | None,
+    immediate: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Keep the last full replay diagnostics while recording an immediate success update."""
+
+    merged = {} if previous is None else dict(previous)
+    merged.update(immediate)
+    merged["training_kind"] = "closed_loop_success_only"
+    return merged
 
 
 def _v9_practice_signature_outcome(
@@ -2023,10 +2059,13 @@ def _replay_sequence(
     start_snapshot: FrozenSnapshot,
     actions: list[int],
     inherited: MilestoneProgress,
+    *,
+    cancellation_check: Callable[[], str | None] | None = None,
 ) -> tuple[FrozenSnapshot, MilestoneProgress, dict[str, Any], str]:
     with PokemonRedEmulator(rom_path) as emulator:
         emulator.load_state(start_snapshot.thaw())
         for action_index in actions:
+            _check_v9_practice_cancellation(cancellation_check)
             if not _execute_action(emulator, int(action_index)):
                 raise RuntimeError("PPO promotion replay emulator stopped")
         state = PokemonRedStateReader(emulator).read()
@@ -2168,6 +2207,7 @@ def _collect_v9_first_hit_graph(
     target: MilestoneProgress,
     *,
     replay_id: str,
+    cancellation_check: Callable[[], str | None] | None = None,
 ) -> tuple[Any, tuple[_V9FirstHit, ...]]:
     """Replay one verified discovery and capture every concrete adjacent milestone edge."""
 
@@ -2204,6 +2244,7 @@ def _collect_v9_first_hit_graph(
         current = milestone_progress_for_state(reader.read(), inherited=inherited)
         capture(current, 0)
         for offset, action in enumerate(actions, start=1):
+            _check_v9_practice_cancellation(cancellation_check)
             if not _execute_action(emulator, action):
                 raise RuntimeError("V9 first-hit replay emulator stopped")
             progress = milestone_progress_for_state(reader.read(), inherited=current)
@@ -2249,6 +2290,8 @@ def _collect_distillation_signatures(
     start_snapshot: FrozenSnapshot,
     actions: list[int],
     inherited: MilestoneProgress,
+    *,
+    cancellation_check: Callable[[], str | None] | None = None,
 ) -> tuple[tuple[Any, ...], ...]:
     signatures: list[tuple[Any, ...]] = []
     with PokemonRedEmulator(rom_path) as emulator:
@@ -2258,6 +2301,7 @@ def _collect_distillation_signatures(
         progress = milestone_progress_for_state(state, inherited=inherited)
         signatures.append(_distillation_state_signature(emulator, state, progress))
         for action in actions:
+            _check_v9_practice_cancellation(cancellation_check)
             if not _execute_action(emulator, action):
                 raise RuntimeError("Trajectory distillation replay emulator stopped")
             state = reader.read()
@@ -2271,10 +2315,13 @@ def _replay_distillation_terminal_signature(
     start_snapshot: FrozenSnapshot,
     actions: tuple[int, ...],
     inherited: MilestoneProgress,
+    *,
+    cancellation_check: Callable[[], str | None] | None = None,
 ) -> tuple[Any, ...]:
     with PokemonRedEmulator(rom_path) as emulator:
         emulator.load_state(start_snapshot.thaw())
         for action in actions:
+            _check_v9_practice_cancellation(cancellation_check)
             if not _execute_action(emulator, action):
                 raise RuntimeError("Trajectory distillation replay emulator stopped")
         state = PokemonRedStateReader(emulator).read()
@@ -2292,10 +2339,17 @@ def _distill_verified_actions(
     verification_id: str,
     successful_replays: int,
     max_attempts: int,
+    cancellation_check: Callable[[], str | None] | None = None,
 ) -> Any:
     """Shorten an agent-generated edge using only replayed outcome evidence."""
 
-    signatures = _collect_distillation_signatures(rom_path, start_snapshot, actions, inherited)
+    signatures = _collect_distillation_signatures(
+        rom_path,
+        start_snapshot,
+        actions,
+        inherited,
+        cancellation_check=cancellation_check,
+    )
     protected_outcome = signatures[-1]
 
     def oracle(candidate: tuple[int, ...]) -> bool:
@@ -2305,7 +2359,10 @@ def _distill_verified_actions(
                 start_snapshot,
                 candidate,
                 inherited,
+                cancellation_check=cancellation_check,
             )
+        except V9PracticeCancelled:
+            raise
         except RuntimeError:
             return False
         return signature == protected_outcome and int(signature[-1]) >= target.index
@@ -2333,6 +2390,7 @@ def _collect_v8_student_dataset(
     actions: list[int],
     *,
     compressed_to_original: tuple[int, ...],
+    cancellation_check: Callable[[], str | None] | None = None,
 ) -> tuple[dict[str, np.ndarray], np.ndarray]:
     """Build a recurrent Student sequence and a three-frame self-observed goal clip."""
 
@@ -2348,6 +2406,7 @@ def _collect_v8_student_dataset(
         previous = current
         frames.append(current)
         for action_index in actions:
+            _check_v9_practice_cancellation(cancellation_check)
             pixels.append(np.stack((previous, current)))
             histories.append(_action_history(recent))
             if not _execute_action(emulator, int(action_index)):
@@ -2638,6 +2697,7 @@ def _write_v8_replay_shards(
     source_dataset_sha256: str,
     max_examples: int,
     burn_in: int,
+    cancellation_check: Callable[[], str | None] | None = None,
 ) -> list[dict[str, Any]]:
     """Seal bounded training chunks while the verified full dataset is in memory.
 
@@ -2672,6 +2732,7 @@ def _write_v8_replay_shards(
     shard_count = (action_count + max_examples - 1) // max_examples
     metadata: list[dict[str, Any]] = []
     for shard_index, train_start in enumerate(range(0, action_count, max_examples)):
+        _check_v9_practice_cancellation(cancellation_check)
         context_start = max(0, train_start - burn_in)
         stop = min(action_count, train_start + max_examples)
         stored_count = stop - context_start
@@ -2833,6 +2894,7 @@ def verify_promotion_candidate(
     candidate_path: Path,
     *,
     replay_passes: int,
+    cancellation_check: Callable[[], str | None] | None = None,
 ) -> dict[str, Any]:
     candidate = _read_gzip_json(candidate_path)
     manifest = _load_curriculum_manifest(curriculum_directory)
@@ -2863,7 +2925,15 @@ def verify_promotion_candidate(
         )
 
     parent_snapshot = FrozenSnapshot.from_checkpoint_dict(parent["snapshot"])
-    if not matches(_replay_sequence(rom_path, parent_snapshot, actions, parent_progress)):
+    if not matches(
+        _replay_sequence(
+            rom_path,
+            parent_snapshot,
+            actions,
+            parent_progress,
+            cancellation_check=cancellation_check,
+        )
+    ):
         raise ValueError("PPO candidate failed exact parent-edge replay")
     roots = [item for item in manifest["entries"] if int(item["milestone_index"]) == 0]
     if len(roots) != 1:
@@ -2880,7 +2950,15 @@ def verify_promotion_candidate(
     full_actions = [*lineage_indices, *actions]
     root_progress = _progress_from_value(root["progress"])
     for _ in range(replay_passes):
-        if not matches(_replay_sequence(rom_path, root_snapshot, full_actions, root_progress)):
+        if not matches(
+            _replay_sequence(
+                rom_path,
+                root_snapshot,
+                full_actions,
+                root_progress,
+                cancellation_check=cancellation_check,
+            )
+        ):
             raise ValueError("PPO candidate failed fresh power-on replay")
     return {
         "candidate": candidate,
@@ -3200,8 +3278,13 @@ class PpoRunCallback(BaseCallback):
         self.positions: set[tuple[int, int, int]] = set()
         self.promotion_failures = 0
         self.stop_reason: str | None = None
-        self.cached_run_bytes = 0
+        self.cached_run_bytes = (
+            sum(path.stat().st_size for path in self.run_directory.rglob("*") if path.is_file())
+            if _is_v9_mode(config.mode)
+            else 0
+        )
         self.cached_free_bytes = shutil.disk_usage(self.run_directory).free
+        self.last_v9_disk_budget_refresh = time.monotonic()
         run_manifest = json.loads(
             (self.run_directory / "manifest.json").read_text(encoding="utf-8")
         )
@@ -3905,6 +3988,7 @@ class PpoRunCallback(BaseCallback):
             source_progress,
             progress,
             replay_id=replay_id,
+            cancellation_check=self._v9_practice_cancellation_reason,
         )
         candidate_snapshot = FrozenSnapshot.from_checkpoint_dict(candidate["terminal_snapshot"])
         if hits[0].progress != source_progress or hits[0].snapshot.sha256 != source_snapshot.sha256:
@@ -3926,6 +4010,7 @@ class PpoRunCallback(BaseCallback):
         )
         prepared: list[dict[str, Any]] = []
         for edge_index, edge in enumerate(graph.edges):
+            _check_v9_practice_cancellation(self._v9_practice_cancellation_reason)
             source_hit = hits[edge_index]
             target_hit = hits[edge_index + 1]
             skill_id = edge.edge_id
@@ -3941,6 +4026,7 @@ class PpoRunCallback(BaseCallback):
                     int(verification["edge_replays"]) + int(verification["power_on_replays"])
                 ),
                 max_attempts=self.config.distillation_attempts,
+                cancellation_check=self._v9_practice_cancellation_reason,
             )
             compressed_actions = [int(value) for value in distilled.actions]
             dataset, target_clip = _collect_v8_student_dataset(
@@ -3948,6 +4034,7 @@ class PpoRunCallback(BaseCallback):
                 source_hit.snapshot,
                 compressed_actions,
                 compressed_to_original=distilled.compressed_to_original,
+                cancellation_check=self._v9_practice_cancellation_reason,
             )
             target_relative = f"self-skills/{skill_id}.png"
             dataset_relative = f"self-skills/{skill_id}.npz"
@@ -3967,7 +4054,10 @@ class PpoRunCallback(BaseCallback):
                 source_dataset_sha256=dataset_sha256,
                 max_examples=self.student_trainer.config.max_examples_per_dataset,
                 burn_in=self.student_trainer.config.burn_in,
+                cancellation_check=self._v9_practice_cancellation_reason,
             )
+            self._refresh_v9_written_artifact_budget()
+            _check_v9_practice_cancellation(self._v9_practice_cancellation_reason)
             _atomic_json(
                 audit_path,
                 {
@@ -4683,6 +4773,36 @@ class PpoRunCallback(BaseCallback):
         )
         return int(np.asarray(action).reshape(-1)[0]), next_state
 
+    def _v9_practice_cancellation_reason(self) -> str | None:
+        """Expose campaign boundaries to long, synchronous Student practice loops."""
+
+        if self.stop_reason in V9_PRACTICE_CANCELLATION_REASONS:
+            return self.stop_reason
+        if (self.run_directory / "STOP").exists():
+            return "stop_requested"
+        if self.elapsed() >= self.config.duration_seconds:
+            return "duration_limit"
+        if self.model.num_timesteps >= self.config.max_actions:
+            return "action_limit"
+        now = time.monotonic()
+        if now - self.last_v9_disk_budget_refresh >= V9_DISK_BUDGET_REFRESH_SECONDS:
+            self.cached_free_bytes = shutil.disk_usage(self.run_directory).free
+            self.last_v9_disk_budget_refresh = now
+        if self.cached_free_bytes < self.config.min_free_bytes:
+            return "low_disk_space"
+        if self.cached_run_bytes >= self.config.max_output_bytes:
+            return "output_limit"
+        return None
+
+    def _refresh_v9_written_artifact_budget(self) -> None:
+        """Refresh output accounting after a synchronous V9 artifact batch."""
+
+        self.cached_run_bytes = sum(
+            path.stat().st_size for path in self.run_directory.rglob("*") if path.is_file()
+        )
+        self.cached_free_bytes = shutil.disk_usage(self.run_directory).free
+        self.last_v9_disk_budget_refresh = time.monotonic()
+
     def _sync_v9_practice_ledgers(self) -> None:
         if not _is_v9_mode(self.config.mode) or self.self_skills is None:
             return
@@ -4730,13 +4850,16 @@ class PpoRunCallback(BaseCallback):
             raise RuntimeError("V9 success replay has no Student trainer")
         dataset = SelfGeneratedSkillDataset.load(path, skill_id=f"practice-{rollout_id}")
         replay = BalancedSkillReplay((dataset,), self.student_trainer.config, seed=seed)
-        report = self.student_trainer.train(
+        immediate = self.student_trainer.train(
             replay,
             updates=self.config.student_replay_epochs,
         ).public_dict()
-        report["training_kind"] = "closed_loop_success_only"
+        report = _merge_v9_success_student_report(
+            self.self_skills.last_student_report,
+            immediate,
+        )
         self.self_skills.record_student_training(report)
-        self.student_practice_training_updates += int(report["updates"])
+        self.student_practice_training_updates += int(immediate["updates"])
 
     def _run_v9_practice_attempt(
         self,
@@ -4798,6 +4921,7 @@ class PpoRunCallback(BaseCallback):
                 emulator.load_state(FrozenSnapshot.from_checkpoint_dict(source["snapshot"]).thaw())
                 reader = PokemonRedStateReader(emulator)
                 for action in demonstrated_actions[: choice.start_action]:
+                    _check_v9_practice_cancellation(self._v9_practice_cancellation_reason)
                     if not _execute_action(emulator, int(action)):
                         raise RuntimeError("V9 practice ladder replay stopped")
                     self.student_practice_actions += 1
@@ -4819,6 +4943,7 @@ class PpoRunCallback(BaseCallback):
                     + self.config.student_practice_rollout_slack,
                 )
                 for step in range(limit):
+                    _check_v9_practice_cancellation(self._v9_practice_cancellation_reason)
                     observation = {
                         "pixels": np.stack((previous, current)),
                         "action_history": _action_history(recent),
@@ -4869,6 +4994,7 @@ class PpoRunCallback(BaseCallback):
                 practice_snapshot,
                 student_actions,
                 practice_progress,
+                cancellation_check=self._v9_practice_cancellation_reason,
             )
             self.student_practice_verification_actions += len(student_actions)
             replay_signature = _curriculum_snapshot_signature(
@@ -4923,7 +5049,10 @@ class PpoRunCallback(BaseCallback):
                 source_dataset_sha256=dataset_sha256,
                 max_examples=self.student_trainer.config.max_examples_per_dataset,
                 burn_in=self.student_trainer.config.burn_in,
+                cancellation_check=self._v9_practice_cancellation_reason,
             )
+            self._refresh_v9_written_artifact_budget()
+            _check_v9_practice_cancellation(self._v9_practice_cancellation_reason)
             metadata = SuccessfulRolloutMetadata(
                 rollout_id=rollout_id,
                 skill_id=ledger.skill_id,
@@ -4979,11 +5108,19 @@ class PpoRunCallback(BaseCallback):
         self.last_student_practice_rollout = explorer_rollout
         promoted = False
         for _ in range(self.config.student_practice_attempts):
+            reason = self._v9_practice_cancellation_reason()
+            if reason is not None:
+                self.stop_reason = reason
+                break
             selected = self._v9_practice_skill()
             if selected is None:
                 break
             skill, ledger = selected
-            promoted |= self._run_v9_practice_attempt(skill, ledger)
+            try:
+                promoted |= self._run_v9_practice_attempt(skill, ledger)
+            except V9PracticeCancelled as cancellation:
+                self.stop_reason = cancellation.reason
+                break
         self._write_student_practice()
         return promoted
 
@@ -5014,12 +5151,16 @@ class PpoRunCallback(BaseCallback):
         recent: deque[int] = deque([-1] * ACTION_HISTORY_LENGTH, maxlen=ACTION_HISTORY_LENGTH)
         best = inherited.index
         actions = 0
+        cancellation_check = (
+            self._v9_practice_cancellation_reason if _is_v9_mode(self.config.mode) else None
+        )
         with PokemonRedEmulator(self.rom_path) as emulator:
             emulator.load_state(FrozenSnapshot.from_checkpoint_dict(source["snapshot"]).thaw())
             reader = PokemonRedStateReader(emulator)
             current = preprocess_apprentice_frame(emulator.screen_rgb())
             previous = current
             for step in range(limit):
+                _check_v9_practice_cancellation(cancellation_check)
                 action, recurrent_state = self._predict_student_action(
                     {
                         "pixels": np.stack((previous, current)),
@@ -5107,12 +5248,16 @@ class PpoRunCallback(BaseCallback):
         recurrent_state: Any | None = None
         current_skill = 0
         actions = 0
+        cancellation_check = (
+            self._v9_practice_cancellation_reason if _is_v9_mode(self.config.mode) else None
+        )
         with PokemonRedEmulator(self.rom_path) as emulator:
             emulator.load_state(FrozenSnapshot.from_checkpoint_dict(root["snapshot"]).thaw())
             reader = PokemonRedStateReader(emulator)
             current = preprocess_apprentice_frame(emulator.screen_rgb())
             previous = current
             for step in range(limit):
+                _check_v9_practice_cancellation(cancellation_check)
                 action, recurrent_state = self._predict_student_action(
                     {
                         "pixels": np.stack((previous, current)),
@@ -5144,18 +5289,21 @@ class PpoRunCallback(BaseCallback):
             self.self_skills.last_frozen_exam_actions = self.model.num_timesteps
             self._write_self_skills()
             return False
-        manifest = _load_curriculum_manifest(self.curriculum_directory)
-        choice = choose_v8_self_taught_episode(
-            manifest["entries"],
-            self.self_skills,
-            self.exam_rng,
-            frontier_probability=0,
-        )
         previous_mode = bool(self.student_model.policy.training)
+        previous_exam_rng_state = self.exam_rng.getstate()
         self.student_model.policy.set_training_mode(False)
         actions = 0
         competence_passed = False
         try:
+            if _is_v9_mode(self.config.mode):
+                _check_v9_practice_cancellation(self._v9_practice_cancellation_reason)
+            manifest = _load_curriculum_manifest(self.curriculum_directory)
+            choice = choose_v8_self_taught_episode(
+                manifest["entries"],
+                self.self_skills,
+                self.exam_rng,
+                frontier_probability=0,
+            )
             if choice.skill_id is not None:
                 skill = self.self_skills.skill(choice.skill_id)
                 self.last_exam_skill_label = str(skill["target_label"])
@@ -5181,6 +5329,10 @@ class PpoRunCallback(BaseCallback):
                     target_index=target_index,
                     hall_of_fame_target=hall_of_fame_target,
                 )
+        except V9PracticeCancelled as cancellation:
+            self.exam_rng.setstate(previous_exam_rng_state)
+            self.stop_reason = cancellation.reason
+            return False
         finally:
             self.student_model.policy.set_training_mode(previous_mode)
         self.self_skills.record_frozen_exam_round(actions=actions)
@@ -5193,6 +5345,11 @@ class PpoRunCallback(BaseCallback):
 
     def _on_rollout_start(self) -> None:
         if _is_distilled_student_mode(self.config.mode):
+            if _is_v9_mode(self.config.mode):
+                reason = self._v9_practice_cancellation_reason()
+                if reason is not None:
+                    self.stop_reason = reason
+                    return
             self._train_v8_student()
             if self._run_v9_practice_round():
                 self._narrative("closed-loop Student practice expanded one rung backward")
@@ -5240,9 +5397,16 @@ class PpoRunCallback(BaseCallback):
                 self.curriculum_directory,
                 candidate_path,
                 replay_passes=self.config.promotion_replays,
+                cancellation_check=(
+                    self._v9_practice_cancellation_reason
+                    if _is_v9_mode(self.config.mode)
+                    else None
+                ),
             )
             source_png = candidate_path.with_suffix("").with_suffix(".png")
             prepared_skill = self._prepare_self_generated_skill(verification, progress, source_png)
+            if _is_v9_mode(self.config.mode):
+                _check_v9_practice_cancellation(self._v9_practice_cancellation_reason)
             if isinstance(prepared_skill, _PreparedV9Skills):
                 self._commit_v9_candidate(verification, prepared_skill)
             else:
@@ -5259,6 +5423,11 @@ class PpoRunCallback(BaseCallback):
                 )
             self._checkpoint()
             self._narrative(f"verified {progress.label}")
+        except V9PracticeCancelled as cancellation:
+            # Candidate preparation is intentionally staged before curriculum
+            # admission. A campaign boundary can therefore discard partial private
+            # artifacts without admitting a lesson or training from it.
+            self.stop_reason = cancellation.reason
         except Exception as error:
             self.promotion_failures += 1
             with (self.run_directory / "verification-failures.jsonl").open(
@@ -5320,9 +5489,12 @@ class PpoRunCallback(BaseCallback):
             candidate = info.get("promotion_candidate")
             if isinstance(candidate, str):
                 self._handle_candidate(Path(candidate))
+                if self.stop_reason is not None:
+                    break
 
         if (
-            _is_distilled_student_mode(self.config.mode)
+            self.stop_reason is None
+            and _is_distilled_student_mode(self.config.mode)
             and self.self_skills is not None
             and self.model.num_timesteps - self.self_skills.last_frozen_exam_actions
             >= self.config.frozen_exam_interval_actions

@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import random
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -32,6 +33,7 @@ from pokemon_red_ai.ppo_training import (
     ParallelPpoConfig,
     PokemonPpoFeatures,
     PpoRunCallback,
+    V9PracticeCancelled,
     VisualStagnationTracker,
     _atomic_gzip_json,
     _checkpoint_curriculum_state,
@@ -40,9 +42,11 @@ from pokemon_red_ai.ppo_training import (
     _copy_retained_ppo_policy,
     _ensure_run_manifest_identity,
     _hall_of_fame_stop_is_verified,
+    _merge_v9_success_student_report,
     _remaining_action_budget,
     _remap_warm_start_lstm_input,
     _render_dashboard,
+    _replay_sequence,
     _resolve_checkpoint_artifact,
     _restore_curriculum_state,
     _restore_self_skill_state,
@@ -121,6 +125,145 @@ def test_v9_practice_requires_exact_target_signature() -> None:
         _v9_practice_signature_outcome(5, 4, ("later-milestone", b"stable-state", 5), protected)
         == "milestone_wrong_state"
     )
+
+
+def test_v9_replay_stops_before_the_next_action_at_a_campaign_boundary(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    executed: list[int] = []
+
+    class FakeEmulator:
+        def __enter__(self) -> FakeEmulator:
+            return self
+
+        def __exit__(self, *_args: object) -> None:
+            return None
+
+        def load_state(self, _state: bytes) -> None:
+            return None
+
+    monkeypatch.setattr(ppo_training_module, "PokemonRedEmulator", lambda _path: FakeEmulator())
+    monkeypatch.setattr(
+        ppo_training_module,
+        "_execute_action",
+        lambda _emulator, action: executed.append(action) is None,
+    )
+    boundaries = iter((None, "duration_limit"))
+
+    with pytest.raises(V9PracticeCancelled, match="duration_limit") as cancelled:
+        _replay_sequence(
+            Path("unused.gb"),
+            SimpleNamespace(thaw=lambda: b"snapshot"),
+            [1, 2, 3],
+            SimpleNamespace(),
+            cancellation_check=lambda: next(boundaries),
+        )
+
+    assert cancelled.value.reason == "duration_limit"
+    assert executed == [1]
+
+
+def test_v9_distillation_does_not_swallow_campaign_cancellation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        ppo_training_module,
+        "_collect_distillation_signatures",
+        lambda *_args, **_kwargs: (("start", 0), ("protected", 1)),
+    )
+
+    def cancel_replay(*_args: object, **_kwargs: object) -> tuple[object, ...]:
+        raise V9PracticeCancelled("stop_requested")
+
+    def invoke_oracle(trajectory: object, oracle: object, *, config: object) -> object:
+        del trajectory, config
+        oracle((1,))
+        raise AssertionError("campaign cancellation should escape the distiller")
+
+    monkeypatch.setattr(
+        ppo_training_module,
+        "_replay_distillation_terminal_signature",
+        cancel_replay,
+    )
+    monkeypatch.setattr(ppo_training_module, "distill_self_generated_trajectory", invoke_oracle)
+
+    with pytest.raises(V9PracticeCancelled, match="stop_requested"):
+        ppo_training_module._distill_verified_actions(
+            Path("unused.gb"),
+            SimpleNamespace(),
+            [1],
+            SimpleNamespace(),
+            SimpleNamespace(index=1),
+            verification_id="candidate",
+            successful_replays=1,
+            max_attempts=1,
+            cancellation_check=lambda: None,
+        )
+
+
+def test_v9_cancelled_frozen_exam_restores_rng_and_records_nothing() -> None:
+    callback = object.__new__(PpoRunCallback)
+    callback.config = SimpleNamespace(mode="self_taught_v9")
+    callback.self_skills = SimpleNamespace(skills=[{"skill_id": "edge-a"}])
+    policy = SimpleNamespace(
+        training=True,
+        set_training_mode=lambda value: setattr(policy, "training", value),
+    )
+    callback.student_model = SimpleNamespace(policy=policy)
+    callback.exam_rng = random.Random(123)
+    callback.stop_reason = None
+    callback._v9_practice_cancellation_reason = lambda: "duration_limit"
+    before = callback.exam_rng.getstate()
+
+    completed = PpoRunCallback._run_frozen_exam_round(callback)
+
+    assert completed is False
+    assert callback.stop_reason == "duration_limit"
+    assert callback.exam_rng.getstate() == before
+    assert policy.training is True
+
+
+def test_v9_rollout_boundary_does_not_start_more_student_work() -> None:
+    callback = object.__new__(PpoRunCallback)
+    callback.config = SimpleNamespace(mode="self_taught_v9")
+    callback.stop_reason = None
+    callback._v9_practice_cancellation_reason = lambda: "stop_requested"
+    started: list[str] = []
+    callback._train_v8_student = lambda: started.append("student_replay")
+    callback._run_v9_practice_round = lambda: started.append("practice")
+
+    PpoRunCallback._on_rollout_start(callback)
+
+    assert callback.stop_reason == "stop_requested"
+    assert started == []
+
+
+def test_v9_immediate_success_preserves_periodic_student_diagnostics() -> None:
+    merged = _merge_v9_success_student_report(
+        {
+            "updates": 12,
+            "train_examples": 512,
+            "diagnostics": {"action_accuracy": 0.75, "action_nll": 0.5},
+            "individual_skill_datasets": 3,
+            "replay_shards_loaded": 3,
+            "practice_replay_datasets_loaded": 2,
+            "replay_shard_selections": [{"skill_id": "edge-a"}],
+        },
+        {
+            "updates": 2,
+            "train_examples": 16,
+            "mean_action_accuracy": 0.875,
+        },
+    )
+
+    assert merged["training_kind"] == "closed_loop_success_only"
+    assert merged["updates"] == 2
+    assert merged["train_examples"] == 16
+    assert merged["diagnostics"] == {"action_accuracy": 0.75, "action_nll": 0.5}
+    assert merged["individual_skill_datasets"] == 3
+    assert merged["replay_shards_loaded"] == 3
+    assert merged["practice_replay_datasets_loaded"] == 2
+    assert merged["replay_shard_selections"] == [{"skill_id": "edge-a"}]
 
 
 def test_v9_practice_terminal_reasons_persist_and_are_public(tmp_path: Path) -> None:
