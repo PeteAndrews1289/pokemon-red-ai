@@ -31,6 +31,7 @@ rl = [
 
 [project.scripts]
 pokemon-red-ai = "pokemon_red_ai.cli:main"
+pokemon-red-ai-v11 = "pokemon_red_ai.v11:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

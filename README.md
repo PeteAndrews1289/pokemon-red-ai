@@ -11,10 +11,14 @@ The original game-naive, pixels-only condition remains a strict control. The Q0/
 baseline deliberately used a seeded random action emitter and a sealed, read-only referee; the next
 trials compare learned or optimized emitters under the same checkpoint and replay rules.
 
-> **Current status: V9's long run is closed at 1,431,556 Explorer actions and 4/87 frozen exams;
-> despite 68.5919% Student fit, zero skills became competent. The user intentionally stopped it at
-> 2h52m39.143s to start V10; `8h` was its ceiling. V10's matched-configuration long run is now live.
-> Its first snapshot is a heartbeat, not a result.**
+> **Current status: V10 is closed at 534,924 Explorer actions, Route 1, 3/32 frozen exams, and zero
+> competent skills. Its generic recovery mechanism worked as designed but did not solve reliable
+> composition. Version 11's disclosed hierarchical planner, map navigator, persistent memory, and
+> controller specialists are now operational. Four bounded canaries qualified the opening referee
+> only after exposing path, tool-authorization, and state-truth failures. A fresh continuous V11
+> run is active from true power-on; it has not reached the Hall of Fame and is not guaranteed to
+> finish.** See
+> [Stop teaching one button at a time](docs/version-11-hierarchical-pivot.md).
 > Stage 0 memorized and exactly replayed its one 419-action house-exit route. Reverse curriculum
 > completed that opening in development, and Frontier Apprentice proved that network updates can be
 > gated behind replay-verified milestones. Its limitation was equally important: almost every
@@ -147,13 +151,23 @@ trials compare learned or optimized emitters under the same checkpoint and repla
 > `2026-07-22T00:37:44.442964Z` from clean commit
 > `513afc378d091d18560efb4af4931d882c05000d`. It retains V9's seed, V8 root curriculum, four
 > environments, 8h/150-million-action ceiling, and PPO/Student practice config; source commit and
-> start time differ. At about `2026-07-22T00:42:55Z` it was running at 310.686 seconds with 22,532
-> actions (72.523/s), 22 updates, 30 episodes, five promotions through `chose_starter`, 286
-> positions, five skills, and 0/1 frozen exams with zero competent skills. All 366 windows were
-> blocked-repeat: 165 escaped, 169 context-changed, 30 expired, two active, and zero
-> abandoned/unresolved/overrides across 3,475 recovery actions. Checkpoint actions had crossed
-> 20,480, both policy hashes matched, and the dashboard returned HTTP 200. This is heartbeat evidence only. See
+> start time differ. The user ended it cleanly after 4,503.282 seconds and 534,924 actions. It made
+> 522 PPO updates, reached Route 1, observed 567 positions, and ended with 3/32 frozen exams, zero
+> competent skills, and no composition. Its 1,977 recovery windows closed as 956 escapes, 910
+> context changes, 110 expirations, and one campaign-end abandonment; no actor action was
+> overridden. This is the terminal V10 result, not an eight-hour result. See
 > [Let the Explorer recover before resetting](docs/version-10-recovery-before-reset.md).
+> V11's first two canaries produced no controller action: one double-resolved the planner's working
+> directory, and the next lacked explicit unattended MCP approval. Canary 3 finally connected the
+> complete stack, but the visible Oak introduction was falsely reported as a controllable bedroom
+> and the opening objective advanced without proof. Canary 4 added an opening referee and supplied
+> the missing evidence: at `2026-07-22T03:22:41Z`, a RIGHT input moved RED from `(3,6)` to `(4,6)`.
+> Only then could `pallet_000` complete. The bounded run ended after 600.521 supervisor seconds
+> (596.087 metrics seconds), 136 actions, and 70 language-model calls, in `RedsHouse2f` at `(0,2)`
+> with story index 1/84 and no party, badges, or Hall-of-Fame result. Its early server telemetry
+> still leaked the pre-game bedroom map before the public state did; that final server-layer leak
+> was fixed before the fresh continuous run `v11-continuous-20260721-233300` began. The local live
+> dashboard is served on port 8775. This is qualified plumbing, not whole-game capability.
 
 The current code preserves every historical runner, including Monkey, Archivist, online learners,
 and clean-start neuroevolution, so rejected approaches remain reproducible. See
@@ -175,10 +189,11 @@ attempt. That foundation is Act I of the project, not backstage work to be edite
 The primary completion protocol is the
 [Hall of Fame completion program](docs/completion-program.md). The original
 [game-naive, pixels-only curiosity](docs/blind-curiosity.md) protocol remains the philosophical
-control. [Visual Apprentice v1](docs/visual-apprentice.md) remains a preserved predecessor; the
-current implemented successor hypothesis is
-[Version 10's recovery-before-reset Explorer](docs/version-10-recovery-before-reset.md), built on
-[Version 9's self-correcting Student](docs/version-9-self-correcting-student.md). The editorial direction lives in
+control. [Visual Apprentice v1](docs/visual-apprentice.md) and V7–V10 remain preserved learned-policy
+predecessors. The active implementation is
+[Version 11's hierarchical completion pivot](docs/version-11-hierarchical-pivot.md); it discloses
+maps, objectives, memory, and deterministic navigation instead of presenting them as pixels-only
+learning. The editorial direction lives in
 [The project narrative](docs/narrative.md), and evidence levels remain tracked in
 [Progress](docs/progress.md).
 
@@ -193,14 +208,14 @@ current implemented successor hypothesis is
 | What guides the Archivist trainer? | Coarse pixels, novelty membership, and archive visit counts |
 | Does RAM guide every arm? | No. Every run declares actor and training information separately; the completion referee may guide training but never chooses buttons |
 | Does the supplied game boot and accept controlled input? | Yes |
-| Can a clean run reach the first playable bedroom state? | Yes, deterministically |
-| Can the harness identify map, position, party size, and battle state? | Yes, read-only |
+| Can a clean run reach the first playable bedroom state? | Yes: a historical scripted fixture does so deterministically, and V11 Canary 4 independently proved live control there |
+| Can the harness identify map, position, party size, and battle state? | Yes, read-only, but V11 now suppresses pre-control map/position values after Canary 3 showed that semantically stale RAM can look playable |
 | Are ROMs, saves, snapshots, and gameplay captures committed? | No |
 | Preserved random comparison | Monkey vs. pixels-only Archivist under matched budgets |
 | Completed 90-minute pretrial | Evolution reached tier 1; online learners plateaued around Pallet Town and Route 1 |
 | Concluded neural experiment | Six inherited-archive lanes all failed the second-map/party gate under equal fuel |
-| Current completion work | V9 closed at Route 1 with 4/87 frozen exams and zero competent skills; the matched-configuration V10 recovery run is active, with only heartbeat evidence so far |
-| North star | First discover a replayable Hall-of-Fame lineage, then train and evaluate one frozen pixel policy |
+| Current completion work | V10 closed at Route 1 with 3/32 frozen exams and zero competent skills; V11's opening referee is qualified and a fresh continuous assisted-hierarchy run is active from power-on |
+| North star | First obtain one trustworthy, fully recorded hierarchical Hall-of-Fame journey; then distill it into learned specialists and a frozen power-on system |
 
 ## The journey
 
@@ -220,9 +235,10 @@ flowchart LR
     V7 --> V8["✅ V8<br/>0/7 canary; 1/47 final"]
     V8 --> V9["✅ V9 mechanism<br/>0/3 qualification"]
     V9 --> LONG["✅ V9 long run<br/>4/87; zero competent"]
-    LONG --> V10["✅ V10 mechanism<br/>E3 canary passed"]
-    V10 --> LIVE["🟨 V10 long run<br/>heartbeat only"]
-    LIVE --> HF["⬜ Hall of Fame<br/>one frozen policy"]
+    LONG --> V10["✅ V10 closed<br/>3/32; zero competent"]
+    V10 --> V11["🟨 V11 hierarchy<br/>opening qualified; run active"]
+    V11 --> HF["⬜ Guided Hall of Fame<br/>strictly verified journey"]
+    HF --> DISTILL["⬜ Distill + freeze<br/>learned specialists"]
 ```
 
 GitHub issues and experiment records will attach evidence to this roadmap. A checked engineering

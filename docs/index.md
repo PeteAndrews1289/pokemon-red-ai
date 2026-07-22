@@ -1,61 +1,40 @@
 # Documentation hub
 
-This project has two stories running in parallel:
+This project now has one central story and two deliberately separate research lanes:
 
-1. the engineering story — building a trustworthy way to run and measure Pokémon Red; and
-2. the learning story — what an agent eventually tries, learns, forgets, and masters.
+1. **Assisted hierarchical lane — active.** V11 uses a structured-state language-model planner,
+   declared objectives, processed maps, A* navigation, persistent run memory, controller
+   specialists, and a strict read-only referee. Those are visible runtime aids, so this lane is
+   labeled `ASSISTED` / `HYBRID-SYSTEM`, not pixels-only learning.
+2. **Frozen learned-policy lane — preserved.** The blind, evolutionary, PPO, and recurrent-Student
+   experiments remain the evidence for what policies discovered, learned, forgot, and failed to
+   compose. V7–V10 are historical controls; they are not silently converted into V11 results.
 
-The emulator foundation, blind runners, online learners, and first neuroevolution population are
-working. There is still **no evaluated successful Pokémon-playing policy or whole-game result**.
-Pure Monkey completed its role as the random baseline. A 90-minute evolutionary pretrial inherited
-a narrow game-start behavior; the completed six-lane follow-up then failed to extend any treatment
-beyond one map. The checkpoint expedition then reached and replayed `left_home` in one of two
-bounded seeds. That earns a narrow expedition milestone claim while failing the frozen two-seed Q1
-gate. Archive v2 then passed continuous, graceful-resume, and hard-crash qualification. Turning the
-verified route into a learned visual skill is now the active work.
-Stage 0 then reproduced its sole route exactly, reverse curriculum completed the opening in
-development, and Frontier Apprentice established a replay-gated self-imitation baseline. The active
-successor is four-worker recurrent PPO: every rollout can now update one shared policy while the
-same verifier controls named curriculum promotion. Version 5.1 used explicit active goals to reach
-the Pokédex, then plateaued for more than three million actions. Version 5.2 turned the road from
-Oak's Lab to Pewter Gym into a visible curriculum and reached Route 1. Version 6 retained that
-policy but ended at 5/10—short of its 8/10 first composition gate—after one million actions.
-Version 7 now restarts from random weights and
-power-on only, using no imported actions or human demonstration. It converts only its own verified
-discoveries into visual-goal skills and directly rehearses them. Its current long trial remains
-running unchanged as the denominator. Version 8 is implemented beside it: PPO Explorers keep
-searching, but a separate recurrent Student studies replay-distilled self-generated trajectories
-and replay-verified bounded handoffs between locally competent skills. It earns competence only in
-checkpoint-separated frozen exams. Its first 5,248-action real-ROM canary passed the
-mechanism and clean-resume gate on `game_started`; it did not test causal learning or useful later
-gameplay. The later clean-commit canary discovered four skills through Oak's lab and exercised
-bounded replay across two resumes, but passed 0/7 frozen Student exams. That mechanism record is
-preserved. V8's final longer run reached Route 1 with seven skills and 53.0817% action accuracy, but
-passed only 1/47 frozen exams; zero skills became competent and no composition ran. Version 9 now
-has engineering-checked consecutive edges, exact-target reverse closed-loop practice, success-only
-bounded replay, terminal counters, and checkpoint rollback. Its first real-ROM canary exposed a
-wall-time overrun and report-merge defect; the corrected 144-second canary qualified mechanism,
-observability, and campaign timing while passing 0/3 frozen exams. Competence remains open, and the
-future Student PPO recovery lane remains disabled. The user intentionally closed V9 after
-2h52m39.143s to begin V10; `8h` was its ceiling. It processed 1,431,556 actions, reached Route 1,
-and lifted Student fit to 68.5919%, yet 4/87 frozen exams yielded zero competent skills and no
-composition. Visible wall-bouncing during that frozen campaign motivated a separate Version 10
-rather than a mid-run repair. V10 lets the Explorer policy keep choosing actions inside a bounded generic recovery window
-before reset; it supplies no direction or route. The mechanism passed deterministic E2
-qualification—67 focused checks, 293 default-suite passes with 13 private-ROM skips, and 54/54
-selected ROM-bearing checks with the private ROM in 19.02 seconds. A direct ground-floor
-private-ROM fixture proved Up×3 → Start is zero-credit `context_changed`, while a fresh Up×3 → Down
-is credited `escaped`; both preserve submitted/executed action identity. Telemetry separately
-accounts for every escaped, context-changed, expired, active, or abandoned window; unresolved
-inactive windows must remain zero. A clean 144.102-second E3 campaign canary then processed 6,099
-actions, made two promotions through the ground floor, and closed all 73 blocked-repeat windows as
-36 credited escapes, 32 zero-credit context changes, and five expirations. It ended with zero
-active, abandoned, unresolved, or overridden-action counts. This qualifies the bounded mechanism,
-not exploration superiority or learning. The matched-configuration V10 run is now active with V9's
-seed and runtime/PPO/Student configuration; source commit and start time differ. Its first
-strong heartbeat at 310.686 seconds recorded 22,532 actions, five promotions through
-`chose_starter`, 0/1 frozen exams, and zero competent skills. This is live evidence only, not a
-comparison result.
+There is still **no whole-game result and no frozen learned policy that can complete Pokémon Red**.
+V10 is the terminal learned-policy record immediately before the architectural pivot: it closed at
+4,503.282 seconds, 534,924 actions, 3/32 frozen exams, and zero competent skills. Its recovery
+mechanism worked, but long-horizon competence did not emerge.
+
+V11's opening qualification is now complete, and all four canaries remain part of the public story:
+
+| Canary | Outcome | What it taught us |
+| --- | --- | --- |
+| C1 | Path-resolution failure | The launcher could not prove it was using the intended runtime inputs, so it failed closed |
+| C2 | MCP-authorization failure | The planner connection was unavailable; no gameplay claim survived the failed authorization boundary |
+| C3 | Operational but rejected | The hierarchy ran, but initialized bedroom RAM falsely described later story state; visible game evidence overruled the attractive false result |
+| C4 | Opening referee qualified | 136 controller actions and 70 language-model calls produced empirical RIGHT-movement proof and verified story objective 1/84 |
+
+A fresh unbounded V11 run is active from clean power-on with empty run memory. Here, “unbounded”
+means there is no planned wall-clock cutoff. It does **not** mean the agent is guaranteed to finish,
+that it will run through every failure, or that a Hall-of-Fame result already exists. Completion
+still requires the strict referee, a complete provenance record, and no disallowed intervention.
+
+The through-line for the documentation and eventual video is the pivot itself. The project began
+with the “monkeys with typewriters” question, learned that randomness cannot retain luck, learned
+that local rewards and self-generated lessons can still fail to compose a journey, and then changed
+the unit of reasoning from isolated button habits to an auditable planner–memory–specialist system.
+If V11 succeeds, that is an assisted hierarchical completion. The harder learned-policy question
+remains open in its own lane.
 
 ## Start here
 
@@ -74,8 +53,9 @@ comparison result.
 | Understand the composition pivot | [Version 6: remember the journey](version-6-consolidation.md) | Retained weights, backward rolling gates, canary evidence, claim boundaries, and the next imitation ablation |
 | Understand the game-naive reset | [Version 7: let a new player teach itself](version-7-self-taught.md) | Random power-on start, strict information rules, self-generated visual skills, self-imitation, canary evidence, and falsification gates |
 | Understand the closed V8 result | [Version 8: separate discovery from learning](version-8-distilled-student.md) | Why V7 remains the denominator; how the 0/7 canary qualified the mechanism; why the longer seven-skill run still ended at 1/47 and zero competent skills |
-| Understand the current architecture change | [Version 9: let the Student practice being wrong](version-9-self-correcting-student.md) | Exposure bias, consecutive edges, reverse practice, the failed and corrected canaries, success-only aggregation, campaign timing, strict 0/3 exams, and video narrative |
+| Understand the closed self-correction experiment | [Version 9: let the Student practice being wrong](version-9-self-correcting-student.md) | Exposure bias, consecutive edges, reverse practice, the failed and corrected canaries, success-only aggregation, campaign timing, and frozen-exam result |
 | Understand the loop-recovery successor | [Version 10: let the Explorer recover before resetting](version-10-recovery-before-reset.md) | Why immediate reset may hide the recovery lesson; strict policy action authority; route-agnostic recovery, telemetry, falsifiers, canary gates, and claim limits |
+| Understand the whole-game architecture pivot | [Version 11: stop teaching one button at a time](version-11-hierarchical-pivot.md) | Why V10 closed; planner/navigation/memory/specialist roles; assistance label; clean-start safeguards; strict completion; canary and distillation plan |
 | Inspect the first verified expedition milestone | [Q1 `left_home` result](../experiments/q1-left-home/README.md) | Both seeds, full denominator, lineage hashes, replay cost, and why 1/2 is not a pass |
 | Audit the qualified memory substrate | [Archive v2 qualification](../experiments/archive-v2-qualification/README.md) | Bounded replay, exact resume, crash recovery, deterministic comparison, and the failed stop-timing attempt |
 | Audit every accepted and discarded idea | [Decision register](decision-register.md) | Append-only decisions, failed hypotheses, alternatives, evidence, and consequences |
@@ -84,7 +64,7 @@ comparison result.
 | See what is genuinely complete today | [Progress](progress.md) | What is verified, what is merely implemented, and what is still planned |
 | Follow the journey ahead | [Roadmap](roadmap.md) | Milestones, gates, dependencies, and definitions of done |
 | Understand the system | [Architecture](architecture.md) | How the emulator, agent, memory, watchdog, and referee fit together |
-| Audit current instrumentation | [State instrumentation](state-observation.md) | Six read-only harness/referee fields and their limits; no policy consumes them yet |
+| Audit the original instrumentation boundary | [State instrumentation](state-observation.md) | Six read-only harness/referee fields and their limits; V11's separately disclosed structured-state actor uses a broader assisted interface |
 | Judge future experimental claims | [Experiment protocol](experiment-protocol.md) | Training/evaluation separation, required metrics, and comparison rules |
 | Turn experiments into clear visuals | [Visual storytelling](visual-storytelling.md) | Charts, timelines, run summaries, and a possible video structure |
 | Generate a local result page | [Run reports](run-reports.md) | How a JSONL trace becomes a readable standalone report |
@@ -113,12 +93,15 @@ flowchart LR
     J --> K["✅ Frontier Apprentice<br/>verify-only baseline"]
     K --> P["✅ Parallel recurrent PPO<br/>verified slices"]
     P --> V6["✅ Version 6<br/>composition failure measured"]
-    V6 --> V7["🟨 Version 7<br/>live denominator"]
+    V6 --> V7["✅ Version 7<br/>preserved denominator"]
     V7 --> V8["✅ Version 8<br/>0/7 canary; 1/47 final"]
     V8 --> V9["✅ Version 9 mechanism<br/>0/3 qualification"]
     V9 --> L9["✅ Version 9 long run<br/>4/87; zero competent"]
-    L9 --> V10["✅ Version 10 mechanism<br/>E3 canary passed"]
-    V10 --> L10["🟨 Version 10 long run<br/>heartbeat only"]
+    L9 --> V10["✅ Version 10 closed<br/>3/32; zero competent"]
+    V10 --> V11["✅ Version 11 hierarchy<br/>opening canary qualified"]
+    V11 --> RUN["🟨 Clean power-on run<br/>unbounded; active"]
+    RUN --> HF["⬜ Assisted Hall of Fame<br/>strict dual-condition verifier"]
+    HF --> DS["⬜ Distill + freeze<br/>learned specialists"]
 ```
 
 The diagram shows project position, not game progress. Reaching the game-start state is a narrow

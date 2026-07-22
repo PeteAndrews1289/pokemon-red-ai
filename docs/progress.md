@@ -8,8 +8,8 @@
 > improved its first composition window from 0/10 to 5/10, but failed the required 8/10 gate after
 > one million actions. Version 7 resets the main question: random
 > parameters, power-on only, no imported actions, and no authored route reward. It may imitate and
-> rehearse only transitions it discovers and replay-verifies itself. Its current long run remains
-> untouched as the denominator. Version 8 separated its noisy PPO
+> rehearse only transitions it discovers and replay-verifies itself. Its recorded state remains
+> preserved as a historical denominator. Version 8 separated its noisy PPO
 > Explorer from a recurrent Student, compressed only replay-preserving edits, and graded learning in
 > frozen exams. The clean source-bound canary discovered and distilled four transitions through
 > Oak's lab and survived two resumes, but the Student passed 0/7 frozen exams. The final longer V8
@@ -38,16 +38,26 @@
 > broader exploration, and learned competence were still unproven. The following 144.102-second
 > clean real-ROM canary passed the E3 mechanism gate with 6,099 actions, two promotions through the
 > ground floor, and an exactly closed 73-window denominator: 36 escaped, 32 context-changed, five
-> expired, and zero active/abandoned/unresolved. The matched-configuration V10 successor is now
-> active from seed 20260809 with V9's declared runtime/PPO/Student configuration and the recovery
-> mechanism added. At 310.686 seconds it had reached `chose_starter` but passed 0/1 frozen exams;
-> this remains heartbeat evidence only, not a result.
+> expired, and zero active/abandoned/unresolved. The matched-configuration V10 successor was then
+> stopped cleanly so the project could change architecture. It ended after 4,503.282 seconds
+> (1h15m03.282s) and 534,924 Explorer actions, with seven promotions through Route 1, but only 3/32
+> frozen exam passes, zero competent skills, and no composition. Its local-recovery mechanism is a
+> useful result; broader exploration and learned competence remain unproved.
+> Version 11 is now the active assisted-completion track. It replaces the flat reward-driven
+> completion lane with a disclosed hierarchy: a structured-state language-model planner,
+> persistent run memory, processed maps, A* navigation, controller specialists, and a strict
+> read-only Hall-of-Fame referee. Four canaries hardened its opening boundary. C1 failed on path
+> resolution; C2 failed on MCP authorization; C3 proved the architecture could run but was rejected
+> when initialized bedroom RAM falsely described later story state; and C4 qualified the opening
+> referee after 136 controller actions and 70 language-model calls, including empirical proof that a
+> RIGHT input caused real movement. C4 reached story objective 1 of 84. A fresh unbounded clean
+> power-on run is active now. “Unbounded” removes a planned wall-clock cutoff; it is not a prediction
+> or guarantee that the system will reach the Hall of Fame.
 
-- **Current stage:** Version 7 remains the locked denominator; Version 8 is closed after its 0/7
-  qualification canary and 1/47 final run; Version 9 mechanism qualification passed at 0/3 frozen
-  exams, and its long run is closed at 4/87 with zero competent skills; Version 10 recovery passed
-  deterministic E2 qualification, direct E3 calibration, and one bounded E3 canary, and its
-  matched-configuration long run is active
+- **Current stage:** the frozen learned-policy lane is preserved at V7–V10 and is not the active
+  completion runner. V10 closed at 4,503.282 seconds, 534,924 actions, 3/32 frozen exams, and zero
+  competent skills. The separately labeled V11 assisted-hierarchy lane passed its fourth opening
+  canary and now has a fresh unbounded clean-start run in progress
 - **Status date:** 2026-07-21
 
 **Most important caveat:** Q1 verified one replayable house-exit lineage, but the acting suffix
@@ -130,7 +140,7 @@ flowchart LR
 | Version 6 one-million-action consolidation diagnostic | ✅ Preserved negative result | E3 training | It closed at 1,001,476 actions, 978 updates, and 390 episodes. The retained policy succeeded in 11/206 earlier-start attempts and ended at 5/10, below the required 8/10; no backward or power-on gate passed |
 | Version 7 begins without an inherited solution | ✅ Qualified engineering | E3 pipeline | Manifest records random untrained parameters, zero imported actions/parameters, no demonstrations, and power-on only; 25 inherited later entries were deleted before the real-ROM canary |
 | Version 7 creates skills from its own play | ✅ Replay verified | E3 checkpoint-assisted | In 8,192 actions the random policy verified game start and the ground floor, created two hashed visual/action skills, trained eight imitation updates over 2,048 examples, and reproduced the ground-floor skill once; 8/10 competence remains untested |
-| Earlier live Version 7 denominator snapshot | 🟨 Active, unchanged | E3 training snapshot | At `2026-07-21T17:29:11Z`: 6,466,564 actions, Route 1, seven discoveries, zero competent skills, 19/1,274 rehearsals, and 66,560 imitation examples; this is not its terminal result |
+| Earlier live Version 7 denominator snapshot | ✅ Preserved historical snapshot | E3 training snapshot | At `2026-07-21T17:29:11Z`: 6,466,564 actions, Route 1, seven discoveries, zero competent skills, 19/1,274 rehearsals, and 66,560 imitation examples; this is not its terminal result |
 | V8-locked Version 7 denominator snapshot | ✅ Hash-bound snapshot | E3 training snapshot | At `2026-07-21T18:42:15Z`: 7,442,496 actions and milestone index 8 (`Reached Viridian City`); V8 stores a path-free checkpoint/model pairing, and this remains a fixed launch-time anchor rather than V7's terminal result |
 | Earlier Version 8 wiring canary | ✅ Qualified engineering | E3 pipeline | Canary `parallel-ppo-v8-resume-canary-20260721-seed20260791` stopped/resumed twice and ended `stop_requested` at 5,248 Explorer actions / 48.038s; one 256-action `game_started` edge distilled to 254 with final replay verified; its duplicate grades are retained only as historical wiring evidence |
 | Version 8 committed mechanism runs on the real ROM | ✅ Qualified engineering | E3 pipeline | Clean-source canary `parallel-ppo-v8-canary-20260721-seed20260792` at commit `4c3c1fc` began from random power-on, survived two resumes, and reached index 4 (`met_professor_oak`) with four verified and distilled skills in 3,584 Explorer actions |
@@ -148,7 +158,7 @@ flowchart LR
 | Version 8 reward/watchdog excludes authored routes | ✅ Implemented and checked | E2 | With navigation/Mart weights disabled, reward tracking skips route guidance, active-goal lookup, and Mart calculations; new position and general durable consequences may reset the timer, while route distance, milestone index, and Mart script cannot. V7 retains its historical watchdog shaping and is not fully blind at that boundary |
 | Version 8 dashboard separates the evidence | ✅ Implemented and checked | E2 | Four depth meters, Hall-of-Fame count, Explorer/Student hashes, locked V7 denominator, honest distillation fallbacks, Explorer-action clock, shard stored/owned/context footprint, bytes, coverage, zero full-source opens, and RAM milestone goal-switch disclosure are visible independently |
 | Version 8 composition boundary is explicit | ✅ Implemented and documented | E2 | One frozen Student chooses every button, but a trainer-side RAM referee switches an ordered playlist of self-generated visual targets at declared milestones; this is goal-conditioned hierarchical control, not unaided pixel-only autonomy |
-| Version 8 improves on Version 7 | ⬜ Not demonstrated | E0 | V7 must finish unchanged and V8 needs a matched multi-skill comparison of frozen success, actions, emulator-hours, replay cost, and forgetting; the short V8 qualification canaries are not comparable with the multi-million-action V7 denominator |
+| Version 8 improves on Version 7 | ⬜ Not demonstrated | E0 | No terminal matched V7/V8 comparison was completed. V8 would need a matched multi-skill comparison of frozen success, actions, emulator-hours, replay cost, and forgetting; its qualification canaries are not comparable with the multi-million-action V7 snapshot |
 | Version 9 pre-hardening canary | 🟨 Failed usefully | E3 diagnostic | Run `parallel-ppo-v9-canary-20260721-seed20260801` was configured for 180s but synchronous work overran; manual STOP ended it at 248.801s / 12,360 actions. It reached `Stepped outside`, built six skills, and recorded 19/22 exact practice outcomes plus 0/3 frozen exams. Immediate success reports replaced richer periodic dashboard diagnostics; STOP exposed but did not cause the defect. It is not the authoritative qualification |
 | Version 9 corrected qualification | ✅ Mechanism qualified; competence absent | E3 pipeline | After commit `e1ea199`, run `parallel-ppo-v9-canary2-20260721-seed20260802` ended `duration_limit` at 144.082s against 144.0s. It processed 12,520 actions at 86.895/s, made 12 PPO updates, reached the ground floor with two promotions/three skills, and had zero promotion failures. Mechanism, observability, and wall-time control qualify; 0/3 frozen exams prove no competent skill |
 | Version 9 self-correcting Student | ✅ Engineering and canary path qualified | E2 / E3 pipeline | The current suite passes 276 non-integration plus 12 integration checks (288 total). The corrected canary completed 20 Student rounds, 64 updates, and 1,400 examples; fit ended at 0.1415313 accuracy / 2.211105 NLL. This is working machinery, not useful learning |
@@ -163,16 +173,20 @@ flowchart LR
 | Version 9 strict frozen evaluation | ✅ Closed; 4/87, zero competent | E3 denominator | Four isolated frozen successes did not satisfy any skill's checkpoint-separated competence gate. Reverse-rung success and 68.5919% fit remained training diagnostics; no composition became eligible |
 | Version 10 recovery-before-reset mechanism | ✅ Checked and directly calibrated | E2 / E3 mechanism | A separate `self_taught_v10` successor preserves V9 and gives repeated generic ineffective directional action/pixel outcomes a bounded chance to recover before classified reset. The PPO policy still chooses every button; no direction, route, coordinate, map, action mask, or controller override enters the actor. Focused checks passed 67/67, the default suite passed 293 with 13 private-ROM skips, and selected ROM-bearing files passed 54/54 with the private ROM in 19.02 seconds. After blocked-repeat, only a directional material visual outcome is credited; Start closes as zero-credit `context_changed`. Long stagnation opens at 1,024 ineffective outcomes; backtracking resets its hard timer without clearing short-cycle detection. Every opened window is accounted for as escaped, context-changed, expired, active, or abandoned; unresolved inactive windows must remain zero |
 | Version 10 bounded real-ROM canary | ✅ Mechanism qualified; comparison pending | E3 pipeline | Clean commit `a0ec14a5506fe3a0c4bcb15787f68be4d512d764`, seed 20260810, one environment: `duration_limit` at 144.102s, 6,099 actions (42.324/s), 47 PPO updates, two verified promotions through the ground floor, 93 unique positions, verified checkpoint hashes, and 40 MiB. All 73 windows were blocked-repeat: 36 escaped, 32 context-changed, five expired, 702 recovery actions, 49.315% credited escape rate, and zero active/abandoned/unresolved/overrides. Five expirations matched five recovery-expired episodes. Visual-cycle and long-stagnation paths were not activated. This earns a matched longer comparison, not an exploration, learning, competence, or Hall-of-Fame claim |
-| Version 10 matched-configuration long run | 🟨 Active; heartbeat only | E1 live | Run `parallel-ppo-v10-recovery-8h-20260721-seed20260809`, clean `513afc378d091d18560efb4af4931d882c05000d`, started `2026-07-22T00:37:44.442964Z`. It matches V9's seed 20260809, V8 root curriculum, four environments, 8h/150M ceiling, and PPO/Student practice config; source commit/time differ. At 310.686s: 22,532 actions (72.523/s), 22 updates, 30 episodes, five promotions through `chose_starter`, 286 positions, five skills, zero competent, frozen 0/1. Recovery: 366 blocked-repeat windows = 165 escaped + 169 context-changed + 30 expired + 2 active; 364 completed, 3,475 actions, zero abandoned/unresolved/overrides. Checkpoint recorded 20,480 actions, both hashes matched, HTTP 200. Heartbeat only, not a result |
+| Version 10 matched-configuration long run | ✅ Closed negative learning result | E3 training | Run `parallel-ppo-v10-recovery-8h-20260721-seed20260809` ended cleanly by SIGINT after 4,503.282s (1h15m03.282s), 534,924 Explorer actions at 118.785/s, 522 PPO updates, 122 episodes, 567 unique positions, and seven promotions through Route 1. The Student completed 270 rounds and 3,366 updates over 121,194 examples, ending at 43.2519% accuracy / 1.556849 NLL. Frozen exams finished 3/32, with zero competent skills and no composition. Recovery closed 1,977 windows: 956 escaped, 910 context-changed, 110 expired, and one abandoned at campaign end; zero buttons were overridden. Output was 51,716,995 bytes and final hashes matched. The `8h`/150M values were ceilings, not the achieved duration or action count |
 | Version 10 improves exploration | ⬜ Not demonstrated | E0 | Recovery activations or fewer resets are not sufficient. A declared comparison must account for recovery actions and show broader unique positions/maps or deeper replay-verified milestones before claiming an exploration gain |
 | Version 10 improves learned competence | ⬜ Not demonstrated | E0 | Explorer recovery does not itself train a competent Student. Checkpoint-separated frozen local exams and restore-free composition remain the behavioral authority |
+| Version 11 assisted hierarchy | ✅ Operational; opening boundary qualified | E2 / E3 mechanism | The pinned `continual-harness` adaptation runs a structured-state language-model planner, processed-map/A* navigation, controller specialists, persistent run memory, ordinary Game Boy inputs, a power-on start, and a strict completion condition requiring both event bit `0x901` and Hall-of-Fame map `0x76`. It deliberately exposes more assistance than V7–V10 and is labeled `ASSISTED` / `HYBRID-SYSTEM` |
+| Version 11 canaries C1–C3 | ✅ Preserved failures and rejection | E3 diagnostic | C1 failed closed on path resolution. C2 failed closed on MCP authorization. C3 made the architecture operational, but the apparent story state came from invalid initialized bedroom RAM; the screenshot/state disagreement caused the result to be rejected rather than promoted |
+| Version 11 canary C4 | ✅ Opening referee qualified | E3 mechanism | From a clean opening boundary, C4 used 136 controller actions and 70 language-model calls, produced empirical proof that RIGHT caused real movement, and advanced the verified story counter to 1/84. This qualifies control and objective evidence at the opening; it is not learning, whole-game progress, or a Hall-of-Fame result |
+| Version 11 unbounded clean run | 🟨 Active; outcome unknown | E1 live | A fresh power-on run with empty run memory is operating without a planned wall-clock limit. Strict Hall-of-Fame detection, disk guards, failures, and operator stop conditions still apply. No completion time, eventual success, or Hall-of-Fame outcome is promised or claimed |
 | One retained model composes the route from power-on | ⬜ Not demonstrated | E0 | Backward training and frozen evaluation gates must expand to power-on before this claim exists |
 | Reverse curriculum reaches the complete opening horizon | ✅ Completed in development scope | E3 development | Seven adaptive rungs completed in 480 attempts with 451 successes; the final full-horizon rung passed 29/30 twice, but weights changed between attempts and no held-out H2 evaluation exists |
-| The apprentice-guided expedition continues beyond `left_home` | 🟨 Active | E1 | Frozen pixel-policy actions and seeded exploration now feed Archive v2's full 66-milestone search; no later verified milestone is claimed before run evidence exists |
+| The apprentice-guided expedition continued beyond `left_home` | ✅ Preserved historical lane | E1 | Frozen pixel-policy actions and seeded exploration fed Archive v2's milestone search; this lane is retained as learned-policy evidence rather than presented as the active V11 completion runner |
 | Frontier Apprentice learns only replay-verified promotions | ✅ Checked | E2 / E3 engineering | A real-ROM canary learned five promotions through `chose_starter`, made 38 updates, passed 49/49 replay checks, and resumed at the exact learner hash after an intentional stop; Forest performance remains untested |
 | Parallel recurrent PPO updates from every rollout | ✅ Checked | E2 / E3 engineering | Pixels-only and privileged canaries completed optimizer updates and hash-bound checkpoints; a production-shaped four-worker run completed two full updates and wrote all dashboard frames |
 | Four emulator workers fit the current M1 host | ✅ Checked | E2 local benchmark | Under the prior learner's one-core load, 2/4/6 workers measured 178.06/419.34/351.39 actions/s; the four-worker production shape measured 218.65 actions/s with four optimizer epochs |
-| Parallel PPO advances beyond its frozen curriculum | 🟨 Active | E2 | Version 3 ended at 1,147,988 actions and Route 1. Version 4's 65,536-action stress canary exposed a warm-start history mapping error; the corrected build passed a fresh 16,384-action real-ROM qualification with HP credit, two successes, classified loop exits, matching artifacts, and no promotion. |
+| Parallel PPO advanced beyond its frozen curriculum | ✅ Preserved historical lane | E2 / E3 | Version 3 ended at 1,147,988 actions and Route 1. Version 4's 65,536-action stress canary exposed a warm-start history mapping error; the corrected build passed a fresh 16,384-action real-ROM qualification with HP credit, two successes, classified loop exits, matching artifacts, and no promotion. Later V7–V10 results remain the frozen learned-policy comparison record |
 | The Q0 discovery baseline reached a playable milestone | ⬜ Not demonstrated | E0 | It reached Oak's introduction visually but the referee correctly remained at `power_on` |
 | The expedition reached `left_home` | ✅ Verified in one development seed | E3 / H3 | A 419-action lineage passed three promotion replays; the two-seed Q1 result was 1/2 and the emitter was random |
 | The Q1 robustness gate passed | ⬜ Failed | E3 | Seed `20260730` stopped at the ground floor; seed `20260731` stepped outside; both exhausted the frozen 20,000-action budget |
@@ -192,8 +206,9 @@ suggest precision that does not exist before the training design and difficulty 
 | --- | --- | --- | --- |
 | Q0 — Completion foundation | Reproducible checkpoint runner plus truthful completion referee | **Passed** | Runner, replay, resume, privacy, and corruption checks recorded |
 | 1 — Expedition opening | Replay-verified bedroom, house, starter, and Parcel frontiers | **Q1 concluded 1/2; Archive v2 qualified** | A materially different learned or optimized emitter reaches `left_home` under a frozen matched gate |
-| 2 — Brock | Reusable skills plus planner, memory, and watchdog | **Not started** | Frozen clean-start evaluation defeats Brock under budget |
-| Later — Comparisons | Language-model, RL, and hybrid ablations | **Not started** | Same referee and declared budgets used for all configurations |
+| 2 — Assisted guided completion | Planner, maps, memory, specialists, and strict referee | **V11 opening canary qualified; fresh unbounded run active** | One intervention-free assisted attempt reaches strict Hall of Fame from power-on |
+| 3 — Distillation | Replace guided components with trained specialists | **Not started** | Frozen power-on evaluations report every attempt and component boundary |
+| Later — Comparisons | Language-model, RL, and hybrid ablations | **Framework specified** | Same referee and declared budgets used for all configurations |
 
 ## What the current deterministic milestone proves
 
@@ -283,21 +298,23 @@ A compact future update can use this table:
 
 ## Next evidence targets
 
-The immediate goal is not a longer reward curve. It is evidence that a separately frozen Student
-can reproduce something the Explorer discovered without receiving a human answer.
+The immediate goal is no longer another longer reward curve. The V11 opening boundary is qualified;
+the goal now is to observe whether the assisted hierarchy can turn that valid start into sustained,
+machine-verified story progress without overstating what its explicit assistance means.
 
-1. Preserve the active V7 trial and terminal denominator under its original protocol.
-2. Extend the passed one-skill mechanism canary into a multi-skill prerequisite test under the
-   corrected one-grade-per-checkpoint, ten-version, 8/10 competence rule.
-3. Add a deliberate hard-crash twin after the two successful clean stop/resume cycles, and verify
-   the full Explorer/Student/optimizer/ledger/dataset/worker-memory boundary.
-4. Measure Student causality against chance and appropriate raw-trace/shared-policy controls; the
-   old duplicate 2/2 and 14/14 `game_started` results are superseded as evidence.
-5. Report every frozen local attempt and compare its success with Student loss and action accuracy;
-   neither fit metric is a substitute for the denominator.
-6. Attempt restore-free power-on composition only after the prerequisite chain is locally competent.
-   Report the trainer-side RAM goal switches and ordered self-generated clip playlist as part of
-   the evaluated hierarchy; do not describe a success as unaided pixel-only autonomy.
+1. Preserve the V7–V10 runs as immutable controls, including V10's complete 1,977-window recovery
+   denominator and negative 3/32 frozen-exam result.
+2. Preserve all four V11 canaries: C1 path failure, C2 authorization failure, C3 rejected false
+   state, and C4's qualified 136-action/70-call opening with real RIGHT-movement proof and objective
+   1/84.
+3. Keep the active unbounded run fail-closed. Reject any attempt that loads an adjacent state,
+   imports prior-run gameplay memory, advances an
+   objective without game evidence, or treats entry into the Champion room as completion.
+4. Record model/tool calls, controller actions, milestones, stalls, recoveries, interventions,
+   wall time, storage, and the exact terminal reason throughout the fresh clean-start attempt.
+5. If the hierarchy reaches the Hall of Fame, call it a disclosed assisted hybrid completion. Use
+   its complete success-and-failure trajectory for behavioral cloning and DAgger-style correction,
+   then replace and freeze components one at a time before making a learned-policy claim.
 
 See [Roadmap](roadmap.md) for acceptance gates and [Visual storytelling](visual-storytelling.md) for
 how those results should be shown.

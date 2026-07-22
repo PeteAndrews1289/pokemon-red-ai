@@ -1767,9 +1767,9 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
 ## DR-0058 — Let the Explorer recover before resetting
 
 - **Date:** 2026-07-21
-- **Status:** Accepted and implemented; deterministic E2 qualification, direct E3 calibration, and
-  one bounded real-ROM E3 campaign canary passed; matched-configuration long run active and
-  behavioral value pending
+- **Status:** Completed and superseded as the primary architecture; deterministic E2 qualification,
+  direct E3 calibration, and one bounded real-ROM E3 campaign canary passed; the
+  matched-configuration run closed with zero competent skills
 - **Scope:** Version-10 Explorer loop handling, actor authority, generic recovery feedback,
   telemetry, qualification, and successor narrative
 - **Information label:** Explorer receives processed pixels, recent executed actions, and recurrent
@@ -1838,6 +1838,13 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
   were 364; abandoned, unresolved, and trainer-selected-action counts were zero across 3,475
   recovery actions. Explorer and Student hashes independently matched and dashboard HTTP was 200.
   This proves only that the active run is coherent; it is not an interim result or trend.
+- **Matched-configuration terminal evidence:** The user intentionally ended V10 to begin the V11
+  architectural pivot. SIGINT closed the run cleanly at 4,503.282 seconds, 534,924 Explorer
+  actions, 522 PPO updates, 122 episodes, and seven promotions through Route 1. Frozen exams ended
+  3/32 with zero competent skills and no composition. The Student ended at 43.2519% action
+  accuracy across 121,194 examples. The recovery ledger closed 1,977 starts as 956 escapes, 910
+  context changes, 110 expirations, and one campaign-end abandonment, with zero unresolved windows
+  and zero actor-action overrides. DR-0059 records the resulting architecture decision.
 - **Comparison boundary:** V9 and V10 share seed, declared runtime/action ceiling, parallelism,
   curriculum source, and PPO/Student practice configuration. Their source commits and wall-clock
   start times differ, so this is a matched-configuration successor rather than a bit-identical
@@ -1873,8 +1880,146 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
   receive campaign evidence; a matched V9/V10 comparison closes; or V10 changes verified discovery
   or frozen Student competence.
 - **Supersedes / superseded by:** Extends the architecture after DR-0057 without altering that
-  frozen V9 campaign or its eventual result. It supersedes immediate termination as the proposed
-  successor behavior only for new V10 runs. Not yet superseded.
+  frozen V9 campaign or its eventual result. It superseded immediate termination only for V10 and
+  is superseded as the primary completion architecture by DR-0059.
+
+## DR-0059 — Pivot from a flat button learner to a disclosed hierarchical completion agent
+
+- **Date:** 2026-07-21
+- **Status:** Accepted; V10 closed, V11 implementation and clean-start canary in progress
+- **Scope:** Whole-game completion architecture, V10 closure, external harness provenance,
+  information disclosure, clean-start safety, terminal truth, dashboard, and future distillation
+- **Information label:** `STRUCTURED-STATE LLM PLANNER + A* NAVIGATOR + CONTROLLER SPECIALISTS /
+  ASSISTED MAP + OBJECTIVE + RUN MEMORY`; `POWER-ON`; `HYBRID-SYSTEM`
+- **Decision:** End the matched V10 campaign without deleting or relabeling it. Replace the primary
+  completion lane with one hierarchical, memory-bearing agent that receives the current
+  hand-authored full-game objective, processed maps, structured state, and deterministic same-map
+  navigation while executing interactions, menus, battles, puzzles, recovery, and transitions
+  through ordinary controller inputs. Pin and adapt `sethkarten/continual-harness` commit
+  `bbab97ad73e460b7cd7c08527d10ced30cc03fbe`; run the authenticated Codex CLI locally because the
+  Mac has no active Docker daemon or separate model API key. Store runtime data on the external
+  SSD. Preserve a separate strict-blind control and use a successful guided journey as future
+  behavior-cloning/DAgger data rather than pretending it is a newly trained pixels-only model.
+- **V10 terminal evidence:** A SIGINT closed
+  `parallel-ppo-v10-recovery-8h-20260721-seed20260809` cleanly after 4,503.282 seconds
+  (1h15m03.282s), 534,924 Explorer actions at 118.785/s, 522 PPO updates, 122 episodes, 567 unique
+  positions, and seven promotions through Route 1. The Student completed 270 rounds and 3,366
+  optimizer updates over 121,194 examples, ending at 43.2519% action accuracy and 1.556849 NLL.
+  Frozen exams were 3/32 with zero competent skills and no composition. Of 1,977 recovery windows,
+  956 escaped, 910 changed context, 110 expired, and one was abandoned at campaign end; zero actor
+  actions were overridden. The final run occupied 51,716,995 bytes and retained matching Explorer
+  and Student hashes.
+- **Observation:** V8–V10 increasingly improved lesson production, imitation fit, closed-loop
+  practice, and local recovery, but none produced one competent skill under the frozen gate. V9
+  reached 68.5919% training fit yet only 4/87 frozen success; V10 again stopped at Route 1 with
+  3/32. Four parallel V10 environments visibly converged on the same local corner despite separate
+  emulator state. Reward and loop changes altered local behavior without supplying a mechanism for
+  multi-hour planning, symbolic quest memory, map-scale travel, or specialist control.
+- **Safety findings before launch:** The pinned upstream Red wrapper automatically loaded any state
+  beside its ROM, and its `CHAMPION` milestone fired on entering the Champion's room. V11 disables
+  adjacent-state auto-load by default and requires event bit `0x901` together with map `0x76` (Hall
+  of Fame). Its objective sequence gains a final post-battle Hall-of-Fame step, and Red recording
+  uses 160×144 rather than the upstream 240×160 GBA writer size. A claimed run imports no upstream
+  save, memory, skills, subagents, or evolved Lt. Surge policy.
+- **Alternatives considered:** Run V10 longer; increase reward magnitudes or recovery windows;
+  expose coordinates to the same flat PPO policy; train another monolithic recurrent model; replay
+  a human or reference-repository speedrun; use a fully scripted route; require the external CLI to
+  solve navigation from raw buttons as an upstream benchmark; buy API access before testing; or
+  call entry into the Champion's room completion.
+- **Interpretation:** The recurring failure is architectural, not evidence that another local
+  reward coefficient will solve the game. Pokémon Red naturally decomposes into a planner,
+  navigation, interactions, battles, puzzles, memory, and a verifier. Giving those roles explicit
+  interfaces makes the assistance larger but also makes causal failures understandable. A
+  successful V11 result would be **disclosed hierarchical AI completion**, not pixels-only
+  self-taught learning and not the existing H5 fixed-policy claim.
+- **Consequence:** V11's dashboard and report must separate game state, plan/reasoning, journey
+  milestones, and reliability evidence. The supervisor records timestamps, status snapshots,
+  milestone/objective changes, important frames, hourly Markdown chapters, source/ROM hashes,
+  interventions, and disk limits. No long run begins until a bounded canary proves true power-on,
+  local Codex authentication, objective visibility, expert MCP tools, refreshing visuals, strict
+  completion monitoring, and clean shutdown. After the first verified completion, distill its
+  success and failure states into learned specialists and freeze replacements one component at a
+  time.
+- **Narrative value:** Open on four V10 screens trapped in the same corner. Instead of adding a
+  fifth reward, zoom out and draw the missing hierarchy. The story becomes “we stopped teaching the
+  AI one button at a time,” while the adjacent-state and early-Champion bugs provide a concrete
+  reminder that a green dashboard is not the same as beating the game.
+- **Revisit when:** The V11 canary fails a safety gate; the planner cannot change strategy after a
+  stall; direct objectives advance without evidence; the first uninterrupted run reaches a major
+  chapter or strict Hall of Fame; or distilled specialists become eligible for a frozen
+  power-on evaluation.
+- **Supersedes / superseded by:** Supersedes DR-0058 only as the primary completion architecture.
+  DR-0058's mechanism and V10 terminal evidence remain valid historical results. Not yet
+  superseded.
+
+## DR-0060 — Make state truth server-enforced, not planner-declared
+
+- **Date:** 2026-07-21 local / 2026-07-22 UTC
+- **Status:** Accepted and implemented; Canary 4 opening referee qualified, continuous V11 run
+  active, Hall of Fame unverified
+- **Scope:** V11 semantic-state arbitration, cache isolation, public state and map endpoints,
+  planner tools, formatting, opening-objective authority, dashboard truth, and canary evidence
+- **Information label:** `STRUCTURED-STATE LLM PLANNER + A* NAVIGATOR + CONTROLLER SPECIALISTS /
+  ASSISTED MAP + OBJECTIVE + RUN MEMORY`; `POWER-ON`; `HYBRID-SYSTEM`
+- **Decision:** Treat structured state as a server-enforced contract, not a collection of raw bytes
+  or a proposition the planner may validate for itself. Deep-copy every cached emulator state
+  before a server endpoint or direct tool enriches it. Gate player/world values, map caches,
+  `/state`, `/whole_map`, MCP state/map reads, and navigation on the documented game-start bit.
+  Make the formatter independently suppress map context while `game_started` is false. Keep the
+  first objective locked until an ordinary directional input produces an actual coordinate change
+  in the ready upstairs bedroom. Persist that proof only for the current gameplay session and
+  invalidate it after a return to pregame.
+- **Alternatives considered:** Ask the planner prompt to reconcile the screenshot and RAM; trust
+  every nonzero or plausible WRAM field as present-tense state; use a permissive border-byte scan
+  as dialogue detection; accept the planner's objective-completion request as evidence; guard only
+  the public planner text while leaving dashboard, map, navigation, or cache paths populated; or
+  treat `wJoyIgnore == 0` as a universal player-control signal.
+- **Observation/evidence:** Canary 3 was the first end-to-end planner/control run, but it exposed a
+  semantic instrumentation failure. While Oak's introduction was visible, staged RAM claimed
+  `RedsHouse2f (3,6)`, `$3000`, and `overworld`; A* received a bedroom map and the unguarded
+  objective endpoint completed `pallet_000`. The operator stopped the run after 251.630 seconds
+  and 50 actions and rejected the apparent progress. The source audit found that the old text and
+  title addresses were unrelated audio/map buffers and that `0x7f`, previously counted as a box
+  border, is the ordinary space tile.
+- **Primary-source basis:** The exact supported-ROM audit is anchored to the generated
+  [`WRAM layout`](https://github.com/pret/pokered/blob/405b6246372d7e5a2cb029cbb65219b13286b8c9/ram/wram.asm#L154-L184),
+  [`ROM hashes`](https://github.com/pret/pokered/blob/405b6246372d7e5a2cb029cbb65219b13286b8c9/roms.sha1),
+  [`MESSAGE_BOX` coordinates](https://github.com/pret/pokered/blob/405b6246372d7e5a2cb029cbb65219b13286b8c9/data/text_boxes.asm#L8-L15),
+  [`0x79`–`0x7f` character tiles](https://github.com/pret/pokered/blob/405b6246372d7e5a2cb029cbb65219b13286b8c9/constants/charmap.asm#L57-L63),
+  the point where
+  [`BIT_GAME_TIMER_COUNTING` is set after Oak's speech](https://github.com/pret/pokered/blob/405b6246372d7e5a2cb029cbb65219b13286b8c9/engine/menus/main_menu.asm#L321-L340),
+  [`wJoyIgnore` masking semantics](https://github.com/pret/pokered/blob/405b6246372d7e5a2cb029cbb65219b13286b8c9/engine/joypad.asm#L22-L40),
+  the broader
+  [`game-controlled-movement predicate`](https://github.com/pret/pokered/blob/405b6246372d7e5a2cb029cbb65219b13286b8c9/home/npc_movement.asm#L1-L12),
+  and the
+  [`RedsHouse2F` no-op script transition](https://github.com/pret/pokered/blob/405b6246372d7e5a2cb029cbb65219b13286b8c9/scripts/RedsHouse2F.asm#L1-L22).
+- **Qualification evidence:** Canary 4 retained pre-control suppression and required a movement
+  receipt. RIGHT moved RED from `(3,6)` to `(4,6)` at `2026-07-22T03:22:41Z`; only then could
+  `pallet_000` complete, at 450.05 seconds / 111 actions. The bounded run ended at 600.521
+  supervisor seconds with 136 actions in `RedsHouse2f (0,2)`, story index 1/84, no party, no badges,
+  and no Hall-of-Fame result. Its final audit found one residual server-layer pre-game map leak;
+  applying the same deep-copy, started-bit, endpoint/tool, and formatter gates closed that path
+  before the fresh continuous run.
+- **Interpretation:** Memory correctness and semantic currency are different properties. Pokémon
+  Red can stage the next world in RAM while a player is still inside an introduction or menu, so
+  neither the planner nor a visually plausible dashboard may declare that world current. Static
+  bytes establish a candidate phase; structural UI evidence establishes interaction context; an
+  observed controller consequence establishes control. Independent layers are necessary because
+  any one cache, endpoint, formatter, or objective path can otherwise reintroduce a convincing
+  future state.
+- **Consequence:** The fresh run `v11-continuous-20260721-233300` is active from power-on under the
+  repaired boundary. Its launch and opening qualification are not evidence that V11 can solve
+  later objectives or complete the game. Only the strict Champion-rival event together with the
+  Hall-of-Fame map can support completion; that condition remains unverified. Regression checks
+  must inject hostile pregame states, stale bedroom maps, false `overworld` labels, and reset
+  transitions across every public and tool-facing path.
+- **Revisit when:** Any endpoint exposes a map or gameplay identity before the start gate; a menu,
+  dialogue, battle, reset, or load-state transition violates the phase invariant; the opening proof
+  survives a return to pregame; the continuous run encounters a later semantic-state conflict; or
+  the strict Hall-of-Fame verifier fires.
+- **Supersedes / superseded by:** Refines DR-0059's clean-start and referee requirements without
+  changing V11's disclosed assistance label. It supersedes planner self-attestation and permissive
+  raw-state exposure as acceptable evidence. Not yet superseded.
 
 ## Unresolved decisions
 

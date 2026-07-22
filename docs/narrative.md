@@ -19,8 +19,9 @@
 > first tiny canary started the game and reached the ground floor without a supplied route.
 
 > **Newest turn:** V7 restored the right source of knowledge but gave one network two competing
-> jobs: wander noisily for PPO and memorize every action in a lucky verified trace. V8 keeps the
-> live V7 run unchanged as the denominator, gives discovery to four orange Explorers, and gives
+> jobs: wander noisily for PPO and memorize every action in a lucky verified trace. V8 kept the
+> then-live V7 run unchanged and later locked it as a historical denominator, gave discovery to
+> four orange Explorers, and gave
 > retention to a separate blue Student. Replay—not the host—decides which loops can be removed.
 > Training loss stops at an exam door: only frozen attempts can mark a skill competent. The first
 > real-ROM canary qualified that mechanism on the trivial `game_started` outcome. The final
@@ -54,14 +55,18 @@
 > aggregation—but its frozen exam door still read 0/3. V9's mechanism, observability, and wall-time
 > boundary are qualified. Learning is not.
 
-> **Live turn:** V9 closed intentionally after 2h52m39.143s and 1,431,556 Explorer actions so the
+> **Architectural turn:** V9 closed intentionally after 2h52m39.143s and 1,431,556 Explorer actions so the
 > matched-configuration V10 successor could begin. It reached Route 1 and 68.5919% Student training
 > accuracy, yet passed only 4/87 frozen exams, produced zero competent skills, and never composed
-> them. The `8h` run-name suffix was a ceiling, not elapsed time. V10 now tests bounded recovery
-> before reset with the same declared seed, curriculum, four environments, ceilings, and
-> PPO/Student practice settings; source commit and start time differ. Its 310.686-second snapshot
-> reached 22,532 actions and `chose_starter` but passed 0/1 frozen exams. That is a heartbeat, not a
-> result or trend.
+> them. The `8h` run-name suffix was a ceiling, not elapsed time. V10 then tested bounded recovery
+> before reset and closed after 4,503.282 seconds and 534,924 actions. It finished at Route 1 with
+> 3/32 frozen exams and zero competent skills. The mechanism recovered locally, but the learned
+> journey still did not compose. V11 therefore changes the unit of reasoning: a disclosed
+> structured-state planner, map navigator, persistent memory, and controller specialists now share
+> one assisted hierarchy. C1 failed on path resolution, C2 on MCP authorization, and C3 was rejected
+> when initialized bedroom RAM produced a false story state. C4 qualified the opening referee with
+> 136 actions, 70 language-model calls, empirical RIGHT-movement proof, and objective 1/84. A fresh
+> unbounded clean-start run is active, with no completion guarantee and no Hall-of-Fame claim.
 
 ## The question
 
@@ -75,6 +80,14 @@ It would be easy to record a run, cut around the failures, and announce that an 
 It is much more interesting to keep the failures, define the rules before the attempt, show what the
 agent was allowed to see, and build a trail of evidence from its first useless button presses to its
 first reliable skill. This repository is meant to become that trail.
+
+The investigation now has two lanes that must not be blended in the edit. The **assisted
+hierarchical lane** asks whether an openly aided planner–memory–navigator–specialist system can hold
+together an entire adventure from power-on. The **frozen learned-policy lane** asks whether the
+self-generated experience from this project can eventually be distilled into fixed learned
+components that pass declared exams without the planner's explicit help. V11 is active in the first
+lane. V7–V10 are preserved evidence in the second. An assisted completion would be a real result,
+but it would not retroactively prove that a neural policy learned Pokémon Red from pixels.
 
 The family tree remains Act II: it showed that useful accidents can become inherited tendencies,
 then exposed the clean-start horizon. Act III asks whether evolution can preserve a state, the
@@ -90,8 +103,9 @@ seven through Route 1, improved offline fit, but finished at 1/47 with zero comp
 closed-loop self-correction mechanics now pass the 288-check engineering suite, and its corrected
 real-ROM canary qualifies mechanism, observability, and wall-time control. The final V9 campaign
 reached Route 1 but passed only 4/87 frozen exams, with zero competent skills and no composition.
-The matched-configuration V10 long run is active; its 310.686-second snapshot is heartbeat-only E1
-evidence. No V10 learning, superiority, or whole-game result exists.**
+The matched-configuration V10 campaign closed at 4,503.282 seconds and 534,924 actions with 3/32
+frozen exams and zero competent skills. V11's fourth canary qualified its opening control/referee
+boundary; a fresh unbounded clean-start run is active. No Hall-of-Fame result exists.**
 
 Phase 0 built the measuring instrument: a reproducible emulator harness that can start the exact
 same game, issue timed controller inputs, observe a small and disclosed slice of state, restore an
@@ -124,7 +138,7 @@ test sequence used to prove that the laboratory works.
 | Can one model execute the lucky route? | Yes once: Stage 0 fit 419/419 labels, survived frozen reload, and selected the exact 419 actions from clean power-on to `left_home`. This is route memorization, not a robust skill. |
 | Has checkpoint-assisted PPO completed Oak's errand? | Yes. V5.1 replay-verified the Pokédex by action 402,320, but this is an assisted training lineage rather than one clean-start policy. |
 | Did V5.2 teach one model to compose those steps? | Not demonstrated. It verified Oak's Lab exit and Route 1, but its replay gate tested stored actions rather than the current policy's complete behavior. |
-| Is V7 being replaced mid-run? | No. It continues under its original shared-policy, raw-trace rules. Fresh V8 can lock one path-free, hash-matched V7 checkpoint; resume cannot move that denominator. |
+| What happened to V7? | It remains a path-free, hash-matched historical denominator under its original shared-policy, raw-trace rules. It is not an active runner and is not rewritten as part of V11. |
 | What does V8 change? | It separates PPO exploration from a recurrent Student, replay-distills only self-generated trajectories, and collects one deterministic grade per Student checkpoint. The clean 3,584-action canary reached Oak's lab and built four lessons but passed 0/7 frozen exams; it remains the qualification record. |
 | Why did V8 close? | Its final longer run spent 784,386 Explorer actions and 2,513 Student updates, reached Route 1, built seven lessons, and raised fit to 53.0817%, yet passed only 1/47 frozen exams. Zero skills became competent and no composition ran. More cloning improved fit without establishing reliable behavior. |
 | What does V9 change? | It tests exposure bias with exact consecutive edges, BC warm start, reverse closed-loop Student practice, and success-only replay-verified aggregation. Exact-target checking, full terminal counts, graph/checkpoint binding, rotating bounded replay, and the 27/30×2 gate are implemented. The actor still sees only pixels, its action history, and a self-generated visual goal. |
@@ -133,9 +147,11 @@ test sequence used to prove that the laboratory works.
 | What did the corrected V9 canary prove? | Commit `e1ea199` fixed cancellation/report merging. The replacement honored 144.0 seconds within 0.082 seconds, ran 22 fully classified practice attempts, retained 16 verified successes, and exposed success-only replay. It qualifies mechanism, observability, and wall-time—not competence. |
 | Has V9 learned a skill? | Not demonstrated. The corrected canary passed 0/3 frozen exams, with zero competent skills. The current suite passes 276 non-integration plus 12 integration checks. |
 | How did V9 close? | The user intentionally stopped `parallel-ppo-v9-self-correcting-8h-20260721-seed20260809` at 2h52m39.143s: 1,431,556 actions, Route 1, 68.5919% fit, 4/87 frozen exams, zero competent skills, and no composition. |
-| What is running now? | `parallel-ppo-v10-recovery-8h-20260721-seed20260809`: matched seed, curriculum, four environments, ceilings, and PPO/Student practice settings, but a different clean source commit and start time. Its 310.686-second, 22,532-action snapshot is heartbeat-only evidence. |
-| Can the rules change while it runs? | No. Budget, practice, exams, actor boundary, storage limits, and disabled PPO recovery are frozen. Operational launch failures happened before run creation and did not change the experiment. |
-| What comes next? | Let V10 close under its declared rules, verify every denominator, then compare it with V9 without calling the different source commits and start times bit-identical. |
+| How did V10 close? | After 4,503.282 seconds and 534,924 actions: Route 1, 3/32 frozen exams, zero competent skills, and no composition. Recovery was measurable; long-horizon learned competence was not. |
+| What did the V11 canaries establish? | C1 failed on path resolution; C2 failed on MCP authorization; C3 was operational but rejected for false initialized state; C4 qualified the opening referee with 136 actions, 70 language-model calls, real RIGHT-movement proof, and objective 1/84. |
+| What is running now? | A fresh unbounded V11 assisted-hierarchy attempt from clean power-on and empty run memory. It has no planned wall-clock cutoff, but can still stop on failure, safety limits, operator action, or strict success. |
+| Does “unbounded” mean it will beat the game? | No. It changes a scheduling limit, not the probability of success. Hall of Fame requires strict terminal evidence; no such result is claimed. |
+| What comes next? | Audit whether V11 can sustain verified objective progress. If it completes, preserve the guided journey as an assisted result and as possible training data for the separate frozen learned-policy lane. |
 
 Keeping this table current is part of the project. A small true claim is more valuable than a large
 ambiguous one.
@@ -216,28 +232,33 @@ cannot alter game memory or request a teleport.
 
 Each implemented actor adapter decides what information crosses from the game into that agent.
 Pixels-only learners receive rendered frames; the conventional learner receives its separately
-declared coarse state; the Q0/Q1 suffix emitter receives no observation at all. The referee now has
-a wider read-only semantic view for the 55-outcome ladder, but those values do not become actor
-inputs unless a future run explicitly adopts the `RAM-INFORMED-ACTOR` label.
+declared coarse state; the Q0/Q1 suffix emitter receives no observation at all. V11 explicitly
+adopts a structured-state assisted actor boundary, including the declared objective and map tools.
+That broader interface is why its result belongs in a separate lane from the frozen pixel-policy
+experiments.
 
 ### The strategist: planner
 
-The planned language-model component will choose bounded goals such as “find an exit from this
-room” or “return to a known doorway.” It will not press a direction every video frame. Its value is
-reasoning over goals, discoveries, and failures—not twitch control.
+V11's language-model component chooses bounded goals such as “find an exit from this room” or
+“return to a known doorway.” It delegates ordinary inputs to tools and specialists instead of
+pressing a direction every video frame. C4 qualified this division only at the opening: 70 calls
+produced 136 controller actions and a real RIGHT-movement proof. Later-game planning remains an
+active hypothesis, not a demonstrated capability.
 
 ### The practiced hands: skills
 
-Learned policies will handle repeatable execution problems such as walking toward a target,
-crossing a doorway, navigating a menu, or selecting a battle action. Reinforcement learning is one
-candidate for training these skills. A skill should have a clear input, action budget, completion
-condition, and failure result.
+V11 currently uses declared controller specialists for repeatable execution problems such as
+walking toward a target, crossing a doorway, navigating a menu, or selecting a battle action. They
+are assisted components, not evidence that a neural policy learned those behaviors. The separate
+learned-policy lane may later replace them one at a time, with a clear input, action budget,
+completion condition, and frozen failure denominator for each replacement.
 
 ### The notebook: memory
 
-Memory will record discoveries and outcomes: which doorway led where, which plan failed, and which
-facts have supporting evidence. It should not become a hidden walkthrough. Independent evaluation
-runs begin with the memory declared by the experiment protocol.
+V11 memory records discoveries and outcomes: which doorway led where, which plan failed, and which
+facts have supporting evidence. The active attempt began with empty run memory. This notebook is an
+explicit part of the assisted system and must not be mistaken for learned model weights or a hidden
+walkthrough.
 
 ### The skeptic: watchdog
 
@@ -341,6 +362,25 @@ learned to leave the bedroom.
 The unchanged V7 denominator belongs on the same screen. This turns an architecture change into a
 causal question: did separating discovery from memory and distilling the route create competence,
 or merely a cleaner-looking dataset?
+
+### Architectural turn — Stop teaching one button at a time
+
+V8–V10 provide the negative result that justifies the pivot. More self-generated lessons, better
+training fit, closed-loop correction, and explicit local recovery all remained compatible with
+near-zero frozen competence and no reliable composition. V10's final card is the hinge:
+`4,503.282 SECONDS · 534,924 ACTIONS · 3/32 EXAMS · 0 COMPETENT SKILLS`.
+
+V11 asks a different question: can a system with an explicit plan, memory, map-local navigation,
+and controller specialists maintain the causal thread of a long role-playing game? Its four opening
+canaries are a miniature version of the whole project's philosophy. C1 and C2 expose operational
+boundaries. C3 creates a tempting false story that the visible game rejects. C4 finally proves real
+control—136 actions, 70 planner calls, RIGHT movement observed—and advances objective 1/84. Only
+then does the fresh unbounded run begin.
+
+This is the active **assisted hierarchical lane**. The V7–V10 artifacts remain the **frozen
+learned-policy lane**. The video should show both tracks side by side whenever “learning” is spoken:
+one asks whether the assembled system can finish; the other asks how much of that ability can later
+survive after assistance is replaced by frozen learned components.
 
 ### Chapter 3 — Deliver Oak's Parcel
 
@@ -522,5 +562,9 @@ If the hybrid system eventually defeats Brock, that will be a memorable scene. T
 will be everything underneath it: the failed routes, the learning curves, the action budgets, the
 component boundaries, the unedited attempts, and the honest record of how much help it needed.
 
-The central story is not that a machine pressed the right buttons. It is that an opaque-looking
-achievement became a sequence of visible, testable steps.
+The central story is not “a monkey eventually got lucky,” and it is not yet “an AI beat Pokémon
+Red.” It is the trail from blind chance, through inherited and learned local habits that failed to
+compose, to an openly assisted hierarchy that must show its work. If that hierarchy reaches the
+Hall of Fame, the ending is a disclosed assisted completion. If it does not, the exact planning or
+tool boundary becomes the ending. Either way, the frozen learned-policy question remains visible
+rather than being smuggled into the claim.

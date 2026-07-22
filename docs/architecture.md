@@ -1,35 +1,103 @@
 # Architecture
 
-> **Primary-track update:** the running Version 7 trial remains unchanged as the denominator.
-> Version 8 preserved its random, no-demonstration, self-generated boundary while separating four
-> PPO Explorers from a recurrent Student. Only replay-verified and replay-distilled discoveries may
-> train the Student; frozen exams, not training reward, grade competence. A clean source-bound
-> canary qualified the mechanism, two resumes, four-skill library, and bounded replay through Oak's
-> lab. It passed 0/7 frozen exams and remains the qualification canary. The final longer V8 run
-> reached Route 1 with seven skills but passed only 1/47, leaving zero competent skills. Version 9
-> now implements consecutive edges and replay-verified successes produced by the Student in reverse
-> closed-loop practice, including graph/checkpoint binding, terminal counts, bounded rotating
-> replay, and the 27/30×2 gate. After a failed overrun/reporting diagnostic, the corrected V9
-> canary qualified mechanism, observability, and wall-time control at 0/3 frozen exams. Student PPO
-> recovery is deferred and disabled; competence is not claimed. The V9 campaign was intentionally
-> closed after 2h52m39.143s and 1,431,556 Explorer actions so its matched-configuration V10
-> successor could begin. It reached Route 1 and 68.5919% Student training accuracy, but passed only
-> 4/87 frozen exams, produced zero competent skills, and never composed them. The `8h` in its run
-> name was a ceiling, not elapsed time. See [Version 9](version-9-self-correcting-student.md).
-> Version 10 is implemented as a separate successor, not a rewrite of that campaign. It preserves
-> V9's Student and lets the Explorer policy
-> continue for a bounded recovery window after generic ineffective directional action/pixel
-> outcomes, with no route hint or trainer-selected button. Deterministic E2 qualification and
-> direct E3 mechanism calibration
-> passed. A bounded real-ROM E3 campaign canary then closed all 73 recovery windows and stopped
-> cleanly. A matched-configuration long run is now active with the same declared seed, curriculum,
-> parallelism, ceilings, and PPO/Student practice settings as V9, but a different source commit and
-> start time. Its 310.686-second heartbeat recorded 22,532 actions, five promotions through
-> `chose_starter`, and 0/1 frozen exams; that is liveness evidence, not a result or trend. Any
-> behavioral-superiority claim remains pending.
-> See [Version 10](version-10-recovery-before-reset.md).
+> **Primary-track update:** Versions 7–10 are now preserved controls rather than the active
+> completion architecture. V8 separated exploration from a recurrent Student but ended at 1/47
+> frozen exams. V9 added reverse closed-loop practice and reached 68.5919% training accuracy, yet
+> ended at 4/87 with zero competent skills. V10 added bounded policy-controlled local recovery and
+> qualified that mechanism, but its matched run again stopped at Route 1: 534,924 Explorer actions,
+> 3/32 frozen exams, zero competent skills, and no composition. Its 1,977-window recovery ledger is
+> complete; the result does not support broader exploration or long-horizon competence. See
+> [Version 9](version-9-self-correcting-student.md) and
+> [Version 10](version-10-recovery-before-reset.md).
+> [Version 11](version-11-hierarchical-pivot.md) is the implementation track. It changes the unit of
+> reasoning from flat button-level reward optimization to a disclosed assisted hierarchy: a
+> structured-state language-model planner, persistent run memory, processed maps, map-local A*
+> navigation, controller specialists, and a separate strict completion referee. It begins from
+> power-on with no imported save, action lineage, evolved policy, or prior-run gameplay memory.
+> Canary 4 qualified the opening referee and empirical player-control gate. A fresh continuous V11
+> run is active from power-on, but later-game planning and the Hall of Fame remain unverified.
 
-## Active Version-10 implementation boundary
+## Active Version-11 implementation boundary
+
+```mermaid
+flowchart TD
+    Goal["Strict Hall-of-Fame goal"] --> Planner["Language-model planner"]
+    Objective["Current hand-authored objective"] --> Planner
+    Planner <--> Memory["Persistent run memory"]
+    Planner --> Navigator["Processed map + local A* navigation"]
+    Planner --> Specialists["Dialogue, menu, battle, puzzle specialists"]
+    Navigator --> Buttons["Ordinary Game Boy inputs"]
+    Specialists --> Buttons
+    Buttons --> Game["Unmodified Pokémon Red"]
+    Game --> Raw["Frame + raw read-only state"]
+    Raw --> Copy["1 · detached cached-state copy"]
+    Copy --> Gates["2 · started-bit + endpoint/map gates"]
+    Gates --> Format["3 · fail-closed formatter"]
+    Game --> Proof["4 · empirical control proof"]
+    Proof --> Gates
+    Format --> State["Semantically current state"]
+    State --> Planner
+    Game --> Referee["Read-only strict referee"]
+    Referee --> Evidence["Dashboard + timeline + hourly narrative"]
+    Referee -->|"event 0x901 + map 0x76"| Complete["Verified Hall of Fame"]
+    Evidence --> Dataset["Later cloning / DAgger / frozen specialists"]
+```
+
+## State truth is a server property
+
+Canary 3 showed why the arbiter belongs between raw memory and planning. Oak's introduction was
+still visible, yet initialized transition RAM looked like a playable `RedsHouse2f (3,6)` and the
+server called it `overworld`. The planner trusted its declared interface, asked A* for a bedroom
+path, and self-attested the first objective. The operator rejected that progress and stopped the
+run after 251.630 seconds and 50 actions. Prompting the planner to “be careful” would have left the
+same false authority in place.
+
+The replacement boundary has four mutually reinforcing layers:
+
+1. server and tool consumers deep-copy the emulator's short-lived cached state before enriching it;
+2. the documented game-start bit gates player/world fields, every map-producing endpoint, direct
+   map tools, and navigation, while stale pre-game map caches are discarded;
+3. the formatter independently refuses map context when `game_started` is false; and
+4. the opening objective requires empirical controller evidence—an ordinary directional input must
+   change the bedroom coordinates—rather than a planner declaration or plausible static tuple.
+
+The exact Gen 1 signals and their pinned `pret/pokered` sources are recorded in
+[state-observation.md](state-observation.md). Battle, structural message-box detection, `pregame`,
+and `overworld` remain reader decisions; a dashboard dialogue cache cannot overwrite them.
+
+Canary 4 qualified this opening boundary when RIGHT moved RED from `(3,6)` to `(4,6)` at
+`2026-07-22T03:22:41Z`. Only afterward did the server accept `pallet_000`. The bounded run finished
+at story index 1/84 with no party, badges, or Hall-of-Fame result. A residual server-only pre-game
+map leak found during that canary motivated extending the same gates across the HTTP state and map
+endpoints, MCP state/map/navigation tools, and formatter. The fresh continuous run
+`v11-continuous-20260721-233300` is active from power-on; it tests sustained use of this boundary
+and does not make an advance completion claim.
+
+The planner owns the next subgoal and may use explicit structured assistance. The navigator converts
+a same-map destination into directional controller inputs. Specialists handle interactions where a
+coordinate is insufficient. Persistent memory records discoveries, failures, and recovery plans.
+The referee may observe exact game state, report progress, and stop the run, but cannot select,
+replace, or mask a controller action.
+
+This is intentionally a different information boundary from V7–V10. Every result must carry the
+label `STRUCTURED-STATE LLM PLANNER + A* NAVIGATOR + CONTROLLER SPECIALISTS / ASSISTED MAP +
+OBJECTIVE + RUN MEMORY / POWER-ON / HYBRID-SYSTEM`. A successful run would demonstrate disclosed
+hierarchical completion, not pixels-only discovery, newly trained foundation-model weights, or the
+existing frozen-policy H5 claim.
+
+Clean start is a validity condition, not a visual impression. Adjacent-state auto-load is disabled
+by default, and a claimed run starts with empty run memory. Completion requires both event bit
+`0x901` and Hall-of-Fame map `0x76`; entry into the Champion room is not sufficient. Canary 4 proved
+the opening referee, local planner authentication, ordinary-button authority, evidence refresh, and
+bounded shutdown. The continuous run must still prove later objective validation, stall recovery,
+and strict terminal monitoring before a Hall-of-Fame result can be claimed.
+
+If V11 completes the game, its full success-and-correction trajectory becomes training data for
+behavioral cloning and DAgger-style specialists. Learned components must then replace the guided
+ones one at a time under frozen power-on evaluation. The assisted teacher and any later learned
+student remain separate claims.
+
+## Historical Version-10 implementation boundary
 
 ```mermaid
 flowchart LR
@@ -97,17 +165,19 @@ It stopped at `duration_limit` after 144.102 seconds, 6,099 actions, and 47 PPO 
 windows were `blocked_repeat`: 36 escaped, 32 context-changed, and five expired; active, abandoned,
 unresolved, and action-override counts ended at zero. Its two verified promotions, ground-floor
 depth, and 93 positions are canary observations, not evidence of better exploration or learning.
-Visual-cycle and long-stagnation campaign paths remain unexercised. The matched-configuration V10
-campaign `parallel-ppo-v10-recovery-8h-20260721-seed20260809` began at
+Visual-cycle and long-stagnation campaign paths remained unexercised in that canary. The
+matched-configuration V10 campaign `parallel-ppo-v10-recovery-8h-20260721-seed20260809` began at
 `2026-07-22T00:37:44.442964Z` from clean commit
-`513afc378d091d18560efb4af4931d882c05000d`. At its latest recorded heartbeat it had reached
-22,532 actions, 22 PPO updates, 30 episodes, five promotions through `chose_starter`, 286
-positions, and 0/1 frozen exams. Its 366 blocked-repeat recovery windows comprised 165 escaped,
-169 context-changed, 30 expired, and two active windows, with zero abandoned, unresolved, or
-trainer-overridden actions. This heartbeat qualifies runtime/accounting continuity only; the
-matched longer V9/V10 comparison is in progress, not a Hall-of-Fame or superiority claim.
+`513afc378d091d18560efb4af4931d882c05000d` and later ended cleanly by SIGINT. Its terminal record
+contains 4,503.282 seconds, 534,924 Explorer actions at 118.785/s, 522 PPO updates, 122 episodes,
+567 unique positions, and seven promotions through Route 1. The Student completed 270 rounds and
+3,366 updates over 121,194 examples, but finished at 43.2519% action accuracy, 1.556849 NLL, and
+3/32 frozen exams; zero skills became competent and no composition ran. Recovery closed 1,977
+windows as 956 escaped, 910 context-changed, 110 expired, and one campaign-end abandonment, with
+zero trainer-overridden actions. This is a complete negative learning result, not a Hall-of-Fame or
+superiority claim.
 
-## Active Version-9 implementation boundary
+## Historical Version-9 implementation boundary
 
 ```mermaid
 flowchart LR
@@ -127,7 +197,8 @@ The actor observation keys are exactly `pixels`, `action_history`, and `target_p
 may restore a snapshot reached by the same run and schedule a reverse rung, but skill identity,
 rung, horizon, attempt seed, RAM, coordinates, and milestone labels remain trainer-only. Closed-
 loop means the Student chooses every practice button. Failed attempts are evidence but never BC
-targets. This boundary is implemented and engineering-checked, not qualified real-ROM behavior.
+targets. The mechanism qualified on the real ROM, but the terminal 4/87 frozen result produced no
+competent skill or composition.
 
 ## Closed Version-8 boundary
 
@@ -236,12 +307,10 @@ The V7 target image is zero during open exploration. It becomes a previously obs
 only while rehearsing a transition this same run produced and replayed. Labels, coordinates,
 routes, event flags, and earlier agents' actions never enter the actor. The unique root snapshot is
 training infrastructure; every later inherited curriculum entry is deleted before V7 begins. V7
-uses one network for PPO and direct self-imitation; V8 keeps it running unchanged precisely so the
-effect of separating those roles can later be measured.
+uses one network for PPO and direct self-imitation; V8 preserved a locked launch-time snapshot so
+the two roles remain historically distinguishable. No terminal matched V7/V8 comparison exists.
 
 ## Historical assisted parallel-learning boundary
-
-## Active parallel-learning boundary
 
 ```mermaid
 flowchart LR

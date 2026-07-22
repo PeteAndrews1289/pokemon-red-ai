@@ -1,5 +1,92 @@
 # Development log
 
+## 2026-07-21 local / 2026-07-22 UTC — Three canaries taught V11 to distrust its sensors
+
+- Ran four bounded V11 canaries from clean power-on and retained every failed boundary. Canary 1
+  ended after 25.559 seconds without an action because an already absolute planner scratch path was
+  resolved a second time. The launch path is now absolute once, and an unguarded zero harness exit
+  fails closed instead of looking like success.
+- Canary 2 proved the local planner could launch but not touch the game. The operator stopped it at
+  108.110 seconds after 13 language-model calls and zero actions; every Pokémon MCP request had
+  been cancelled by the unattended approval policy. The server is now required, explicitly
+  preapproved, and restricted to the exact audited tool allowlist. Repeated MCP-only cancellation
+  also terminates instead of retrying forever.
+- Canary 3 was the first end-to-end control run. The planner read state, pressed ordinary buttons,
+  called navigation and memory tools, refreshed the dashboard, and produced a recording. That
+  success exposed the more dangerous failure: while the screen visibly showed Oak's introduction,
+  initialized RAM claimed `RedsHouse2f`, `(3,6)`, `$3000`, and `overworld`. The planner's
+  self-attested completion advanced `pallet_000`, A* queued a bedroom path, and every direction was
+  classified blocked. The operator stopped it after 251.630 seconds and 50 actions. Its apparent
+  objective progress is rejected.
+- Replaced prompt-level caution with a server-enforced opening referee. Pre-control map,
+  coordinates, and generic milestones remain unavailable; completed dialogue remains detectable;
+  and `pallet_000` cannot advance until a directional input proves that RED can actually change
+  bedroom coordinates. Menu-direction outcomes are no longer graded as failed walking merely
+  because overworld coordinates stay fixed.
+- Canary 4 supplied that proof at `2026-07-22T03:22:41Z`: RIGHT moved RED from `(3,6)` to `(4,6)`.
+  The opening objective completed only later, at 450.05 seconds and 111 actions. The bounded run
+  ended at the 600.521-second supervisor ceiling (596.087 seconds in the metrics ledger), with 136
+  final actions, 70 language-model calls, 2,438,617 logged tokens, and $0.5150955 logged estimated
+  cost. Its final state was `RedsHouse2f (0,2)`, story index 1/84, with no party, badges, or
+  Hall-of-Fame result.
+- Qualified only the opening referee. Canary 4 proves true power-on, authenticated local planning,
+  ordinary-button control, state suppression before control, evidence-gated first-objective
+  completion, recording, and bounded shutdown. It does not prove later-game planning, battles,
+  puzzles, recovery, or eventual completion.
+- Found one residual early server-layer pre-game map leak during Canary 4 even though the guarded
+  public planner state and objective ledger remained honest. Fixed it before launching the fresh
+  continuous run `v11-continuous-20260721-233300` from clean power-on. Its localhost dashboard is
+  on port 8775. The run is an active test of sustained planning, not a promise that it will finish
+  Pokémon Red.
+- Changed the video centerpiece. Split Oak's visible “Hello there!” frame against telemetry saying
+  `RedsHouse2f · OVERWORLD`, then show the false green objective and blocked PC path. The resolution
+  is Canary 4's measured RIGHT move. V11's first lesson was not how to play Pokémon; it was how to
+  decide which part of its own laboratory to believe.
+
+## 2026-07-21 local / 2026-07-22 UTC — Close V10 and change the unit of reasoning
+
+- Ended `parallel-ppo-v10-recovery-8h-20260721-seed20260809` cleanly with SIGINT before beginning
+  the V11 implementation. No V10 process remained. The run closed after 4,503.282 seconds
+  (1h15m03.282s), not its eight-hour ceiling, with 534,924 Explorer actions at 118.785/s, 522 PPO
+  updates, 122 episodes, 567 unique positions, and seven verified promotions through Route 1.
+- Recorded the terminal learning denominator rather than extrapolating from the early heartbeat.
+  The Student completed 270 rounds and 3,366 updates over 121,194 examples, ending at 43.2519%
+  action accuracy and 1.556849 NLL. Frozen exams passed 3/32; zero skills became competent and no
+  composition ran. Final Explorer and Student hashes matched. Artifacts occupied 51,716,995 bytes.
+- Closed all 1,977 recovery windows: 956 `escaped`, 910 `context_changed`, 110 `expired`, and one
+  abandoned when the campaign ended. Zero controller actions were overridden. This preserves the
+  two-sided V10 conclusion: bounded local recovery operated and was auditable, but it did not
+  demonstrate broader exploration, reliable learned competence, or a path beyond Route 1.
+- Rejected a fifth flat-policy reward iteration as the primary completion strategy. V8–V10
+  progressively improved lesson production, imitation fit, closed-loop correction, and local
+  recovery without producing one competent frozen skill or restore-free composition. Running the
+  same architecture longer, increasing reward magnitudes, extending recovery, or exposing a few
+  more coordinates would not supply multi-hour quest planning, durable symbolic memory, or distinct
+  navigation/menu/battle/puzzle control.
+- Began Version 11 as a disclosed hierarchical hybrid. The planned actor is a structured-state
+  language-model planner with persistent run memory, hand-authored current objectives, processed
+  maps, map-local A* navigation, and controller specialists. It still acts through ordinary Game
+  Boy inputs. A separate read-only referee records evidence and stops only on strict completion.
+- Pinned the adaptation target to `sethkarten/continual-harness` commit
+  `bbab97ad73e460b7cd7c08527d10ced30cc03fbe`. The guided lane is labeled
+  `STRUCTURED-STATE LLM PLANNER + A* NAVIGATOR + CONTROLLER SPECIALISTS`, `ASSISTED`,
+  `POWER-ON`, and `HYBRID-SYSTEM`. It imports no save, prior action lineage, evolved policy, or
+  prior-run gameplay memory. A future success must not be relabeled as pixels-only learning.
+- Found two pre-launch validity hazards in the pinned harness. Its Red wrapper could automatically
+  load a ROM-adjacent state, and its `CHAMPION` milestone could fire on entering the Champion room.
+  The V11 boundary disables adjacent-state auto-load by default and defines completion as event bit
+  `0x901` together with Hall-of-Fame map `0x76`. The Red recording path also uses the native 160×144
+  frame size, and the objective sequence includes the post-battle Hall-of-Fame transition.
+- Defined the bounded canary before any long claim. It must prove true power-on, local authenticated
+  planner execution, complete objective visibility, expert map/navigation/memory tools, refreshing
+  dashboard evidence, intervention accounting, strict completion fields, disk limits, and clean
+  child-process shutdown. At that design checkpoint implementation and canary preparation were in
+  progress; the later canary record above supersedes this provisional status.
+- Reframed the video chapter as “We Stopped Teaching the AI One Button at a Time.” The opening image
+  is four V10 agents converging on the same corner; the reveal is the missing planner/map/memory/
+  specialist hierarchy. A guided completion would then become success-and-correction data for
+  behavioral cloning and DAgger-style specialist training, not retrospective proof that V10 worked.
+
 ## 2026-07-21 local / 2026-07-22 UTC — Close V9, launch matched-configuration V10
 
 - Intentionally stopped V9 run `parallel-ppo-v9-self-correcting-8h-20260721-seed20260809` at the

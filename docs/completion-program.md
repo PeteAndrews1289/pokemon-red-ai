@@ -1,31 +1,18 @@
 # The Hall of Fame completion program
 
-> **Status, 2026-07-21:** Q0 passed; the concluded Q1 trial reached `left_home` in one of two seeds
-> and therefore failed its predeclared two-seed gate. The successful seed preserved a 419-action
-> power-on lineage and passed all three semantic promotion replays. Across both seeds, 40,000
-> exploration actions caused 954,704 replay actions. This earns the narrow H3 claim that the
-> expedition reached a verified milestone, not that a model learned the behavior. Replay/archive
-> scaling and a matched emitter comparison now precede any opening curriculum or multi-day run.
-> The first scaling foundation is complete: replay counts are indexed from the authoritative audit
-> chain, lineage actions stream by segment, ancestry validates topologically, and disk monitoring
-> no longer walks the growing run tree per action. Archive v2 now passed continuous,
-> graceful-resume, and hard-crash qualification. It replaces ordinary full-lineage replay with
-> exact parent-to-child edge verification, bounds visual variants and suffix admissions, and
-> preserves three fresh power-on replays for every named promotion. Frontier Apprentice and four
-> generations of recurrent PPO then extended the curriculum through Route 1. Version 4 produced
-> the first PPO promotion into Viridian City. Version 5 then verified the Mart and Oak's Parcel.
-> Version 5.1 then verified Pallet Town, Oak's Lab, Parcel delivery, and the Pokédex before a
-> 3,035,252-action plateau. Version 5.2 then verified Route 1 but exposed that replayed fragments did
-> not prove one policy retained the route. Version 6 retained the policy but closed its million-
-> action diagnostic at 5/10, below its 8/10 first composition gate. Version 7 began again from
-> random weights and power-on only, then created visual skills solely from the run's own verified
-> discoveries. Its active long run remains unchanged as the denominator. Version 8 is implemented
-> beside it: separate PPO Explorers, replay-backed self-trajectory distillation, a
-> recurrent Student, prerequisites, and frozen exams. The clean source-bound canary reached Oak's
-> lab, created four distilled skills, and survived two resumes, but passed 0/7 frozen exams. The
-> final longer run reached Route 1 with seven skills and better fit, but passed only 1/47; no skill
-> became competent and no composition ran. No causal-learning, production competence, later-game,
-> or Hall-of-Fame policy result is claimed.
+> **Status, 2026-07-21:** The checkpoint, evolutionary, PPO, and recurrent-Student work remains the
+> frozen learned-policy lane. It produced real local mechanisms and verified fragments but no
+> competent whole-game policy. V10 is its latest terminal record: 4,503.282 seconds, 534,924
+> actions, 3/32 frozen exams, and zero competent skills. It is closed.
+>
+> The active completion attempt is now the separately labeled V11 assisted hierarchical lane: a
+> structured-state language-model planner, processed maps and A* navigation, persistent run memory,
+> controller specialists, and a strict read-only Hall-of-Fame referee. Its canary history is part of
+> the evidence. C1 failed on path resolution; C2 failed on MCP authorization; C3 became operational
+> but was rejected after initialized bedroom RAM falsely described story progress; and C4 qualified
+> the opening referee after 136 controller actions and 70 language-model calls with empirical RIGHT-
+> movement proof and story objective 1/84. A fresh unbounded run is active from clean power-on and
+> empty run memory. No Hall-of-Fame result, success probability, or completion guarantee is claimed.
 
 ### Implementation ledger
 
@@ -44,17 +31,21 @@
 | Recurrent PPO curriculum | ✅ Viridian City verified | Version 4 promoted a 2,109-action suffix after one edge and three power-on replays; this is checkpoint-assisted H3 evidence |
 | Version 5 assisted teacher | ✅ Closed at Oak's Parcel | Three replay-verified promotions reached the Mart and Parcel; the run also exposed obsolete lesson reward after completion |
 | Version 5.1 active-goal return curriculum | ✅ Closed at the Pokédex | Six promotions verified the complete return errand; 3,035,252 later actions without Forest progress define the successor problem |
-| Version 5.2 northbound chapter curriculum | 🟨 Current qualification | Ten map-level steps lead from the Pokédex through Pewter Gym, with bounded trap-recovery credit and no pixels-only claim |
+| Version 5.2 northbound chapter curriculum | ✅ Preserved historical result | Ten map-level steps lead from the Pokédex through Pewter Gym; the run reached Route 1 and did not establish one composed policy |
 | Version 6 retained-policy consolidation | ✅ Engineering canary passed | One continuing PPO policy alternates discovery with backward rehearsal; its ledger separates verified frontier from rolling training competence |
-| Version 7 self-taught hierarchy | ✅ Engineering canary passed | Random power-on policy imported no actions or parameters, discovered two verified opening skills, and applied direct self-imitation; 8/10 and clean-start composition remain unproved |
+| Version 7 self-taught hierarchy | ✅ Preserved learned-policy denominator | Random power-on policy imported no actions or parameters, discovered two verified opening skills, and applied direct self-imitation; 8/10 and clean-start composition remain unproved |
 | Version 8 distilled Student | ✅ Closed: mechanism qualified, behavior failed | The clean 3,584-action canary reached Oak's lab, created four skills, survived two resumes, and passed 0/7 exams. The final longer run reached Route 1 with seven skills, 2,513 Student updates, and 53.0817% fit, but finished at 1/47, zero competent skills, and zero compositions |
 | Version 8 checkpoint-separated grading | ✅ Implemented and checked | One deterministic grade per Student checkpoint every 16,384 Explorer actions; 8/10 spans ten versions. The canary's duplicate 2/2 and 14/14 are superseded mechanism history, not robustness evidence |
 | Version 8 comparison denominator lock | ✅ Implemented and checked | Fresh V8 can read-only pair a running/finished V7 checkpoint with its latest/previous model hash, seal a path-free baseline in its manifest, and refuse to move it on resume |
 | Version 8 self-generated composition training | ✅ Implemented and checked | A full competent chain must replay continuously from power-on before bounded goal-switch excerpts enter the Student. Active-prefix, replay-balance, admission-time immutable shards, persistent coverage cursors, provenance, and failure-ledger controls are checked; learned multi-skill behavior is not |
 | Version 8 real-ROM composition verifier | ✅ Mechanism checked | A stored 289-action two-skill opening and a four-noop save/load fixture pass exact stable visual-plus-RAM endpoint checks; wrong endpoints fail closed. This repaired a save/load-volatile PyBoy game-area hash and does not show Student competence |
 | Version 9 self-correcting Student | ✅ Mechanism qualified; competence absent | After a failed 248.801-second overrun/report-merge diagnostic, commit `e1ea199` hardened the boundary. The corrected canary ended at a 144.082-second campaign clock against 144.0, classified 22 practice attempts, retained 16 successes, and passed 0/3 frozen exams. The 288-check suite and canary qualify machinery, not learning |
-| Version 9 active long campaign | 🟨 E1 live; not terminal | Fresh power-on under commit `d1c0c0d`; V8 supplies only root state. Declared 8h/150M ceiling, four environments, strict 27/30×2 practice, 16,384-action exams, and storage guards. First checkpoint reached the ground floor with 7/8 practice but 0/1 frozen and zero competent skills; no trend is claimed |
+| Version 9 long campaign | ✅ Closed negative learning result | It closed at 2h52m39.143s and 1,431,556 actions after reaching Route 1; 4/87 frozen exams yielded zero competent skills and no composition |
 | Version 9 recurrent PPO recovery | ⬜ Deferred and disabled | A future automatic no-success escalation would update the canonical Student under the same actor boundary. It is not implemented and remains ineligible until closed-loop plumbing plus a matched BC-only ablation qualify |
+| Version 10 recovery campaign | ✅ Closed negative learning result | It closed at 4,503.282s and 534,924 actions with 3/32 frozen exams and zero competent skills. Local recovery was measurable; long-horizon competence was not |
+| Version 11 canaries C1–C3 | ✅ Preserved failures/rejection | Path resolution failed, MCP authorization failed, then an operational run was rejected because initialized bedroom RAM falsely described later story state |
+| Version 11 canary C4 | ✅ Opening referee qualified | 136 actions and 70 language-model calls produced empirical RIGHT-movement proof and verified story objective 1/84; this is opening mechanism evidence, not completion or learning |
+| Version 11 clean run | 🟨 Active assisted attempt | Fresh power-on, empty run memory, no planned wall-clock limit. Strict success, failure, disk, and operator-stop boundaries remain; Hall of Fame is neither guaranteed nor claimed |
 | Goal-conditioned Student clean composition | ⬜ Not demonstrated | Historical repeated power-on checks reached only `game_started`; no valid multi-skill chain or H5-relevant later gameplay has been graded under the corrected protocol. V8's RAM-triggered self-generated goal playlist must remain disclosed |
 
 ## The destination
@@ -63,15 +54,18 @@ The long-term goal is a machine-learning system that knows enough to begin Poké
 power-on state and reach the Hall of Fame without human controller input, a scripted rescue, or an
 emulator-state shortcut during evaluation.
 
-There are two legitimate achievements on the route, and the project will not merge their names:
+There are now two active claim lanes, and the project will not merge their names:
 
-1. **Discover a complete solution:** a checkpoint-assisted evolutionary population assembles an
-   action lineage that can be replayed from power-on through the Hall of Fame.
-2. **Learn a complete policy:** one frozen model, receiving only its declared runtime observation,
-   reaches the Hall of Fame from power-on without checkpoint assistance.
+1. **Assisted hierarchical completion:** one fixed, disclosed planner–memory–navigator–specialist
+   system starts from clean power-on and reaches the Hall of Fame without human controller input or
+   emulator-state rescue. V11 pursues this lane now.
+2. **Frozen learned-policy completion:** one frozen learned system, receiving only its declared
+   runtime observation, reaches the Hall of Fame from power-on without checkpoint assistance. The
+   V7–V10 evidence belongs here and remains a negative long-horizon result.
 
-The first achievement can generate the curriculum and self-produced demonstrations needed for the
-second. It does not itself prove that one neural network learned the whole game.
+The first achievement can generate the curriculum and correction data needed for the second. It
+does not itself prove that one neural network learned the whole game. The older replayable
+`ACTION-LINEAGE` expedition remains a third, historical discovery claim rather than either result.
 
 This is a research objective, not a promised schedule. Each stage advances only after its evidence
 gate passes. An honest failure at a gate changes the design and remains part of the record.
@@ -182,6 +176,19 @@ Authored quest direction / controller actions / human interventions: 0
 
 That is completion under a declared goal-switching protocol, not unaided pixel-only autonomy.
 
+V11 uses a more assisted card and must never inherit the language of the frozen-policy lane:
+
+```text
+Actor: STRUCTURED-STATE LLM PLANNER + A* NAVIGATOR + CONTROLLER SPECIALISTS
+Runtime assistance: OBJECTIVES + PROCESSED MAPS + PERSISTENT RUN MEMORY
+Start: POWER-ON WITH EMPTY RUN MEMORY
+Evaluated object: HYBRID-SYSTEM
+Human controller input / emulator-state rescue: 0 in a claimed attempt
+```
+
+A V11 success is an assisted hierarchical completion. It is not a `FIXED-POLICY` result and does
+not make V7–V10 successful after the fact.
+
 ## Claim ladder
 
 The project may climb this ladder one rung at a time. A higher rung includes, but does not erase,
@@ -194,6 +201,7 @@ the lower evidence.
 | H2 | **One frozen policy learned a local skill.** | A fixed policy passes a predeclared skill evaluation from held-out local starts. | That it can reach those starts or play end to end. |
 | H3 | **The expedition reached a milestone.** | A checkpoint-assisted lineage reaches a named milestone and its complete action lineage replays from power-on under the frozen verifier. | That one model can reach it independently. |
 | H4 | **The evolutionary system discovered a complete solution.** | The complete winning action lineage replays from power-on through a machine-checked Hall-of-Fame event without intervention. | That one policy learned the complete solution. |
+| HA | **A disclosed assisted hierarchy completed Pokémon Red.** | One fixed version of the planner, memory, navigator, specialists, and control-transfer rules starts from clean power-on and reaches the strict Hall-of-Fame condition without human controller input, state rescue, or undeclared prior-run memory. Every call, intervention, and attempt is reported. | That a frozen learned policy completed the game; pixels-only learning; unassisted route discovery. |
 | H5 | **One frozen policy completed Pokémon Red under the declared evaluation wrapper.** | One fixed model starts from power-on and chooses every button through the Hall of Fame, with no snapshot restore, model update, authored action script, or human input during the attempt. Every planned attempt and any trainer-side goal-switching rule are reported. | Robustness outside the declared emulator and starting distribution; unaided pixel-only autonomy when RAM-triggered goal switching is enabled. |
 | H6 | **The learned policy completes reliably.** | The fixed model meets a success threshold frozen in advance across a held-out set of RNG/start-timing conditions or other declared perturbations. | General intelligence or ability on other games. |
 
@@ -201,8 +209,9 @@ For H3 and H4, every promoted major milestone must replay successfully three tim
 treated as a dependable frontier. Identical deterministic replays are an integrity check, not a
 statistical success rate. H5 and H6 require their own frozen evaluation attempt set.
 
-The phrase **“machine learning knows enough to complete the game”** is reserved for H5 or H6. H4
-may instead be described as **“evolution discovered a replayable route through the game.”**
+The phrase **“a frozen learned policy knows enough to complete the game”** is reserved for H5 or
+H6. HA is described as **“a disclosed assisted hierarchical AI completed the game.”** H4 may instead
+be described as **“evolution discovered a replayable route through the game.”**
 
 ## Expedition architecture
 
@@ -559,13 +568,15 @@ The completion dashboard should make the learning process legible without a tech
 - replay-pass history for every promoted frontier;
 - which emitter, model, and mutation created each child;
 - action-lineage progress and frozen-policy progress in separate panels; and
+- assisted-hierarchy progress and frozen learned-policy progress in separate, permanently labeled
+  lanes;
 - compute, storage, interventions, crashes, and protocol-version changes.
 
 The central narrative is not that endless random input inevitably wins. It is:
 
-> **The first agents could stumble, but they could not remember a journey. We gave evolution a
-> verifiable memory of its stepping stones, then asked whether those discoveries could teach one
-> model to make the journey itself.**
+> **The first agents could stumble, but local lessons never became a journey. We preserved that
+> learned-policy evidence, then zoomed out to an openly assisted hierarchy that must plan, remember,
+> act, and show its work. Completion and learning remain two different finish lines.**
 
 That story remains interesting if a chosen architecture fails. The
 [append-only decision register](decision-register.md) preserves the discarded mechanisms and the
@@ -585,8 +596,16 @@ evidence that changed course.
    the exact `left_home` milestone.
 8. ✅ Bound replay and archive-selection growth and pass continuous, graceful-resume, and
    hard-crash Archive v2 qualification.
-9. 🟨 Run the implemented Visual Apprentice data/overfit/live gate, then compare discovery emitters at Q2
-   under the unchanged target and budgets.
+9. ✅ Run the Visual Apprentice and V7–V10 learned-policy sequence; preserve the resulting local
+   mechanisms, failed composition gates, and terminal frozen-exam denominators.
+10. ✅ Close V10 at 4,503.282 seconds, 534,924 actions, 3/32 frozen exams, and zero competent skills;
+    do not extend the flat-policy reward loop as the primary completion strategy.
+11. ✅ Preserve the V11 canary ladder: C1 path failure, C2 authorization failure, C3 rejected false
+    state, and C4's qualified 136-action/70-call opening with real RIGHT-movement proof and 1/84.
+12. 🟨 Audit the fresh unbounded V11 clean-start run. Record every objective, planner/tool call,
+    controller action, intervention, invalid-state rejection, storage condition, and terminal reason.
+13. ⬜ If V11 reaches the strict Hall of Fame, publish it as HA assisted completion and use its
+    success-and-correction record to train the separate frozen learned-policy lane.
 
 The [experiment protocol](experiment-protocol.md) remains authoritative for official attempts. The
 [Evolutionary Explorer](neuroevolution.md) document describes the predecessor mechanism in more

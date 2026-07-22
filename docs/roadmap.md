@@ -1,13 +1,16 @@
 # Roadmap
 
-> **Direction update:** Pure Monkey, clean-start mutation, and verify-only Frontier Apprentice
-> remain preserved controls. The active track is now
-> [parallel recurrent PPO](parallel-ppo.md): four simultaneous games teach one shared pixel policy
-> from every rollout, while the Hall-of-Fame referee and replay-verified Archive-v2 curriculum
-> remain unchanged. Version 5.1 reached the Pokédex and exposed a 3,035,252-action plateau;
+> **Direction update:** Pure Monkey, clean-start mutation, verify-only Frontier Apprentice, and the
+> [parallel recurrent PPO](parallel-ppo.md) family remain preserved controls. They form the frozen
+> learned-policy lane; none is the current completion runner. The active track is now the
+> [Version 11 assisted hierarchy](version-11-hierarchical-pivot.md), whose fourth opening canary has
+> qualified.
+> The Hall-of-Fame referee and the project's evidence rules remain unchanged even though V11
+> deliberately exposes more planning information. Version 5.1 reached the Pokédex and exposed a
+> 3,035,252-action plateau;
 > Version 5.2 reached Route 1 but showed that verified slices do not prove one policy composed them.
 > Version 6 retained the policy but finished at 5/10, short of its 8/10 first connection gate.
-> Version 7 is the live denominator: random power-on learning, no imported answer, and visual
+> Version 7 is the preserved denominator: random power-on learning, no imported answer, and visual
 > skills produced only by the same run's verified discoveries. Version 8 kept those information
 > rules, left the V7 run untouched, separated PPO
 > exploration from a recurrent Student, distilled only replay-preserving edits, and moved competence
@@ -19,11 +22,20 @@
 > consecutive edges, BC warm start, exact-target reverse closed-loop practice, bounded success
 > replay, terminal counts, and checkpoint rollback. A failed first canary exposed wall-time and
 > report-merge defects; commit `e1ea199` repaired them, and the corrected 144-second canary
-> qualified mechanism, observability, and campaign timing at 0/3 frozen exams. PPO recovery remains
-> deferred, and learned competence is not claimed. The V9 campaign closed intentionally after
+> qualified mechanism, observability, and campaign timing at 0/3 frozen exams. PPO recovery remained
+> deferred, and learned competence was not established. The V9 campaign closed intentionally after
 > 2h52m39.143s at Route 1, 4/87 frozen exams, zero competent skills, and no composition. The
-> matched-configuration V10 recovery campaign is active; its 310.686-second snapshot is heartbeat
-> evidence only.
+> matched-configuration V10 recovery campaign then closed after 1h15m03.282s and 534,924 Explorer
+> actions. It again stopped at Route 1: 3/32 frozen exams, zero competent skills, and no composition.
+> Recovery itself was measurable—956 of 1,977 windows escaped—but it did not solve long-horizon
+> learning. [Version 11](version-11-hierarchical-pivot.md) is now being implemented as a disclosed
+> assisted hierarchy: a structured-state language-model planner, map-local A* navigation,
+> persistent memory, controller specialists, and a strict Hall-of-Fame referee. The canary sequence
+> is part of the result: C1 exposed a path-resolution failure, C2 exposed an MCP-authorization
+> failure, C3 ran but was rejected when initialized bedroom RAM falsely described story progress,
+> and C4 qualified the opening referee with 136 actions, 70 language-model calls, empirical RIGHT-
+> movement proof, and story objective 1/84. A fresh unbounded power-on run is active. It has no
+> promised completion time and no Hall-of-Fame result is claimed.
 
 ## Completed blind-discovery arc
 
@@ -74,10 +86,10 @@
     self-generated visual skills, direct self-imitation, weakest-skill scheduling, and 8/10 gates.
 24. ✅ Pass the first real-ROM V7 mechanism canary: two self-discovered skills and actual
     recurrent imitation updates from zero imported actions or parameters.
-25. 🟨 Preserve the longer V7 self-taught trial unchanged as the denominator; report discovery,
-    imitation, rehearsal, forgetting, and composition under its original protocol. A fresh V8 run
-    can now seal a path-free, hash-matched read-only checkpoint using `--v7-denominator`; resume
-    cannot move that lock.
+25. ✅ Preserve the longer V7 self-taught snapshot unchanged as a historical denominator; report
+    discovery, imitation, rehearsal, forgetting, and composition under its original protocol. V8
+    sealed a path-free, hash-matched read-only checkpoint using `--v7-denominator`; resume cannot
+    move that lock. It is a launch-time anchor, not a claimed terminal V7 result.
 26. ✅ Implement [Version 8](version-8-distilled-student.md): nearest-prefix skill boundaries,
     replay-backed loop/chunk removal, short visual goal clips, a separately optimized recurrent
     Student, balanced sequence replay with burn-in, prerequisite scheduling, and competence
@@ -99,8 +111,8 @@
     actions, reached Route 1 with seven skills, and raised fit to 53.0817%, but passed only 1/47;
     zero skills became competent and no composition ran. Preserve 1/47 as the final V8 behavioral
     result. A hard-crash twin and learned multi-skill behavior were not demonstrated.
-29. ⬜ Run matched V7/V8 analysis after the V7 denominator closes; show raw/compressed actions,
-    Student fit, every frozen attempt, retention losses, and compute.
+29. ⬜ Keep a matched V7/V8 causal claim deferred unless compatible terminal artifacts become
+    available; the preserved V7 launch-time snapshot is not a terminal matched denominator.
 30. 🟨 Train and evaluate restore-free power-on composition only after prerequisite local exams
     pass. The training mechanism now verifies a full self-generated chain and retains bounded
     goal-switch excerpts with active-prefix and replay-balance controls. Immutable admission-time
@@ -116,17 +128,29 @@
 32. ✅ Qualify the V9 real-ROM mechanism boundary. Preserve the failed 248.801-second overrun;
     after `e1ea199`, the corrected run ended at a 144.082-second campaign clock against 144.0,
     retained all 22 practice outcomes, and passed 0/3 frozen exams.
-33. 🟨 Run the declared eight-hour V9 campaign under the qualified boundary: fresh power-on,
-    root curriculum only, commit `d1c0c0d`, four environments, 27/30×2 practice, exams every
-    16,384 actions, and no mid-run edits. First checkpoint: 16,388 actions, ground floor, 7/8
-    practice, 0/1 frozen, zero competent; provisional E1 only. Run a matched BC-only ablation before
-    a causal learning claim.
-34. ⬜ Keep recurrent PPO recovery disabled until the longer self-correcting result and matched
-    ablation justify it; then freeze an automatic
-    no-success trigger, same actor boundary, canonical-Student update protocol, and matched budget.
-35. ⬜ Add learned specialist heads only if self-discovered skill evidence shows the shared visual
-    target is insufficient; do not pre-author navigation, battle, or menu solutions.
+33. ✅ Close the declared V9 campaign without promoting training fit into competence. It ended at
+    1,431,556 Explorer actions, 4/87 frozen exams, zero competent skills, and no composition.
+34. ✅ Implement and qualify V10's bounded recovery-before-reset mechanism, then preserve its
+    matched-configuration terminal result: 534,924 actions, Route 1, 3/32 frozen exams, zero
+    competent skills, no composition, and all 1,977 recovery windows accounted for.
+35. ✅ Reject another flat-policy reward iteration as the primary completion path. V8–V10 showed
+    better lesson production, fit, self-correction, and local recovery without reliable skill
+    competence or composition.
 36. ✅ Replace Monkey in the four-lane pretrial dashboard.
+37. ✅ Implement [Version 11](version-11-hierarchical-pivot.md) as a declared assisted hierarchy,
+    pinned to an auditable upstream harness revision and beginning from true power-on with empty
+    run memory. No prior save, action lineage, evolved policy, or human controller input may enter a
+    claimed attempt.
+38. ✅ Qualify the V11 opening boundary after preserving every canary outcome. C1 failed on path
+    resolution; C2 failed on MCP authorization; C3 was operational but rejected for false initialized
+    state; C4 qualified after 136 actions and 70 language-model calls with real RIGHT-movement proof
+    and one of 84 story objectives verified.
+39. 🟨 Run the fresh unbounded V11 attempt from clean power-on with empty run memory. “Unbounded”
+    means no planned wall-clock limit, not guaranteed completion; strict terminal evidence, disk
+    guards, interventions, failures, and operator stops remain authoritative.
+40. ⬜ After one verified guided completion, distill its success and failure states into learned
+    specialists through behavioral cloning and DAgger-style correction. Freeze and replace one
+    component at a time rather than relabeling the assisted run as pixels-only learning.
 
 ## Later informed-agent roadmap
 
@@ -151,11 +175,15 @@ flowchart TD
     Q1 --> SC["✅ Archive v2<br/>qualified substrate"]
     SC --> VA["✅ Visual Apprentice<br/>one-route mechanism"]
     VA --> V6["✅ V6<br/>composition failure measured"]
-    V6 --> V7["🟨 V7<br/>live self-taught denominator"]
-    V7 --> V8["🟨 V8<br/>separate distilled Student"]
-    V8 --> SK["⬜ Frozen local competence"]
-    SK --> HY["⬜ PLANNED<br/>Planner + memory + watchdog"]
-    HY --> P2["⬜ PLANNED<br/>Phase 2: defeat Brock"]
+    V6 --> V7["✅ V7<br/>self-taught denominator"]
+    V7 --> V8["✅ V8<br/>Student result 1/47"]
+    V8 --> V9["✅ V9<br/>self-correction result 4/87"]
+    V9 --> V10["✅ V10<br/>recovery result 3/32"]
+    V10 --> V11["✅ V11<br/>opening canary qualified"]
+    V11 --> RUN["🟨 Fresh clean run<br/>unbounded; active"]
+    RUN --> HOF["⬜ Assisted<br/>Hall of Fame"]
+    HOF --> SK["⬜ Distilled specialists<br/>frozen evaluation"]
+    SK --> P2["⬜ Learned hierarchy<br/>power-on evaluation"]
     P2 --> AB["🧭 LATER<br/>Controlled agent comparisons"]
 ```
 
@@ -258,11 +286,15 @@ policy claim. A discovered Parcel route does not automatically satisfy the learn
 
 ### System capabilities
 
-- ⬜ Planner chooses bounded, inspectable goals rather than individual frames.
-- ⬜ Skill selector invokes navigation, interaction, and battle policies through one interface.
-- ⬜ Run-specific memory records discovered connections, outcomes, and failed approaches.
-- ⬜ Watchdog detects repeated screens, position cycles, and exhausted budgets.
-- ⬜ Recorder explains which component chose each action and why control changed hands.
+- 🟨 The V11 planner chooses bounded, inspectable goals rather than individual frames; only its
+  opening boundary is qualified so far.
+- 🟨 The assisted selector can invoke navigation and controller specialists through one interface;
+  full-game coverage is not yet demonstrated.
+- 🟨 Run-specific memory records discoveries, outcomes, and failed approaches, beginning empty on
+  the fresh clean run.
+- 🟨 The watchdog and referee can reject invalid progress; later-game recovery remains unproved.
+- 🟨 The recorder attributes calls, objectives, and controller actions; long-run narrative coverage
+  is being exercised now.
 
 ### Brock arc
 
@@ -305,30 +337,26 @@ knowledge, and tool access must be reported rather than compressed into a single
 
 ## Near-term work queue
 
-1. **Do not move the denominator** — let the already-running V7 trial finish or reach its declared
-   stop under the exact configuration it started with. Preserve terminal hashes and every failure.
-2. **Qualify V9's first stage** — prove consecutive edge identity, live Student button authority,
-   success-only replay admission, deterministic reverse-rung resume, and the BC-only comparator.
-   Do not enable PPO fallback during this gate.
-3. **Keep evidence visible** — retain original/normalized action counts, every closed-loop attempt,
-   success replay cost, Student fit and entropy, all frozen exams, reverse-rung depth, and the
-   four V8 depth meters on the dashboard and in hourly Markdown chapters.
-4. **Finish durability qualification** — the fallback artifact now survives a simulated second
-   interrupted rotation. Add a deliberate process-kill real-ROM twin to the two passed clean
-   stop/resume cycles and verify the entire bound checkpoint set.
-5. **Run the matched comparison** — compare V7's shared-policy raw-trace method, V8's closed BC
-   result, and matched V9 BC-only/self-correcting lanes using disclosed actions, emulator-hours,
-   replay calls, and wall time.
-6. **Attempt clean composition** — only locally competent prerequisite chains become eligible for
-   a frozen power-on attempt. Checkpoint-assisted local success remains a separate meter. The
-   report must name the RAM-triggered switching of self-generated visual goals rather than imply
-   unaided pixel-only autonomy. First show whether the verified bounded switch excerpts actually
-   improve the frozen Student; their existence alone is training-data evidence.
-7. **Conditionally qualify PPO recovery** — only after closed-loop aggregation and the BC ablation
-   pass, freeze an automatic failure trigger and train the canonical Student under the same actor
-   boundary. Keep it disabled if that prerequisite is not met.
-8. **Continue toward the Hall of Fame** — repeat discovery, self-correction, retention, and
-   composition without writing an obstacle-specific solution whenever the frontier stalls.
+1. **Freeze the learned-policy lane** — retain V7–V10 artifacts and terminal denominators without
+   rewriting their labels. V10 closed at 4,503.282 seconds, 534,924 actions, 3/32 frozen exams, and
+   zero competent skills. Its recovery mechanism passed; its learned-competence result did not.
+2. **Preserve the V11 canary ladder** — C1 path resolution, C2 authorization, C3 rejected false
+   state, and C4's qualified 136-action/70-call opening are all part of the evidence. Do not edit the
+   earlier failures out of the story.
+3. **Keep assistance visible** — label the actor `STRUCTURED-STATE LLM PLANNER + A* NAVIGATOR +
+   CONTROLLER SPECIALISTS` and the run `ASSISTED` / `HYBRID-SYSTEM`. Record model/tool usage,
+   objective changes, interventions, and every controller action rather than presenting it as a
+   pixels-only discovery experiment.
+4. **Fail closed on provenance** — reject a run if an adjacent state loads, prior-run memory enters,
+   an objective advances without game evidence, or the Champion room is mistaken for the Hall of
+   Fame. Completion requires event bit `0x901` together with map `0x76`.
+5. **Audit the active unbounded run** — it began fresh at power-on only after C4 verified real
+   movement and story objective 1/84. Require visible game evidence, bounded disk growth, narrative
+   chapters, and an exact terminal reason. Do not infer eventual completion from unlimited planned
+   wall time.
+6. **Turn completion into curriculum** — after a verified assisted journey, train reusable
+   navigation, dialogue, battle, menu, and puzzle specialists on both success and correction states.
+   Freeze replacements one component at a time and keep the assisted teacher as a separate result.
 
 The corrected exam cadence fits the ceiling arithmetically: `66 × 10 × 16,384 = 10,813,440`
 Explorer actions, about 10.8 million, for the local-grade opportunity floor across all catalogue

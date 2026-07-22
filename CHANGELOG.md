@@ -1,5 +1,61 @@
 # Changelog
 
+## Unreleased — Version 11 hierarchical completion pivot
+
+- Closed V10 cleanly before changing architectures. Run
+  `parallel-ppo-v10-recovery-8h-20260721-seed20260809` ended by SIGINT after 4,503.282 seconds
+  (1h15m03.282s), 534,924 Explorer actions at 118.785/s, 522 PPO updates, 122 episodes, 567 unique
+  positions, and seven promotions through Route 1. The `8h` and 150-million-action values were
+  ceilings, not its achieved duration or count.
+- Preserved the complete negative learning result. The Student completed 270 rounds and 3,366
+  updates over 121,194 examples, ending at 43.2519% accuracy and 1.556849 NLL. Frozen exams passed
+  3/32, zero skills became competent, and no composition ran. Final hashes matched; artifacts
+  occupied 51,716,995 bytes.
+- Closed V10's 1,977-window recovery denominator as 956 escaped, 910 context-changed, 110 expired,
+  and one abandoned at campaign end, with zero controller overrides. This validates local recovery
+  accounting without establishing broader exploration, reliable learning, or gameplay completion.
+- Added [the V11 design](docs/version-11-hierarchical-pivot.md) and changed the primary completion
+  lane from a flat reward-driven policy to a disclosed hierarchical hybrid: structured-state
+  language-model planning, hand-authored current objectives, processed maps, map-local A*
+  navigation, controller specialists, persistent run memory, and a separate read-only referee.
+- Pinned the adaptation target to `sethkarten/continual-harness` commit
+  `bbab97ad73e460b7cd7c08527d10ced30cc03fbe`. V11 runs the authenticated planner locally and keeps
+  the private ROM and runtime artifacts on external storage. The experiment is labeled
+  `STRUCTURED-STATE LLM PLANNER + A* NAVIGATOR + CONTROLLER SPECIALISTS`, `ASSISTED`, `POWER-ON`,
+  and `HYBRID-SYSTEM`; it is not a pixels-only learning claim.
+- Hardened the declared clean-start and completion boundary. Adjacent ROM-state auto-load is
+  disabled by default. A claimed attempt imports no save, action lineage, evolved policy, or
+  prior-run gameplay memory. Completion requires event bit `0x901` together with Hall-of-Fame map
+  `0x76`, not entry into the Champion room. The final objective advances through the post-battle
+  Hall-of-Fame transition, and Red recording uses its native 160×144 frame size.
+- Defined four separate evidence layers for the live record: game, plan, journey, and reliability.
+  The supervisor must preserve status snapshots, an append-only timeline, important frames, hourly
+  Markdown chapters, source/ROM hashes, intervention counts, storage limits, and exact stop reason.
+- Ran four bounded V11 canaries and preserved each failed boundary. Canary 1 ended after 25.559
+  seconds with zero actions because the planner scratch path was resolved twice; unexpected clean
+  harness exits now fail closed. Canary 2 was stopped after 108.110 seconds and 13 language-model
+  calls with zero actions because MCP requests were cancelled under the unattended approval policy;
+  the Pokémon server is now required, preapproved, and limited to the exact audited tool allowlist.
+- Canary 3 proved the planner, MCP bridge, ordinary controller actions, dashboard, recording, and
+  clean shutdown worked together, but rejected its own apparent progress. During Oak's visible
+  introduction the structured state claimed `RedsHouse2f (3,6)` and `overworld`; the unguarded
+  objective endpoint accepted `pallet_000` as complete. The operator stopped it after 251.630
+  seconds and 50 actions. This is a state-truth failure, not a bedroom or Potion result.
+- Added a server-enforced opening referee. Pre-control map, coordinates, and generic milestones stay
+  unavailable; a directional action must produce a real bedroom coordinate change before the
+  opening objective may advance. Canary 4 proved control when RIGHT moved RED from `(3,6)` to
+  `(4,6)` at `2026-07-22T03:22:41Z`. `pallet_000` completed at 450.05 seconds / 111 actions, and the
+  bounded run ended at 600.521 supervisor seconds (596.087 metrics seconds), 136 actions, 70
+  language-model calls, 2,438,617 logged tokens, and $0.5150955 logged estimated cost. It finished
+  in `RedsHouse2f (0,2)`, story index 1/84, with no party, badges, or Hall-of-Fame result.
+- Found one residual server-layer pre-game map leak during Canary 4 even though the public planner
+  state and objective ledger remained guarded. Fixed that leak before launching the fresh
+  continuous run `v11-continuous-20260721-233300` from power-on. Its localhost dashboard uses port
+  8775. The active run tests sustained planning; its launch is not a promise of completion.
+- Reframed a future guided completion as both an endpoint and a teacher. Its success and correction
+  states may train behavioral-cloning and DAgger-style specialists, which must later replace guided
+  components one at a time under frozen power-on evaluation.
+
 ## Unreleased — Version 10 recovery before reset
 
 - Implemented a separate `self_taught_v10` successor without editing the frozen V9 campaign or
@@ -88,6 +144,9 @@
   turns its frame heartbeat amber after 20 seconds and explains that replay, practice, or an exam
   can temporarily pause gameplay snapshots. It does not fabricate frames or treat trainer work as
   Explorer actions.
+- Closed the matched V10 run when the project pivoted to V11. Its exact terminal statistics and
+  interpretation are recorded in the V11 section above; the earlier 310.686-second snapshot remains
+  historical heartbeat evidence and is no longer the current status.
 
 ## Unreleased — Version 9 self-correcting Student
 

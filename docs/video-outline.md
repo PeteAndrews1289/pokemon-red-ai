@@ -4,7 +4,7 @@
 > cannot accumulate when success never changes later behavior. Evolutionary Explorer then showed
 > that a useful accident could have children—but the completed
 > [selection × mutation lab](selection-mutation-lab.md) showed that better inheritance still did not
-> create meaningful game progress. The current story is the checkpoint-expedition pivot: first make
+> create meaningful game progress. That failure produced the checkpoint-expedition pivot: first make
 > long-horizon discoveries reproducible, then use them to train and evaluate one frozen policy. Q1
 > now supplies the first payoff and complication: one random-emitter seed replayed a route outside,
 > the other failed, and verification cost almost one million additional controller actions.
@@ -16,8 +16,8 @@
 > wires connect; it is what happens when the apprentice starts midway with no remembered context
 > or makes its first mistake. Frontier Apprentice supplied the next honest limitation: it could
 > learn a replay-verified victory, but almost every ordinary failed attempt taught the network
-> nothing. Four-worker recurrent PPO is the new protagonist because every rollout can now change
-> the shared policy. The verifier still decides whether any apparent progress is real.
+> nothing. Four-worker recurrent PPO became the next protagonist because every rollout could change
+> the shared policy. The verifier still decided whether any apparent progress was real.
 > Version 4 now supplies the payoff: at action 790,900 a worker reached Viridian City and survived
 > all four replay tests. It also supplies the next complication. Across the completed run, 968
 > episodes produced 499 visual loops and 469 long stagnations; arriving once did not make the next
@@ -41,8 +41,9 @@
 > checkpoints, and route reward. The new protagonist begins at power-on with random weights and can
 > study only successes it generated itself. Its first canary unexpectedly reaches the ground floor,
 > giving the story a genuine restart rather than another patched obstacle.
-> V8 supplies the next causal question without rewriting that result. The live V7 run remains the
-> denominator. Its one network both explores under noisy PPO and imitates raw verified traces. V8
+> V8 supplies the next causal question without rewriting that result. The then-live V7 run became a
+> locked historical denominator. Its one network both explored under noisy PPO and imitated raw
+> verified traces. V8
 > draws two characters: an orange Explorer that wanders and a blue Student that studies only
 > replay-distilled self-generated sequences. Loss remains a practice graphic; frozen exam tiles
 > decide competence. The first real-ROM canary now gives this planned chapter a mechanism beat:
@@ -65,8 +66,17 @@
 > policy control, and separates credited escapes, zero-credit context changes, expirations, active
 > windows, and abandonments. The bounded E3 campaign canary now qualifies that mechanism; it is not
 > a gameplay-success or superiority beat. V9 was intentionally stopped at 2h52m39.143s—not eight
-> hours—to launch a matched-configuration V10 run. V10's current 310.686-second snapshot is a
-> heartbeat only, preserving the question rather than answering it.
+> hours—to launch a matched-configuration V10 run. V10 then ended after 1h15m03.282s and 534,924
+> actions. Its complete 1,977-window recovery ledger proves the mechanism operated, but Route 1,
+> 3/32 frozen exams, zero competent skills, and no composition answer the larger question negatively.
+> Version 11 changes the unit of reasoning instead of adding another local reward: an openly assisted
+> language-model planner receives structured state, objectives, processed maps, A* navigation,
+> persistent memory, and controller specialists. Its canary sequence now supplies four honest beats:
+> C1 path resolution failed, C2 MCP authorization failed, C3 ran but was rejected for false
+> initialized story state, and C4 qualified the opening referee after 136 actions and 70 planner
+> calls with empirical RIGHT-movement proof and objective 1/84. A fresh unbounded clean-start run is
+> active. The new chapter remains an architectural hypothesis, not a Hall-of-Fame result or a
+> guarantee of eventual completion.
 
 This document is a production guide for telling the project's story without getting ahead of the
 evidence. The detailed Episode 0 section preserves the original before-training production plan;
@@ -74,10 +84,11 @@ the evolutionary sections above it should follow the current evidence.
 
 ## The editorial premise
 
-**Working series title:** *Can an AI Learn Pokémon Red—and Show Its Work?*
+**Working series title:** *Can an AI Beat Pokémon Red—and Show Its Work?*
 
-**One-sentence promise:** Follow one agent from its first controlled button press to increasingly
-ambitious goals, with every attempt, intervention, observation, and rule made visible.
+**One-sentence promise:** Follow the project from blind button presses to an auditable assisted
+hierarchy, while keeping learned-policy evidence, supplied help, failed attempts, interventions, and
+rules visible.
 
 The hook is not “AI beats an old game.” Many projects can produce a successful clip. The hook is
 building an honest, understandable record of how competence appears: what was engineered, what was
@@ -103,8 +114,9 @@ the next test, and lets the evidence change the plan.
 | 10. The discoverer and the student | Does replay-distilling the agent's own routes into a separate recurrent Student create competence that survives frozen exams? | Unchanged V7 denominator, raw/compressed audit, all local exams, and an honest architecture verdict |
 | 11. It never practiced being wrong | Can closed-loop success-only practice repair the Student's exposure bias? | Every practice outcome beside checkpoint-separated frozen exams, whether competence appears or not |
 | 12. The reset button was hiding the lesson | Can the Explorer recover from a generic loop without being told a direction? | Trigger types; credited escapes; context changes; expirations, active, and abandoned windows; compute; and matched exploration evidence—or an honest null result |
-| 13. Nature or nurture? | Which progress came from pixels, rewards, RAM, replay, or selection? | Successor comparisons with declared information and compute budgets |
-| 14. The clean exam | Can the self-taught library become one frozen, restore-free policy? | Every power-on attempt, intervention count, and success denominator |
+| 13. We stopped teaching one button at a time | Can a disclosed planner, map, memory, and specialist hierarchy hold together one whole adventure? | A strict guided Hall-of-Fame result—or the exact planning/tool boundary that fails |
+| 14. Nature or nurture? | Which progress came from pixels, rewards, RAM, replay, planning, or selection? | Successor comparisons with declared information and compute budgets |
+| 15. The clean exam | Can the guided journey become frozen learned specialists? | Every power-on attempt, component replacement, intervention count, and success denominator |
 
 Do not promise a full playthrough in the first episode. Promise an investigation with the next
 milestone close enough to be credible.
@@ -155,6 +167,67 @@ changes, and five red expirations. Add 702 recovery actions and `36/73 = 49.315%
 `ACTIVE 0 · ABANDONED 0 · UNRESOLVED 0 · TRAINER OVERRIDES 0`. State that visual-cycle and
 long-stagnation paths did not activate. The narrative payoff is permission to run a matched longer
 V9/V10 comparison—not proof of better exploration, learning, competence, or a path to Hall of Fame.
+
+Close the chapter with the terminal V10 card rather than the earlier launch heartbeat:
+`1h15m03.282s · 534,924 ACTIONS · ROUTE 1 · FROZEN 3/32 · COMPETENT 0 · COMPOSITION 0`. Under it,
+animate the complete recovery denominator: 956 escaped, 910 context-changed, 110 expired, and one
+abandoned at campaign end, totaling 1,977. The correct conclusion is two-sided: recovery was real,
+but another local mechanism did not create long-horizon competence.
+
+## Planned Episode 13: “We Stopped Teaching the AI One Button at a Time”
+
+**Central question:** If a flat policy cannot reliably join its own local lessons, can an explicitly
+assisted hierarchy maintain a plan from power-on all the way to the Hall of Fame?
+
+**Cold open:** place the four final V10 frames side by side, all pressing into the same corner.
+Freeze the controller traces. Instead of drawing a fifth reward arrow, zoom out and reveal the
+missing layers: `PLANNER`, `MEMORY`, `MAP NAVIGATOR`, `SPECIALISTS`, and `REFEREE`.
+
+Keep the information card on screen whenever V11 footage appears:
+
+- `STRUCTURED-STATE LLM PLANNER + A* NAVIGATOR + CONTROLLER SPECIALISTS`;
+- `ASSISTED MAP + OBJECTIVE + RUN MEMORY`;
+- `POWER-ON`; and
+- `HYBRID-SYSTEM`.
+
+The assistance is the experiment, not a disclaimer in small print. The planner chooses the next
+subgoal, A* turns a same-map destination into ordinary directional inputs, specialists handle
+dialogue, menus, battles, and puzzles, and persistent notes preserve discoveries and failures. A
+read-only referee records progress and may stop on the strict terminal condition, but never presses
+a button.
+
+Use the four real canaries as the evidence hook. Give each an equal-width card so the repaired run
+cannot erase the failed one:
+
+1. `C1 · PATH RESOLUTION FAILED` — the runtime could not prove the intended input path;
+2. `C2 · MCP AUTHORIZATION FAILED` — the planner connection was unavailable;
+3. `C3 · OPERATIONAL · RESULT REJECTED` — initialized bedroom RAM falsely described later story
+   state, and the visible screen overruled it; and
+4. `C4 · OPENING REFEREE QUALIFIED` — 136 actions, 70 language-model calls, empirical RIGHT-
+   movement proof, and story objective 1/84.
+
+Then show the strict terminal rule `EVENT 0x901 + MAP 0x76`. The Hall-of-Fame light stays dark until
+both are true. The principle is visual: a working planner, a changing dashboard, or even a plausible
+state field is not the same as beating the game.
+
+Show progress in four simultaneous layers:
+
+1. **Game:** frame, map, coordinates, party, and context;
+2. **Plan:** current objective, next subgoal, and recent tool/reasoning event;
+3. **Journey:** ordered objectives, badges, maps, stalls, and recoveries; and
+4. **Reliability:** clean-start receipt, hashes, intervention count, and strict terminal fields.
+
+The canary's honest ending is tiny: C4 qualifies opening control and objective evidence at 1/84. It
+does not count as learning or evidence that the hierarchy can complete the game. The fresh
+unbounded clean-start run begins only after that gate. Put `NO PLANNED WALL-CLOCK LIMIT` beside
+`NO COMPLETION GUARANTEE`; “unbounded” is a scheduling choice, not a result.
+
+If V11 eventually reaches the Hall of Fame, say **A DISCLOSED ASSISTED HIERARCHICAL AI COMPLETED POKÉMON
+RED FROM POWER-ON**. Do not say the model learned the game from pixels, discovered the route
+unassisted, or trained new foundation-model weights. The next season begins with the completed
+journey becoming success-and-correction data for behavioral cloning and DAgger-style specialists.
+If V11 fails, end on the first repeated plan/tool failure that its memory cannot resolve; do not
+hide it behind another reward adjustment.
 
 ## Planned Episode 10: “The Discoverer and the Student”
 
@@ -279,7 +352,7 @@ game start in 78.1% of children versus 39.6% under uniform selection, but no lan
 map or formed a party. Do not crown Frontier–Broad because it visited seven local positions. The
 next honest step is the checkpoint-expedition pivot, not a larger copy of the same run.
 
-## The new central narrative: “First, teach the experiment to remember”
+## The central narrative: “When local learning never became a journey”
 
 The strongest story is no longer a tournament between four agents. It is a sequence of increasingly
 hard promises:
@@ -291,11 +364,23 @@ hard promises:
 3. **A checkpoint can remember progress, but a saved state can also create a convincing lie.** The
    first replay verifier accepted a forged Hall-of-Fame label because the bytes replayed exactly.
    Semantic recomputation rejected it: the real replay was still at power-on.
-4. **Reliable discovery precedes learned completion.** The expedition must build an exact,
-   power-on-replayable solution lineage. That lineage becomes self-produced curriculum for a later
-   model; it is not itself described as one model solving the game.
-5. **The final claim is deliberately difficult.** One frozen policy must start at power-on and reach
-   the Hall of Fame with its observation boundary, attempts, and interventions declared in advance.
+4. **Local lessons did not become a journey.** V7–V10 improved self-generated data, training fit,
+   closed-loop practice, and recovery, yet frozen competence and composition remained near zero.
+   That repeated null result motivates an architectural change rather than another hidden patch.
+5. **The hierarchy must name its help.** V11 gives a language-model planner structured state,
+   objectives, maps, A* navigation, persistent memory, and controller specialists. A success is a
+   disclosed assisted completion from power-on, not pixels-only learning. C1–C3 show the experiment
+   rejecting operational and semantic failure; C4's 136 actions, 70 calls, real RIGHT
+   movement, and 1/84 objective are the first qualified opening boundary.
+6. **Completion becomes curriculum, not the end of scrutiny.** A verified guided journey can train
+   smaller specialists on both successful and corrected states. The later difficult claim remains
+   one frozen learned hierarchy reaching the Hall of Fame with every attempt and intervention
+   declared in advance.
+
+Keep two horizontal tracks on screen from this point forward. The upper `ASSISTED HIERARCHY` track
+contains V11 and its active unbounded clean-start run. The lower `FROZEN LEARNED POLICY` track ends
+at V10's 3/32 and zero competent skills until a genuinely frozen successor is evaluated. Never move
+an assisted milestone onto the learned track for dramatic convenience.
 
 The false Hall-of-Fame audit is a particularly useful visual beat. Put two green checks on screen:
 `SNAPSHOT HASH MATCHED` and `SCREEN HASH MATCHED`. Then strike through the headline `HALL OF FAME`
@@ -718,13 +803,14 @@ Complete this before recording narration and again before publishing.
 
 | Tempting line | Better line |
 | --- | --- |
-| “I trained an AI to play Pokémon.” | “I built and tested several learners; none has yet completed a named gameplay milestone in the current expedition.” |
+| “I trained an AI to beat Pokémon.” | “The frozen learned-policy lane ended V10 with zero competent skills; V11 is a separately labeled assisted hierarchy.” |
 | “It learned the room.” | “It crossed the exit in 17 of 20 held-out attempts.” |
 | “It only saw the game.” | “The policy received pixels plus the declared X/Y coordinates.” |
 | “No cheating.” | “The policy could not write memory or load snapshots; the referee read these six fields.” |
 | “Completely autonomous.” | “There were zero interventions during these frozen evaluation attempts.” |
 | “It figured this out from scratch.” | “It used this pretrained planner, these prompts, and this trained skill.” |
 | “It beat the game.” | “It completed the declared Brock milestone from a clean start.” |
+| “It will finish if we leave it running.” | “The fresh V11 attempt has no planned wall-clock cutoff; completion remains unproved and is not guaranteed.” |
 | “Training took four hours.” | “Training used N emulator steps, H emulator-hours, and four wall-clock hours.” |
 
 Specific language is not less exciting. It gives the audience a reason to trust the exciting part.

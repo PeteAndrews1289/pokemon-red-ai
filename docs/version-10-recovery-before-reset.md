@@ -8,10 +8,10 @@ which the policy needed to learn a different response.
 
 > **Status on 2026-07-21 local / 2026-07-22 UTC:** the V10 recovery mechanism is implemented as a
 > new protocol and has passed deterministic E2 qualification, direct E3 mechanism calibration, and
-> one bounded E3 real-ROM campaign canary. V9 is now closed, and a matched-configuration V10 long
-> run is active. Its latest recorded snapshot is a coherent heartbeat only. A terminal behavioral
-> comparison remains pending; no V10 exploration superiority, learning, or competence result is
-> claimed.
+> one bounded E3 real-ROM campaign canary. The matched-configuration V10 run is now closed after
+> 4,503.282 seconds and 534,924 Explorer actions. It reached Route 1, but 3/32 frozen exams yielded
+> zero competent skills and no composition. Local recovery worked and remained auditable; reliable
+> learned competence did not appear.
 
 The central idea is simple:
 
@@ -352,7 +352,7 @@ better than V9 under matched compute. Because this canary activated only `blocke
 visual-cycle and pixels-only long-stagnation recovery paths remain deterministic-test evidence, not
 real-ROM campaign evidence.
 
-### Gate 3 — matched behavioral comparison
+### Gate 3 — matched behavioral comparison — closed
 
 The user intentionally closed V9 and launched
 `parallel-ppo-v10-recovery-8h-20260721-seed20260809` at `2026-07-22T00:37:44.442964Z` from clean
@@ -373,12 +373,25 @@ the declared 16,384-action exam boundary; frozen exams were 0/1. All 366 recover
 were 364; abandoned, unresolved, and trainer overrides were zero across 3,475 recovery actions.
 Explorer and Student hashes independently matched, and the dashboard returned HTTP 200.
 
-This is a **heartbeat only**. It proves that the matched-configuration run is alive, checkpointing,
-evaluating, and reporting coherent recovery denominators. It is not a V10 result, learning trend,
-or comparison outcome.
+That snapshot remains **heartbeat-only historical evidence**. It proved that the run was alive,
+checkpointing, evaluating, and reporting coherent recovery denominators. It was not promoted into
+a learning trend or final result.
 
-V9 and V10 must eventually be compared under disclosed seeds, wall time, action budget,
-parallelism, and observation boundary. Report at least:
+The user later ended V10 cleanly so the project could begin the Version-11 architecture. SIGINT
+closed the run after 4,503.282 seconds (1h15m03.282s), 534,924 Explorer actions at 118.785/s, 522
+PPO updates, 122 episodes, 567 unique positions, and seven promotions through Route 1. The Student
+completed 270 rounds and 3,366 updates over 121,194 examples, ending at 43.2519% action accuracy
+and 1.556849 NLL. Frozen exams finished 3/32; zero skills became competent and composition never
+ran. Final Explorer and Student hashes matched, and the artifacts occupied 51,716,995 bytes.
+
+The recovery denominator also closed exactly. Of 1,977 opened windows, 956 were `escaped`, 910
+were zero-credit `context_changed`, 110 `expired`, and one was abandoned at campaign end. No actor
+action was overridden and no inactive window remained unresolved. These figures show that the
+bounded mechanism operated at scale. They do not show that it produced deeper exploration or a
+reliable multi-skill policy.
+
+The terminal V9/V10 record must be interpreted under the disclosed seeds, wall time, action budget,
+parallelism, and observation boundary. Any later causal comparison should report at least:
 
 - loop detections per 100,000 Explorer actions;
 - reset rate;
@@ -424,11 +437,12 @@ add “walk north here” or another task-specific patch.
 | Unique positions or milestones improve | “V10 sustained broader exploration under this declared budget.” | “The Student became competent.” |
 | Frozen exams improve | “The named Student gate improved under the declared denominator.” | “It can beat Pokémon Red” without restore-free completion |
 
-Until a matched behavioral comparison exists, the current statement is:
+The terminal statement is:
 
 > V10's route-agnostic, policy-controlled recovery mechanism passed deterministic E2 qualification
-> plus direct and bounded campaign-level E3 mechanism checks. Its exploration superiority,
-> learning, and competence remain untested.
+> plus direct and bounded campaign-level E3 mechanism checks, and its long campaign accounted for
+> all 1,977 recovery windows. It still ended on Route 1 at 3/32 frozen exams with zero competent
+> skills and no composition. Recovery was real; reliable long-horizon learning was not demonstrated.
 
 ## Video chapter: “The reset button was hiding the lesson”
 

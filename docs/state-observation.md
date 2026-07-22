@@ -25,6 +25,55 @@ are already present in RAM behind Professor Oak's introduction and otherwise loo
 `battle_state` is interpreted as `0` for no battle, `1` for wild, `2` for trainer, and `255` for a
 loss/blackout transition. Unknown values are preserved and labeled `unknown` rather than guessed.
 
+## V11 semantic-state arbitration
+
+A byte can be read correctly and still describe a state the player has not reached. Canary 3 made
+that distinction concrete. While Professor Oak's introduction was visibly on screen, initialized
+WRAM already contained the future bedroom map, coordinates `(3,6)`, player data, and money. The
+server combined those individually plausible values with a permissive dialogue detector, reported
+`RedsHouse2f` and `overworld`, exposed a bedroom path to A*, and accepted the planner's unsupported
+request to complete `pallet_000`. The run was stopped after 251.630 seconds and 50 ordinary
+controller actions. Its apparent bedroom and Potion progress is rejected as a semantic-state
+failure.
+
+The primary-source audit explains the transition. `StartNewGame` runs Oak's speech before
+`SpecialEnterMap` sets `BIT_GAME_TIMER_COUNTING` in `wStatusFlags6`; see the pinned
+[`main_menu.asm` transition](https://github.com/pret/pokered/blob/405b6246372d7e5a2cb029cbb65219b13286b8c9/engine/menus/main_menu.asm#L321-L340).
+The ordinary message box is a full-width rectangle from `(0,12)` through `(19,17)` in the 20×18
+tile map, as declared by
+[`data/text_boxes.asm`](https://github.com/pret/pokered/blob/405b6246372d7e5a2cb029cbb65219b13286b8c9/data/text_boxes.asm#L8-L15).
+Its six border tiles are `0x79`–`0x7e`; `0x7f` is a space, not a border, in
+[`constants/charmap.asm`](https://github.com/pret/pokered/blob/405b6246372d7e5a2cb029cbb65219b13286b8c9/constants/charmap.asm#L57-L63).
+The structural detector therefore matches that exact topology even when OCR is disabled. Before
+the start bit is set, the only valid high-level labels are `pregame` and a structurally detected
+interaction such as `dialog`; a cached absence of dialogue may never promote the state to
+`overworld`.
+
+V11 enforces state truth in four layers rather than asking the planner to resolve contradictory
+sensors:
+
+1. **Detached reads.** The HTTP state endpoint and direct tools deep-copy the emulator's 100 ms
+   cached state before adding maps, formatting fields, or serializing a response. Dashboard polling
+   therefore cannot mutate the planner's simultaneous read.
+2. **Started-bit and map gates.** Until `wStatusFlags6` bit 0 is set, player, party, money, and map
+   fields remain unavailable. `/state`, `/whole_map`, MCP state/map reads, and navigation all fail
+   closed; stale server map caches are cleared rather than allowed to restore the staged bedroom.
+3. **Fail-closed formatting.** The formatter suppresses map text whenever `game_started` is false,
+   even if an upstream regression labels the frame `overworld` or hands it a populated map object.
+4. **Empirical control proof.** Static readiness is only a candidate. The first objective remains
+   locked until an ordinary directional input produces a real coordinate change in the upstairs
+   bedroom. A planner's completion request is never its own evidence.
+
+Canary 4 qualified that opening boundary. At `2026-07-22T03:22:41Z`, RIGHT moved RED from `(3,6)`
+to `(4,6)`; only after that observed transition could `pallet_000` complete, at 450.05 seconds and
+111 actions. The bounded run ended after 600.521 supervisor seconds with 136 actions in
+`RedsHouse2f (0,2)`, story index 1/84, no party, no badges, and no Hall-of-Fame result. A residual
+server-only pre-game map leak found during the canary was then closed by applying the same gates to
+the dashboard, map endpoint, formatter, and direct tools.
+
+The fresh continuous run `v11-continuous-20260721-233300` is active from power-on. That launch
+establishes neither sustained planning nor completion: the Hall of Fame remains unverified.
+
 The expanded referee additionally reads badges, party species/levels/moves, Pokédex bitfields,
 event flags, bag item identifiers, and the Pokédex story flag. Parallel PPO version 3 adds each
 party member's three-byte `MON_EXP` value at offset 14 of the 44-byte `wPartyMons` structure. Those
@@ -52,6 +101,8 @@ the current map ID, while Oak's Parcel still depends on its canonical item/event
 - These addresses apply only to the exact supported ROM hash.
 - The start flag means the session began; it is not a promise that the game is waiting for input at
   that exact frame.
+- `wJoyIgnore == 0` means no individual button is masked; it is not a universal player-control bit.
+  The game also has scripted movement, door-exit movement, and simulated-input states.
 - Coordinates are tile coordinates. At outdoor map connections they can briefly contain a boundary
   value while the map changes.
 - A party count of zero is valid before the player chooses a starter.
@@ -64,8 +115,9 @@ Instrumentation fields should be sampled at controller action boundaries. A futu
 observation schema may select carefully justified fields, but it receives its own version and must
 not silently redefine this instrumentation snapshot.
 
-The clean-boot test separately checks the bedroom's map-script state and input-ignore byte to prove
-the final frame accepts controller input. Those map-specific assertions are not exposed to an agent.
+The clean-boot test separately checks the bedroom's no-op map-script state and input-ignore byte as
+static readiness evidence. It then requires an actual directional coordinate change as empirical
+control proof. Those map-specific assertions are not exposed as planner-declared success.
 
 ## Verification source
 
@@ -77,3 +129,17 @@ supported ROM exactly. Primary references are
 [`constants/pokemon_data_constants.asm`](https://github.com/pret/pokered/blob/1e96034092686d006e863cace09e87273051a3d8/constants/pokemon_data_constants.asm),
 [`constants/ram_constants.asm`](https://github.com/pret/pokered/blob/1e96034092686d006e863cace09e87273051a3d8/constants/ram_constants.asm),
 and [`roms.sha1`](https://github.com/pret/pokered/blob/1e96034092686d006e863cace09e87273051a3d8/roms.sha1).
+
+The V11 semantic-state audit independently rebuilt `pret/pokered` commit `405b6246` to the same
+supported SHA-1 and used these line-pinned primary references:
+
+- the generated-memory layout in
+  [`ram/wram.asm`](https://github.com/pret/pokered/blob/405b6246372d7e5a2cb029cbb65219b13286b8c9/ram/wram.asm#L154-L184);
+- the exact supported hashes in
+  [`roms.sha1`](https://github.com/pret/pokered/blob/405b6246372d7e5a2cb029cbb65219b13286b8c9/roms.sha1);
+- per-button masking in
+  [`engine/joypad.asm`](https://github.com/pret/pokered/blob/405b6246372d7e5a2cb029cbb65219b13286b8c9/engine/joypad.asm#L22-L40);
+- Pokémon Red's broader game-controlled-movement predicate in
+  [`home/npc_movement.asm`](https://github.com/pret/pokered/blob/405b6246372d7e5a2cb029cbb65219b13286b8c9/home/npc_movement.asm#L1-L12); and
+- the upstairs-bedroom transition to its no-op script in
+  [`scripts/RedsHouse2F.asm`](https://github.com/pret/pokered/blob/405b6246372d7e5a2cb029cbb65219b13286b8c9/scripts/RedsHouse2F.asm#L1-L22).
