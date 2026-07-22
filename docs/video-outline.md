@@ -54,7 +54,15 @@
 > competence. The
 > corrected visual is one grade, then 16,384 Explorer actions, then a new Student checkpoint; 8/10
 > spans ten versions. It does not yet supply the learning payoff; chance and useful later skills
-> remain untested.
+> remain untested. V8's longer 1/47 result then creates V9's question: the Student studied only
+> successful recorded states and never practiced the consequences of its own wrong buttons. V9
+> turns those mistakes into closed-loop practice without weakening the frozen exam. Its live long
+> campaign adds another visual failure: the Explorer can visibly bounce against an obstacle until
+> the watchdog resets the episode. Version 10 asks whether that correct safety reset is also erasing
+> the exact local lesson PPO needs. It opens a bounded recovery window, keeps every button under
+> policy control, and separates credited escapes, zero-credit context changes, expirations, active
+> windows, and abandonments. This is an implemented
+> hypothesis that passed deterministic engineering qualification, not a gameplay success beat.
 
 This document is a production guide for telling the project's story without getting ahead of the
 evidence. The detailed Episode 0 section preserves the original before-training production plan;
@@ -89,11 +97,52 @@ the next test, and lets the evidence change the plan.
 | 8. One brain, not a scrapbook | Can one retained model connect the verified fragments as its training start moves backward? | Separate discovery and competence meters, including every failed rolling gate |
 | 9. We became the walkthrough | Can the agent restart with no inherited answer and teach itself from its own discoveries? | Random-start visual skills, imitation evidence, competence windows, and the first clean-start exam |
 | 10. The discoverer and the student | Does replay-distilling the agent's own routes into a separate recurrent Student create competence that survives frozen exams? | Unchanged V7 denominator, raw/compressed audit, all local exams, and an honest architecture verdict |
-| 11. Nature or nurture? | Which progress came from pixels, rewards, RAM, replay, or selection? | Successor comparisons with declared information and compute budgets |
-| 12. The clean exam | Can the self-taught library become one frozen, restore-free policy? | Every power-on attempt, intervention count, and success denominator |
+| 11. It never practiced being wrong | Can closed-loop success-only practice repair the Student's exposure bias? | Every practice outcome beside checkpoint-separated frozen exams, whether competence appears or not |
+| 12. The reset button was hiding the lesson | Can the Explorer recover from a generic loop without being told a direction? | Trigger types; credited escapes; context changes; expirations, active, and abandoned windows; compute; and matched exploration evidence—or an honest null result |
+| 13. Nature or nurture? | Which progress came from pixels, rewards, RAM, replay, or selection? | Successor comparisons with declared information and compute budgets |
+| 14. The clean exam | Can the self-taught library become one frozen, restore-free policy? | Every power-on attempt, intervention count, and success denominator |
 
 Do not promise a full playthrough in the first episode. Promise an investigation with the next
 milestone close enough to be credible.
+
+## Planned Episode 12: “The reset button was hiding the lesson”
+
+**Central question:** When the watchdog detects a real loop, does immediately ending the episode
+save compute at the cost of removing the state in which the Explorer could learn to recover?
+
+**Cold open:** show the Explorer pressing against a wall. Put the chosen buttons under the footage.
+When the loop counter fires, cut instantly back to the run's current self-generated frontier. Play
+the sequence twice, then freeze on: **WHEN DOES IT PRACTICE TURNING AWAY?**
+
+The V10 visual should split at loop detection. The V9 branch ends at reset. The V10 branch enters a
+short amber recovery window while the same policy keeps choosing every button. Label the trigger.
+After `blocked_repeat`, turn the branch green only for a policy-chosen directional material visual
+outcome. Show a non-directional material change in blue as `CONTEXT CHANGED · 0 CREDIT · NOT AN
+ESCAPE`. After `visual_cycle` or pixels-only `progress_stagnation`, a generic material action may be
+green, but keep the trigger's -2 loop penalty beside its at-most +0.25 escape credit. Turn expiry
+red. Show active windows in amber and abandonment on resume, episode end, or campaign end in gray;
+the unresolved inactive counter must remain zero. Never remove failed or unfinished windows from
+the montage.
+
+Keep three safeguards visible throughout:
+
+- `TRAINER-SELECTED BUTTONS: 0`;
+- `AUTHORED DIRECTION HINTS: 0`; and
+- `RECOVERY ACTIONS` as a separate compute meter.
+
+The payoff is not a lower reset count by itself. Put reset rate beside unique positions, verified
+milestones, and frozen Student exams. If only the first changes, say the harness preserved more
+episodes but did not improve meaningful progress. If exploration broadens but exams remain flat,
+call it an Explorer result, not whole-agent learning. Until the canary runs, label every V10 diagram
+**ENGINEERING-CHECKED HYPOTHESIS — GAMEPLAY VALUE UNTESTED**. If the reward design appears on
+screen, show that escape credit was cut from the draft 1.0 to 0.25 and capped at the 0.25 blocked
+activation penalty: a credited directional blocked/escape pair is reward-neutral, while
+`context_changed` earns zero and retains the -0.25 penalty.
+For the detector graphic, use the direct private-ROM calibration rather than an invented diagram:
+Up/Right remain at or below 0.642% changed pixels, Down/Left reach at least 20.972%, and Start
+reaches 37.708%. Then show both tested sequences: Up×3 → Start closes blue as `context_changed`,
+while fresh Up×3 → Down closes green as credited `escaped`; submitted and executed buttons match.
+Label this **MECHANISM CALIBRATION**, not evidence that the agent explores better.
 
 ## Planned Episode 10: “The Discoverer and the Student”
 

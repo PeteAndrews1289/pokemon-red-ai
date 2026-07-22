@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import random
+from collections import Counter
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -27,11 +28,15 @@ from pokemon_red_ai.ppo_training import (
     MAP_MEMORY_FEATURES,
     MAP_MEMORY_SIZE,
     PPO_V8_PROTOCOL,
+    PPO_V10_PROTOCOL,
+    PPO_V10_REWARD_PROTOCOL,
     PRIVILEGED_STATE_SIZE,
     SKILL_COUNT,
+    V10_NARRATIVE_TELEMETRY_PROTOCOL,
     EpisodeMapMemory,
     ParallelPpoConfig,
     PokemonPpoFeatures,
+    PokemonRedPpoEnvironment,
     PpoRunCallback,
     V9PracticeCancelled,
     VisualStagnationTracker,
@@ -39,10 +44,13 @@ from pokemon_red_ai.ppo_training import (
     _checkpoint_curriculum_state,
     _checkpoint_self_skill_state,
     _checkpoint_student_practice_state,
+    _classify_episode_end,
     _copy_retained_ppo_policy,
     _ensure_run_manifest_identity,
     _hall_of_fame_stop_is_verified,
     _merge_v9_success_student_report,
+    _ppo_protocol,
+    _ppo_reward_protocol,
     _remaining_action_budget,
     _remap_warm_start_lstm_input,
     _render_dashboard,
@@ -59,6 +67,7 @@ from pokemon_red_ai.ppo_training import (
     _v8_composition_training_weights,
     _v9_practice_signature_outcome,
     _v9_practice_terminal_reason_counts,
+    _v10_narrative_telemetry,
     _validate_checkpoint_identity,
     _validate_student_practice_state,
     _write_v8_replay_shards,
@@ -103,6 +112,16 @@ def test_parallel_config_enforces_vector_batch_boundary() -> None:
     assert v9.student_practice_confirmations == 2
     assert v9.student_practice_retention == 0.25
     assert "student_practice_window" in v9.public_dict()
+    assert "explorer_recovery_window_actions" not in v9.public_dict()
+    v10 = ParallelPpoConfig(mode="self_taught_v10", random_initialization=True, power_on_only=True)
+    assert v10.explorer_recovery_window_actions == 32
+    assert v10.explorer_recovery_blocked_threshold == 3
+    assert v10.explorer_recovery_escape_confirmations == 1
+    assert v10.explorer_recovery_escape_reward == v10.explorer_recovery_blocked_penalty == 0.25
+    assert "student_practice_window" in v10.public_dict()
+    assert "explorer_recovery_window_actions" in v10.public_dict()
+    assert _ppo_protocol(v10.mode) == PPO_V10_PROTOCOL
+    assert _ppo_reward_protocol(v10.mode) == PPO_V10_REWARD_PROTOCOL
     with pytest.raises(ValueError, match="one deterministic frozen attempt"):
         ParallelPpoConfig(
             mode="self_taught_v8",
@@ -110,6 +129,379 @@ def test_parallel_config_enforces_vector_batch_boundary() -> None:
             power_on_only=True,
             frozen_exam_attempts=2,
         )
+    with pytest.raises(ValueError, match="loop-recovery detection"):
+        ParallelPpoConfig(
+            mode="self_taught_v10",
+            random_initialization=True,
+            power_on_only=True,
+            explorer_recovery_ineffective_change_fraction=0.10,
+            explorer_recovery_escape_change_fraction=0.05,
+        )
+    with pytest.raises(ValueError, match="cannot exceed"):
+        ParallelPpoConfig(
+            mode="self_taught_v10",
+            random_initialization=True,
+            power_on_only=True,
+            explorer_recovery_blocked_penalty=0.25,
+            explorer_recovery_escape_reward=1.0,
+        )
+
+
+def test_v10_episode_failures_are_terminal_but_time_limits_are_truncated() -> None:
+    assert _classify_episode_end(
+        "self_taught_v10", alive=True, loop_reason=None, action_limit=False
+    ) == (False, False, None)
+    assert _classify_episode_end(
+        "self_taught_v10", alive=True, loop_reason=None, action_limit=True
+    ) == (False, True, "episode_action_limit")
+    assert _classify_episode_end(
+        "self_taught_v10",
+        alive=True,
+        loop_reason="visual_recovery_expired",
+        action_limit=False,
+    ) == (True, False, "visual_recovery_expired")
+    assert _classify_episode_end(
+        "self_taught_v10", alive=False, loop_reason=None, action_limit=True
+    ) == (True, False, "emulator_stop")
+    assert _classify_episode_end(
+        "self_taught_v9", alive=True, loop_reason="visual_cycle", action_limit=False
+    ) == (False, True, "visual_cycle")
+
+
+def test_v10_narrative_telemetry_restores_cumulative_evidence_fail_closed() -> None:
+    telemetry = _v10_narrative_telemetry(
+        {
+            "protocol": V10_NARRATIVE_TELEMETRY_PROTOCOL,
+            "episodes": 4,
+            "promotion_failures": 1,
+            "reward_components": {"pixel_recovery_escape": 3.5},
+            "battle_events": {"success": 2},
+            "loop_events": {"visual_cycle": 3},
+            "episode_end_reasons": {"visual_recovery_expired": 2},
+            "explorer_loop_recovery_events": {
+                "windows_started": 7,
+                "escapes": 3,
+                "expirations": 2,
+            },
+            "positions": [[1, 2, 3], [1, 2, 3], [4, 5, 6]],
+            "active_environment_ranks": [0, 2],
+            "episode_local_recovery_state_persisted": False,
+        }
+    )
+
+    assert telemetry["episodes"] == 4
+    assert telemetry["explorer_loop_recovery_events"]["escapes"] == 3
+    assert telemetry["positions"] == {(1, 2, 3), (4, 5, 6)}
+    assert telemetry["active_environment_ranks"] == {0, 2}
+    resumed = object.__new__(PpoRunCallback)
+    resumed.explorer_loop_recovery_events = telemetry["explorer_loop_recovery_events"]
+    resumed.explorer_loop_recovery_active = {
+        rank: True for rank in telemetry["active_environment_ranks"]
+    }
+    assert resumed._abandon_active_recoveries("resume") == 2
+    assert resumed.explorer_loop_recovery_events["abandoned_on_resume"] == 2
+    assert not any(resumed.explorer_loop_recovery_active.values())
+    assert (
+        resumed.explorer_loop_recovery_events["windows_started"]
+        == resumed.explorer_loop_recovery_events["escapes"]
+        + resumed.explorer_loop_recovery_events["expirations"]
+        + resumed.explorer_loop_recovery_events["abandoned_on_resume"]
+    )
+    with pytest.raises(ValueError, match="invalid narrative telemetry"):
+        _v10_narrative_telemetry({"protocol": "wrong"})
+    with pytest.raises(ValueError, match="count is invalid"):
+        _v10_narrative_telemetry(
+            {
+                "protocol": V10_NARRATIVE_TELEMETRY_PROTOCOL,
+                "episodes": 0,
+                "promotion_failures": 0,
+                "reward_components": {},
+                "battle_events": {},
+                "loop_events": {},
+                "episode_end_reasons": {},
+                "explorer_loop_recovery_events": {"escapes": -1},
+                "positions": [],
+                "active_environment_ranks": [],
+            }
+        )
+    with pytest.raises(ValueError, match="denominator is inconsistent"):
+        _v10_narrative_telemetry(
+            {
+                "protocol": V10_NARRATIVE_TELEMETRY_PROTOCOL,
+                "episodes": 0,
+                "promotion_failures": 0,
+                "reward_components": {},
+                "battle_events": {},
+                "loop_events": {},
+                "episode_end_reasons": {},
+                "explorer_loop_recovery_events": {"windows_started": 1},
+                "positions": [],
+                "active_environment_ranks": [],
+            }
+        )
+
+
+def test_v10_callback_records_recovery_denominators_and_enforces_action_authority() -> None:
+    callback = object.__new__(PpoRunCallback)
+    callback.config = ParallelPpoConfig(
+        mode="self_taught_v10",
+        random_initialization=True,
+        power_on_only=True,
+    )
+    callback.explorer_loop_recovery_events = Counter()
+    callback.explorer_loop_recovery_active = {}
+    started = {
+        "rank": 2,
+        "explorer_loop_recovery": {
+            "active": True,
+            "event": "started",
+            "trigger": "blocked_repeat",
+            "recovery_action": False,
+            "blocked_direction_attempt": True,
+            "repeated_blocked_attempt": True,
+            "submitted_action": 1,
+            "executed_action": 1,
+        },
+    }
+    escaped = {
+        "rank": 2,
+        "explorer_loop_recovery": {
+            "active": False,
+            "event": "escaped",
+            "trigger": None,
+            "recovery_action": True,
+            "blocked_direction_attempt": False,
+            "repeated_blocked_attempt": False,
+            "submitted_action": 1,
+            "executed_action": 1,
+        },
+    }
+
+    callback._record_explorer_loop_recovery(started)
+    callback._record_explorer_loop_recovery(escaped)
+    status = callback._explorer_loop_recovery_status()
+
+    assert status["windows_started"] == 1
+    assert status["blocked_repeat_triggers"] == 1
+    assert status["escapes"] == 1
+    assert status["escape_rate"] == 1.0
+    assert status["actions"] == 1
+    assert status["active_environments"] == 0
+    assert status["actor_action_overrides"] == 0
+    assert status["cycle_window_actions"] == 128
+    assert status["long_stagnation_actions"] == 1_024
+    assert status["context_change_credit"] == 0.0
+    with pytest.raises(RuntimeError, match="changed the PPO-selected action"):
+        callback._record_explorer_loop_recovery(
+            {
+                "explorer_loop_recovery": {
+                    "submitted_action": 0,
+                    "executed_action": 3,
+                }
+            }
+        )
+
+
+def test_v10_callback_accounts_for_context_changes_and_abandoned_windows() -> None:
+    callback = object.__new__(PpoRunCallback)
+    callback.config = ParallelPpoConfig(
+        mode="self_taught_v10",
+        random_initialization=True,
+        power_on_only=True,
+    )
+    callback.explorer_loop_recovery_events = Counter(
+        windows_started=3,
+        escapes=1,
+        context_changes=1,
+    )
+    callback.explorer_loop_recovery_active = {0: True, 1: False}
+
+    assert callback._abandon_active_recoveries("campaign_end") == 1
+    callback._record_explorer_loop_recovery(
+        {
+            "rank": 2,
+            "episode_end": True,
+            "explorer_loop_recovery": {
+                "active": True,
+                "event": "started",
+                "trigger": "progress_stagnation",
+                "recovery_action": False,
+                "blocked_direction_attempt": False,
+                "repeated_blocked_attempt": False,
+                "submitted_action": 7,
+                "executed_action": 7,
+            },
+        }
+    )
+    status = callback._explorer_loop_recovery_status()
+
+    assert status["completed_windows"] == 2
+    assert status["escape_rate"] == 0.5
+    assert status["context_changes"] == 1
+    assert status["abandoned_on_campaign_end"] == 1
+    assert status["abandoned_on_episode_end"] == 1
+    assert status["abandoned_windows"] == 2
+    assert status["progress_stagnation_triggers"] == 1
+    assert status["unresolved_windows"] == 0
+    assert status["active_environments"] == 0
+
+
+def test_v10_environment_wires_recovery_before_reset_and_action_limit_abandonment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    progress = pytest.importorskip("pokemon_red_ai.expedition").MilestoneProgress(
+        "power_on", 0, "Power-on"
+    )
+    state = PokemonRedState(True, 1, 1, 1, 1, 0)
+
+    def recovery_step(
+        *,
+        event: str | None,
+        trigger: str | None,
+        active: bool,
+        recovery_action: bool,
+    ) -> SimpleNamespace:
+        return SimpleNamespace(
+            submitted_action=0,
+            executed_action=0,
+            changed_fraction=0.0,
+            mean_absolute_error=0.0,
+            perceptually_changed=False,
+            blocked_direction_attempt=True,
+            repeated_blocked_attempt=event == "started",
+            recovery_action=recovery_action,
+            recovery_event=event,
+            recovery_trigger=trigger,
+            recovery_active=active,
+        )
+
+    class FakeRecovery:
+        def __init__(self, steps: list[SimpleNamespace]) -> None:
+            self.steps = steps
+            self.active = False
+            self.remaining_actions = 32
+
+        def observe(self, _action: int, _frame: np.ndarray) -> SimpleNamespace:
+            step = self.steps.pop(0)
+            self.active = bool(step.recovery_active)
+            self.remaining_actions = 0 if not self.active else self.remaining_actions - 1
+            return step
+
+    class FakeLoopTracker:
+        def __init__(self, responses: list[str | None]) -> None:
+            self.responses = responses
+            self.resets = 0
+
+        def observe(self, *_args: object, **_kwargs: object) -> str | None:
+            return self.responses.pop(0)
+
+        def reset(self, *_args: object) -> None:
+            self.resets += 1
+
+    class FakeRewardTracker:
+        def __init__(self) -> None:
+            self.loop_flags: list[bool] = []
+
+        def score(self, *_args: object, loop_detected: bool, **_kwargs: object) -> SimpleNamespace:
+            self.loop_flags.append(loop_detected)
+            return SimpleNamespace(total=0.0, components={}, battle_event=None)
+
+    def environment(
+        *,
+        steps: list[SimpleNamespace],
+        loops: list[str | None],
+        episode_actions: int,
+    ) -> PokemonRedPpoEnvironment:
+        value = object.__new__(PokemonRedPpoEnvironment)
+        value.config = SimpleNamespace(
+            mode="self_taught_v10",
+            rank=0,
+            episode_actions=episode_actions,
+            reward_scale=0.01,
+            explorer_recovery_blocked_penalty=0.25,
+            explorer_recovery_escape_reward=0.25,
+            explorer_recovery_expiration_penalty=1.0,
+        )
+        value.emulator = SimpleNamespace(screen_rgb=lambda: np.zeros((144, 160, 3), dtype=np.uint8))
+        value.reader = SimpleNamespace(read=lambda: state)
+        value.reward_tracker = FakeRewardTracker()
+        value.loop_tracker = FakeLoopTracker(loops)
+        value.explorer_loop_recovery = FakeRecovery(steps)
+        value.steps = 0
+        value.episode_actions = []
+        value.recent_actions = []
+        value.start_progress = progress
+        value.current_progress = progress
+        value.episode_best = 0
+        value.start_mode = "frontier"
+        value.episode_target_index = 1
+        value.self_skill_id = None
+        value._observation = lambda *_args: {}
+        value._write_frame = lambda: None
+        return value
+
+    monkeypatch.setattr(ppo_training_module, "_execute_action", lambda *_args: True)
+    monkeypatch.setattr(
+        ppo_training_module,
+        "milestone_progress_for_state",
+        lambda *_args, **_kwargs: progress,
+    )
+    monkeypatch.setattr(
+        ppo_training_module,
+        "preprocess_apprentice_frame",
+        lambda *_args: np.zeros((72, 80), dtype=np.uint8),
+    )
+
+    recovering = environment(
+        steps=[
+            recovery_step(
+                event="started",
+                trigger="progress_stagnation",
+                active=True,
+                recovery_action=False,
+            ),
+            recovery_step(
+                event="expired",
+                trigger="progress_stagnation",
+                active=False,
+                recovery_action=True,
+            ),
+        ],
+        loops=["progress_stagnation", None],
+        episode_actions=100,
+    )
+    _, _, terminated, truncated, info = recovering.step(0)
+    assert (terminated, truncated) == (False, False)
+    assert "episode_end" not in info
+    assert info["loop_event"] == "progress_stagnation"
+    assert recovering.loop_tracker.resets == 1
+    assert recovering.reward_tracker.loop_flags == [True]
+
+    _, _, terminated, truncated, info = recovering.step(0)
+    assert (terminated, truncated) == (True, False)
+    assert info["episode_end_reason"] == "visual_recovery_expired"
+
+    limited = environment(
+        steps=[
+            recovery_step(
+                event=None,
+                trigger="blocked_repeat",
+                active=True,
+                recovery_action=True,
+            )
+        ],
+        loops=[None],
+        episode_actions=1,
+    )
+    _, _, terminated, truncated, info = limited.step(0)
+    assert (terminated, truncated) == (False, True)
+    assert info["episode_end_reason"] == "episode_action_limit"
+    callback = object.__new__(PpoRunCallback)
+    callback.explorer_loop_recovery_events = Counter(windows_started=1)
+    callback.explorer_loop_recovery_active = {0: True}
+    callback._record_explorer_loop_recovery(info)
+    assert callback.explorer_loop_recovery_events["abandoned_on_episode_end"] == 1
+    assert callback.explorer_loop_recovery_active[0] is False
 
 
 def test_v9_practice_requires_exact_target_signature() -> None:
@@ -1262,7 +1654,15 @@ def test_privileged_state_vector_is_fixed_and_bounded() -> None:
 
 @pytest.mark.parametrize(
     "mode",
-    ["pixels", "assisted", "privileged", "self_taught", "self_taught_v8", "self_taught_v9"],
+    [
+        "pixels",
+        "assisted",
+        "privileged",
+        "self_taught",
+        "self_taught_v8",
+        "self_taught_v9",
+        "self_taught_v10",
+    ],
 )
 def test_feature_extractor_preserves_declared_information_boundary(mode: str) -> None:
     spaces = {
@@ -1287,11 +1687,15 @@ def test_feature_extractor_preserves_declared_information_boundary(mode: str) ->
                 "map_context": gym.spaces.Box(0, 1, shape=(MAP_CONTEXT_SIZE,), dtype=np.float32),
             }
         )
-    if mode in {"self_taught", "self_taught_v8", "self_taught_v9"}:
+    if mode in {"self_taught", "self_taught_v8", "self_taught_v9", "self_taught_v10"}:
         spaces["target_pixels"] = gym.spaces.Box(
             0,
             255,
-            shape=(3 if mode in {"self_taught_v8", "self_taught_v9"} else 1, 72, 80),
+            shape=(
+                3 if mode in {"self_taught_v8", "self_taught_v9", "self_taught_v10"} else 1,
+                72,
+                80,
+            ),
             dtype=np.uint8,
         )
     extractor = PokemonPpoFeatures(gym.spaces.Dict(spaces))
@@ -1310,9 +1714,14 @@ def test_feature_extractor_preserves_declared_information_boundary(mode: str) ->
                 "map_context": torch.zeros((2, MAP_CONTEXT_SIZE)),
             }
         )
-    if mode in {"self_taught", "self_taught_v8", "self_taught_v9"}:
+    if mode in {"self_taught", "self_taught_v8", "self_taught_v9", "self_taught_v10"}:
         observations["target_pixels"] = torch.zeros(
-            (2, 3 if mode in {"self_taught_v8", "self_taught_v9"} else 1, 72, 80)
+            (
+                2,
+                3 if mode in {"self_taught_v8", "self_taught_v9", "self_taught_v10"} else 1,
+                72,
+                80,
+            )
         )
 
     features = extractor(observations)
@@ -1324,7 +1733,11 @@ def test_feature_extractor_preserves_declared_information_boundary(mode: str) ->
             if mode == "assisted"
             else 0
         )
-        + (128 if mode in {"self_taught", "self_taught_v8", "self_taught_v9"} else 0)
+        + (
+            128
+            if mode in {"self_taught", "self_taught_v8", "self_taught_v9", "self_taught_v10"}
+            else 0
+        )
         + (PRIVILEGED_STATE_SIZE if mode == "privileged" else 0)
     )
     assert features.shape == (2, expected)
@@ -1404,6 +1817,51 @@ def test_v8_stagnation_ignores_authored_route_and_mart_progress(
     assert tracker.observe(frame, authored_only_change, authored_advance) is None
     assert tracker.observe(frame, authored_only_change, authored_advance) is None
     assert tracker.observe(frame, authored_only_change, authored_advance) == "progress_stagnation"
+
+
+def test_v10_visual_activity_prevents_hard_stop_without_hiding_short_cycles() -> None:
+    tracker = VisualStagnationTracker(
+        cycle_window=8,
+        cycle_unique_limit=2,
+        hard_limit=3,
+        use_authored_guidance=False,
+    )
+    progress = pytest.importorskip("pokemon_red_ai.expedition").MilestoneProgress(
+        "power_on", 0, "Power-on"
+    )
+    revisited = PokemonRedState(True, 1, 1, 1, 1, 0, party_experience=(1,))
+    tracker.reset(revisited, progress)
+
+    for value in (0, 32, 64, 96, 128, 160):
+        assert (
+            tracker.observe(
+                np.full((72, 80), value, dtype=np.uint8),
+                revisited,
+                progress,
+                perceptual_activity=True,
+            )
+            is None
+        )
+    still = np.full((72, 80), 160, dtype=np.uint8)
+    assert tracker.observe(still, revisited, progress) is None
+    assert tracker.observe(still, revisited, progress) is None
+    assert tracker.observe(still, revisited, progress) == "progress_stagnation"
+
+    cycle = VisualStagnationTracker(
+        cycle_window=4,
+        cycle_unique_limit=2,
+        hard_limit=20,
+        use_authored_guidance=False,
+    )
+    cycle.reset(revisited, progress)
+    alternating = [np.full((72, 80), value, dtype=np.uint8) for value in (0, 255, 0, 255)]
+    assert cycle.observe(alternating[0], revisited, progress, perceptual_activity=True) is None
+    assert cycle.observe(alternating[1], revisited, progress, perceptual_activity=True) is None
+    assert cycle.observe(alternating[2], revisited, progress, perceptual_activity=True) is None
+    assert (
+        cycle.observe(alternating[3], revisited, progress, perceptual_activity=True)
+        == "visual_cycle"
+    )
 
 
 def test_warm_start_maps_previous_action_to_newest_history_slot() -> None:
@@ -1495,3 +1953,66 @@ def test_v8_narrative_labels_online_counter_as_explorer_actions(tmp_path: Path) 
     narrative = (tmp_path / "NARRATIVE.md").read_text(encoding="utf-8")
     assert "Explorer actions: 123" in narrative
     assert "Combined actions" not in narrative
+
+
+def test_v10_narrative_separates_loop_detections_and_recovery_outcomes(
+    tmp_path: Path,
+) -> None:
+    callback = object.__new__(PpoRunCallback)
+    callback.run_directory = tmp_path
+    callback.config = SimpleNamespace(mode="self_taught_v10")
+    status = {
+        "best_milestone": {"label": "Power-on"},
+        "training_focus": {"label": "Begin"},
+        "total_actions": 456,
+        "ppo_updates": 3,
+        "verified_promotions": 0,
+        "episodes": 2,
+        "unique_positions": 4,
+        "consolidation": {},
+        "self_taught": {
+            "skills_discovered": 0,
+            "skills_competent": 0,
+            "distillation": {},
+            "student": {"diagnostics": {}},
+            "frozen_exams": {},
+            "composition": {},
+        },
+        "battle_events": {},
+        "reward_components": {},
+        "loop_events": {"visual_cycle": 2, "progress_stagnation": 1},
+        "explorer_loop_recovery": {
+            "windows_started": 4,
+            "blocked_repeat_triggers": 2,
+            "visual_cycle_triggers": 1,
+            "progress_stagnation_triggers": 1,
+            "escapes": 1,
+            "context_changes": 1,
+            "expirations": 1,
+            "completed_windows": 3,
+            "active_environments": 0,
+            "abandoned_windows": 1,
+            "abandoned_on_resume": 0,
+            "abandoned_on_episode_end": 1,
+            "abandoned_on_campaign_end": 0,
+            "unresolved_windows": 0,
+            "actions": 12,
+            "actor_action_overrides": 0,
+        },
+    }
+    callback._status = lambda *_args, **_kwargs: status
+
+    PpoRunCallback._narrative(callback, "V10 terminology test")
+
+    narrative = (tmp_path / "NARRATIVE.md").read_text(encoding="utf-8")
+    assert "Explorer actions: 456" in narrative
+    assert "Visual-loop detections: 2" in narrative
+    assert "Long-stagnation detections: 1" in narrative
+    assert "Visual loops terminated" not in narrative
+    assert "Recovery windows opened: 4" in narrative
+    assert "Credited policy escapes: 1" in narrative
+    assert "No-credit context changes: 1" in narrative
+    assert "Recovery expirations: 1" in narrative
+    assert "Abandoned at episode end: 1" in narrative
+    assert "Unresolved inactive windows: 0" in narrative
+    assert "Trainer-selected buttons: 0" in narrative

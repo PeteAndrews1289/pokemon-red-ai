@@ -44,6 +44,12 @@ from pokemon_red_ai.expedition import (
 )
 from pokemon_red_ai.frontier_learning import FullGameRewardConfig, FullGameRewardTracker
 from pokemon_red_ai.milestones import HALL_OF_FAME_KEY, MILESTONE_BY_KEY, MILESTONES
+from pokemon_red_ai.pixel_recovery import (
+    PIXEL_LOOP_RECOVERY_PROTOCOL,
+    RECOVERY_TRIGGERS,
+    PixelLoopRecovery,
+    PixelLoopRecoveryConfig,
+)
 from pokemon_red_ai.ppo_dashboard import render_ppo_dashboard
 from pokemon_red_ai.provenance import detect_source_provenance
 from pokemon_red_ai.quest_navigation import route_guidance
@@ -93,6 +99,8 @@ PPO_V8_PROTOCOL = "parallel-recurrent-ppo-v8"
 PPO_V8_REWARD_PROTOCOL = "distilled-self-generated-skills-v1"
 PPO_V9_PROTOCOL = "parallel-recurrent-ppo-v9"
 PPO_V9_REWARD_PROTOCOL = "self-correcting-student-v1"
+PPO_V10_PROTOCOL = "parallel-recurrent-ppo-v10"
+PPO_V10_REWARD_PROTOCOL = "recovery-before-reset-v1"
 PPO_MODES = frozenset(
     {
         "pixels",
@@ -101,6 +109,7 @@ PPO_MODES = frozenset(
         "self_taught",
         "self_taught_v8",
         "self_taught_v9",
+        "self_taught_v10",
     }
 )
 V8_CONFIG_FIELDS = frozenset(
@@ -129,6 +138,20 @@ V9_CONFIG_FIELDS = frozenset(
         "student_practice_reservoir",
     }
 )
+V10_CONFIG_FIELDS = frozenset(
+    {
+        "explorer_recovery_window_actions",
+        "explorer_recovery_blocked_threshold",
+        "explorer_recovery_escape_confirmations",
+        "explorer_recovery_ineffective_change_fraction",
+        "explorer_recovery_ineffective_mean_absolute_error",
+        "explorer_recovery_escape_change_fraction",
+        "explorer_recovery_escape_mean_absolute_error",
+        "explorer_recovery_blocked_penalty",
+        "explorer_recovery_escape_reward",
+        "explorer_recovery_expiration_penalty",
+    }
+)
 V9_PRACTICE_TERMINAL_REASONS = frozenset(
     {"exact_target", "timeout", "emulator_stopped", "milestone_wrong_state"}
 )
@@ -136,6 +159,10 @@ V9_PRACTICE_CANCELLATION_REASONS = frozenset(
     {"stop_requested", "duration_limit", "action_limit", "low_disk_space", "output_limit"}
 )
 V9_DISK_BUDGET_REFRESH_SECONDS = 1.0
+V10_NARRATIVE_TELEMETRY_PROTOCOL = "v10-narrative-telemetry-v1"
+V10_RECOVERY_CYCLE_WINDOW = 128
+V10_RECOVERY_CYCLE_UNIQUE_LIMIT = 8
+V10_RECOVERY_STAGNATION_ACTIONS = 1_024
 PRIVILEGED_STATE_SIZE = 24
 ACTION_HISTORY_LENGTH = 3
 MAP_MEMORY_SIZE = 64
@@ -213,8 +240,102 @@ def _v9_practice_terminal_reason_counts(value: object) -> Counter[str]:
     return counts
 
 
+def _v10_integer_counter(value: object, *, label: str) -> Counter[str]:
+    if not isinstance(value, Mapping):
+        raise ValueError(f"V10 {label} telemetry must be a mapping")
+    result: Counter[str] = Counter()
+    for raw_key, raw_count in value.items():
+        if isinstance(raw_count, bool) or not isinstance(raw_count, int) or raw_count < 0:
+            raise ValueError(f"V10 {label} telemetry count is invalid")
+        if raw_count:
+            result[str(raw_key)] = raw_count
+    return result
+
+
+def _v10_reward_counter(value: object) -> Counter[str]:
+    if not isinstance(value, Mapping):
+        raise ValueError("V10 reward telemetry must be a mapping")
+    result: Counter[str] = Counter()
+    for raw_key, raw_total in value.items():
+        if isinstance(raw_total, bool) or not isinstance(raw_total, (int, float)):
+            raise ValueError("V10 reward telemetry total is invalid")
+        total = float(raw_total)
+        if not np.isfinite(total):
+            raise ValueError("V10 reward telemetry total must be finite")
+        if total:
+            result[str(raw_key)] = total
+    return result
+
+
+def _v10_narrative_telemetry(value: object) -> dict[str, Any]:
+    if not isinstance(value, Mapping) or value.get("protocol") != (
+        V10_NARRATIVE_TELEMETRY_PROTOCOL
+    ):
+        raise ValueError("V10 checkpoint has invalid narrative telemetry")
+    episodes = value.get("episodes")
+    promotion_failures = value.get("promotion_failures")
+    if (
+        isinstance(episodes, bool)
+        or not isinstance(episodes, int)
+        or episodes < 0
+        or isinstance(promotion_failures, bool)
+        or not isinstance(promotion_failures, int)
+        or promotion_failures < 0
+    ):
+        raise ValueError("V10 narrative telemetry totals are invalid")
+    raw_positions = value.get("positions")
+    if not isinstance(raw_positions, list):
+        raise ValueError("V10 narrative telemetry positions must be a list")
+    positions: set[tuple[int, int, int]] = set()
+    for item in raw_positions:
+        if (
+            not isinstance(item, list)
+            or len(item) != 3
+            or any(isinstance(part, bool) or not isinstance(part, int) for part in item)
+        ):
+            raise ValueError("V10 narrative telemetry position is invalid")
+        positions.add((item[0], item[1], item[2]))
+    raw_active_ranks = value.get("active_environment_ranks")
+    if not isinstance(raw_active_ranks, list) or any(
+        isinstance(rank, bool) or not isinstance(rank, int) or rank < 0 for rank in raw_active_ranks
+    ):
+        raise ValueError("V10 narrative telemetry active ranks are invalid")
+    active_environment_ranks = set(raw_active_ranks)
+    if len(active_environment_ranks) != len(raw_active_ranks):
+        raise ValueError("V10 narrative telemetry active ranks repeat")
+    recovery_events = _v10_integer_counter(
+        value.get("explorer_loop_recovery_events"), label="loop-recovery"
+    )
+    accounted_windows = sum(
+        recovery_events[name]
+        for name in (
+            "escapes",
+            "context_changes",
+            "expirations",
+            "abandoned_on_resume",
+            "abandoned_on_episode_end",
+            "abandoned_on_campaign_end",
+        )
+    ) + len(active_environment_ranks)
+    if recovery_events["windows_started"] != accounted_windows:
+        raise ValueError("V10 loop-recovery window denominator is inconsistent")
+    return {
+        "episodes": episodes,
+        "promotion_failures": promotion_failures,
+        "reward_components": _v10_reward_counter(value.get("reward_components")),
+        "battle_events": _v10_integer_counter(value.get("battle_events"), label="battle"),
+        "loop_events": _v10_integer_counter(value.get("loop_events"), label="loop"),
+        "episode_end_reasons": _v10_integer_counter(
+            value.get("episode_end_reasons"), label="episode-end"
+        ),
+        "explorer_loop_recovery_events": recovery_events,
+        "positions": positions,
+        "active_environment_ranks": active_environment_ranks,
+    }
+
+
 def _is_self_taught_mode(mode: str) -> bool:
-    return mode in {"self_taught", "self_taught_v8", "self_taught_v9"}
+    return mode in {"self_taught", "self_taught_v8", "self_taught_v9", "self_taught_v10"}
 
 
 def _is_v8_mode(mode: str) -> bool:
@@ -225,17 +346,48 @@ def _is_v9_mode(mode: str) -> bool:
     return mode == "self_taught_v9"
 
 
+def _is_v10_mode(mode: str) -> bool:
+    return mode == "self_taught_v10"
+
+
+def _uses_v9_practice(mode: str) -> bool:
+    return mode in {"self_taught_v9", "self_taught_v10"}
+
+
 def _is_distilled_student_mode(mode: str) -> bool:
-    return mode in {"self_taught_v8", "self_taught_v9"}
+    return mode in {"self_taught_v8", "self_taught_v9", "self_taught_v10"}
+
+
+def _classify_episode_end(
+    mode: str,
+    *,
+    alive: bool,
+    loop_reason: str | None,
+    action_limit: bool,
+) -> tuple[bool, bool, str | None]:
+    """Separate genuine V10 failures from the ordinary sampling time limit."""
+
+    failure_reason = loop_reason or (None if alive else "emulator_stop")
+    if failure_reason is not None:
+        if _is_v10_mode(mode):
+            return True, False, failure_reason
+        return False, True, failure_reason
+    if action_limit:
+        return False, True, "episode_action_limit"
+    return False, False, None
 
 
 def _ppo_protocol(mode: str) -> str:
+    if _is_v10_mode(mode):
+        return PPO_V10_PROTOCOL
     if _is_v9_mode(mode):
         return PPO_V9_PROTOCOL
     return PPO_V8_PROTOCOL if _is_v8_mode(mode) else PPO_PROTOCOL
 
 
 def _ppo_reward_protocol(mode: str) -> str:
+    if _is_v10_mode(mode):
+        return PPO_V10_REWARD_PROTOCOL
     if _is_v9_mode(mode):
         return PPO_V9_REWARD_PROTOCOL
     return PPO_V8_REWARD_PROTOCOL if _is_v8_mode(mode) else PPO_REWARD_PROTOCOL
@@ -809,6 +961,16 @@ class ParallelPpoConfig:
     student_practice_rollout_multiplier: float = 2.0
     student_practice_rollout_slack: int = 16
     student_practice_reservoir: int = 32
+    explorer_recovery_window_actions: int = 32
+    explorer_recovery_blocked_threshold: int = 3
+    explorer_recovery_escape_confirmations: int = 1
+    explorer_recovery_ineffective_change_fraction: float = 0.02
+    explorer_recovery_ineffective_mean_absolute_error: float = 2.0
+    explorer_recovery_escape_change_fraction: float = 0.05
+    explorer_recovery_escape_mean_absolute_error: float = 5.0
+    explorer_recovery_blocked_penalty: float = 0.25
+    explorer_recovery_escape_reward: float = 0.25
+    explorer_recovery_expiration_penalty: float = 1.0
 
     def __post_init__(self) -> None:
         if self.mode not in PPO_MODES:
@@ -872,6 +1034,32 @@ class ParallelPpoConfig:
             or self.student_practice_reservoir < 1
         ):
             raise ValueError("Student practice rollout and reservoir settings are invalid")
+        if (
+            self.explorer_recovery_window_actions < 1
+            or self.explorer_recovery_blocked_threshold < 1
+            or not 1
+            <= self.explorer_recovery_escape_confirmations
+            <= self.explorer_recovery_window_actions
+            or not 0
+            < self.explorer_recovery_ineffective_change_fraction
+            <= self.explorer_recovery_escape_change_fraction
+            <= 1
+            or not 0
+            <= self.explorer_recovery_ineffective_mean_absolute_error
+            <= self.explorer_recovery_escape_mean_absolute_error
+        ):
+            raise ValueError("Explorer loop-recovery detection settings are invalid")
+        if any(
+            not np.isfinite(value) or value < 0
+            for value in (
+                self.explorer_recovery_blocked_penalty,
+                self.explorer_recovery_escape_reward,
+                self.explorer_recovery_expiration_penalty,
+            )
+        ):
+            raise ValueError("Explorer loop-recovery rewards must be finite and non-negative")
+        if self.explorer_recovery_escape_reward > self.explorer_recovery_blocked_penalty:
+            raise ValueError("Explorer recovery escape credit cannot exceed its activation penalty")
         if _is_self_taught_mode(self.mode) and (
             not self.random_initialization or not self.power_on_only or self.consolidation
         ):
@@ -886,8 +1074,11 @@ class ParallelPpoConfig:
             # began before V8-only Student controls existed.
             for name in V8_CONFIG_FIELDS:
                 value.pop(name)
-        if not _is_v9_mode(self.mode):
+        if not _uses_v9_practice(self.mode):
             for name in V9_CONFIG_FIELDS:
+                value.pop(name)
+        if not _is_v10_mode(self.mode):
+            for name in V10_CONFIG_FIELDS:
                 value.pop(name)
         return value
 
@@ -906,6 +1097,16 @@ class PpoEnvironmentConfig:
     consolidation: bool = False
     self_taught: bool = False
     novelty_checkpoint_file: str | None = None
+    explorer_recovery_window_actions: int = 32
+    explorer_recovery_blocked_threshold: int = 3
+    explorer_recovery_escape_confirmations: int = 1
+    explorer_recovery_ineffective_change_fraction: float = 0.02
+    explorer_recovery_ineffective_mean_absolute_error: float = 2.0
+    explorer_recovery_escape_change_fraction: float = 0.05
+    explorer_recovery_escape_mean_absolute_error: float = 5.0
+    explorer_recovery_blocked_penalty: float = 0.25
+    explorer_recovery_escape_reward: float = 0.25
+    explorer_recovery_expiration_penalty: float = 1.0
 
 
 def _checkpoint_view(run_directory: Path) -> tuple[ExpeditionStore, dict[str, Any]]:
@@ -968,6 +1169,7 @@ def _import_verified_ppo_curriculum(
         "parallel-recurrent-ppo-v7",
         "parallel-recurrent-ppo-v8",
         "parallel-recurrent-ppo-v9",
+        "parallel-recurrent-ppo-v10",
     }:
         raise ValueError("Version 7 can import only a verified Version-4-or-later curriculum")
     source_status = json.loads((source_run / "status.json").read_text(encoding="utf-8"))
@@ -1258,6 +1460,7 @@ def _load_curriculum_manifest(directory: Path) -> dict[str, Any]:
         PPO_PROTOCOL,
         PPO_V8_PROTOCOL,
         PPO_V9_PROTOCOL,
+        PPO_V10_PROTOCOL,
     } or not isinstance(value.get("entries"), list):
         raise ValueError("PPO curriculum manifest is invalid")
     return value
@@ -1539,6 +1742,8 @@ class VisualStagnationTracker:
         frame: np.ndarray,
         state: PokemonRedState,
         progress: MilestoneProgress,
+        *,
+        perceptual_activity: bool = False,
     ) -> str | None:
         useful_progress = False
         position = (
@@ -1601,7 +1806,13 @@ class VisualStagnationTracker:
             self._frames.clear()
             self._frames.append(signature)
             return None
-        self._stagnant_actions += 1
+        if perceptual_activity:
+            # V10 treats visually effective backtracking as activity without clearing the
+            # signature window that still detects short oscillations.  Earlier protocols pass
+            # the default False and retain their frozen watchdog behavior.
+            self._stagnant_actions = 0
+        else:
+            self._stagnant_actions += 1
         if self._stagnant_actions >= self.hard_limit:
             return "progress_stagnation"
         if (
@@ -1769,6 +1980,31 @@ class PokemonRedPpoEnvironment(gym.Env):
         self.loop_tracker = VisualStagnationTracker(
             use_authored_guidance=not _is_distilled_student_mode(config.mode)
         )
+        self.explorer_loop_recovery = (
+            PixelLoopRecovery(
+                PixelLoopRecoveryConfig(
+                    action_count=len(BLIND_ACTIONS),
+                    cycle_window=V10_RECOVERY_CYCLE_WINDOW,
+                    cycle_unique_limit=V10_RECOVERY_CYCLE_UNIQUE_LIMIT,
+                    recovery_actions=config.explorer_recovery_window_actions,
+                    blocked_repeat_threshold=config.explorer_recovery_blocked_threshold,
+                    stagnation_threshold=V10_RECOVERY_STAGNATION_ACTIONS,
+                    escape_confirmations=config.explorer_recovery_escape_confirmations,
+                    ineffective_change_fraction=(
+                        config.explorer_recovery_ineffective_change_fraction
+                    ),
+                    ineffective_mean_absolute_error=(
+                        config.explorer_recovery_ineffective_mean_absolute_error
+                    ),
+                    escape_change_fraction=config.explorer_recovery_escape_change_fraction,
+                    escape_mean_absolute_error=(
+                        config.explorer_recovery_escape_mean_absolute_error
+                    ),
+                )
+            )
+            if _is_v10_mode(config.mode)
+            else None
+        )
         self.map_memory = EpisodeMapMemory()
         self.steps = 0
         self.episode_number = 0
@@ -1920,6 +2156,8 @@ class PokemonRedPpoEnvironment(gym.Env):
         self.episode_best = self.start_progress.index
         self.episode_number += 1
         self.loop_tracker.reset(state, self.start_progress)
+        if self.explorer_loop_recovery is not None:
+            self.explorer_loop_recovery.reset(current)
         self.map_memory.reset(state)
         return self._observation(state), {
             "curriculum_entry": self.start_entry["entry_id"],
@@ -1988,13 +2226,55 @@ class PokemonRedPpoEnvironment(gym.Env):
         progress = milestone_progress_for_state(state, inherited=self.start_progress)
         self.current_progress = progress
         current = preprocess_apprentice_frame(self.emulator.screen_rgb())
-        loop_reason = self.loop_tracker.observe(current, state, progress)
+        recovery_step = (
+            self.explorer_loop_recovery.observe(action_index, current)
+            if self.explorer_loop_recovery is not None
+            else None
+        )
+        loop_reason = self.loop_tracker.observe(
+            current,
+            state,
+            progress,
+            perceptual_activity=bool(
+                recovery_step is not None and recovery_step.perceptually_changed
+            ),
+        )
+        recovery_event = None if recovery_step is None else recovery_step.recovery_event
+        recovery_trigger = None if recovery_step is None else recovery_step.recovery_trigger
+        watchdog_loop_reason = loop_reason
+        if recovery_event in {"started", "escaped", "context_changed"}:
+            # A bounded lesson opened or resolved. Reset only the trainer's watchdog clock; the
+            # emulator, recurrent state, and policy-selected action stream continue uninterrupted.
+            self.loop_tracker.reset(state, progress)
+            loop_reason = None
+        terminal_loop_reason = loop_reason
+        if recovery_event == "expired":
+            terminal_loop_reason = "visual_recovery_expired"
+        loop_triggered = watchdog_loop_reason is not None or (
+            recovery_event == "started"
+            and recovery_trigger in {"visual_cycle", "progress_stagnation"}
+        )
         reward = self.reward_tracker.score(
             state,
             progress,
             action_button=BLIND_ACTIONS[action_index],
-            loop_detected=loop_reason is not None,
+            loop_detected=loop_triggered,
         )
+        reward_components = dict(reward.components)
+        recovery_reward = 0.0
+        if recovery_step is not None and recovery_step.repeated_blocked_attempt:
+            recovery_reward -= self.config.explorer_recovery_blocked_penalty
+            reward_components[
+                "pixel_blocked_repeat"
+            ] = -self.config.explorer_recovery_blocked_penalty
+        if recovery_event == "escaped":
+            recovery_reward += self.config.explorer_recovery_escape_reward
+            reward_components["pixel_recovery_escape"] = self.config.explorer_recovery_escape_reward
+        elif recovery_event == "expired":
+            recovery_reward -= self.config.explorer_recovery_expiration_penalty
+            reward_components[
+                "pixel_recovery_expiration"
+            ] = -self.config.explorer_recovery_expiration_penalty
         info: dict[str, Any] = {
             "rank": self.config.rank,
             "milestone_key": progress.key,
@@ -2006,12 +2286,32 @@ class PokemonRedPpoEnvironment(gym.Env):
             "map_id": state.map_id,
             "x": state.player_x,
             "y": state.player_y,
-            "reward_components": dict(reward.components),
+            "reward_components": reward_components,
         }
         if reward.battle_event is not None:
             info["battle_event"] = reward.battle_event
-        if loop_reason is not None:
-            info["loop_event"] = loop_reason
+        if watchdog_loop_reason is not None:
+            info["loop_event"] = watchdog_loop_reason
+        elif recovery_event == "started" and recovery_trigger in {
+            "visual_cycle",
+            "progress_stagnation",
+        }:
+            info["loop_event"] = recovery_trigger
+        if recovery_step is not None:
+            info["explorer_loop_recovery"] = {
+                "protocol": PIXEL_LOOP_RECOVERY_PROTOCOL,
+                "active": self.explorer_loop_recovery.active,
+                "remaining_actions": self.explorer_loop_recovery.remaining_actions,
+                "event": recovery_event,
+                "trigger": recovery_trigger,
+                "recovery_action": recovery_step.recovery_action,
+                "blocked_direction_attempt": recovery_step.blocked_direction_attempt,
+                "repeated_blocked_attempt": recovery_step.repeated_blocked_attempt,
+                "changed_fraction": recovery_step.changed_fraction,
+                "mean_absolute_error": recovery_step.mean_absolute_error,
+                "submitted_action": recovery_step.submitted_action,
+                "executed_action": recovery_step.executed_action,
+            }
         if progress.index > self.episode_best:
             self.episode_best = progress.index
             manifest = _load_curriculum_manifest(self.curriculum_directory)
@@ -2020,22 +2320,21 @@ class PokemonRedPpoEnvironment(gym.Env):
                 info["promotion_candidate"] = self._spool_candidate(progress)
         if self.steps % 128 == 0 or progress.index > self.start_progress.index:
             self._write_frame()
-        truncated = (
-            self.steps >= self.config.episode_actions or not alive or loop_reason is not None
+        terminated, truncated, episode_end_reason = _classify_episode_end(
+            self.config.mode,
+            alive=alive,
+            loop_reason=terminal_loop_reason,
+            action_limit=self.steps >= self.config.episode_actions,
         )
-        if truncated:
+        if terminated or truncated:
             info["episode_end"] = True
             info["episode_best_index"] = self.episode_best
             info["consolidation_success"] = self.episode_best >= self.episode_target_index
-            info["episode_end_reason"] = loop_reason or (
-                "episode_action_limit"
-                if self.steps >= self.config.episode_actions
-                else "emulator_stop"
-            )
+            info["episode_end_reason"] = episode_end_reason
         return (
             self._observation(state, current),
-            reward.total * self.config.reward_scale,
-            False,
+            (reward.total + recovery_reward) * self.config.reward_scale,
+            terminated,
             truncated,
             info,
         )
@@ -3275,12 +3574,14 @@ class PpoRunCallback(BaseCallback):
         self.battle_events: Counter[str] = Counter()
         self.loop_events: Counter[str] = Counter()
         self.episode_end_reasons: Counter[str] = Counter()
+        self.explorer_loop_recovery_events: Counter[str] = Counter()
+        self.explorer_loop_recovery_active: dict[int, bool] = {}
         self.positions: set[tuple[int, int, int]] = set()
         self.promotion_failures = 0
         self.stop_reason: str | None = None
         self.cached_run_bytes = (
             sum(path.stat().st_size for path in self.run_directory.rglob("*") if path.is_file())
-            if _is_v9_mode(config.mode)
+            if _uses_v9_practice(config.mode)
             else 0
         )
         self.cached_free_bytes = shutil.disk_usage(self.run_directory).free
@@ -3288,6 +3589,22 @@ class PpoRunCallback(BaseCallback):
         run_manifest = json.loads(
             (self.run_directory / "manifest.json").read_text(encoding="utf-8")
         )
+        checkpoint_path = self.run_directory / "checkpoint.json"
+        if _is_v10_mode(config.mode) and checkpoint_path.is_file():
+            checkpoint = json.loads(checkpoint_path.read_text(encoding="utf-8"))
+            telemetry = _v10_narrative_telemetry(checkpoint.get("narrative_telemetry"))
+            self.episodes = telemetry["episodes"]
+            self.promotion_failures = telemetry["promotion_failures"]
+            self.reward_components = telemetry["reward_components"]
+            self.battle_events = telemetry["battle_events"]
+            self.loop_events = telemetry["loop_events"]
+            self.episode_end_reasons = telemetry["episode_end_reasons"]
+            self.explorer_loop_recovery_events = telemetry["explorer_loop_recovery_events"]
+            self.positions = telemetry["positions"]
+            self.explorer_loop_recovery_active = {
+                rank: True for rank in telemetry["active_environment_ranks"]
+            }
+            self._abandon_active_recoveries("resume")
         self.v7_denominator = (
             dict(run_manifest["v7_denominator"])
             if isinstance(run_manifest.get("v7_denominator"), Mapping)
@@ -3324,7 +3641,7 @@ class PpoRunCallback(BaseCallback):
         self.student_practice_terminal_reasons: Counter[str] = Counter()
         self.last_student_practice_rollout = -1
         practice_path = self.run_directory / "student-practice.json"
-        if _is_v9_mode(config.mode) and practice_path.is_file():
+        if _uses_v9_practice(config.mode) and practice_path.is_file():
             practice = json.loads(practice_path.read_text(encoding="utf-8"))
             if practice.get("schema_version") != 1 or practice.get("protocol") != (
                 "v9-student-closed-loop-practice-state-v1"
@@ -3370,6 +3687,120 @@ class PpoRunCallback(BaseCallback):
             "power_on_training_gate_passed": (self.consolidation.power_on_training_gate_passed),
         }
 
+    def _explorer_loop_recovery_status(self) -> dict[str, Any]:
+        if not _is_v10_mode(self.config.mode):
+            return {"enabled": False}
+        started = self.explorer_loop_recovery_events["windows_started"]
+        escaped = self.explorer_loop_recovery_events["escapes"]
+        context_changes = self.explorer_loop_recovery_events["context_changes"]
+        expirations = self.explorer_loop_recovery_events["expirations"]
+        completed = escaped + context_changes + expirations
+        abandoned_on_resume = self.explorer_loop_recovery_events["abandoned_on_resume"]
+        abandoned_on_episode_end = self.explorer_loop_recovery_events["abandoned_on_episode_end"]
+        abandoned_on_campaign_end = self.explorer_loop_recovery_events["abandoned_on_campaign_end"]
+        abandoned = abandoned_on_resume + abandoned_on_episode_end + abandoned_on_campaign_end
+        active = sum(self.explorer_loop_recovery_active.values())
+        return {
+            "enabled": True,
+            "protocol": PIXEL_LOOP_RECOVERY_PROTOCOL,
+            "window_actions": self.config.explorer_recovery_window_actions,
+            "blocked_repeat_threshold": self.config.explorer_recovery_blocked_threshold,
+            "cycle_window_actions": V10_RECOVERY_CYCLE_WINDOW,
+            "cycle_unique_limit": V10_RECOVERY_CYCLE_UNIQUE_LIMIT,
+            "long_stagnation_actions": V10_RECOVERY_STAGNATION_ACTIONS,
+            "escape_confirmations": self.config.explorer_recovery_escape_confirmations,
+            "ineffective_change_fraction": (
+                self.config.explorer_recovery_ineffective_change_fraction
+            ),
+            "ineffective_mean_absolute_error": (
+                self.config.explorer_recovery_ineffective_mean_absolute_error
+            ),
+            "escape_change_fraction": self.config.explorer_recovery_escape_change_fraction,
+            "escape_mean_absolute_error": (
+                self.config.explorer_recovery_escape_mean_absolute_error
+            ),
+            "blocked_penalty": self.config.explorer_recovery_blocked_penalty,
+            "escape_credit": self.config.explorer_recovery_escape_reward,
+            "context_change_credit": 0.0,
+            "expiration_penalty": self.config.explorer_recovery_expiration_penalty,
+            "windows_started": started,
+            "blocked_repeat_triggers": self.explorer_loop_recovery_events[
+                "blocked_repeat_triggers"
+            ],
+            "visual_cycle_triggers": self.explorer_loop_recovery_events["visual_cycle_triggers"],
+            "progress_stagnation_triggers": self.explorer_loop_recovery_events[
+                "progress_stagnation_triggers"
+            ],
+            "escapes": escaped,
+            "context_changes": context_changes,
+            "expirations": expirations,
+            "completed_windows": completed,
+            "escape_rate": 0.0 if completed == 0 else escaped / completed,
+            "abandoned_on_resume": abandoned_on_resume,
+            "abandoned_on_episode_end": abandoned_on_episode_end,
+            "abandoned_on_campaign_end": abandoned_on_campaign_end,
+            "abandoned_windows": abandoned,
+            "unresolved_windows": max(0, started - completed - abandoned - active),
+            "actions": self.explorer_loop_recovery_events["actions"],
+            "blocked_direction_attempts": self.explorer_loop_recovery_events[
+                "blocked_direction_attempts"
+            ],
+            "repeated_blocked_attempts": self.explorer_loop_recovery_events[
+                "repeated_blocked_attempts"
+            ],
+            "active_environments": active,
+            "actor_action_overrides": 0,
+            "uses_authored_guidance": False,
+            "episode_local_state": True,
+            "resume_behavior": "fresh_rollout_counts_inflight_windows_abandoned",
+        }
+
+    def _abandon_active_recoveries(self, reason: str) -> int:
+        if reason not in {"resume", "campaign_end"}:
+            raise ValueError("Explorer recovery abandonment reason is unsupported")
+        active_ranks = [
+            rank for rank, active in self.explorer_loop_recovery_active.items() if active
+        ]
+        if active_ranks:
+            self.explorer_loop_recovery_events[f"abandoned_on_{reason}"] += len(active_ranks)
+            for rank in active_ranks:
+                self.explorer_loop_recovery_active[rank] = False
+        return len(active_ranks)
+
+    def _record_explorer_loop_recovery(self, info: Mapping[str, Any]) -> None:
+        recovery = info.get("explorer_loop_recovery")
+        if not isinstance(recovery, Mapping):
+            return
+        submitted = recovery.get("submitted_action")
+        executed = recovery.get("executed_action")
+        if submitted != executed:
+            raise RuntimeError("Explorer loop recovery changed the PPO-selected action")
+        rank = info.get("rank")
+        if isinstance(rank, int):
+            self.explorer_loop_recovery_active[rank] = bool(recovery.get("active", False))
+        if recovery.get("recovery_action") is True:
+            self.explorer_loop_recovery_events["actions"] += 1
+        if recovery.get("blocked_direction_attempt") is True:
+            self.explorer_loop_recovery_events["blocked_direction_attempts"] += 1
+        if recovery.get("repeated_blocked_attempt") is True:
+            self.explorer_loop_recovery_events["repeated_blocked_attempts"] += 1
+        recovery_event = recovery.get("event")
+        if recovery_event == "started":
+            self.explorer_loop_recovery_events["windows_started"] += 1
+            trigger = recovery.get("trigger")
+            if trigger in RECOVERY_TRIGGERS:
+                self.explorer_loop_recovery_events[f"{trigger}_triggers"] += 1
+        elif recovery_event == "escaped":
+            self.explorer_loop_recovery_events["escapes"] += 1
+        elif recovery_event == "context_changed":
+            self.explorer_loop_recovery_events["context_changes"] += 1
+        elif recovery_event == "expired":
+            self.explorer_loop_recovery_events["expirations"] += 1
+        if info.get("episode_end") is True and recovery.get("active") is True:
+            self.explorer_loop_recovery_events["abandoned_on_episode_end"] += 1
+            if isinstance(rank, int):
+                self.explorer_loop_recovery_active[rank] = False
+
     def _write_self_skills(self) -> None:
         if self.self_skills is not None:
             _atomic_json(
@@ -3378,7 +3809,7 @@ class PpoRunCallback(BaseCallback):
             )
 
     def _write_student_practice(self) -> None:
-        if not _is_v9_mode(self.config.mode):
+        if not _uses_v9_practice(self.config.mode):
             return
         _atomic_json(
             self.run_directory / "student-practice.json",
@@ -3565,7 +3996,7 @@ class PpoRunCallback(BaseCallback):
         }
 
     def _student_practice_status(self) -> dict[str, Any]:
-        if not _is_v9_mode(self.config.mode):
+        if not _uses_v9_practice(self.config.mode):
             return {"enabled": False}
         ledgers = list(self.student_practice_ledgers.values())
         active = next((ledger for ledger in ledgers if not ledger.curriculum_complete), None)
@@ -3648,6 +4079,24 @@ class PpoRunCallback(BaseCallback):
             "novelty_files": novelty_files,
             "resume_semantics": "model_optimizer_exact_environment_rollout_restarts",
         }
+        if _is_v10_mode(self.config.mode):
+            checkpoint["narrative_telemetry"] = {
+                "protocol": V10_NARRATIVE_TELEMETRY_PROTOCOL,
+                "episodes": self.episodes,
+                "promotion_failures": self.promotion_failures,
+                "reward_components": dict(sorted(self.reward_components.items())),
+                "battle_events": dict(sorted(self.battle_events.items())),
+                "loop_events": dict(sorted(self.loop_events.items())),
+                "episode_end_reasons": dict(sorted(self.episode_end_reasons.items())),
+                "explorer_loop_recovery_events": dict(
+                    sorted(self.explorer_loop_recovery_events.items())
+                ),
+                "positions": [list(item) for item in sorted(self.positions)],
+                "active_environment_ranks": sorted(
+                    rank for rank, active in self.explorer_loop_recovery_active.items() if active
+                ),
+                "episode_local_recovery_state_persisted": False,
+            }
         if isinstance(run_manifest.get("v7_denominator"), Mapping):
             checkpoint["v7_denominator"] = dict(run_manifest["v7_denominator"])
         if self.student_model is not None and self.student_trainer is not None:
@@ -3683,7 +4132,7 @@ class PpoRunCallback(BaseCallback):
         if self.self_skills is not None:
             self._write_self_skills()
             checkpoint.update(_checkpoint_self_skill_state(self.run_directory))
-        if _is_v9_mode(self.config.mode):
+        if _uses_v9_practice(self.config.mode):
             self._write_student_practice()
             checkpoint.update(_checkpoint_student_practice_state(self.run_directory))
         checkpoint.update(
@@ -3762,6 +4211,7 @@ class PpoRunCallback(BaseCallback):
             "battle_events": dict(sorted(self.battle_events.items())),
             "loop_events": dict(sorted(self.loop_events.items())),
             "episode_end_reasons": dict(sorted(self.episode_end_reasons.items())),
+            "explorer_loop_recovery": self._explorer_loop_recovery_status(),
             "consolidation": self._consolidation_status(),
             "self_taught": self._self_taught_status(),
             "student_practice": self._student_practice_status(),
@@ -3788,6 +4238,13 @@ class PpoRunCallback(BaseCallback):
                     "replays, and exams and switches among self-generated goal clips at declared "
                     "milestone endpoints during composition; no imported actions, route graph, "
                     "coordinates, or authored quest plan"
+                    + (
+                        ". Explorer loop recovery reads only rendered pixels and the exact "
+                        "policy-selected action; it supplies no direction and never replaces, "
+                        "masks, or chooses a button"
+                        if _is_v10_mode(self.config.mode)
+                        else ""
+                    )
                     if _is_distilled_student_mode(self.config.mode)
                     else (
                         "pixels + three recent actions + a self-discovered target screen; "
@@ -3839,6 +4296,41 @@ class PpoRunCallback(BaseCallback):
             if _is_distilled_student_mode(self.config.mode)
             else "Combined actions"
         )
+        recovery = status.get("explorer_loop_recovery", {})
+        if _is_v10_mode(self.config.mode):
+            loop_lines = (
+                f"- Visual-loop detections: {status['loop_events'].get('visual_cycle', 0):,}\n"
+                "- Long-stagnation detections: "
+                f"{status['loop_events'].get('progress_stagnation', 0):,}\n\n"
+            )
+            recovery_lines = (
+                f"- Recovery windows opened: {recovery.get('windows_started', 0):,}\n"
+                f"- Blocked-repeat triggers: {recovery.get('blocked_repeat_triggers', 0):,}\n"
+                f"- Visual-cycle triggers: {recovery.get('visual_cycle_triggers', 0):,}\n"
+                "- Long-stagnation triggers: "
+                f"{recovery.get('progress_stagnation_triggers', 0):,}\n"
+                f"- Credited policy escapes: {recovery.get('escapes', 0):,}\n"
+                f"- No-credit context changes: {recovery.get('context_changes', 0):,}\n"
+                f"- Recovery expirations: {recovery.get('expirations', 0):,}\n"
+                f"- Completed recovery windows: {recovery.get('completed_windows', 0):,}\n"
+                f"- Active recovery environments: {recovery.get('active_environments', 0):,}\n"
+                f"- Abandoned recovery windows: {recovery.get('abandoned_windows', 0):,}\n"
+                f"- Abandoned on resume: {recovery.get('abandoned_on_resume', 0):,}\n"
+                "- Abandoned at episode end: "
+                f"{recovery.get('abandoned_on_episode_end', 0):,}\n"
+                "- Abandoned at campaign end: "
+                f"{recovery.get('abandoned_on_campaign_end', 0):,}\n"
+                f"- Unresolved inactive windows: {recovery.get('unresolved_windows', 0):,}\n"
+                f"- Recovery actions: {recovery.get('actions', 0):,}\n"
+                f"- Trainer-selected buttons: {recovery.get('actor_action_overrides', 0):,}\n\n"
+            )
+        else:
+            loop_lines = (
+                f"- Visual loops terminated: {status['loop_events'].get('visual_cycle', 0):,}\n"
+                "- Long stagnations terminated: "
+                f"{status['loop_events'].get('progress_stagnation', 0):,}\n\n"
+            )
+            recovery_lines = ""
         with path.open("a", encoding="utf-8") as output:
             if first:
                 output.write("# Parallel PPO learning chronicle\n\n")
@@ -3892,9 +4384,8 @@ class PpoRunCallback(BaseCallback):
                 f"{status['reward_components'].get('mart_approach', 0):,.2f}\n"
                 f"- Mart dialogue-stage credit: "
                 f"{status['reward_components'].get('mart_dialogue_progress', 0):,.2f}\n"
-                f"- Visual loops terminated: {status['loop_events'].get('visual_cycle', 0):,}\n"
-                "- Long stagnations terminated: "
-                f"{status['loop_events'].get('progress_stagnation', 0):,}\n\n"
+                f"{loop_lines}"
+                f"{recovery_lines}"
             )
 
     def _admit_v9_split_boundaries(
@@ -4062,7 +4553,7 @@ class PpoRunCallback(BaseCallback):
                 audit_path,
                 {
                     "schema_version": 1,
-                    "protocol": PPO_V9_REWARD_PROTOCOL,
+                    "protocol": _ppo_reward_protocol(self.config.mode),
                     "verification_id": skill_id,
                     "source_entry_id": entry_ids[edge_index],
                     "source_milestone": source_hit.progress.public_dict(),
@@ -4150,7 +4641,7 @@ class PpoRunCallback(BaseCallback):
         dataset_path = self.run_directory / dataset_relative
         target_path.parent.mkdir(parents=True, exist_ok=True)
 
-        if _is_v9_mode(self.config.mode):
+        if _uses_v9_practice(self.config.mode):
             return self._prepare_v9_normalized_skills(verification, progress)
 
         if _is_distilled_student_mode(self.config.mode):
@@ -4447,7 +4938,7 @@ class PpoRunCallback(BaseCallback):
     def _selected_v9_practice_replays(
         self,
     ) -> tuple[dict[str, Path], list[dict[str, Any]]]:
-        if not _is_v9_mode(self.config.mode) or self.self_skills is None:
+        if not _uses_v9_practice(self.config.mode) or self.self_skills is None:
             return {}, []
         paths: dict[str, Path] = {}
         selections: list[dict[str, Any]] = []
@@ -4804,7 +5295,7 @@ class PpoRunCallback(BaseCallback):
         self.last_v9_disk_budget_refresh = time.monotonic()
 
     def _sync_v9_practice_ledgers(self) -> None:
-        if not _is_v9_mode(self.config.mode) or self.self_skills is None:
+        if not _uses_v9_practice(self.config.mode) or self.self_skills is None:
             return
         settings = ReversePracticeConfig(
             first_rung_actions=8,
@@ -5096,7 +5587,7 @@ class PpoRunCallback(BaseCallback):
         return outcome.promoted
 
     def _run_v9_practice_round(self) -> bool:
-        if not _is_v9_mode(self.config.mode):
+        if not _uses_v9_practice(self.config.mode):
             return False
         rollout_size = self.config.rollout_steps * self.config.environments
         explorer_rollout = self.model.num_timesteps // max(1, rollout_size)
@@ -5152,7 +5643,7 @@ class PpoRunCallback(BaseCallback):
         best = inherited.index
         actions = 0
         cancellation_check = (
-            self._v9_practice_cancellation_reason if _is_v9_mode(self.config.mode) else None
+            self._v9_practice_cancellation_reason if _uses_v9_practice(self.config.mode) else None
         )
         with PokemonRedEmulator(self.rom_path) as emulator:
             emulator.load_state(FrozenSnapshot.from_checkpoint_dict(source["snapshot"]).thaw())
@@ -5249,7 +5740,7 @@ class PpoRunCallback(BaseCallback):
         current_skill = 0
         actions = 0
         cancellation_check = (
-            self._v9_practice_cancellation_reason if _is_v9_mode(self.config.mode) else None
+            self._v9_practice_cancellation_reason if _uses_v9_practice(self.config.mode) else None
         )
         with PokemonRedEmulator(self.rom_path) as emulator:
             emulator.load_state(FrozenSnapshot.from_checkpoint_dict(root["snapshot"]).thaw())
@@ -5295,7 +5786,7 @@ class PpoRunCallback(BaseCallback):
         actions = 0
         competence_passed = False
         try:
-            if _is_v9_mode(self.config.mode):
+            if _uses_v9_practice(self.config.mode):
                 _check_v9_practice_cancellation(self._v9_practice_cancellation_reason)
             manifest = _load_curriculum_manifest(self.curriculum_directory)
             choice = choose_v8_self_taught_episode(
@@ -5345,7 +5836,7 @@ class PpoRunCallback(BaseCallback):
 
     def _on_rollout_start(self) -> None:
         if _is_distilled_student_mode(self.config.mode):
-            if _is_v9_mode(self.config.mode):
+            if _uses_v9_practice(self.config.mode):
                 reason = self._v9_practice_cancellation_reason()
                 if reason is not None:
                     self.stop_reason = reason
@@ -5399,13 +5890,13 @@ class PpoRunCallback(BaseCallback):
                 replay_passes=self.config.promotion_replays,
                 cancellation_check=(
                     self._v9_practice_cancellation_reason
-                    if _is_v9_mode(self.config.mode)
+                    if _uses_v9_practice(self.config.mode)
                     else None
                 ),
             )
             source_png = candidate_path.with_suffix("").with_suffix(".png")
             prepared_skill = self._prepare_self_generated_skill(verification, progress, source_png)
-            if _is_v9_mode(self.config.mode):
+            if _uses_v9_practice(self.config.mode):
                 _check_v9_practice_cancellation(self._v9_practice_cancellation_reason)
             if isinstance(prepared_skill, _PreparedV9Skills):
                 self._commit_v9_candidate(verification, prepared_skill)
@@ -5483,6 +5974,7 @@ class PpoRunCallback(BaseCallback):
             loop_event = info.get("loop_event")
             if isinstance(loop_event, str):
                 self.loop_events[loop_event] += 1
+            self._record_explorer_loop_recovery(info)
             end_reason = info.get("episode_end_reason")
             if isinstance(end_reason, str):
                 self.episode_end_reasons[end_reason] += 1
@@ -5721,7 +6213,7 @@ def run_parallel_ppo(
                 )
             except ValueError as error:
                 raise ValueError("Student optimizer does not match its checkpoint") from error
-        if _is_v9_mode(config.mode):
+        if _uses_v9_practice(config.mode):
             _restore_student_practice_state(run_directory, checkpoint)
         novelty_files = checkpoint.get("novelty_files")
         if not isinstance(novelty_files, list):
@@ -5819,6 +6311,26 @@ def run_parallel_ppo(
                 consolidation=config.consolidation,
                 self_taught=_is_self_taught_mode(config.mode),
                 novelty_checkpoint_file=novelty_by_rank.get(rank),
+                explorer_recovery_window_actions=config.explorer_recovery_window_actions,
+                explorer_recovery_blocked_threshold=(config.explorer_recovery_blocked_threshold),
+                explorer_recovery_escape_confirmations=(
+                    config.explorer_recovery_escape_confirmations
+                ),
+                explorer_recovery_ineffective_change_fraction=(
+                    config.explorer_recovery_ineffective_change_fraction
+                ),
+                explorer_recovery_ineffective_mean_absolute_error=(
+                    config.explorer_recovery_ineffective_mean_absolute_error
+                ),
+                explorer_recovery_escape_change_fraction=(
+                    config.explorer_recovery_escape_change_fraction
+                ),
+                explorer_recovery_escape_mean_absolute_error=(
+                    config.explorer_recovery_escape_mean_absolute_error
+                ),
+                explorer_recovery_blocked_penalty=config.explorer_recovery_blocked_penalty,
+                explorer_recovery_escape_reward=config.explorer_recovery_escape_reward,
+                explorer_recovery_expiration_penalty=(config.explorer_recovery_expiration_penalty),
             ),
         )
         for rank in range(config.environments)
@@ -5898,13 +6410,19 @@ def run_parallel_ppo(
             student_trainer.load_optimizer_state_dict(optimizer_state)
         else:
             manifest = json.loads((run_directory / "manifest.json").read_text(encoding="utf-8"))
-            architecture_key = "v9_architecture" if _is_v9_mode(config.mode) else "v8_architecture"
+            architecture_key = (
+                "v10_architecture"
+                if _is_v10_mode(config.mode)
+                else "v9_architecture"
+                if _is_v9_mode(config.mode)
+                else "v8_architecture"
+            )
             manifest[architecture_key] = {
                 "explorer": "PPO policy updated only from online blind exploration",
                 "student": (
                     "independent recurrent policy updated from distilled replay and closed-loop "
                     "success-only self-practice"
-                    if _is_v9_mode(config.mode)
+                    if _uses_v9_practice(config.mode)
                     else "independent recurrent policy updated only from self-generated replay"
                 ),
                 "initial_parameters_identical": True,
@@ -5912,8 +6430,27 @@ def run_parallel_ppo(
                 "human_demonstrations": [],
                 "goal_observation": "three self-observed terminal frames",
                 "competence_authority": "frozen deterministic Student exams",
-                "closed_loop_practice": _is_v9_mode(config.mode),
-                "recovery_ppo": "gated_future_escalation" if _is_v9_mode(config.mode) else None,
+                "closed_loop_practice": _uses_v9_practice(config.mode),
+                "recovery_ppo": (
+                    "gated_future_escalation" if _uses_v9_practice(config.mode) else None
+                ),
+                **(
+                    {
+                        "explorer_loop_recovery": {
+                            "protocol": PIXEL_LOOP_RECOVERY_PROTOCOL,
+                            "inputs": ["preprocessed_rendered_pixels", "policy_selected_action"],
+                            "actor_action_overrides": 0,
+                            "uses_authored_guidance": False,
+                            "episode_local_state": True,
+                            "cycle_window_actions": V10_RECOVERY_CYCLE_WINDOW,
+                            "cycle_unique_limit": V10_RECOVERY_CYCLE_UNIQUE_LIMIT,
+                            "long_stagnation_actions": V10_RECOVERY_STAGNATION_ACTIONS,
+                            "resume_behavior": ("fresh_rollout_counts_inflight_windows_abandoned"),
+                        }
+                    }
+                    if _is_v10_mode(config.mode)
+                    else {}
+                ),
             }
             _atomic_json(run_directory / "manifest.json", manifest)
     callback = PpoRunCallback(
@@ -5945,6 +6482,7 @@ def run_parallel_ppo(
         reason = "sigint"
     finally:
         callback.stop_reason = reason
+        callback._abandon_active_recoveries("campaign_end")
         callback._checkpoint()
         status = callback._status("finished", reason)
         callback._narrative(f"campaign stopped: {reason}", state="finished", reason=reason)

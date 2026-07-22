@@ -120,16 +120,32 @@ def _is_v8(status: Mapping[str, Any]) -> bool:
     reward_protocol = str(status.get("reward_protocol", ""))
     return (
         mode == "self_taught_v8"
-        or protocol in {"parallel-recurrent-ppo-v8", "parallel-recurrent-ppo-v9"}
+        or protocol
+        in {
+            "parallel-recurrent-ppo-v8",
+            "parallel-recurrent-ppo-v9",
+            "parallel-recurrent-ppo-v10",
+        }
         or reward_protocol.startswith("distilled-self-generated-skills")
+        or mode in {"self_taught_v9", "self_taught_v10"}
     )
 
 
 def _is_v9(status: Mapping[str, Any]) -> bool:
     return (
-        str(status.get("mode", "")) == "self_taught_v9"
-        or str(status.get("protocol", "")) == "parallel-recurrent-ppo-v9"
+        str(status.get("mode", "")) in {"self_taught_v9", "self_taught_v10"}
+        or str(status.get("protocol", ""))
+        in {"parallel-recurrent-ppo-v9", "parallel-recurrent-ppo-v10"}
         or str(status.get("reward_protocol", "")) == "self-correcting-student-v1"
+        or str(status.get("reward_protocol", "")) == "recovery-before-reset-v1"
+    )
+
+
+def _is_v10(status: Mapping[str, Any]) -> bool:
+    return (
+        str(status.get("mode", "")) == "self_taught_v10"
+        or str(status.get("protocol", "")) == "parallel-recurrent-ppo-v10"
+        or str(status.get("reward_protocol", "")) == "recovery-before-reset-v1"
     )
 
 
@@ -879,7 +895,94 @@ def _exam_section(status: Mapping[str, Any]) -> str:
     )
 
 
-def _common_cards(status: Mapping[str, Any], *, v8: bool) -> str:
+def _explorer_loop_recovery_section(status: Mapping[str, Any]) -> str:
+    recovery = _mapping(status.get("explorer_loop_recovery"))
+    started = _integer(recovery.get("windows_started"))
+    escaped = _integer(recovery.get("escapes"))
+    completed = _integer(recovery.get("completed_windows"))
+    cards = "".join(
+        (
+            _metric_card("Recovery windows opened", f"{started:,}"),
+            _metric_card("Credited policy escapes", f"{escaped:,}"),
+            _metric_card(
+                "Recovery escape rate",
+                _rate(escaped, completed),
+                note="credited escapes / completed windows; context changes are not successes",
+            ),
+            _metric_card("Completed recovery windows", f"{completed:,}"),
+            _metric_card(
+                "Context changes (no credit)",
+                f"{_integer(recovery.get('context_changes')):,}",
+            ),
+            _metric_card("Expired and reset", f"{_integer(recovery.get('expirations')):,}"),
+            _metric_card("Abandoned windows", f"{_integer(recovery.get('abandoned_windows')):,}"),
+            _metric_card(
+                "Abandoned on resume",
+                f"{_integer(recovery.get('abandoned_on_resume')):,}",
+            ),
+            _metric_card(
+                "Abandoned at episode end",
+                f"{_integer(recovery.get('abandoned_on_episode_end')):,}",
+            ),
+            _metric_card(
+                "Abandoned at campaign end",
+                f"{_integer(recovery.get('abandoned_on_campaign_end')):,}",
+            ),
+            _metric_card(
+                "Unresolved inactive windows",
+                f"{_integer(recovery.get('unresolved_windows')):,}",
+                note="must remain zero",
+            ),
+            _metric_card("Recovery actions", f"{_integer(recovery.get('actions')):,}"),
+            _metric_card(
+                "Active recovery environments",
+                f"{_integer(recovery.get('active_environments')):,}",
+            ),
+            _metric_card(
+                "Blocked-repeat triggers",
+                f"{_integer(recovery.get('blocked_repeat_triggers')):,}",
+            ),
+            _metric_card(
+                "Visual-cycle triggers",
+                f"{_integer(recovery.get('visual_cycle_triggers')):,}",
+            ),
+            _metric_card(
+                "Long-stagnation triggers",
+                f"{_integer(recovery.get('progress_stagnation_triggers')):,}",
+            ),
+            _metric_card(
+                "Blocked direction attempts",
+                f"{_integer(recovery.get('blocked_direction_attempts')):,}",
+            ),
+            _metric_card(
+                "Repeated blocked attempts",
+                f"{_integer(recovery.get('repeated_blocked_attempts')):,}",
+            ),
+            _metric_card(
+                "Trainer-selected buttons",
+                f"{_integer(recovery.get('actor_action_overrides')):,}",
+                note="must remain zero",
+            ),
+        )
+    )
+    return _section(
+        "Explorer loop recovery: did it escape without a reset?",
+        (
+            "The policy still chooses every button. Pixels and the chosen action can identify "
+            "a repeated no-effect direction, visual cycle, or long stagnation, opening a bounded "
+            "practice window. A blocked-direction lesson credits a directional visual escape; "
+            "dialogue or menu "
+            "changes preserve it only as no-credit context changes. A visual-cycle or "
+            "long-stagnation lesson can credit any material policy-chosen visual escape after its "
+            "loop penalty. No route, coordinate, preferred direction, mask, or forced action is "
+            "supplied."
+        ),
+        cards,
+        class_name="recovery",
+    )
+
+
+def _common_cards(status: Mapping[str, Any], *, v8: bool, v10: bool) -> str:
     best = _mapping(status.get("best_milestone"))
     focus = _mapping(status.get("training_focus"))
     rewards = _mapping(status.get("reward_components"))
@@ -931,10 +1034,11 @@ def _common_cards(status: Mapping[str, Any], *, v8: bool) -> str:
                 f"{_number(rewards.get('mart_dialogue_progress')):,.2f}",
             ),
             _metric_card(
-                "Visual loops cut short", f"{_integer(loop_events.get('visual_cycle')):,}"
+                "Visual loop triggers detected" if v10 else "Visual loops cut short",
+                f"{_integer(loop_events.get('visual_cycle')):,}",
             ),
             _metric_card(
-                "Long stagnations cut short",
+                "Long stagnations detected" if v10 else "Long stagnations cut short",
                 f"{_integer(loop_events.get('progress_stagnation')):,}",
             ),
         ]
@@ -947,6 +1051,7 @@ def render_ppo_dashboard(status: Mapping[str, Any]) -> str:
 
     v8 = _is_v8(status)
     v9 = _is_v9(status)
+    v10 = _is_v10(status)
     mode = _escaped(str(status.get("mode", "unknown")).upper())
     updated_at = html.escape(str(status.get("updated_at", "")), quote=True)
     environment_label = "Explorer environment" if v8 else "Environment"
@@ -977,6 +1082,7 @@ def render_ppo_dashboard(status: Mapping[str, Any]) -> str:
     v8_sections = (
         _explorer_student_roles(status)
         + _depth_section(status)
+        + (_explorer_loop_recovery_section(status) if v10 else "")
         + _distillation_section(status)
         + _student_section(status)
         + (_practice_section(status) if v9 else "")
@@ -985,7 +1091,7 @@ def render_ppo_dashboard(status: Mapping[str, Any]) -> str:
         if v8
         else ""
     )
-    common_cards = _common_cards(status, v8=v8)
+    common_cards = _common_cards(status, v8=v8, v10=v10)
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8"/>
 <meta http-equiv="refresh" content="5"/><meta name="viewport" content="width=device-width"/>
 <title>Parallel PPO · Pokémon Red</title><style>

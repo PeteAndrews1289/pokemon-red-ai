@@ -1,5 +1,57 @@
 # Development log
 
+## 2026-07-21 — The reset button was hiding the lesson
+
+- Preserved the active V9 campaign and its immutable DR-0057 declaration. The visible wall-bouncing
+  and rising loop resets are diagnostic observations only; no live counter has been promoted into a
+  terminal V9 result.
+- Implemented Version 10 as a separate successor mode rather than editing V9 mid-run. V10 retains
+  fresh random power-on initialization, the separate Explorer and Student, consecutive
+  self-generated skills, reverse closed-loop Student practice, success-only aggregation, and the
+  unchanged frozen exam authority.
+- Changed the Explorer's proposed response to repeated generic ineffective directional
+  action/pixel outcomes. A loop can
+  open a bounded recovery opportunity before reset, allowing the same PPO policy to experience its
+  own failed actions and a self-chosen response in one rollout. After `blocked_repeat`, a
+  directional material visual outcome is credited `escaped`; non-directional change closes as zero-credit
+  `context_changed`, not an escape or success. Generic material changes remain eligible after
+  visual-cycle or pixels-only long-stagnation triggers, which already incur the -2 loop penalty.
+  Expiry still produces a classified reset, so one wall cannot consume an unbounded campaign.
+- Opened pixels-only long-stagnation recovery after 1,024 ineffective outcomes before the legacy
+  hard watchdog can terminate. Visually effective backtracking resets the hard timer without
+  clearing the independent 128-frame/eight-signature short-cycle detector.
+- Kept button authority strict. Trainer-only recovery code may grade processed visual effect, but
+  it cannot choose, replace, sample, or mask an action. It receives no RAM, map, coordinate, route
+  distance, destination, or direction hint.
+- Added a fail-closed Explorer-recovery telemetry contract. Trigger types, activations, credited
+  escapes, zero-credit context changes, expirations, active ranks, recovery actions, abandonment on
+  resume/episode/campaign end, and trainer-selected buttons remain separate. Every opened window is
+  accounted for; unresolved inactive windows and trainer-selected buttons must remain zero.
+- Added the Version-10 design, falsifiers, comparison rules, claim boundary, and video chapter. The
+  mechanism then passed deterministic E2 qualification: 67 focused V10/PPO/dashboard checks; 293
+  checks in the whole default suite with 13 private-ROM checks skipped; and 54/54 across all
+  selected ROM-bearing files with the private ROM in 19.02 seconds. Ruff, the private-artifact
+  guard, documentation links/placeholders, compilation, and diff checks also passed.
+- Added deterministic environment-step and hourly-narrative checks. A simultaneous pixels-only
+  stagnation start suppresses legacy termination; exact expiry is terminal; the ordinary action
+  ceiling remains truncated and abandons an active window; perceptual activity still permits
+  short-cycle detection; active checkpoint ranks become abandoned on resume; and hourly Markdown
+  exposes detections with the full recovery denominator.
+- Added direct E3 mechanism calibration at the committed 289-action ground-floor fixture plus six
+  settling noops. Up (0% changed pixels / 0 MAE) and Right (0.642% / 0.509) classified blocked;
+  Down (20.972% / 23.165) and Left (21.215% / 26.851) classified as material directional visual
+  outcomes; and Start
+  (37.708% / 89.667) materially changed context. Up×3 → Start closed as zero-credit
+  `context_changed`; a fresh Up×3 → Down closed as credited `escaped`. Both preserved
+  `submitted == executed`. This calibrates one real-ROM mechanism; it is not the pending fresh
+  campaign canary.
+- Corrected the reward before a campaign canary. An adversarial audit reduced escape credit from the
+  draft 1.0 to 0.25 raw units and constrained it to no more than the 0.25 repeated-block activation
+  penalty. A credited directional blocked/escape pair is reward-neutral before ordinary game
+  consequences; a non-directional `context_changed` closure earns zero and retains the -0.25.
+- Kept the evidence boundary narrow. A real-ROM campaign canary is still pending, and no navigation,
+  exploration, learning, competence, or gameplay improvement is claimed.
+
 ## 2026-07-21 — Freeze the rules, then let V9 run
 
 - Declared active run `parallel-ppo-v9-self-correcting-8h-20260721-seed20260809` against source

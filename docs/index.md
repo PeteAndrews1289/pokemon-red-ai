@@ -36,8 +36,18 @@ has engineering-checked consecutive edges, exact-target reverse closed-loop prac
 bounded replay, terminal counters, and checkpoint rollback. Its first real-ROM canary exposed a
 wall-time overrun and report-merge defect; the corrected 144-second canary qualified mechanism,
 observability, and campaign timing while passing 0/3 frozen exams. Competence remains open, and the
-future PPO recovery lane remains disabled. A declared eight-hour run is active from fresh power-on
-under commit `d1c0c0d`; its first 0/1 exam checkpoint is provisional E1 live evidence.
+future Student PPO recovery lane remains disabled. A declared eight-hour run is active from fresh
+power-on under commit `d1c0c0d`; its first 0/1 exam checkpoint is provisional E1 live evidence. Visible
+wall-bouncing during that frozen campaign motivated a separate Version 10 rather than a mid-run
+repair. V10 lets the Explorer policy keep choosing actions inside a bounded generic recovery window
+before reset; it supplies no direction or route. The mechanism passed deterministic E2
+qualification—67 focused checks, 293 default-suite passes with 13 private-ROM skips, and 54/54
+selected ROM-bearing checks with the private ROM in 19.02 seconds. A direct ground-floor
+private-ROM fixture proved Up×3 → Start is zero-credit `context_changed`, while a fresh Up×3 → Down
+is credited `escaped`; both preserve submitted/executed action identity. Telemetry separately
+accounts for every escaped, context-changed, expired, active, or abandoned window; unresolved
+inactive windows must remain zero. This is E3 mechanism calibration. A campaign canary and any
+behavioral improvement claim remain pending.
 
 ## Start here
 
@@ -57,6 +67,7 @@ under commit `d1c0c0d`; its first 0/1 exam checkpoint is provisional E1 live evi
 | Understand the game-naive reset | [Version 7: let a new player teach itself](version-7-self-taught.md) | Random power-on start, strict information rules, self-generated visual skills, self-imitation, canary evidence, and falsification gates |
 | Understand the closed V8 result | [Version 8: separate discovery from learning](version-8-distilled-student.md) | Why V7 remains the denominator; how the 0/7 canary qualified the mechanism; why the longer seven-skill run still ended at 1/47 and zero competent skills |
 | Understand the current architecture change | [Version 9: let the Student practice being wrong](version-9-self-correcting-student.md) | Exposure bias, consecutive edges, reverse practice, the failed and corrected canaries, success-only aggregation, campaign timing, strict 0/3 exams, and video narrative |
+| Understand the loop-recovery successor | [Version 10: let the Explorer recover before resetting](version-10-recovery-before-reset.md) | Why immediate reset may hide the recovery lesson; strict policy action authority; route-agnostic recovery, telemetry, falsifiers, canary gates, and claim limits |
 | Inspect the first verified expedition milestone | [Q1 `left_home` result](../experiments/q1-left-home/README.md) | Both seeds, full denominator, lineage hashes, replay cost, and why 1/2 is not a pass |
 | Audit the qualified memory substrate | [Archive v2 qualification](../experiments/archive-v2-qualification/README.md) | Bounded replay, exact resume, crash recovery, deterministic comparison, and the failed stop-timing attempt |
 | Audit every accepted and discarded idea | [Decision register](decision-register.md) | Append-only decisions, failed hypotheses, alternatives, evidence, and consequences |
@@ -98,6 +109,7 @@ flowchart LR
     V7 --> V8["✅ Version 8<br/>0/7 canary; 1/47 final"]
     V8 --> V9["✅ Version 9 mechanism<br/>0/3 qualification"]
     V9 --> L9["🟨 Version 9 long run<br/>active; provisional"]
+    L9 --> V10["✅ Version 10 mechanism<br/>E2 checked; E3 calibrated"]
 ```
 
 The diagram shows project position, not game progress. Reaching the game-start state is a narrow

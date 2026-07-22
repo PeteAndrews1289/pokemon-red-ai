@@ -12,7 +12,10 @@ baseline deliberately used a seeded random action emitter and a sealed, read-onl
 trials compare learned or optimized emitters under the same checkpoint and replay rules.
 
 > **Current status: V9's mechanism is qualified and its declared eight-hour fresh-start campaign is
-> live. The first 0/1 exam checkpoint is provisional, not a learning result.**
+> live. The first 0/1 exam checkpoint is provisional, not a learning result. V10's bounded
+> policy-controlled loop recovery has passed deterministic E2 qualification and direct E3
+> mechanism calibration; a real-ROM campaign canary and any claim about exploration or competence
+> remain pending.**
 > Stage 0 memorized and exactly replayed its one 419-action house-exit route. Reverse curriculum
 > completed that opening in development, and Frontier Apprentice proved that network updates can be
 > gated behind replay-verified milestones. Its limitation was equally important: almost every
@@ -95,7 +98,7 @@ trials compare learned or optimized emitters under the same checkpoint and repla
 > reached the ground floor, built three skills, recorded 16/22 exact-target practice attempts with
 > two wrong-state and four timeouts, retained 16 verified successes, and passed 0/3 frozen exams.
 > The current engineering suite passes 276 non-integration plus 12 integration checks (288 total).
-> A recurrent PPO recovery lane remains disabled. Strict checkpoint-separated exams remain
+> A recurrent Student PPO recovery lane remains disabled. Strict checkpoint-separated exams remain
 > unchanged. V9's mechanism, observability, and wall-time boundary are qualified; learned
 > competence and later-game progress are not.
 > The active run `parallel-ppo-v9-self-correcting-8h-20260721-seed20260809` began from fresh
@@ -106,6 +109,31 @@ trials compare learned or optimized emitters under the same checkpoint and repla
 > practice outcomes, and failed its sole frozen exam. Those numbers are provisional E1 live
 > telemetry, not final evidence. See
 > [Let the Student practice being wrong](docs/version-9-self-correcting-student.md).
+> Live V9 observation also exposed a different Explorer failure: loop detection correctly noticed
+> repeated ineffective directional action/pixel outcomes, then reset away the exact local situation the policy needed to
+> practice. Version 10 is implemented as a separate successor rather than a mid-run V9 edit. It
+> defers reset for a bounded generic recovery window while the PPO policy still chooses every
+> button. Trainer-only recovery code may grade processed visual effect, but receives no RAM and
+> supplies no direction, route, coordinate, action mask, or controller action. Fewer resets alone
+> will not count as progress; broader verified exploration or later frozen competence must change
+> under a declared comparison.
+> After a blocked-repeat trigger, a directional material visual outcome is credited `escaped`; a
+> non-directional material change such as Start closes as zero-credit `context_changed` and is not
+> counted as an escape or success. Generic material actions remain eligible after visual-cycle or
+> pixels-only long-stagnation triggers, which already incur the -2 loop penalty. Long stagnation
+> opens recovery after 1,024 ineffective pixel/action outcomes, before legacy hard termination;
+> visually effective backtracking resets that hard timer without clearing the short-cycle detector.
+> The focused V10/PPO/dashboard suite passed 67 checks, the default suite passed 293 with 13
+> private-ROM checks skipped, and all selected ROM-bearing files then passed 54/54 with the private
+> ROM in 19.02 seconds. The reward audit also capped escape credit at the 0.25 repeated-block
+> activation penalty. A credited directional pair is reward-neutral; `context_changed` earns zero.
+> Recovery telemetry persists active ranks and fail-closes every opened window into credited escape,
+> context change, expiration, active, or abandoned on resume/episode/campaign end; unresolved
+> inactive windows must remain zero. A direct
+> private-ROM ground-floor fixture proved Up×3 → Start is zero-credit `context_changed`, while a
+> fresh Up×3 → Down is credited `escaped`; both preserve `submitted == executed`. That is E3
+> mechanism calibration, not a gameplay result; V10 has no campaign run result yet. See
+> [Let the Explorer recover before resetting](docs/version-10-recovery-before-reset.md).
 
 The current code preserves every historical runner, including Monkey, Archivist, online learners,
 and clean-start neuroevolution, so rejected approaches remain reproducible. See
@@ -128,7 +156,8 @@ The primary completion protocol is the
 [Hall of Fame completion program](docs/completion-program.md). The original
 [game-naive, pixels-only curiosity](docs/blind-curiosity.md) protocol remains the philosophical
 control. [Visual Apprentice v1](docs/visual-apprentice.md) remains a preserved predecessor; the
-current implementation hypothesis is
+current implemented successor hypothesis is
+[Version 10's recovery-before-reset Explorer](docs/version-10-recovery-before-reset.md), built on
 [Version 9's self-correcting Student](docs/version-9-self-correcting-student.md). The editorial direction lives in
 [The project narrative](docs/narrative.md), and evidence levels remain tracked in
 [Progress](docs/progress.md).
@@ -150,7 +179,7 @@ current implementation hypothesis is
 | Preserved random comparison | Monkey vs. pixels-only Archivist under matched budgets |
 | Completed 90-minute pretrial | Evolution reached tier 1; online learners plateaued around Pallet Town and Route 1 |
 | Concluded neural experiment | Six inherited-archive lanes all failed the second-map/party gate under equal fuel |
-| Current completion work | V9's qualified mechanism is running an eight-hour fresh-start campaign; first-boundary 0/1 is provisional E1 telemetry, not competence or a final result |
+| Current completion work | V9's qualified mechanism is running its frozen eight-hour fresh-start campaign; V10 recovery passed deterministic E2 checks and direct E3 mechanism calibration, and awaits a real-ROM campaign canary |
 | North star | First discover a replayable Hall-of-Fame lineage, then train and evaluate one frozen pixel policy |
 
 ## The journey
@@ -171,7 +200,8 @@ flowchart LR
     V7 --> V8["✅ V8<br/>0/7 canary; 1/47 final"]
     V8 --> V9["✅ V9 mechanism<br/>0/3 qualification"]
     V9 --> LONG["🟨 V9 long run<br/>active; evidence provisional"]
-    LONG --> HF["⬜ Hall of Fame<br/>one frozen policy"]
+    LONG --> V10["✅ V10 mechanism<br/>E2 checked; E3 calibrated"]
+    V10 --> HF["⬜ Hall of Fame<br/>one frozen policy"]
 ```
 
 GitHub issues and experiment records will attach evidence to this roadmap. A checked engineering
@@ -344,6 +374,7 @@ Start with [the documentation hub](docs/index.md), or jump directly to:
 - [Version 7: let a new player teach itself](docs/version-7-self-taught.md) — random power-on start, self-generated visual skills, direct self-imitation, competence gates, and canary evidence
 - [Version 8: separate discovery from learning](docs/version-8-distilled-student.md) — qualified 0/7 canary, longer 1/47 final run, unchanged V7 denominator, replay-backed compression, separate Explorer and Student, and lessons learned
 - [Version 9: let the Student practice being wrong](docs/version-9-self-correcting-student.md) — exposure bias, consecutive edges, reverse closed-loop practice, the failed and corrected canaries, success-only aggregation, strict 0/3 exams, and video narrative
+- [Version 10: let the Explorer recover before resetting](docs/version-10-recovery-before-reset.md) — why immediate loop reset may hide the local recovery lesson, how policy action authority stays intact, and what the canary must prove before any behavioral claim
 - [Version 6: remember the journey](docs/version-6-consolidation.md) — retained PPO weights, backward competence gates, failed and passed canaries, and the new claim ladder
 - [Append-only decision register](docs/decision-register.md) — accepted, rejected, retired, superseded, and failed ideas with their evidence
 - [Progress](docs/progress.md) — current evidence, status, and reporting rules

@@ -1,5 +1,63 @@
 # Changelog
 
+## Unreleased — Version 10 recovery before reset
+
+- Implemented a separate `self_taught_v10` successor without editing the frozen V9 campaign or
+  rewriting its provisional evidence. V10 preserves fresh random parameters, power-on-only imported
+  curriculum, the run's self-generated verified frontier, separate Explorer and Student, V9
+  closed-loop practice, success-only aggregation, and strict frozen exams.
+- Changed generic Explorer loop handling from immediate termination to a bounded chance to recover.
+  Repeated ineffective directional outcomes can activate recovery; the PPO policy continues to
+  choose every button, a qualifying new visual outcome may preserve the episode, and expiry retains
+  a classified failure and frontier restart. After `blocked_repeat`, only a directional material
+  visual outcome is credited `escaped`; non-directional material change closes as zero-credit
+  `context_changed` and is not an escape or success. Generic material actions remain eligible after
+  visual-cycle or pixels-only long-stagnation triggers, which already incur the -2 loop penalty.
+- Added pixels-only long-stagnation recovery after 1,024 consecutive ineffective outcomes, before
+  the legacy hard watchdog can terminate. Visually effective backtracking resets that hard timer
+  without clearing the independent 128-frame/eight-signature visual-cycle detector.
+- Made expired recovery and emulator failure true PPO terminals; only the ordinary episode action
+  ceiling remains a time-limit truncation. Bound campaign-cumulative narrative and recovery
+  counters to the V10 checkpoint while intentionally resetting episode-local visual recovery state
+  with fresh environment rollouts.
+- Preserved the no-cheating boundary. Trainer-only recovery code may compare processed visual
+  change with the policy-submitted action for reward and termination, but cannot choose, replace,
+  sample, or mask an action. It receives no RAM, route distance, destination, coordinate, map, or
+  direction hint.
+- Added fail-closed recovery telemetry and dashboard requirements: ineffective directions, trigger
+  types, activations, credited escapes, zero-credit context changes, expirations, recovery actions,
+  active recoveries, abandonment on resume/episode/campaign end, unresolved inactive windows, and
+  trainer-selected buttons. Every opened window must appear in exactly one denominator; unresolved
+  inactive windows must remain zero.
+- Added [the V10 design](docs/version-10-recovery-before-reset.md), DR-0058, qualification gates,
+  falsifiers, matched-comparison metrics, claim boundaries, and the video chapter “The reset button
+  was hiding the lesson.”
+- Corrected the draft reward after an adversarial reward audit: escape credit is now 0.25 raw units
+  and cannot exceed the 0.25 repeated-block activation penalty. A credited directional
+  blocked/escape pair is recovery-reward-neutral; a blocked/non-directional context change receives
+  zero credit and retains the -0.25 penalty.
+- Passed deterministic E2 qualification. The focused V10/PPO/dashboard suite passed 67 checks; the
+  whole default suite passed 293 with 13 private-ROM checks skipped; and all selected ROM-bearing
+  files then passed 54/54 with the private ROM in 19.02 seconds. Ruff, the private-artifact guard,
+  documentation links/placeholders, compilation, and diff checks also passed.
+- Locked environment and reporting semantics in deterministic checks: a simultaneous pixels-only
+  stagnation activation suppresses legacy termination; exact recovery expiry is terminal; the
+  ordinary action ceiling remains truncated and classifies an active window abandoned; perceptual
+  activity can reset hard stagnation while short-cycle detection remains live; checkpointed active
+  ranks become abandoned on resume; and hourly Markdown reports detections beside the full recovery
+  denominator.
+- Added direct E3 mechanism calibration at the committed 289-action ground-floor fixture plus six
+  settling noops. Up (0% changed pixels / 0 MAE) and Right (0.642% / 0.509) classified blocked;
+  Down (20.972% / 23.165) and Left (21.215% / 26.851) classified as material directional visual
+  outcomes; and Start
+  (37.708% / 89.667) materially changed context. Exactly three policy-submitted Up actions opened
+  recovery; Start then closed it as zero-credit `context_changed`. A fresh Up×3 sequence followed
+  by policy-submitted Down closed as credited `escaped`; both sequences preserved
+  `submitted == executed`. This calibrates the detector on the private ROM; it is not a gameplay
+  canary.
+- V10 remains awaiting a real-ROM campaign canary and matched behavioral comparison. No exploration
+  gain, learned competence, or gameplay improvement is claimed in this entry.
+
 ## Unreleased — Version 9 self-correcting Student
 
 - Declared and launched active campaign

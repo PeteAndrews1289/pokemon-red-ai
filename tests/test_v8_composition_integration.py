@@ -13,6 +13,7 @@ pytest.importorskip("stable_baselines3")
 pytest.importorskip("sb3_contrib")
 pytest.importorskip("torch")
 
+from pokemon_red_ai.apprentice_data import preprocess_apprentice_frame
 from pokemon_red_ai.blind import (
     ACTION_HOLD_FRAMES,
     ACTION_RELEASE_FRAMES,
@@ -22,6 +23,7 @@ from pokemon_red_ai.blind import (
 )
 from pokemon_red_ai.emulator import PokemonRedEmulator
 from pokemon_red_ai.expedition import MilestoneProgress, milestone_progress_for_state
+from pokemon_red_ai.pixel_recovery import PixelLoopRecovery, PixelLoopRecoveryConfig
 from pokemon_red_ai.ppo_training import (
     PPO_V8_PROTOCOL,
     CompositionReplayRejected,
@@ -96,6 +98,75 @@ def _write_curriculum_entry(
         "depth_actions": len(payload["lineage_actions"]),
         "source": "real_rom_composition_test",
     }
+
+
+@pytest.mark.integration
+def test_v10_real_rom_pixels_distinguish_walls_movement_and_policy_chosen_escape() -> None:
+    raw_path = os.environ.get(ROM_ENVIRONMENT_VARIABLE)
+    if not raw_path:
+        pytest.skip(f"Set {ROM_ENVIRONMENT_VARIABLE} to run ROM integration tests")
+    rom_path = Path(raw_path).expanduser().resolve()
+    verify_rom(rom_path)
+    noop = BLIND_ACTIONS.index("noop")
+
+    with PokemonRedEmulator(rom_path) as emulator:
+        for action in _TWO_SKILL_LINEAGE:
+            assert _execute_action(emulator, action)
+        for _ in range(6):
+            assert _execute_action(emulator, noop)
+        settled = FrozenSnapshot.freeze(emulator.save_state())
+        baseline = preprocess_apprentice_frame(emulator.screen_rgb())
+
+        outcomes = {}
+        for button in ("up", "right", "down", "left", "start"):
+            emulator.load_state(settled.thaw())
+            action = BLIND_ACTIONS.index(button)
+            assert _execute_action(emulator, action)
+            tracker = PixelLoopRecovery(PixelLoopRecoveryConfig(action_count=len(BLIND_ACTIONS)))
+            tracker.reset(baseline)
+            outcomes[button] = tracker.observe(
+                action, preprocess_apprentice_frame(emulator.screen_rgb())
+            )
+
+        assert outcomes["up"].blocked_direction_attempt is True
+        assert outcomes["right"].blocked_direction_attempt is True
+        assert outcomes["right"].changed_fraction < 0.02
+        assert outcomes["right"].mean_absolute_error < 2.0
+        assert outcomes["down"].perceptually_changed is True
+        assert outcomes["left"].perceptually_changed is True
+        assert outcomes["down"].changed_fraction > 0.20
+        assert outcomes["left"].changed_fraction > 0.20
+        assert outcomes["start"].perceptually_changed is True
+        assert outcomes["start"].blocked_direction_attempt is False
+
+        up = BLIND_ACTIONS.index("up")
+
+        def open_blocked_recovery() -> PixelLoopRecovery:
+            emulator.load_state(settled.thaw())
+            tracker = PixelLoopRecovery(
+                PixelLoopRecoveryConfig(action_count=len(BLIND_ACTIONS))
+            )
+            tracker.reset(baseline)
+            for attempt in range(3):
+                assert _execute_action(emulator, up)
+                step = tracker.observe(up, preprocess_apprentice_frame(emulator.screen_rgb()))
+                assert step.submitted_action == step.executed_action == up
+                assert step.recovery_event == ("started" if attempt == 2 else None)
+            return tracker
+
+        tracker = open_blocked_recovery()
+        start = BLIND_ACTIONS.index("start")
+        assert _execute_action(emulator, start)
+        changed = tracker.observe(start, preprocess_apprentice_frame(emulator.screen_rgb()))
+        assert changed.recovery_event == "context_changed"
+        assert changed.submitted_action == changed.executed_action == start
+
+        tracker = open_blocked_recovery()
+        down = BLIND_ACTIONS.index("down")
+        assert _execute_action(emulator, down)
+        escaped = tracker.observe(down, preprocess_apprentice_frame(emulator.screen_rgb()))
+        assert escaped.recovery_event == "escaped"
+        assert escaped.submitted_action == escaped.executed_action == down
 
 
 @pytest.mark.integration

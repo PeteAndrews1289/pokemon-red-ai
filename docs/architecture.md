@@ -10,10 +10,78 @@
 > now implements consecutive edges and replay-verified successes produced by the Student in reverse
 > closed-loop practice, including graph/checkpoint binding, terminal counts, bounded rotating
 > replay, and the 27/30×2 gate. After a failed overrun/reporting diagnostic, the corrected V9
-> canary qualified mechanism, observability, and wall-time control at 0/3 frozen exams. PPO recovery
-> is deferred and disabled; competence is not claimed. The exact eight-hour fresh-start campaign is
-> active under commit `d1c0c0d`; its first 0/1 checkpoint is provisional live evidence. See
-> [Version 9](version-9-self-correcting-student.md).
+> canary qualified mechanism, observability, and wall-time control at 0/3 frozen exams. Student PPO
+> recovery is deferred and disabled; competence is not claimed. The exact eight-hour fresh-start
+> campaign is active under commit `d1c0c0d`; its first 0/1 checkpoint is provisional live evidence. See
+> [Version 9](version-9-self-correcting-student.md). Version 10 is implemented as a separate
+> successor, not a change to that campaign. It preserves V9's Student and lets the Explorer policy
+> continue for a bounded recovery window after generic ineffective directional action/pixel
+> outcomes, with no route hint or
+> trainer-selected button. Deterministic E2 qualification and direct E3 mechanism calibration
+> passed; a real-ROM campaign canary and any behavioral claim remain pending.
+> See [Version 10](version-10-recovery-before-reset.md).
+
+## Active Version-10 implementation boundary
+
+```mermaid
+flowchart LR
+    Pixels["Processed pixels + recent self-actions"] --> Explorer["Recurrent PPO Explorer"]
+    Explorer --> Buttons["Policy-chosen Game Boy button"]
+    Buttons --> Game["Private game runtime"]
+    Game --> Outcome["Generic visual/action outcome"]
+    Outcome -->|"ordinary effect"| Explorer
+    Outcome -->|"repeated ineffective direction"| Recovery["Bounded recovery window"]
+    Recovery --> Explorer
+    Outcome -->|"directional visual escape after blocked repeat"| Escape["Credited escaped"]
+    Outcome -->|"non-directional change after blocked repeat"| Context["Context changed; zero credit"]
+    Outcome -->|"material change after cycle/stagnation"| Escape
+    Recovery -->|"expires"| Reset["Classified frontier restart"]
+    Game --> Referee["Trainer-only exact referee"]
+    Referee --> Verify["V9 discovery, practice, and exam pipeline"]
+```
+
+V10 adds no actor observation key. Short-term direction/outcome memory belongs to trainer-side
+reward and termination code. It may establish that one directional action had no useful generic
+effect, apply the declared bounded penalty, and determine whether recovery succeeded or expired.
+It cannot choose, replace, sample, or mask an action. It cannot consult authored route distance,
+destination-specific logic, or a correct direction. The dashboard must expose trainer-selected
+buttons as zero. After a visual-cycle or pixels-only long-stagnation trigger, escape is deliberately
+semantic-free: a policy-chosen direction, A/B press, dialogue advance, or menu change may qualify.
+After `blocked_repeat`, only a policy-chosen directional material visual outcome is
+credited `escaped`; non-directional material change closes as zero-credit `context_changed` and is
+not an escape or success. An expired window is a terminal PPO failure; only the ordinary episode
+action ceiling remains a time-limit truncation.
+
+Pixels-only long stagnation opens recovery after 1,024 consecutive ineffective outcomes, before the
+legacy hard watchdog can terminate. Visually effective activity, including backtracking through an
+already visited position, resets that hard timer without clearing the independent 128-frame,
+at-most-eight-signature visual-cycle detector. Visual-cycle and long-stagnation triggers already
+receive the ordinary -2 loop penalty before at most +0.25 escape credit.
+
+Fresh-start means random untrained parameters and only a verified power-on root imported from the
+predecessor curriculum. After the new run replay-verifies its own progress, Explorer episodes may
+restart from that self-generated frontier. This is checkpoint-assisted training from the run's own
+experience, not a claim that every training episode begins at power-on and not permission to import
+V9's learned route.
+
+Campaign-level V10 narrative counters, unique positions, and active environment ranks are
+checkpointed under `v10-narrative-telemetry-v1`. Episode-local detector history cannot be restored
+into a fresh emulator rollout, so persisted active ranks become `abandoned_on_resume`. Active
+windows are likewise classified on episode and campaign end. Every opened window must therefore be
+exactly escaped, context-changed, expired, active, or abandoned; unresolved inactive windows must
+remain zero.
+
+The separate Student, consecutive-edge graph, reverse closed-loop practice, success-only
+aggregation, and frozen exam authority remain V9-compatible. A successful recovery is therefore
+Explorer training evidence only. It does not grant a Student skill, local competence, composition,
+or Hall-of-Fame capability. Deterministic E2 qualification passed with 67 focused checks, 293
+default-suite passes plus 13 private-ROM skips, and 54/54 selected ROM-bearing checks with the
+private ROM in 19.02 seconds. Escape credit is capped at the 0.25 blocked-activation penalty, so the
+credited directional pair is reward-neutral; a non-directional blocked-repeat context change earns
+zero. This qualifies engineering behavior, not a real-ROM campaign result, exploration, or
+competence. Direct E3 mechanism calibration at the committed ground-floor fixture proves Up×3 →
+Start is zero-credit `context_changed`, while a fresh Up×3 → Down is credited `escaped`; the
+submitted and executed buttons remain identical in both sequences.
 
 ## Active Version-9 implementation boundary
 

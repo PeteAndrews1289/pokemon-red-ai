@@ -1752,6 +1752,84 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
 - **Supersedes / superseded by:** Extends DR-0056's authorization into an exact active-run contract.
   It does not rewrite the two V9 canaries or V8 history. Not yet superseded.
 
+## DR-0058 — Let the Explorer recover before resetting
+
+- **Date:** 2026-07-21
+- **Status:** Accepted and implemented; deterministic E2 qualification and direct E3 mechanism
+  calibration passed; real-ROM campaign canary and behavioral value pending
+- **Scope:** Version-10 Explorer loop handling, actor authority, generic recovery feedback,
+  telemetry, qualification, and successor narrative
+- **Information label:** Explorer receives processed pixels, recent executed actions, and recurrent
+  state. The separate Student retains its self-generated visual goal clip. Trainer-only code may
+  detect generic ineffective directional action/pixel outcomes only from processed pixels and the policy-submitted action, but
+  supplies no direction, route, coordinate, map, action mask, or controller action.
+- **Decision:** Add a distinct `self_taught_v10` protocol that preserves V9's fresh power-on,
+  separate Explorer/Student, consecutive-skill, success-only practice, and frozen-exam boundaries.
+  When repeated generic directional failure activates recovery, defer immediate loop termination
+  for a bounded window. Let the PPO policy continue choosing every action, penalize declared
+  repeated ineffective attempts, and retain the classified reset if recovery expires. After
+  `blocked_repeat`, credit only a policy-chosen directional material visual outcome as `escaped`;
+  close a non-directional material change as zero-credit `context_changed`, not an escape or
+  success. After `visual_cycle` or pixels-only `progress_stagnation`, a generic material action may
+  be credited because the trigger already incurs the -2 loop penalty. Open pixels-only long
+  stagnation at 1,024 ineffective outcomes before the legacy hard watchdog can terminate, while
+  visually effective backtracking resets that hard timer without clearing the separate
+  128-frame/eight-signature cycle detector.
+- **Alternatives considered:** Leave V9 unchanged and spend a larger action budget; increase only
+  the existing repeated-action penalty; reset immediately on every loop; force a random alternate
+  direction; mask the last failed direction; reveal collision or coordinates to the actor; add
+  route distance or a Viridian-specific reward; or manually rescue the current run.
+- **Observation/evidence:** The declared V9 campaign remains frozen under DR-0057. During live E1
+  observation its screens visibly repeated ineffective directional actions with little pixel change while generic
+  loop/stagnation detections caused episode restarts from the run's current self-generated verified
+  frontier. This is a diagnostic observation, not a terminal V9 result or proof that recovery will
+  improve learning. The focused V10/PPO/dashboard suite passed 67 checks; the whole default suite
+  passed 293 with 13 private-ROM checks skipped; and all selected ROM-bearing files passed 54/54
+  with the private ROM in 19.02 seconds. Ruff, the private-artifact guard, documentation
+  links/placeholders, compilation, and diff checks passed. These results qualify deterministic engineering behavior,
+  not exploration or competence. Deterministic environment/reporting checks also prove that
+  pixels-only stagnation activation suppresses simultaneous legacy termination, exact expiry is
+  terminal, the action ceiling stays truncated and abandons an active window, perceptual activity
+  leaves short-cycle detection live, active ranks become abandoned on resume, and hourly Markdown
+  reports the full denominator. A direct private-ROM integration at the committed 289-action
+  ground-floor fixture plus six settling noops then classified Up (0% changed / 0 MAE) and Right
+  (0.642% / 0.509) as blocked, Down (20.972% / 23.165) and Left (21.215% / 26.851) as material directional visual outcomes, and
+  Start (37.708% / 89.667) as material context change. Up×3 → Start closed as zero-credit
+  `context_changed`; a fresh Up×3 → Down closed as credited `escaped`. Both retained
+  `submitted == executed`. This is E3 mechanism calibration, not a campaign canary; no V10 campaign
+  result exists.
+- **Interpretation:** Immediate reset protects compute but may remove the local off-distribution
+  state in which PPO could compare repeated failure with a self-chosen escape. A bounded recovery
+  window can test that hypothesis without telling the actor which way to move. Fewer resets alone
+  would be an operational difference, not meaningful exploration or competence.
+- **Reward-audit correction:** Reduced the draft escape credit from 1.0 to 0.25 raw units and
+  constrained it not to exceed the 0.25 repeated-block activation penalty. A credited directional
+  blocked/escape pair is recovery-reward-neutral before ordinary game consequences. A
+  non-directional `context_changed` closure earns zero and retains the -0.25; it cannot manufacture
+  escape credit merely by opening a menu.
+- **Consequence:** Public status and the dashboard must distinguish loop detections, recovery
+  trigger types, activations, credited escapes, zero-credit context changes, expirations, active
+  windows, abandonment on resume/episode/campaign end, recovery actions, ineffective-direction
+  counts, unresolved inactive windows, and trainer-selected actions. The last two counts must remain
+  zero. Active ranks persist so a resume classifies rather than loses them. Old “loops cut short”
+  language cannot describe every V10 trigger, and `context_changed` cannot be described as an
+  escape/success. Qualification must prove action authority and absence of authored guidance before
+  a long run. Later comparisons must report compute, unique positions/maps, verified milestones,
+  and frozen exams rather than presenting escape rate as game progress.
+- **Narrative value:** Show the wall bounce, loop detection, and reset repeatedly erasing the local
+  mistake. Then preserve that same scene inside a bounded recovery timer while every policy action
+  remains visible. The chapter question is: “If every mistake ends the lesson, when does it
+  practice the recovery?” Keep `TRAINER-SELECTED BUTTONS: 0` on screen; distinguish a green credited
+  directional escape from a blue zero-credit context change; and show every expiry, active window,
+  and abandonment.
+- **Revisit when:** A real-ROM campaign canary exercises recovery; false positives appear in menus,
+  dialogue, or battle; the policy farms recovery feedback; recovery consumes a material action
+  fraction; a matched V9/V10 comparison closes; or V10 changes verified discovery or frozen Student
+  competence.
+- **Supersedes / superseded by:** Extends the architecture after DR-0057 without altering that
+  frozen V9 campaign or its eventual result. It supersedes immediate termination as the proposed
+  successor behavior only for new V10 runs. Not yet superseded.
+
 ## Unresolved decisions
 
 These are questions, not hidden commitments. Each becomes a numbered entry when evidence supports

@@ -343,6 +343,7 @@ def build_parser() -> argparse.ArgumentParser:
             "self_taught",
             "self_taught_v8",
             "self_taught_v9",
+            "self_taught_v10",
         ),
         default="pixels",
     )
@@ -390,6 +391,24 @@ def build_parser() -> argparse.ArgumentParser:
     ppo.add_argument("--student-practice-rollout-multiplier", type=float, default=2.0)
     ppo.add_argument("--student-practice-rollout-slack", type=int, default=16)
     ppo.add_argument("--student-practice-reservoir", type=int, default=32)
+    ppo.add_argument("--explorer-recovery-window-actions", type=int, default=32)
+    ppo.add_argument("--explorer-recovery-blocked-threshold", type=int, default=3)
+    ppo.add_argument("--explorer-recovery-escape-confirmations", type=int, default=1)
+    ppo.add_argument(
+        "--explorer-recovery-ineffective-change-fraction", type=float, default=0.02
+    )
+    ppo.add_argument(
+        "--explorer-recovery-ineffective-mean-absolute-error", type=float, default=2.0
+    )
+    ppo.add_argument(
+        "--explorer-recovery-escape-change-fraction", type=float, default=0.05
+    )
+    ppo.add_argument(
+        "--explorer-recovery-escape-mean-absolute-error", type=float, default=5.0
+    )
+    ppo.add_argument("--explorer-recovery-blocked-penalty", type=float, default=0.25)
+    ppo.add_argument("--explorer-recovery-escape-reward", type=float, default=0.25)
+    ppo.add_argument("--explorer-recovery-expiration-penalty", type=float, default=1.0)
     ppo.add_argument("--resume", action="store_true")
 
     ppo_status = subparsers.add_parser(
@@ -885,10 +904,13 @@ def run_parallel_ppo_command(args: argparse.Namespace) -> int:
         competence_threshold=args.competence_threshold,
         random_initialization=(
             args.random_initialization
-            or args.mode in {"self_taught", "self_taught_v8", "self_taught_v9"}
+            or args.mode
+            in {"self_taught", "self_taught_v8", "self_taught_v9", "self_taught_v10"}
         ),
         power_on_only=(
-            args.power_on_only or args.mode in {"self_taught", "self_taught_v8", "self_taught_v9"}
+            args.power_on_only
+            or args.mode
+            in {"self_taught", "self_taught_v8", "self_taught_v9", "self_taught_v10"}
         ),
         self_imitation_epochs=args.self_imitation_epochs,
         distillation_attempts=args.distillation_attempts,
@@ -909,6 +931,28 @@ def run_parallel_ppo_command(args: argparse.Namespace) -> int:
         student_practice_rollout_multiplier=args.student_practice_rollout_multiplier,
         student_practice_rollout_slack=args.student_practice_rollout_slack,
         student_practice_reservoir=args.student_practice_reservoir,
+        explorer_recovery_window_actions=args.explorer_recovery_window_actions,
+        explorer_recovery_blocked_threshold=args.explorer_recovery_blocked_threshold,
+        explorer_recovery_escape_confirmations=(
+            args.explorer_recovery_escape_confirmations
+        ),
+        explorer_recovery_ineffective_change_fraction=(
+            args.explorer_recovery_ineffective_change_fraction
+        ),
+        explorer_recovery_ineffective_mean_absolute_error=(
+            args.explorer_recovery_ineffective_mean_absolute_error
+        ),
+        explorer_recovery_escape_change_fraction=(
+            args.explorer_recovery_escape_change_fraction
+        ),
+        explorer_recovery_escape_mean_absolute_error=(
+            args.explorer_recovery_escape_mean_absolute_error
+        ),
+        explorer_recovery_blocked_penalty=args.explorer_recovery_blocked_penalty,
+        explorer_recovery_escape_reward=args.explorer_recovery_escape_reward,
+        explorer_recovery_expiration_penalty=(
+            args.explorer_recovery_expiration_penalty
+        ),
     )
     if args.port:
         print(
@@ -928,7 +972,7 @@ def run_parallel_ppo_command(args: argparse.Namespace) -> int:
     print(f"Parallel PPO stopped: {status['stop_reason']}")
     action_label = (
         "Explorer actions"
-        if status.get("mode") in {"self_taught_v8", "self_taught_v9"}
+        if status.get("mode") in {"self_taught_v8", "self_taught_v9", "self_taught_v10"}
         else "Combined actions"
     )
     print(f"{action_label}: {status['total_actions']:,}")
@@ -945,7 +989,7 @@ def show_parallel_ppo_command(run_directory: Path) -> int:
     print(f"State: {status['state']}")
     action_label = (
         "Explorer actions"
-        if status.get("mode") in {"self_taught_v8", "self_taught_v9"}
+        if status.get("mode") in {"self_taught_v8", "self_taught_v9", "self_taught_v10"}
         else "Combined actions"
     )
     print(f"{action_label}: {status['total_actions']:,}")

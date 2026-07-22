@@ -272,6 +272,64 @@ def test_version_9_dashboard_explains_closed_loop_reverse_practice() -> None:
     assert "Recovery PPO escalation" in page and ">not active<" in page
 
 
+def test_version_10_dashboard_exposes_policy_controlled_recovery_denominators() -> None:
+    page = render_ppo_dashboard(
+        {
+            "state": "running",
+            "mode": "self_taught_v10",
+            "protocol": "parallel-recurrent-ppo-v10",
+            "reward_protocol": "recovery-before-reset-v1",
+            "explorer_loop_recovery": {
+                "enabled": True,
+                "protocol": "pixels-only-loop-recovery-v1",
+                "windows_started": 12,
+                "blocked_repeat_triggers": 7,
+                "visual_cycle_triggers": 3,
+                "progress_stagnation_triggers": 2,
+                "escapes": 4,
+                "context_changes": 2,
+                "expirations": 3,
+                "completed_windows": 9,
+                "abandoned_windows": 1,
+                "abandoned_on_resume": 1,
+                "abandoned_on_episode_end": 0,
+                "abandoned_on_campaign_end": 0,
+                "unresolved_windows": 0,
+                "actions": 321,
+                "blocked_direction_attempts": 99,
+                "repeated_blocked_attempts": 44,
+                "active_environments": 2,
+                "actor_action_overrides": 0,
+            },
+        }
+    )
+
+    assert "Explorer loop recovery: did it escape without a reset?" in page
+    assert "Recovery windows opened" in page and ">12<" in page
+    assert "Credited policy escapes" in page and ">4<" in page
+    assert "Recovery escape rate" in page and ">44%<" in page
+    assert "Completed recovery windows" in page and ">9<" in page
+    assert "Context changes (no credit)" in page and ">2<" in page
+    assert "Expired and reset" in page and ">3<" in page
+    assert "Abandoned windows" in page and ">1<" in page
+    assert "Abandoned on resume" in page and ">1<" in page
+    assert "Abandoned at episode end" in page and ">0<" in page
+    assert "Abandoned at campaign end" in page and ">0<" in page
+    assert "Unresolved inactive windows" in page and ">0<" in page
+    assert "Recovery actions" in page and ">321<" in page
+    assert "Active recovery environments" in page and ">2<" in page
+    assert "Blocked-repeat triggers" in page and ">7<" in page
+    assert "Visual-cycle triggers" in page and ">3<" in page
+    assert "Long-stagnation triggers" in page and ">2<" in page
+    assert "Blocked direction attempts" in page and ">99<" in page
+    assert "Repeated blocked attempts" in page and ">44<" in page
+    assert "Trainer-selected buttons" in page and ">0<" in page
+    assert "dialogue or menu changes" in page
+    assert "no-credit context changes" in page
+    assert "visual-cycle or long-stagnation lesson" in page
+    assert "No route, coordinate, preferred direction, mask, or forced action" in page
+
+
 def test_dashboard_escapes_public_labels_and_survives_missing_v8_metrics() -> None:
     page = render_ppo_dashboard(
         {
