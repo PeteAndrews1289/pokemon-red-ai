@@ -35,7 +35,8 @@ V12 has passed three bounded real-ROM mechanism canaries. Its latest matched-bud
 canary processed 6,000 actions from random weights, trained 176 self-generated hindsight lessons,
 and moved demonstrated-action preference for the correct future goal from `-0.00018086` to
 `+0.00353084`. No skill became competent. The T7 has 220 GiB free. A zero-action detached-process
-failure is preserved, and the source-frozen retry uses a macOS-managed launch job.
+failure and one privacy-rejected LaunchAgent are preserved; the source-frozen retry uses a
+dedicated Terminal foreground session.
 
 The through-line for the documentation and eventual video is the pivot itself. The project began
 with the “monkeys with typewriters” question, learned that randomness cannot retain luck, learned

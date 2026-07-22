@@ -2,9 +2,10 @@
 
 > **Status, 2026-07-22 source freeze:** V12 is implemented and has passed three bounded real-ROM
 > mechanism canaries. The T7 is mounted with 220 GiB free. A first post-mount start produced zero
-> training actions because its detached child did not survive the desktop command session; the
-> source-frozen retry uses a run-specific macOS launch job. No Hall-of-Fame result, learned skill
-> competence, or whole-game completion is claimed.
+> training actions because its detached child did not survive the desktop command session. A
+> second privacy-restricted LaunchAgent was rejected before execution. The source-frozen retry uses
+> a dedicated Terminal foreground session. No Hall-of-Fame result, learned skill competence, or
+> whole-game completion is claimed.
 
 Version 12 is the final experimental learner, not another open-ended repair loop. Its rules are
 frozen before the long run, it begins with random neural parameters and a directly verified ROM
@@ -258,10 +259,10 @@ a better result while continuing under the same run name.
 The checked launcher is [`scripts/launch_v12_final.sh`](../scripts/launch_v12_final.sh). It refuses
 to begin unless the T7 is mounted, at least 150 GiB is free, the source tree is committed, the ROM
 exists, and the dashboard port is unused. It uses macOS `caffeinate -imsu`, allowing the display to
-turn off while keeping the computer and disks awake. The process is registered as a run-specific
-macOS launch job rather than an orphaned shell child, so it survives the command session that
-started it. `KeepAlive` is false: a clean finish or crash is recorded rather than automatically
-restarted as a new attempt.
+turn off while keeping the computer and disks awake. It runs in a dedicated Terminal foreground
+session rather than as an orphaned shell child or privacy-restricted LaunchAgent. Terminal owns the
+process independently of Codex, and there is no automatic restart: a clean finish, crash, Terminal
+closure, or machine restart remains a visible terminal outcome.
 
 ## What would count as progress
 

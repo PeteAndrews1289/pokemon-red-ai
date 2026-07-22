@@ -53,9 +53,7 @@ run_directory="$run_root/$run_name"
 launch_log="$run_root/$run_name.launch.log"
 error_log="$run_root/$run_name.launch.error.log"
 pid_file="$run_root/$run_name.launch.pid"
-label_file="$run_root/$run_name.launch.label"
-launch_agent="$run_root/$run_name.launchd.plist"
-launch_label="com.pokemonredai.v12.$timestamp"
+mode_file="$run_root/$run_name.launch.mode"
 
 command=(
   "$python_bin" -m pokemon_red_ai ppo-run
@@ -110,36 +108,13 @@ if $dry_run; then
 fi
 
 mkdir -p "$run_root"
-launch_arguments=(/usr/bin/caffeinate -imsu "${command[@]}")
+echo "$$" >"$pid_file"
+echo "terminal-foreground" >"$mode_file"
 
-/usr/bin/plutil -create xml1 "$launch_agent"
-/usr/bin/plutil -insert Label -string "$launch_label" "$launch_agent"
-/usr/bin/plutil -insert ProgramArguments -xml '<array/>' "$launch_agent"
-for argument_index in "${!launch_arguments[@]}"; do
-  /usr/bin/plutil -insert "ProgramArguments.$argument_index" \
-    -string "${launch_arguments[$argument_index]}" "$launch_agent"
-done
-/usr/bin/plutil -insert RunAtLoad -bool true "$launch_agent"
-/usr/bin/plutil -insert KeepAlive -bool false "$launch_agent"
-/usr/bin/plutil -insert ProcessType -string Background "$launch_agent"
-/usr/bin/plutil -insert StandardOutPath -string "$launch_log" "$launch_agent"
-/usr/bin/plutil -insert StandardErrorPath -string "$error_log" "$launch_agent"
-
-launch_domain="gui/$(id -u)"
-launchctl bootstrap "$launch_domain" "$launch_agent"
-echo "$launch_label" >"$label_file"
-
-sleep 1
-launch_receipt="$(launchctl print "$launch_domain/$launch_label")"
-launcher_pid="$(awk '/pid =/ {print $3; exit}' <<<"$launch_receipt")"
-if [[ -z "$launcher_pid" ]]; then
-  echo "The macOS launch job did not remain alive. Inspect: $error_log" >&2
-  exit 1
-fi
-echo "$launcher_pid" >"$pid_file"
-
-echo "Launched as macOS job $launch_label with PID $launcher_pid."
+echo "Starting as a Terminal-owned foreground process with PID $$."
 echo "The display may turn off; the Mac itself will remain awake while the run is active."
 echo "Launcher log: $launch_log"
 echo "Error log: $error_log"
-echo "Stop command: launchctl bootout $launch_domain/$launch_label"
+echo "Keep this Terminal window open. Closing it stops the experiment."
+
+exec /usr/bin/caffeinate -imsu "${command[@]}" >>"$launch_log" 2>>"$error_log"

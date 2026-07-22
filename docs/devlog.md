@@ -30,8 +30,11 @@
   detached shell child was reaped when its desktop command session ended: it created only an empty
   launch log and PID receipt, never created a run directory, never opened the dashboard, and
   consumed zero training actions. Replaced orphaned `nohup` backgrounding with a run-specific
-  macOS launch job. The job keeps the Mac awake but has `KeepAlive=false`, so a real completion or
-  crash cannot silently restart under the same experiment name.
+  macOS launch job. macOS then rejected that job before execution because privacy-isolated
+  LaunchAgents cannot read the removable T7 or Downloads; a direct test returned `Operation not
+  permitted`. That second failure also consumed zero actions. The final launcher therefore runs in
+  a dedicated Terminal foreground session, which owns the process independently of Codex and
+  inherits the user's existing file access. It keeps the Mac awake and cannot silently restart.
 - Added the V12 design, qualification record, aggregate canary CSV, narrative updates, and explicit
   falsifiers. The result will be published whether it reaches the Hall of Fame, stalls, or produces
   no competent skill.

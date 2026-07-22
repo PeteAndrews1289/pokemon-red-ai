@@ -2113,6 +2113,34 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
 - **Supersedes / superseded by:** Refines only DR-0062's process-launch mechanism. It does not alter
   the experiment's model or claim boundary. Not yet superseded.
 
+## DR-0064 — Let Terminal own the non-restarting final process
+
+- **Date:** 2026-07-22
+- **Status:** Accepted and implemented after launchd privacy rejection
+- **Scope:** V12 process ownership and macOS privacy only; no learning rule, information boundary,
+  seed, budget, or evaluation changed
+- **Decision:** Execute the frozen `caffeinate` command as a dedicated foreground process in the
+  user's Terminal. Keep that window open for the attempt. Continue writing PID/mode receipts and
+  separate stdout/stderr logs on the T7. Do not automatically restart after exit.
+- **Observation/evidence:** DR-0063's generated property list was syntactically valid, but
+  `launchctl bootstrap` returned input/output error before execution. A minimal diagnostic job
+  bootstrapped from `/tmp`, then failed to touch the T7 with `Operation not permitted`; a job whose
+  standard output pointed to the T7 exited `EX_CONFIG`. macOS privacy therefore prevented a
+  LaunchAgent from accessing both required private locations. It consumed zero V12 actions.
+- **Alternatives considered:** Grant a background agent Full Disk Access; move the private ROM or
+  run output solely to internal storage; keep the experiment tied to a Codex execution session; or
+  enable automatic restart. All either widen permissions, violate storage planning, or weaken run
+  identity unnecessarily.
+- **Interpretation:** Terminal already has the user's intended file access and can outlive Codex
+  without weakening macOS privacy. Foreground ownership is visible: closing the window terminates
+  the attempt instead of concealing a daemon.
+- **Consequence:** The display may turn off while `caffeinate -imsu` keeps the Mac and disk awake.
+  Codex may inspect the dashboard and artifacts but does not own routine gameplay or process
+  lifetime. A Terminal close, crash, reboot, duration limit, action ceiling, disk guard, or strict
+  completion remains a terminal event and cannot silently create another run.
+- **Supersedes / superseded by:** Supersedes DR-0063 only for process ownership. DR-0063's
+  zero-action failure and no-auto-restart requirement remain part of the record. Not yet superseded.
+
 ## Unresolved decisions
 
 These are questions, not hidden commitments. Each becomes a numbered entry when evidence supports

@@ -16,7 +16,8 @@
 > local recurrent visual actor learns from self-generated future-frame goals and receives no live
 > model decisions, walkthrough, demonstrations, or predecessor policy. Three bounded canaries
 > qualified the mechanism. The T7 storage gate now passes at 220 GiB free; a zero-action detached-
-> process failure is preserved and the source-frozen launch retry uses a macOS job. No competent
+> process failure and privacy-rejected LaunchAgent are preserved; the source-frozen retry uses a
+> dedicated Terminal foreground session. No competent
 > skill, Hall-of-Fame result, success probability, or completion guarantee is claimed.
 
 ### Implementation ledger

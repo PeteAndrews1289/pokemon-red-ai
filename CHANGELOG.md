@@ -19,7 +19,9 @@
   source/ROM/port/storage gates, a 100 GiB output ceiling, localhost dashboard on port 8777, and
   macOS sleep prevention. It does not launch until the T7 is mounted with at least 150 GiB free.
   A zero-action detached-process failure after the first post-mount launch replaced `nohup` with a
-  run-specific macOS launch job whose `KeepAlive=false` contract forbids silent restart.
+  run-specific macOS launch job. macOS rejected that privacy-isolated job before execution because
+  it could not access the T7 or Downloads, so the final non-restarting form is a dedicated
+  Terminal-owned foreground process.
 - Preserved three real-ROM canaries as a ROM-free qualification record. They qualify the V12
   mechanism and throughput, not a competent skill or whole-game completion.
 - Added the V12 design, aggregate qualification CSV, fixed falsifiers, and updated project narrative,

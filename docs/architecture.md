@@ -23,7 +23,8 @@
 > goals, correct-goal contrast, route-agnostic recovery, replay-verified rare discoveries, and
 > checkpoint-separated frozen exams. Three bounded real-ROM canaries qualified that mechanism. The
 > T7 storage gate now passes at 220 GiB free. After preserving a zero-action detached-process
-> failure, the fixed retry is registered as a non-restarting macOS launch job.
+> failure and a privacy-rejected LaunchAgent, the fixed retry runs as a non-restarting,
+> Terminal-owned foreground process.
 
 ## Preserved Version-11 assisted boundary
 

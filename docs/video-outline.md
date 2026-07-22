@@ -80,7 +80,8 @@
 > recurrent visual actor makes goals from its own future frames, must prefer its demonstrated actions
 > under the correct goal over a blank goal, and faces a frozen 48-hour contract. Three canaries
 > qualify the mechanism, not competence. Preserve the zero-action first post-mount start as an
-> operational beat, then begin the source-frozen retry under a macOS-managed job.
+> operational beat. Preserve the privacy-rejected LaunchAgent as the second zero-action beat, then
+> begin the source-frozen retry in a dedicated Terminal foreground session.
 
 This document is a production guide for telling the project's story without getting ahead of the
 evidence. The detailed Episode 0 section preserves the original before-training production plan;
