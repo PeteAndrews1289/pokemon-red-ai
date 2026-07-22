@@ -22,7 +22,8 @@
 > random-initialized recurrent visual actor, direct clean power-on, self-generated future-frame
 > goals, correct-goal contrast, route-agnostic recovery, replay-verified rare discoveries, and
 > checkpoint-separated frozen exams. Three bounded real-ROM canaries qualified that mechanism. The
-> fixed 48-hour run is prepared but has not launched because the T7 is unmounted.
+> T7 storage gate now passes at 220 GiB free. After preserving a zero-action detached-process
+> failure, the fixed retry is registered as a non-restarting macOS launch job.
 
 ## Preserved Version-11 assisted boundary
 

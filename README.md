@@ -17,8 +17,9 @@ trials compare learned or optimized emitters under the same checkpoint and repla
 > final premise. Version 12 is the final local experiential learner: one recurrent visual policy,
 > random weights, direct verified power-on, dense future-frame hindsight lessons, correct-goal
 > contrast, replay-verified rare skills, and deterministic exams. Three bounded real-ROM canaries
-> qualify the mechanism, not competence. The fixed 48-hour run is prepared but has not launched
-> because the external T7 is not mounted. No whole-game result exists.** See
+> qualify the mechanism, not competence. The T7 now has 220 GiB free. A first post-mount launcher
+> attempt was rejected as a zero-action orchestration failure; the source-frozen retry uses a
+> run-specific macOS job. No whole-game result exists.** See
 > [Every journey creates its next lesson](docs/version-12-final-self-learner.md).
 > Stage 0 memorized and exactly replayed its one 419-action house-exit route. Reverse curriculum
 > completed that opening in development, and Frontier Apprentice proved that network updates can be
@@ -225,7 +226,7 @@ without online model decisions. The editorial direction lives in
 | Preserved random comparison | Monkey vs. pixels-only Archivist under matched budgets |
 | Completed 90-minute pretrial | Evolution reached tier 1; online learners plateaued around Pallet Town and Route 1 |
 | Concluded neural experiment | Six inherited-archive lanes all failed the second-map/party gate under equal fuel |
-| Current completion work | V12 mechanism qualified in three bounded canaries; fixed 48-hour launch is waiting for the external T7 to be mounted |
+| Current completion work | V12 mechanism qualified in three bounded canaries; T7 storage qualified at 220 GiB free; source-frozen launch retry prepared after a zero-action process-lifetime failure |
 | North star | One fixed local learned policy reaches the strict Hall of Fame from power-on with no online LLM, imported playthrough, or live human rescue |
 
 ## The journey
@@ -249,7 +250,7 @@ flowchart LR
     LONG --> V10["✅ V10 closed<br/>3/32; zero competent"]
     V10 --> V11["✅ V11 assisted control<br/>closed; no completion"]
     V11 --> V12["✅ V12 mechanism<br/>three canaries qualified"]
-    V12 --> RUN["⬜ Fixed 48-hour run<br/>waiting for T7"]
+    V12 --> RUN["🟨 Fixed 48-hour run<br/>source-frozen retry prepared"]
     RUN --> HF["⬜ Learned Hall of Fame<br/>terminal fixed-policy exam"]
 ```
 

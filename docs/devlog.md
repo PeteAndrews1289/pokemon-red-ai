@@ -24,8 +24,14 @@
   blank goal for a fixed 32,768-action budget.
 - Froze a 48-hour launch contract with four environments, a 150-million-action safety ceiling,
   fixed hindsight/contrast settings, 8/10 competence, storage guards, source-cleanliness checks,
-  localhost dashboard on port 8777, and macOS sleep prevention. The launcher correctly refuses to
-  begin because `/Volumes/T7 Developer` is not currently mounted.
+  localhost dashboard on port 8777, and macOS sleep prevention. The initial qualification correctly
+  refused to begin while the T7 was unmounted; the later post-mount gate found 220 GiB free.
+- Preserved the first post-mount launch as an operational failure before training began. The
+  detached shell child was reaped when its desktop command session ended: it created only an empty
+  launch log and PID receipt, never created a run directory, never opened the dashboard, and
+  consumed zero training actions. Replaced orphaned `nohup` backgrounding with a run-specific
+  macOS launch job. The job keeps the Mac awake but has `KeepAlive=false`, so a real completion or
+  crash cannot silently restart under the same experiment name.
 - Added the V12 design, qualification record, aggregate canary CSV, narrative updates, and explicit
   falsifiers. The result will be published whether it reaches the Hall of Fame, stalls, or produces
   no competent skill.

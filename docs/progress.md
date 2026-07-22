@@ -59,10 +59,12 @@
 > bounded real-ROM canaries qualified direct power-on, hindsight generation/training, telemetry,
 > and goal-use measurement. The corrective matched-budget canary moved correct-goal advantage from
 > `-0.00018086` to `+0.00353084`, but no skill became competent. The frozen 48-hour experiment is
-> prepared and waiting for the external T7 SSD to be mounted.
+> prepared. The T7 now has 220 GiB free; a first post-mount start produced zero actions when its
+> detached process was reaped, and the source-frozen retry uses a macOS-managed launch job.
 
-- **Current stage:** V11 is a closed assisted control. V12 has passed three mechanism canaries; its
-  fixed 48-hour clean-start experiment is prepared but has not launched because the T7 is unmounted
+- **Current stage:** V11 is a closed assisted control. V12 has passed three mechanism canaries, the
+  T7 storage gate has passed, and a source-frozen launch retry is prepared after a zero-action
+  process-lifetime failure
 - **Status date:** 2026-07-22
 
 **Most important caveat:** Q1 verified one replayable house-exit lineage, but the acting suffix
@@ -186,7 +188,7 @@ flowchart LR
 | Version 11 canary C4 | ✅ Opening referee qualified | E3 mechanism | From a clean opening boundary, C4 used 136 controller actions and 70 language-model calls, produced empirical proof that RIGHT caused real movement, and advanced the verified story counter to 1/84. This qualifies control and objective evidence at the opening; it is not learning, whole-game progress, or a Hall-of-Fame result |
 | Version 11 continuous clean run | ✅ Closed assisted control | E1 diagnostic | The attempt stopped after 950.308 seconds, 329 controller actions, and 144 online model calls, without party or badge progress. It was ended because online per-decision assistance did not answer the chosen experiential-learning question |
 | Version 12 self-generated hindsight mechanism | ✅ Qualified narrowly | E3 mechanism | Three random-weight, direct-power-on real-ROM canaries generated and trained self-created future-frame goals. C2's correct-goal advantage was `-0.00018086`; the fixed contrastive objective moved C3 to `+0.00353084`. This proves the mechanism can measure and push goal use, not that a skill is competent |
-| Version 12 fixed 48-hour experiment | 🟨 Prepared; not launched | E2 launch gate | The committed launcher freezes a 48-hour, four-environment, 150-million-action-ceiling contract and refuses dirty source, missing ROM, occupied dashboard port, or insufficient SSD space. The T7 is currently unmounted, so no long-run outcome exists |
+| Version 12 fixed 48-hour experiment | 🟨 Source-frozen retry prepared | E2 launch gate | The launcher freezes a 48-hour, four-environment, 150-million-action-ceiling contract and refuses dirty source, missing ROM, occupied dashboard port, or insufficient SSD space. The mounted T7 has 220 GiB free. The first post-mount detached child was reaped before creating a run directory or action; the retry is registered with macOS and cannot silently restart |
 | One retained model composes the route from power-on | ⬜ Not demonstrated | E0 | Backward training and frozen evaluation gates must expand to power-on before this claim exists |
 | Reverse curriculum reaches the complete opening horizon | ✅ Completed in development scope | E3 development | Seven adaptive rungs completed in 480 attempts with 451 successes; the final full-horizon rung passed 29/30 twice, but weights changed between attempts and no held-out H2 evaluation exists |
 | The apprentice-guided expedition continued beyond `left_home` | ✅ Preserved historical lane | E1 | Frozen pixel-policy actions and seeded exploration fed Archive v2's milestone search; this lane is retained as learned-policy evidence rather than presented as the active V11 completion runner |
@@ -214,7 +216,7 @@ suggest precision that does not exist before the training design and difficulty 
 | Q0 — Completion foundation | Reproducible checkpoint runner plus truthful completion referee | **Passed** | Runner, replay, resume, privacy, and corruption checks recorded |
 | 1 — Expedition opening | Replay-verified bedroom, house, starter, and Parcel frontiers | **Q1 concluded 1/2; Archive v2 qualified** | A materially different learned or optimized emitter reaches `left_home` under a frozen matched gate |
 | 2 — Assisted guided control | Planner, maps, memory, specialists, and strict referee | **V11 opening qualified; continuous attempt closed** | Retained only as a labeled assisted upper-bound control |
-| 3 — Experiential final experiment | One local recurrent actor, self-generated hindsight goals, frozen exams | **V12 mechanism qualified; 48-hour run waiting for T7** | Publish the fixed-budget result and terminal power-on evaluation regardless of outcome |
+| 3 — Experiential final experiment | One local recurrent actor, self-generated hindsight goals, frozen exams | **V12 mechanism qualified; source-frozen launch retry prepared** | Publish the fixed-budget result and terminal power-on evaluation regardless of outcome |
 | Later — Comparisons | Language-model, RL, and hybrid ablations | **Framework specified** | Same referee and declared budgets used for all configurations |
 
 ## What the current deterministic milestone proves

@@ -2087,6 +2087,32 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
 - **Supersedes / superseded by:** Supersedes DR-0061 as the final experiment architecture. It does
   not invalidate any earlier denominator or assisted-control result. Not yet superseded.
 
+## DR-0063 — Make the final run a non-restarting macOS-managed process
+
+- **Date:** 2026-07-22
+- **Status:** Accepted and implemented after a zero-action launch failure
+- **Scope:** V12 process lifetime, sleep prevention, start receipts, crash semantics, and exact-run
+  identity; no learning rule or budget changed
+- **Decision:** Register the source-frozen V12 command as a run-specific macOS launch job wrapping
+  `caffeinate -imsu`. Set `KeepAlive=false`, write separate stdout/stderr paths plus label/PID
+  receipts, and preserve the exact bootout command. Do not rely on an orphaned desktop shell child.
+- **Observation/evidence:** After the T7 mounted with 220 GiB free, every declared launch gate
+  passed. The first launcher printed PID 20184, then its detached child was reaped when the command
+  session ended. Five seconds later there was no process, listener, run directory, or log content.
+  It therefore consumed zero training actions and is an orchestration failure, not a V12 result.
+- **Alternatives considered:** Pretend PID creation meant the run was active; launch directly in a
+  task-bound terminal; use `launchctl submit` with inferred keepalive behavior; manually restart
+  after every Codex session; or weaken the clean-source gate to patch while training.
+- **Interpretation:** A 48-hour experiment needs an operating-system owner independent of the
+  terminal that initiated it. Automatic restart would also corrupt the fixed-attempt denominator,
+  so persistence and restart behavior must be separate choices.
+- **Consequence:** A clean finish or crash remains terminal and visible. The launch job may outlive
+  Codex, while the display may turn off and the Mac and external disk stay awake. Learning code,
+  seed, information boundary, reward, budgets, exams, and terminal evaluation remain DR-0062's
+  frozen values.
+- **Supersedes / superseded by:** Refines only DR-0062's process-launch mechanism. It does not alter
+  the experiment's model or claim boundary. Not yet superseded.
+
 ## Unresolved decisions
 
 These are questions, not hidden commitments. Each becomes a numbered entry when evidence supports

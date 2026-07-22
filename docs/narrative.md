@@ -75,7 +75,8 @@
 > future-screen goals. It must make the actions that reached a future screen more likely for that
 > real goal than for a blank goal, then pass checkpoint-separated no-update exams. Three bounded
 > real-ROM canaries qualified the mechanism but no competent skill. The 48-hour rules are frozen;
-> the long run is waiting only for the external T7 SSD to be mounted.
+> the T7 now has 220 GiB free, and a source-frozen launch retry follows one preserved zero-action
+> process-lifetime failure.
 
 ## The question
 
@@ -115,7 +116,8 @@ The matched-configuration V10 campaign closed at 4,503.282 seconds and 534,924 a
 frozen exams and zero competent skills. V11's fourth canary qualified its assisted opening, then its
 continuous run closed. V12 has passed three mechanism canaries; its corrective canary moved the
 correct-goal diagnostic in the intended direction but produced zero competent skills. The fixed
-48-hour run has not started because the T7 is unmounted. No Hall-of-Fame result exists.**
+T7 storage gate has passed; a source-frozen launch retry is prepared after one zero-action
+process-lifetime failure. No Hall-of-Fame result exists.**
 
 Phase 0 built the measuring instrument: a reproducible emulator harness that can start the exact
 same game, issue timed controller inputs, observe a small and disclosed slice of state, restore an
@@ -161,7 +163,7 @@ test sequence used to prove that the laboratory works.
 | What did the V11 canaries establish? | C1 failed on path resolution; C2 failed on MCP authorization; C3 was operational but rejected for false initialized state; C4 qualified the opening referee with 136 actions, 70 language-model calls, real RIGHT-movement proof, and objective 1/84. |
 | Why did V11 close? | Its continuous run made 329 controller actions and 144 live model calls in 950.308 seconds without party or badge progress. More importantly, an online model choosing decisions tested access to assistance rather than the selected learning premise. |
 | What does V12 change? | One recurrent visual actor owns exploration, hindsight practice, recovery, and evaluation. It receives no route or live model decisions; its own future frames become local goals, and a contrastive diagnostic checks that those goals affect action probability. |
-| What is running now? | No long experiment. V12's fixed launcher is ready, but correctly refuses to launch while the T7 SSD is unmounted. |
+| What is running now? | At source freeze, no long experiment. The mounted T7 has 220 GiB free; the first post-mount process died before creating a run or action, and the hardened retry is ready. |
 | What comes next? | Mount the T7, pass the launch gates, run the frozen 48-hour V12 contract without mid-run tuning, and publish the terminal power-on evaluation regardless of outcome. |
 
 Keeping this table current is part of the project. A small true claim is more valuable than a large

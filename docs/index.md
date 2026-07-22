@@ -34,8 +34,8 @@ experience.
 V12 has passed three bounded real-ROM mechanism canaries. Its latest matched-budget corrective
 canary processed 6,000 actions from random weights, trained 176 self-generated hindsight lessons,
 and moved demonstrated-action preference for the correct future goal from `-0.00018086` to
-`+0.00353084`. No skill became competent. The fixed 48-hour run has not started because the T7 SSD
-is not mounted.
+`+0.00353084`. No skill became competent. The T7 has 220 GiB free. A zero-action detached-process
+failure is preserved, and the source-frozen retry uses a macOS-managed launch job.
 
 The through-line for the documentation and eventual video is the pivot itself. The project began
 with the “monkeys with typewriters” question, learned that randomness cannot retain luck, learned
@@ -110,7 +110,7 @@ flowchart LR
     L9 --> V10["✅ Version 10 closed<br/>3/32; zero competent"]
     V10 --> V11["✅ Version 11 assisted control<br/>closed after opening"]
     V11 --> V12["✅ Version 12 mechanism<br/>three bounded canaries"]
-    V12 --> RUN["🟨 Fixed 48-hour run<br/>waiting for T7 mount"]
+    V12 --> RUN["🟨 Fixed 48-hour run<br/>source-frozen retry prepared"]
     RUN --> HF["⬜ Frozen-policy Hall of Fame<br/>strict power-on verifier"]
 ```
 

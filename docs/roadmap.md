@@ -190,7 +190,7 @@ flowchart TD
     V9 --> V10["✅ V10<br/>recovery result 3/32"]
     V10 --> V11["✅ V11 assisted control<br/>closed"]
     V11 --> V12["✅ V12 mechanism<br/>three canaries"]
-    V12 --> RUN["🟨 Fixed 48-hour run<br/>waiting for T7"]
+    V12 --> RUN["🟨 Fixed 48-hour run<br/>source-frozen retry prepared"]
     RUN --> HOF["⬜ Frozen terminal policy<br/>power-on evaluation"]
     HOF --> AB["🧭 LATER<br/>Controlled comparisons"]
 ```

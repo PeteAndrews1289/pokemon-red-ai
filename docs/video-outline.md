@@ -79,7 +79,8 @@
 > control, but not the desired experiential learner. Version 12 is the final turn: one local
 > recurrent visual actor makes goals from its own future frames, must prefer its demonstrated actions
 > under the correct goal over a blank goal, and faces a frozen 48-hour contract. Three canaries
-> qualify the mechanism, not competence; the long run is waiting for the T7 mount.
+> qualify the mechanism, not competence. Preserve the zero-action first post-mount start as an
+> operational beat, then begin the source-frozen retry under a macOS-managed job.
 
 This document is a production guide for telling the project's story without getting ahead of the
 evidence. The detailed Episode 0 section preserves the original before-training production plan;

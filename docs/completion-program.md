@@ -15,7 +15,8 @@
 > controller actions, and 144 online model calls. V12 is now the final experiential experiment: one
 > local recurrent visual actor learns from self-generated future-frame goals and receives no live
 > model decisions, walkthrough, demonstrations, or predecessor policy. Three bounded canaries
-> qualified the mechanism; the fixed 48-hour run is waiting for the T7 to be mounted. No competent
+> qualified the mechanism. The T7 storage gate now passes at 220 GiB free; a zero-action detached-
+> process failure is preserved and the source-frozen launch retry uses a macOS job. No competent
 > skill, Hall-of-Fame result, success probability, or completion guarantee is claimed.
 
 ### Implementation ledger
