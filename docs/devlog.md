@@ -1,5 +1,36 @@
 # Development log
 
+## 2026-07-21 local / 2026-07-22 UTC — Close V9, launch matched-configuration V10
+
+- Intentionally stopped V9 run `parallel-ppo-v9-self-correcting-8h-20260721-seed20260809` at the
+  user's request so its recovery-enabled successor could begin. The clean `d1c0c0d` run started at
+  `2026-07-21T21:43:57.163627Z` and ended `stop_requested` at
+  `2026-07-22T00:36:38.849066Z`, after 10,359.143 seconds (2h52m39.143s). The `8h` in its name was a
+  ceiling, not its duration.
+- Closed V9 at 1,431,556 Explorer actions (138.1925/s), 1,398 PPO updates, 558 episodes, 716 unique
+  positions, seven promotions through Route 1, eight discovered skills, 139 visual-cycle endings,
+  419 stagnation endings, and 146 battle successes. Final hashes verified; output occupied 57 MiB.
+- Recorded the decisive Student denominator: 797 training rounds, 10,692 updates, 330,505 examples,
+  68.5919% accuracy, and 0.904136 NLL. Closed-loop practice reached 558/698 exact targets across
+  651,629 actions and 882 updates. Frozen exams passed only 4/87; zero skills became competent and
+  composition never ran. Better fit and isolated successes did not become reliable behavior.
+- Launched `parallel-ppo-v10-recovery-8h-20260721-seed20260809` from clean commit
+  `513afc378d091d18560efb4af4931d882c05000d` at `2026-07-22T00:37:44.442964Z`. It keeps seed
+  20260809, the same V8 root curriculum, four environments, eight-hour/150-million-action ceiling,
+  and V9's PPO/Student practice configuration. Dashboard remains on port 8774. The source commit and
+  start time differ, so this is matched configuration rather than a bit-identical causal ablation.
+- Froze V10 recovery at a 32-action window after three blocked outcomes; ineffective thresholds are
+  changed pixels below 2% and MAE below 2, while material-escape thresholds are changed pixels at
+  least 5% or MAE at least 5. Repeated-block penalty, credited escape, and expiry penalty are 0.25,
+  0.25, and 1.0.
+- Preserved the stronger launch heartbeat at about `2026-07-22T00:42:55Z`. Status was running at
+  310.686 seconds, 22,532 actions (72.523/s), 22 updates, 30 episodes, five promotions through
+  `chose_starter`, 286 positions, five skills, and 0/1 frozen exams with zero competent skills.
+  `checkpoint.json` recorded 20,480 actions, past the 16,384 boundary. All 366 windows were
+  blocked-repeat: 165 escaped, 169 context-changed, 30 expired, and two active; completed 364,
+  abandoned/unresolved/overrides zero, and 3,475 recovery actions. Both policy hashes matched and
+  dashboard HTTP was 200. This proves the run is alive; it is not a trend or result.
+
 ## 2026-07-21 — The reset button was hiding the lesson
 
 - Preserved the active V9 campaign and its immutable DR-0057 declaration. The visible wall-bouncing

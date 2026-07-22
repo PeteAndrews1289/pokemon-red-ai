@@ -36,10 +36,11 @@ has engineering-checked consecutive edges, exact-target reverse closed-loop prac
 bounded replay, terminal counters, and checkpoint rollback. Its first real-ROM canary exposed a
 wall-time overrun and report-merge defect; the corrected 144-second canary qualified mechanism,
 observability, and campaign timing while passing 0/3 frozen exams. Competence remains open, and the
-future Student PPO recovery lane remains disabled. A declared eight-hour run is active from fresh
-power-on under commit `d1c0c0d`; its first 0/1 exam checkpoint is provisional E1 live evidence. Visible
-wall-bouncing during that frozen campaign motivated a separate Version 10 rather than a mid-run
-repair. V10 lets the Explorer policy keep choosing actions inside a bounded generic recovery window
+future Student PPO recovery lane remains disabled. The user intentionally closed V9 after
+2h52m39.143s to begin V10; `8h` was its ceiling. It processed 1,431,556 actions, reached Route 1,
+and lifted Student fit to 68.5919%, yet 4/87 frozen exams yielded zero competent skills and no
+composition. Visible wall-bouncing during that frozen campaign motivated a separate Version 10
+rather than a mid-run repair. V10 lets the Explorer policy keep choosing actions inside a bounded generic recovery window
 before reset; it supplies no direction or route. The mechanism passed deterministic E2
 qualification—67 focused checks, 293 default-suite passes with 13 private-ROM skips, and 54/54
 selected ROM-bearing checks with the private ROM in 19.02 seconds. A direct ground-floor
@@ -50,7 +51,11 @@ inactive windows must remain zero. A clean 144.102-second E3 campaign canary the
 actions, made two promotions through the ground floor, and closed all 73 blocked-repeat windows as
 36 credited escapes, 32 zero-credit context changes, and five expirations. It ended with zero
 active, abandoned, unresolved, or overridden-action counts. This qualifies the bounded mechanism,
-not exploration superiority or learning; a matched longer V9/V10 comparison is next.
+not exploration superiority or learning. The matched-configuration V10 run is now active with V9's
+seed and runtime/PPO/Student configuration; source commit and start time differ. Its first
+strong heartbeat at 310.686 seconds recorded 22,532 actions, five promotions through
+`chose_starter`, 0/1 frozen exams, and zero competent skills. This is live evidence only, not a
+comparison result.
 
 ## Start here
 
@@ -111,8 +116,9 @@ flowchart LR
     V6 --> V7["🟨 Version 7<br/>live denominator"]
     V7 --> V8["✅ Version 8<br/>0/7 canary; 1/47 final"]
     V8 --> V9["✅ Version 9 mechanism<br/>0/3 qualification"]
-    V9 --> L9["🟨 Version 9 long run<br/>active; provisional"]
+    V9 --> L9["✅ Version 9 long run<br/>4/87; zero competent"]
     L9 --> V10["✅ Version 10 mechanism<br/>E3 canary passed"]
+    V10 --> L10["🟨 Version 10 long run<br/>heartbeat only"]
 ```
 
 The diagram shows project position, not game progress. Reaching the game-start state is a narrow

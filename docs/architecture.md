@@ -11,15 +11,22 @@
 > closed-loop practice, including graph/checkpoint binding, terminal counts, bounded rotating
 > replay, and the 27/30×2 gate. After a failed overrun/reporting diagnostic, the corrected V9
 > canary qualified mechanism, observability, and wall-time control at 0/3 frozen exams. Student PPO
-> recovery is deferred and disabled; competence is not claimed. The exact eight-hour fresh-start
-> campaign is active under commit `d1c0c0d`; its first 0/1 checkpoint is provisional live evidence. See
-> [Version 9](version-9-self-correcting-student.md). Version 10 is implemented as a separate
-> successor, not a change to that campaign. It preserves V9's Student and lets the Explorer policy
+> recovery is deferred and disabled; competence is not claimed. The V9 campaign was intentionally
+> closed after 2h52m39.143s and 1,431,556 Explorer actions so its matched-configuration V10
+> successor could begin. It reached Route 1 and 68.5919% Student training accuracy, but passed only
+> 4/87 frozen exams, produced zero competent skills, and never composed them. The `8h` in its run
+> name was a ceiling, not elapsed time. See [Version 9](version-9-self-correcting-student.md).
+> Version 10 is implemented as a separate successor, not a rewrite of that campaign. It preserves
+> V9's Student and lets the Explorer policy
 > continue for a bounded recovery window after generic ineffective directional action/pixel
 > outcomes, with no route hint or trainer-selected button. Deterministic E2 qualification and
 > direct E3 mechanism calibration
 > passed. A bounded real-ROM E3 campaign canary then closed all 73 recovery windows and stopped
-> cleanly; a matched comparison and any behavioral-superiority claim remain pending.
+> cleanly. A matched-configuration long run is now active with the same declared seed, curriculum,
+> parallelism, ceilings, and PPO/Student practice settings as V9, but a different source commit and
+> start time. Its 310.686-second heartbeat recorded 22,532 actions, five promotions through
+> `chose_starter`, and 0/1 frozen exams; that is liveness evidence, not a result or trend. Any
+> behavioral-superiority claim remains pending.
 > See [Version 10](version-10-recovery-before-reset.md).
 
 ## Active Version-10 implementation boundary
@@ -90,8 +97,15 @@ It stopped at `duration_limit` after 144.102 seconds, 6,099 actions, and 47 PPO 
 windows were `blocked_repeat`: 36 escaped, 32 context-changed, and five expired; active, abandoned,
 unresolved, and action-override counts ended at zero. Its two verified promotions, ground-floor
 depth, and 93 positions are canary observations, not evidence of better exploration or learning.
-Visual-cycle and long-stagnation campaign paths remain unexercised. The architecture is ready for a
-matched longer V9/V10 comparison, not a Hall-of-Fame claim.
+Visual-cycle and long-stagnation campaign paths remain unexercised. The matched-configuration V10
+campaign `parallel-ppo-v10-recovery-8h-20260721-seed20260809` began at
+`2026-07-22T00:37:44.442964Z` from clean commit
+`513afc378d091d18560efb4af4931d882c05000d`. At its latest recorded heartbeat it had reached
+22,532 actions, 22 PPO updates, 30 episodes, five promotions through `chose_starter`, 286
+positions, and 0/1 frozen exams. Its 366 blocked-repeat recovery windows comprised 165 escaped,
+169 context-changed, 30 expired, and two active windows, with zero abandoned, unresolved, or
+trainer-overridden actions. This heartbeat qualifies runtime/accounting continuity only; the
+matched longer V9/V10 comparison is in progress, not a Hall-of-Fame or superiority claim.
 
 ## Active Version-9 implementation boundary
 

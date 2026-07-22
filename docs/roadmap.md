@@ -20,8 +20,10 @@
 > replay, terminal counts, and checkpoint rollback. A failed first canary exposed wall-time and
 > report-merge defects; commit `e1ea199` repaired them, and the corrected 144-second canary
 > qualified mechanism, observability, and campaign timing at 0/3 frozen exams. PPO recovery remains
-> deferred, and learned competence is not claimed. The exact eight-hour fresh-start campaign is now
-> active under commit `d1c0c0d`; its first 0/1 exam checkpoint remains provisional.
+> deferred, and learned competence is not claimed. The V9 campaign closed intentionally after
+> 2h52m39.143s at Route 1, 4/87 frozen exams, zero competent skills, and no composition. The
+> matched-configuration V10 recovery campaign is active; its 310.686-second snapshot is heartbeat
+> evidence only.
 
 ## Completed blind-discovery arc
 

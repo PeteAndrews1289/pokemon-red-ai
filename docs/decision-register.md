@@ -1693,10 +1693,10 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
   status. DR-0055 remains the V8 closure and V9 engineering-integration record; this entry records
   the later real-ROM qualification and hardening. Not yet superseded.
 
-## DR-0057 — Freeze the active long V9 campaign before interpreting it
+## DR-0057 — Freeze and close the long V9 campaign before interpreting it
 
 - **Date:** 2026-07-21
-- **Status:** Accepted and active; all observations are provisional until terminal audit
+- **Status:** Accepted and closed; terminal audit complete, zero competent skills
 - **Scope:** Long-run identity, source boundary, action/time/storage budgets, parallelism, practice
   and exam cadence, operational handoff, first live checkpoint, and change control
 - **Decision:** Launch one eight-hour fresh-start V9 campaign under the corrected qualification
@@ -1727,28 +1727,40 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
   one timeout across eight attempts, retained seven successes, and applied 14 success-only updates.
   The one frozen exam consumed 556 actions and failed 0/1; zero skills were competent and zero
   composition attempts ran.
+- **Terminal evidence:** The user intentionally requested stop at
+  `2026-07-22T00:36:38.849066Z` to begin the matched-configuration V10 successor. The run ended
+  `stop_requested` after 10,359.143 seconds (2h52m39.143s), not the eight-hour ceiling encoded in
+  its name. It completed 1,431,556 Explorer actions at 138.1925/s, 1,398 PPO updates, 558 episodes,
+  716 unique positions, seven promotions through Route 1, and eight discovered skills. The Student
+  completed 797 rounds, 10,692 updates, and 330,505 examples, ending at 68.5919% accuracy and
+  0.904136 NLL. Practice reached 558/698 exact targets across 651,629 actions and 882 updates.
+  Frozen exams ended 4/87, but no skill became competent and no composition ran. Episode endings
+  included 139 visual cycles and 419 stagnations; 146 battle successes were recorded. Final hashes
+  verified and the run occupied 57 MiB.
 - **Interpretation:** This snapshot proves only that the declared live run exists and the qualified
   machinery continues to emit coherent fields. One failed exam cannot establish stagnation, and
   7/8 assisted practice cannot establish competence. No trend, causal improvement, later-game
-  progress, or terminal V9 result is claimed.
+  progress, or terminal V9 result was claimed from that early snapshot. The terminal result is now
+  authoritative: much better Student fit and four isolated exam successes still yielded zero
+  competent skills. V9 closes as a negative reliability/composition result, not as a failed
+  engineering pipeline.
 - **Alternatives considered:** Warm-start from V8's Student or seven skills; import V8 action
   sequences; shorten the 27/30×2 gate after seeing early results; increase practice frequency
   mid-run; treat the first practice percentage as success; restart after the first 0/1; enable PPO
   recovery; continue trying a service wrapper with different permissions after the campaign had
   already started; or report a live dashboard value as final evidence.
 - **Consequence:** Every update must carry the observation timestamp/action count and provisional
-  label. The run continues until its declared terminal condition or an operational safety stop.
-  Any desired rule change becomes a new run ID and decision entry. Final reporting must include all
-  frozen attempts, terminal reasons, Student versions, practice/verification/exam cost, storage,
-  interruptions, and the unchanged source boundary.
+  label while live. The complete final report now supersedes those provisional snapshots. The
+  desired loop-recovery rule change becomes the separately identified V10 run rather than a V9
+  edit. Preserve all frozen attempts, terminal reasons, practice cost, storage, hashes, and source
+  boundary.
 - **Narrative value:** Show the launch card before the dashboard: commit, seed, fresh-start boundary,
   eight-hour clock, action/storage guards, and exam cadence. Briefly show two launchers fail without
   creating the experiment, then the detached user session succeeds. At 16,388 actions, place 7/8
   assisted practice beside 0/1 frozen evaluation and leave the story unresolved. The discipline is
   refusing to turn an early number into an ending.
-- **Revisit when:** The run terminates; an operational safety stop occurs; a checkpoint/resume
-  changes declared state; the full 27/30×2 gate passes or fails; a skill becomes competent; report
-  fields diverge; storage crosses a guard; or a different protocol is proposed.
+- **Revisit when:** A terminal artifact is found inconsistent, the matched V10 comparison closes,
+  or the 4/87 frozen-exam interpretation changes under a predeclared aggregate analysis.
 - **Supersedes / superseded by:** Extends DR-0056's authorization into an exact active-run contract.
   It does not rewrite the two V9 canaries or V8 history. Not yet superseded.
 
@@ -1756,7 +1768,8 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
 
 - **Date:** 2026-07-21
 - **Status:** Accepted and implemented; deterministic E2 qualification, direct E3 calibration, and
-  one bounded real-ROM E3 campaign canary passed; matched comparison and behavioral value pending
+  one bounded real-ROM E3 campaign canary passed; matched-configuration long run active and
+  behavioral value pending
 - **Scope:** Version-10 Explorer loop handling, actor authority, generic recovery feedback,
   telemetry, qualification, and successor narrative
 - **Information label:** Explorer receives processed pixels, recent executed actions, and recurrent
@@ -1808,6 +1821,27 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
   expirations matched five `visual_recovery_expired` episodes. Active, abandoned, unresolved, and
   trainer-selected-action counts ended at zero. Visual-cycle and long-stagnation recovery were not
   activated.
+- **Matched-configuration launch:** After the user intentionally closed V9, run
+  `parallel-ppo-v10-recovery-8h-20260721-seed20260809` started at
+  `2026-07-22T00:37:44.442964Z` from clean source commit
+  `513afc378d091d18560efb4af4931d882c05000d`. It uses seed 20260809, the same V8 root curriculum
+  source, four environments, an eight-hour/150-million-action ceiling, and the same Explorer PPO,
+  Student, reverse-practice, exam, and storage configuration as V9. Dashboard port is 8774.
+  Recovery is fixed at 32 actions after three blocked outcomes; ineffective means changed pixels
+  below 2% **and** MAE below 2, while material escape means changed pixels at least 5% **or** MAE
+  at least 5. Repeated-block penalty, credited escape, and expiry penalty are 0.25, 0.25, and 1.0.
+- **Live heartbeat only:** At about `2026-07-22T00:42:55Z`, status was running at 310.686 seconds,
+  22,532 actions (72.523/s), 22 PPO updates, 30 episodes, five promotions through `chose_starter`,
+  286 positions, five skills, and zero competent skills. `checkpoint.json` recorded 20,480 actions,
+  beyond the declared 16,384 exam boundary; frozen exams were 0/1. All 366 windows were
+  `blocked_repeat`: 165 escaped, 169 context-changed, 30 expired, and two active. Completed windows
+  were 364; abandoned, unresolved, and trainer-selected-action counts were zero across 3,475
+  recovery actions. Explorer and Student hashes independently matched and dashboard HTTP was 200.
+  This proves only that the active run is coherent; it is not an interim result or trend.
+- **Comparison boundary:** V9 and V10 share seed, declared runtime/action ceiling, parallelism,
+  curriculum source, and PPO/Student practice configuration. Their source commits and wall-clock
+  start times differ, so this is a matched-configuration successor rather than a bit-identical
+  causal ablation. Report that imperfection with the final denominator.
 - **Interpretation:** Immediate reset protects compute but may remove the local off-distribution
   state in which PPO could compare repeated failure with a self-chosen escape. A bounded recovery
   window can test that hypothesis without telling the actor which way to move. Fewer resets alone

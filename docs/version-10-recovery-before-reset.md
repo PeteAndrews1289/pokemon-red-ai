@@ -6,12 +6,12 @@ effect. Earlier versions could recognize a visual cycle or long stagnation, pena
 the episode. That protected the action budget, but it also removed the exact local situation in
 which the policy needed to learn a different response.
 
-> **Status on 2026-07-21:** the V10 recovery mechanism is implemented as a new protocol and has
-> passed deterministic E2 qualification, direct E3 mechanism calibration, and one bounded E3
-> real-ROM campaign canary. A matched behavioral comparison remains pending. No V10 exploration
-> superiority, learning, or competence result is claimed. The active V9 campaign remains a
-> separately frozen experiment; its live wall-bouncing observation is diagnostic evidence, not a
-> rewritten terminal result.
+> **Status on 2026-07-21 local / 2026-07-22 UTC:** the V10 recovery mechanism is implemented as a
+> new protocol and has passed deterministic E2 qualification, direct E3 mechanism calibration, and
+> one bounded E3 real-ROM campaign canary. V9 is now closed, and a matched-configuration V10 long
+> run is active. Its latest recorded snapshot is a coherent heartbeat only. A terminal behavioral
+> comparison remains pending; no V10 exploration superiority, learning, or competence result is
+> claimed.
 
 The central idea is simple:
 
@@ -22,7 +22,7 @@ The central idea is simple:
 
 V9 was designed primarily around the Student. It retained V8's separate PPO Explorer, normalized
 the Explorer's verified discoveries into consecutive skills, and let the Student practice closed
-loop. During the declared long V9 campaign, the Explorer advanced through the opening and then was
+loop. During the now-closed long V9 campaign, the Explorer advanced through the opening and then was
 visibly observed repeating ineffective directional actions with little pixel change. Its loop counters continued to
 rise and its episodes restarted from the run's currently admitted, self-generated verified
 frontier. Early in a fresh run that frontier remains near the opening, so repeated resets can still
@@ -354,7 +354,30 @@ real-ROM campaign evidence.
 
 ### Gate 3 — matched behavioral comparison
 
-V9 and V10 should eventually be compared under disclosed seeds, wall time, action budget,
+The user intentionally closed V9 and launched
+`parallel-ppo-v10-recovery-8h-20260721-seed20260809` at `2026-07-22T00:37:44.442964Z` from clean
+commit `513afc378d091d18560efb4af4931d882c05000d`. V10 retains seed 20260809, the same V8 root
+curriculum source, four environments, eight-hour/150-million-action ceiling, and V9's PPO/Student
+practice configuration. Recovery is frozen at 32 actions, blocked threshold 3, ineffective
+thresholds below 2% changed pixels **and** MAE below 2, material thresholds at least 5% changed or
+MAE at least 5, and penalty/credit/expiry values 0.25/0.25/1.0. Dashboard port remains 8774.
+
+The comparison is deliberately described as **matched configuration**, not bit-identical causal
+ablation: V9 and V10 use different source commits and wall-clock start times.
+
+At about `2026-07-22T00:42:55Z`, V10 was running at 310.686 seconds with 22,532 actions
+(72.523/s), 22 PPO updates, 30 episodes, five promotions through `chose_starter`, 286 positions,
+and five discovered but zero competent skills. `checkpoint.json` recorded 20,480 actions, beyond
+the declared 16,384-action exam boundary; frozen exams were 0/1. All 366 recovery windows were
+`blocked_repeat`: 165 escaped, 169 context-changed, 30 expired, and two active. Completed windows
+were 364; abandoned, unresolved, and trainer overrides were zero across 3,475 recovery actions.
+Explorer and Student hashes independently matched, and the dashboard returned HTTP 200.
+
+This is a **heartbeat only**. It proves that the matched-configuration run is alive, checkpointing,
+evaluating, and reporting coherent recovery denominators. It is not a V10 result, learning trend,
+or comparison outcome.
+
+V9 and V10 must eventually be compared under disclosed seeds, wall time, action budget,
 parallelism, and observation boundary. Report at least:
 
 - loop detections per 100,000 Explorer actions;

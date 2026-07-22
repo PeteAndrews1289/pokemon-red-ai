@@ -68,10 +68,24 @@
 - V10 now earns a matched longer V9/V10 comparison. The canary did not activate visual-cycle or
   long-stagnation recovery and does not establish exploration superiority, learning, competence,
   long-run reliability, or Hall-of-Fame capability.
+- Launched matched-configuration successor
+  `parallel-ppo-v10-recovery-8h-20260721-seed20260809` from clean commit
+  `513afc378d091d18560efb4af4931d882c05000d` at `2026-07-22T00:37:44.442964Z`. It retains V9's
+  seed 20260809, V8 root curriculum, four environments, eight-hour/150-million-action ceiling, and
+  PPO/Student practice configuration; source commit and wall-clock start differ. Recovery uses 32
+  actions, blocked threshold 3, ineffective thresholds 2% and MAE 2, escape thresholds 5% or MAE 5,
+  and penalties/credit 0.25/0.25/1.0. Dashboard port remains 8774.
+- Preserved the stronger live V10 snapshot at about `2026-07-22T00:42:55Z` as heartbeat evidence
+  only: running at 310.686 seconds, 22,532 actions (72.523/s), 22 updates, 30 episodes, five
+  promotions through `chose_starter`, 286 positions, five skills, and 0/1 frozen exams with zero
+  competent skills. Its 366 blocked-repeat windows comprised 165 escaped, 169 context-changed, 30
+  expired, and two active; completed 364, abandoned/unresolved/overrides zero, and 3,475 recovery
+  actions. `checkpoint.json` recorded 20,480 actions, both policy hashes matched independently, and
+  the dashboard returned HTTP 200. No trend or result is claimed.
 
 ## Unreleased — Version 9 self-correcting Student
 
-- Declared and launched active campaign
+- Declared and launched campaign
   `parallel-ppo-v9-self-correcting-8h-20260721-seed20260809` from source commit `d1c0c0d` at
   `2026-07-21T21:43:57.163627Z`. Its immutable launch contract is seed 20260809, eight hours,
   150,000,000 actions, four environments, 256 rollout steps, strict reverse practice at two
@@ -86,6 +100,16 @@
   seven retained successes, and 14 success-only updates. The one 556-action frozen exam failed;
   zero skills were competent and no composition ran. These are not terminal results or evidence of
   a trend.
+- Closed that run intentionally at the user's request so V10 could begin. It ended
+  `stop_requested` at `2026-07-22T00:36:38.849066Z`, after 10,359.143 seconds (2h52m39.143s),
+  1,431,556 Explorer actions at 138.1925/s, 1,398 PPO updates, 558 episodes, 716 unique positions,
+  seven promotions through Route 1, and eight discovered skills. The `8h` name was a ceiling, not
+  the actual duration. Final hashes verified and artifacts occupied 57 MiB.
+- Recorded the complete V9 learning denominator: 797 Student rounds, 10,692 updates, 330,505
+  examples, 68.5919% accuracy, and 0.904136 NLL; 558/698 exact practice attempts, 882 practice
+  updates, and 651,629 practice actions; 4/87 frozen exams, zero competent skills, and no
+  composition. The run also recorded 139 visual-cycle and 419 stagnation endings plus 146 battle
+  successes. Better fit and isolated exam passes did not become reliable reusable behavior.
 - Rejected two background handoffs that both failed before creating the run: a generic `nohup`
   handoff and a launchd service whose context lacked permission to access the external SSD. The
   successful detached user-session launch preserves the interactive user's permissions and adds

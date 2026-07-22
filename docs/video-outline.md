@@ -56,13 +56,17 @@
 > spans ten versions. It does not yet supply the learning payoff; chance and useful later skills
 > remain untested. V8's longer 1/47 result then creates V9's question: the Student studied only
 > successful recorded states and never practiced the consequences of its own wrong buttons. V9
-> turns those mistakes into closed-loop practice without weakening the frozen exam. Its live long
-> campaign adds another visual failure: the Explorer can visibly bounce against an obstacle until
-> the watchdog resets the episode. Version 10 asks whether that correct safety reset is also erasing
+> turns those mistakes into closed-loop practice without weakening the frozen exam. Its completed
+> long campaign supplies a revealing split-screen: 68.5919% Student training accuracy beside only
+> 4/87 frozen exam passes, zero competent skills, and no composition after 1,431,556 Explorer
+> actions. It also adds another visual failure: the Explorer can visibly bounce against an obstacle
+> until the watchdog resets the episode. Version 10 asks whether that correct safety reset is also erasing
 > the exact local lesson PPO needs. It opens a bounded recovery window, keeps every button under
 > policy control, and separates credited escapes, zero-credit context changes, expirations, active
 > windows, and abandonments. The bounded E3 campaign canary now qualifies that mechanism; it is not
-> a gameplay-success or superiority beat.
+> a gameplay-success or superiority beat. V9 was intentionally stopped at 2h52m39.143s—not eight
+> hours—to launch a matched-configuration V10 run. V10's current 310.686-second snapshot is a
+> heartbeat only, preserving the question rather than answering it.
 
 This document is a production guide for telling the project's story without getting ahead of the
 evidence. The detailed Episode 0 section preserves the original before-training production plan;

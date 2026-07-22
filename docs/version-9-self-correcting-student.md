@@ -14,8 +14,10 @@ earn any additional training trajectory through exact success.
 > reporting, and the wall-time boundary, then passed 0/3 frozen exams. The current suite passes 276
 > non-integration plus 12 integration checks, 288 total. Mechanism, observability, and wall-time
 > control qualify; learned competence and later-game progress do not. Recurrent PPO recovery
-> remains a disabled, unimplemented later escalation. The declared eight-hour fresh-start V9
-> campaign is active; its first 0/1 frozen checkpoint is provisional E1 live telemetry, not a result.
+> remains a disabled, unimplemented later escalation. The declared long V9 campaign is now closed:
+> the user intentionally stopped it after 2h52m39.143s to begin the matched-configuration V10
+> successor. It reached Route 1 and raised Student fit to 68.5919%, but 4/87 frozen exams produced
+> zero competent skills and no composition. The `8h` in its name was a ceiling, not its duration.
 
 ## The result V8 leaves behind
 
@@ -112,11 +114,13 @@ Practice success is assisted training evidence. It starts from disclosed reverse
 cannot replace a frozen exam. The 16/22 practice result beside 0/3 exams is exactly why the two
 meters remain separate.
 
-## Active long campaign declaration
+## Final long campaign record
 
 Run `parallel-ppo-v9-self-correcting-8h-20260721-seed20260809` began at
 `2026-07-21T21:43:57.163627Z` from source commit `d1c0c0d` with seed 20260809. This section freezes
-the protocol while it is running; it does not promote live telemetry into a final result.
+the protocol that governed the now-closed run. Source was clean. The user intentionally requested
+its stop at `2026-07-22T00:36:38.849066Z` so the matched-configuration V10 successor could begin.
+The `8h` run-name component records the original ceiling, not the 2h52m39.143s actual duration.
 
 | Launch field | Declared value |
 | --- | --- |
@@ -158,9 +162,38 @@ The following snapshot is **provisional E1 live evidence**:
 | Frozen exam | 0/1 over 556 actions |
 | Competent skills / composition | 0 / 0 |
 
-One exam failure cannot establish a learning curve, and 7/8 assisted near-target practice cannot
-replace it. The active run may later improve, remain flat, fail operationally, or close without a
-competent skill. Only its terminal artifacts and complete denominator will decide the result.
+One exam failure could not establish a learning curve, and 7/8 assisted near-target practice could
+not replace it. This snapshot remains preserved as provisional history; the terminal denominator
+below decides the result.
+
+### Terminal result
+
+The final audit verified the model and checkpoint hashes and closed the complete denominator:
+
+| Measure | Terminal V9 result |
+| --- | ---: |
+| Terminal reason | `stop_requested` |
+| Elapsed | 10,359.143 s = 2h52m39.143s |
+| Explorer actions / rate | 1,431,556 / 138.1925 actions/s |
+| Explorer PPO updates / episodes | 1,398 / 558 |
+| Unique positions | 716 |
+| Promotions / best milestone | 7 / Route 1 |
+| Skills discovered / competent | 8 / 0 |
+| Student training | 797 rounds / 10,692 updates / 330,505 examples |
+| Final Student fit | 68.5919% accuracy / 0.904136 NLL |
+| Frozen exams | 4/87; zero competent skills |
+| Closed-loop practice | 558/698 exact-target successes |
+| Practice updates / actions | 882 / 651,629 |
+| Composition attempts | 0 |
+| Episode loop endings | 139 visual cycles / 419 stagnations |
+| Battle successes | 146 |
+| Final artifact size | 57 MiB |
+
+The decisive contradiction is that offline/action-prediction fit rose to 68.5919% and four isolated
+frozen attempts succeeded, yet no skill satisfied the checkpoint-separated competence gate. Zero
+skills were competent and composition never became eligible. V9 therefore closes as a useful
+negative learning result: self-correction produced much more training and some isolated exam hits,
+but not reliable reusable behavior.
 
 ### Operational handoff
 
@@ -622,16 +655,16 @@ competence.
    frozen exams, and the wall-time boundary. Its 0/3 exam result grants no competence.
 6. **⬜ Matched BC ablation:** same normalized data, initialization, update/action budget, and frozen
    exams with and without success aggregation.
-7. **🟨 Frozen local evaluation:** the canary exercised three distinct grades and failed 0/3.
-   The declared competence denominator remains open and may not count practice successes.
+7. **✅ Frozen local evaluation recorded:** the long campaign passed 4/87 isolated attempts, but
+   zero skills met the checkpoint-separated competence gate. Practice successes do not replace it.
 8. **PPO fallback qualification:** only after stages 1–7 may the predeclared automatic escalation
    be enabled and compared with the non-PPO V9 lane.
 9. **Restore-free composition:** only locally competent consecutive edges may be attempted from
    power-on under one frozen Student.
-10. **🟨 Long self-correcting campaign:** the eight-hour fresh-start run is active under the
-    frozen declaration. Its first 0/1 exam checkpoint is provisional; terminal evidence is pending.
-11. **Long comparison:** compare V7, V8, V9 BC-only, V9 self-correcting, and any PPO-enabled V9 with
-    separate compute and attempt denominators.
+10. **✅ Long self-correcting campaign closed:** the user stopped it at 2h52m39.143s to begin V10.
+    It reached Route 1 but ended with zero competent skills and no composition.
+11. **🟨 Matched-configuration successor:** compare the closed V9 run with the new V10 recovery run,
+    disclosing the different source commits and start times while retaining seed and run config.
 
 ## Falsifiers and stop conditions
 

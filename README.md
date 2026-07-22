@@ -11,11 +11,10 @@ The original game-naive, pixels-only condition remains a strict control. The Q0/
 baseline deliberately used a seeded random action emitter and a sealed, read-only referee; the next
 trials compare learned or optimized emitters under the same checkpoint and replay rules.
 
-> **Current status: V9's mechanism is qualified and its declared eight-hour fresh-start campaign is
-> live. The first 0/1 exam checkpoint is provisional, not a learning result. V10's bounded
-> policy-controlled loop recovery has passed deterministic E2 qualification and direct E3
-> mechanism calibration plus one bounded real-ROM E3 canary. A matched V9/V10 comparison and any
-> claim about exploration superiority or competence remain pending.**
+> **Current status: V9's long run is closed at 1,431,556 Explorer actions and 4/87 frozen exams;
+> despite 68.5919% Student fit, zero skills became competent. The user intentionally stopped it at
+> 2h52m39.143s to start V10; `8h` was its ceiling. V10's matched-configuration long run is now live.
+> Its first snapshot is a heartbeat, not a result.**
 > Stage 0 memorized and exactly replayed its one 419-action house-exit route. Reverse curriculum
 > completed that opening in development, and Frontier Apprentice proved that network updates can be
 > gated behind replay-verified milestones. Its limitation was equally important: almost every
@@ -101,13 +100,15 @@ trials compare learned or optimized emitters under the same checkpoint and repla
 > A recurrent Student PPO recovery lane remains disabled. Strict checkpoint-separated exams remain
 > unchanged. V9's mechanism, observability, and wall-time boundary are qualified; learned
 > competence and later-game progress are not.
-> The active run `parallel-ppo-v9-self-correcting-8h-20260721-seed20260809` began from fresh
+> Run `parallel-ppo-v9-self-correcting-8h-20260721-seed20260809` began from fresh
 > power-on at `2026-07-21T21:43:57.163627Z` under source commit `d1c0c0d`, seed 20260809, an
 > eight-hour/150-million-action ceiling, and the same strict 27/30×2 practice gate. V8 contributes
-> only the root curriculum state—no weights, actions, or skills. At the first 16,384-action exam
-> boundary it had 16,388 actions, reached the ground floor, built three skills, recorded 7/8 exact
-> practice outcomes, and failed its sole frozen exam. Those numbers are provisional E1 live
-> telemetry, not final evidence. See
+> only the root curriculum state—no weights, actions, or skills. The user intentionally stopped it
+> at `2026-07-22T00:36:38.849066Z` to begin V10. It ran 10,359.143 seconds, not eight hours, and
+> completed 1,431,556 actions at 138.1925/s, 1,398 updates, 558 episodes, 716 positions, seven
+> promotions through Route 1, and eight skills. Student fit reached 68.5919% accuracy / 0.904136
+> NLL over 330,505 examples, while frozen exams ended 4/87 with zero competent skills and no
+> composition. Final hashes verified; the run occupied 57 MiB. See
 > [Let the Student practice being wrong](docs/version-9-self-correcting-student.md).
 > Live V9 observation also exposed a different Explorer failure: loop detection correctly noticed
 > repeated ineffective directional action/pixel outcomes, then reset away the exact local situation the policy needed to
@@ -141,7 +142,17 @@ trials compare learned or optimized emitters under the same checkpoint and repla
 > blocked-repeat windows closed as 36 credited escapes, 32 zero-credit context changes, and five
 > expirations: a 49.315% credited escape rate across 702 recovery actions. Active, abandoned,
 > unresolved, and action-override counts ended at zero. This is E3 mechanism evidence, not proof of
-> better exploration, learning, competence, or long-run performance. See
+> better exploration, learning, competence, or long-run performance.
+> The matched-configuration V10 run `parallel-ppo-v10-recovery-8h-20260721-seed20260809` started at
+> `2026-07-22T00:37:44.442964Z` from clean commit
+> `513afc378d091d18560efb4af4931d882c05000d`. It retains V9's seed, V8 root curriculum, four
+> environments, 8h/150-million-action ceiling, and PPO/Student practice config; source commit and
+> start time differ. At about `2026-07-22T00:42:55Z` it was running at 310.686 seconds with 22,532
+> actions (72.523/s), 22 updates, 30 episodes, five promotions through `chose_starter`, 286
+> positions, five skills, and 0/1 frozen exams with zero competent skills. All 366 windows were
+> blocked-repeat: 165 escaped, 169 context-changed, 30 expired, two active, and zero
+> abandoned/unresolved/overrides across 3,475 recovery actions. Checkpoint actions had crossed
+> 20,480, both policy hashes matched, and the dashboard returned HTTP 200. This is heartbeat evidence only. See
 > [Let the Explorer recover before resetting](docs/version-10-recovery-before-reset.md).
 
 The current code preserves every historical runner, including Monkey, Archivist, online learners,
@@ -188,7 +199,7 @@ current implemented successor hypothesis is
 | Preserved random comparison | Monkey vs. pixels-only Archivist under matched budgets |
 | Completed 90-minute pretrial | Evolution reached tier 1; online learners plateaued around Pallet Town and Route 1 |
 | Concluded neural experiment | Six inherited-archive lanes all failed the second-map/party gate under equal fuel |
-| Current completion work | V9's qualified mechanism is running its frozen eight-hour fresh-start campaign; V10 recovery passed deterministic E2 checks, direct E3 calibration, and one bounded E3 campaign canary, authorizing a matched longer comparison |
+| Current completion work | V9 closed at Route 1 with 4/87 frozen exams and zero competent skills; the matched-configuration V10 recovery run is active, with only heartbeat evidence so far |
 | North star | First discover a replayable Hall-of-Fame lineage, then train and evaluate one frozen pixel policy |
 
 ## The journey
@@ -208,9 +219,10 @@ flowchart LR
     PPO --> V7["🟨 V7<br/>unchanged denominator"]
     V7 --> V8["✅ V8<br/>0/7 canary; 1/47 final"]
     V8 --> V9["✅ V9 mechanism<br/>0/3 qualification"]
-    V9 --> LONG["🟨 V9 long run<br/>active; evidence provisional"]
+    V9 --> LONG["✅ V9 long run<br/>4/87; zero competent"]
     LONG --> V10["✅ V10 mechanism<br/>E3 canary passed"]
-    V10 --> HF["⬜ Hall of Fame<br/>one frozen policy"]
+    V10 --> LIVE["🟨 V10 long run<br/>heartbeat only"]
+    LIVE --> HF["⬜ Hall of Fame<br/>one frozen policy"]
 ```
 
 GitHub issues and experiment records will attach evidence to this roadmap. A checked engineering

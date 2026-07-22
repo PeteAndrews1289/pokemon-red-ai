@@ -54,14 +54,14 @@
 > aggregation—but its frozen exam door still read 0/3. V9's mechanism, observability, and wall-time
 > boundary are qualified. Learning is not.
 
-> **Live turn:** the rules are now frozen for the declared eight-hour V9 run. It starts from fresh
-> power-on; V8 contributes only the power-on root curriculum state, not a brain, action sequence, or
-> skill library. Two attempted background handoffs failed before creating a run—including a launchd
-> service that could not access the external SSD—so the experiment moved to a detached user session
-> with the same permissions and sleep prevention. At the first exam boundary the Explorer had
-> reached the ground floor and practice was 7/8 exact, but the frozen Student was 0/1. That is a
-> timestamped live checkpoint, not a verdict. The story now has to resist both premature optimism
-> and premature failure while the unchanged protocol accumulates its denominator.
+> **Live turn:** V9 closed intentionally after 2h52m39.143s and 1,431,556 Explorer actions so the
+> matched-configuration V10 successor could begin. It reached Route 1 and 68.5919% Student training
+> accuracy, yet passed only 4/87 frozen exams, produced zero competent skills, and never composed
+> them. The `8h` run-name suffix was a ceiling, not elapsed time. V10 now tests bounded recovery
+> before reset with the same declared seed, curriculum, four environments, ceilings, and
+> PPO/Student practice settings; source commit and start time differ. Its 310.686-second snapshot
+> reached 22,532 actions and `chose_starter` but passed 0/1 frozen exams. That is a heartbeat, not a
+> result or trend.
 
 ## The question
 
@@ -88,10 +88,10 @@ journey without those restores before the project says one model learned the gam
 self-generated lessons through Oak's lab and failed 0/7 frozen exams; its later final run built
 seven through Route 1, improved offline fit, but finished at 1/47 with zero competent skills. V9's
 closed-loop self-correction mechanics now pass the 288-check engineering suite, and its corrected
-real-ROM canary qualifies mechanism, observability, and wall-time control. That canary passed 0/3
-frozen exams. A fresh-start eight-hour V9 campaign is active, but its first 0/1 exam snapshot is
-only provisional E1 live evidence. No V9 competent skill or production multi-skill/whole-game
-result exists.**
+real-ROM canary qualifies mechanism, observability, and wall-time control. The final V9 campaign
+reached Route 1 but passed only 4/87 frozen exams, with zero competent skills and no composition.
+The matched-configuration V10 long run is active; its 310.686-second snapshot is heartbeat-only E1
+evidence. No V10 learning, superiority, or whole-game result exists.**
 
 Phase 0 built the measuring instrument: a reproducible emulator harness that can start the exact
 same game, issue timed controller inputs, observe a small and disclosed slice of state, restore an
@@ -132,10 +132,10 @@ test sequence used to prove that the laboratory works.
 | What happened in the first V9 canary? | It reached `Stepped outside` and 19/22 exact practice outcomes, but synchronous work overran a 180-second budget to 248.801 seconds. Immediate success reports also replaced richer periodic diagnostics. Manual STOP exposed both defects; it did not cause the reporting bug. |
 | What did the corrected V9 canary prove? | Commit `e1ea199` fixed cancellation/report merging. The replacement honored 144.0 seconds within 0.082 seconds, ran 22 fully classified practice attempts, retained 16 verified successes, and exposed success-only replay. It qualifies mechanism, observability, and wall-time—not competence. |
 | Has V9 learned a skill? | Not demonstrated. The corrected canary passed 0/3 frozen exams, with zero competent skills. The current suite passes 276 non-integration plus 12 integration checks. |
-| What is running now? | `parallel-ppo-v9-self-correcting-8h-20260721-seed20260809`: fresh power-on, commit `d1c0c0d`, seed 20260809, eight hours, four environments, strict 27/30×2 practice, 150M safety ceiling, and no V8 weights/actions/skills. |
-| What does its first checkpoint say? | At 16,388 actions the Explorer had reached the ground floor and practice was 7/8 exact, but the sole 556-action frozen exam failed. Zero skills were competent. This is provisional E1 telemetry, not a trend. |
+| How did V9 close? | The user intentionally stopped `parallel-ppo-v9-self-correcting-8h-20260721-seed20260809` at 2h52m39.143s: 1,431,556 actions, Route 1, 68.5919% fit, 4/87 frozen exams, zero competent skills, and no composition. |
+| What is running now? | `parallel-ppo-v10-recovery-8h-20260721-seed20260809`: matched seed, curriculum, four environments, ceilings, and PPO/Student practice settings, but a different clean source commit and start time. Its 310.686-second, 22,532-action snapshot is heartbeat-only evidence. |
 | Can the rules change while it runs? | No. Budget, practice, exams, actor boundary, storage limits, and disabled PPO recovery are frozen. Operational launch failures happened before run creation and did not change the experiment. |
-| What comes next? | Let the declared V9 campaign close under its original rules, report every attempt, then compare with the matched BC-only ablation before enabling PPO fallback or making a causal learning claim. |
+| What comes next? | Let V10 close under its declared rules, verify every denominator, then compare it with V9 without calling the different source commits and start times bit-identical. |
 
 Keeping this table current is part of the project. A small true claim is more valuable than a large
 ambiguous one.
