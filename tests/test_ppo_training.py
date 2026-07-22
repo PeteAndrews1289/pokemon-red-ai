@@ -131,6 +131,8 @@ def test_parallel_config_enforces_vector_batch_boundary() -> None:
     v12 = ParallelPpoConfig(mode="self_taught_v12", random_initialization=True, power_on_only=True)
     assert v12.hindsight_max_lessons == 16
     assert v12.hindsight_max_actions == 128
+    assert v12.hindsight_contrastive_weight == 0.25
+    assert v12.hindsight_contrastive_margin == 0.10
     assert "hindsight_max_lessons" in v12.public_dict()
     assert "explorer_recovery_window_actions" in v12.public_dict()
     assert "student_practice_window" not in v12.public_dict()
@@ -1657,7 +1659,21 @@ def test_self_imitation_updates_recurrent_policy_from_its_own_dataset(
     assert result["updates"] == 1
     assert result["examples"] == 4
     assert np.isfinite(result["mean_loss"])
+    assert result["mean_contrastive_loss"] == 0
     assert np.isfinite(_hindsight_goal_log_probability_advantage(model, [dataset]))
+    with np.load(dataset, allow_pickle=False) as archived:
+        payload = {name: np.asarray(archived[name]) for name in archived.files}
+    payload["target_pixels"] = np.full((1, 72, 80), 255, dtype=np.uint8)
+    np.savez_compressed(dataset, **payload)
+    contrastive = _train_self_imitation_policy(
+        model,
+        [dataset],
+        epochs=1,
+        counterfactual_blank_weight=0.25,
+        counterfactual_margin=0.10,
+    )
+    assert np.isfinite(contrastive["mean_contrastive_loss"])
+    assert contrastive["mean_contrastive_loss"] >= 0
     vector.close()
 
 

@@ -168,6 +168,8 @@ V12_CONFIG_FIELDS = frozenset(
         "hindsight_min_changed_fraction",
         "hindsight_min_mean_absolute_error",
         "hindsight_epochs",
+        "hindsight_contrastive_weight",
+        "hindsight_contrastive_margin",
         "terminal_evaluation_actions",
     }
 )
@@ -369,6 +371,7 @@ def _new_v12_learning_state() -> dict[str, Any]:
         "examples_trained": 0,
         "optimizer_updates": 0,
         "last_mean_loss": None,
+        "last_contrastive_loss": None,
         "last_goal_log_probability_advantage": None,
         "pending_lessons": [],
         "terminal_evaluation": None,
@@ -1093,6 +1096,8 @@ class ParallelPpoConfig:
     hindsight_min_changed_fraction: float = 0.03
     hindsight_min_mean_absolute_error: float = 3.0
     hindsight_epochs: int = 1
+    hindsight_contrastive_weight: float = 0.25
+    hindsight_contrastive_margin: float = 0.10
     terminal_evaluation_actions: int = 32_768
 
     def __post_init__(self) -> None:
@@ -1192,6 +1197,8 @@ class ParallelPpoConfig:
         )
         if self.hindsight_epochs < 1 or self.terminal_evaluation_actions < 1:
             raise ValueError("Hindsight epochs and terminal evaluation actions must be positive")
+        if self.hindsight_contrastive_weight < 0 or self.hindsight_contrastive_margin < 0:
+            raise ValueError("Hindsight contrastive settings must be non-negative")
         if _is_self_taught_mode(self.mode) and (
             not self.random_initialization or not self.power_on_only or self.consolidation
         ):
@@ -3327,6 +3334,8 @@ def _train_self_imitation_policy(
     datasets: list[Path],
     *,
     epochs: int,
+    counterfactual_blank_weight: float = 0.0,
+    counterfactual_margin: float = 0.0,
 ) -> dict[str, Any]:
     """Apply direct action likelihood updates on self-generated, replay-verified skills."""
 
@@ -3334,7 +3343,10 @@ def _train_self_imitation_policy(
 
     if epochs < 1 or not datasets:
         raise ValueError("Self-imitation training requires data and positive epochs")
+    if counterfactual_blank_weight < 0 or counterfactual_margin < 0:
+        raise ValueError("Self-imitation counterfactual settings must be non-negative")
     losses: list[float] = []
+    contrastive_losses: list[float] = []
     examples = 0
     updates = 0
     policy = model.policy
@@ -3384,12 +3396,33 @@ def _train_self_imitation_policy(
                     states,
                     episode_starts,
                 )
-                loss = -log_probability.mean()
+                behavior_loss = -log_probability.mean()
+                contrastive_loss = torch.zeros((), device=policy.device)
+                if counterfactual_blank_weight:
+                    blank_observations = {
+                        **observations,
+                        "target_pixels": torch.zeros_like(observations["target_pixels"]),
+                    }
+                    blank_states = RNNStates(
+                        pi=(torch.zeros_like(actor_zero), torch.zeros_like(actor_zero)),
+                        vf=(torch.zeros_like(critic_zero), torch.zeros_like(critic_zero)),
+                    )
+                    _values, blank_log_probability, _entropy = policy.evaluate_actions(
+                        blank_observations,
+                        action_tensor,
+                        blank_states,
+                        episode_starts,
+                    )
+                    contrastive_loss = torch.relu(
+                        counterfactual_margin - (log_probability - blank_log_probability)
+                    ).mean()
+                loss = behavior_loss + counterfactual_blank_weight * contrastive_loss
                 policy.optimizer.zero_grad(set_to_none=True)
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(policy.parameters(), model.max_grad_norm)
                 policy.optimizer.step()
                 losses.append(float(loss.detach().item()))
+                contrastive_losses.append(float(contrastive_loss.detach().item()))
                 examples += count
                 updates += 1
     policy.set_training_mode(False)
@@ -3397,6 +3430,7 @@ def _train_self_imitation_policy(
         "updates": updates,
         "examples": examples,
         "mean_loss": sum(losses) / len(losses),
+        "mean_contrastive_loss": sum(contrastive_losses) / len(contrastive_losses),
     }
 
 
@@ -4061,11 +4095,14 @@ class PpoRunCallback(BaseCallback):
             self.model,
             paths,
             epochs=self.config.hindsight_epochs,
+            counterfactual_blank_weight=self.config.hindsight_contrastive_weight,
+            counterfactual_margin=self.config.hindsight_contrastive_margin,
         )
         self.v12_learning["lessons_trained"] += len(paths)
         self.v12_learning["examples_trained"] += int(result["examples"])
         self.v12_learning["optimizer_updates"] += int(result["updates"])
         self.v12_learning["last_mean_loss"] = float(result["mean_loss"])
+        self.v12_learning["last_contrastive_loss"] = float(result["mean_contrastive_loss"])
         self.v12_learning["last_goal_log_probability_advantage"] = (
             _hindsight_goal_log_probability_advantage(self.model, paths)
         )
@@ -4185,6 +4222,7 @@ class PpoRunCallback(BaseCallback):
             "optimizer_updates": int(self.v12_learning["optimizer_updates"]),
             "pending_lessons": len(self.v12_learning["pending_lessons"]),
             "last_mean_loss": self.v12_learning["last_mean_loss"],
+            "last_contrastive_loss": self.v12_learning.get("last_contrastive_loss"),
             "last_goal_log_probability_advantage": self.v12_learning.get(
                 "last_goal_log_probability_advantage"
             ),
@@ -4844,6 +4882,8 @@ class PpoRunCallback(BaseCallback):
                 f"{hindsight.get('examples_trained', 0):,}\n"
                 f"- Latest correct-goal log-probability advantage: "
                 f"{float(hindsight.get('last_goal_log_probability_advantage') or 0):.5f}\n"
+                f"- Latest correct-goal contrast loss: "
+                f"{float(hindsight.get('last_contrastive_loss') or 0):.5f}\n"
                 f"- Online decision-model calls: "
                 f"{hindsight.get('online_decision_model_calls', 0):,}\n\n"
                 f"- Distilled self-generated actions: "
@@ -6953,7 +6993,8 @@ def run_parallel_ppo(
                             "starting_state": "direct replay-verified clean ROM power-on",
                             "ordinary_learning": (
                                 "on-policy PPO plus future-frame hindsight imitation from the "
-                                "same policy's own rollouts"
+                                "same policy's own rollouts, with a correct-goal-versus-blank "
+                                "counterfactual margin"
                             ),
                             "rare_discovery_learning": (
                                 "replay-verified self-generated visual skills and rehearsal"

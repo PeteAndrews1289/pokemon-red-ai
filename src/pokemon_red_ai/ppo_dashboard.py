@@ -826,6 +826,14 @@ def _hindsight_section(status: Mapping[str, Any]) -> str:
                 ),
             ),
             _metric_card(
+                "Latest goal-contrast loss",
+                (
+                    "not trained yet"
+                    if hindsight.get("last_contrastive_loss") is None
+                    else f"{_number(hindsight.get('last_contrastive_loss')):.4f}"
+                ),
+            ),
+            _metric_card(
                 "Correct-goal action advantage",
                 (
                     "not measured yet"
