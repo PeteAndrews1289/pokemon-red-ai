@@ -12,13 +12,14 @@
 > but was rejected after initialized bedroom RAM falsely described story progress; and C4 qualified
 > the opening referee after 136 controller actions and 70 language-model calls with empirical RIGHT-
 > movement proof and story objective 1/84. Its continuous attempt closed after 950.308 seconds, 329
-> controller actions, and 144 online model calls. V12 is now the final experiential experiment: one
-> local recurrent visual actor learns from self-generated future-frame goals and receives no live
+> controller actions, and 144 online model calls. V12 was the final experiential experiment: one
+> local recurrent visual actor learned from self-generated future-frame goals and received no live
 > model decisions, walkthrough, demonstrations, or predecessor policy. Three bounded canaries
-> qualified the mechanism. The T7 storage gate now passes at 220 GiB free; a zero-action detached-
-> process failure and privacy-rejected LaunchAgent are preserved; the source-frozen retry uses a
-> dedicated Terminal foreground session. No competent
-> skill, Hall-of-Fame result, success probability, or completion guarantee is claimed.
+> qualified the mechanism. Its final run observed 8,236,144 actions in 35,696.136 seconds and
+> reached Route 1, but ended at 55/502 frozen exams, zero competent skills, zero composition, and no
+> Hall-of-Fame result. A user-requested stop exposed a finalizer defect and left no terminal
+> power-on evaluation. The program is closed on that result; no success probability or completion
+> guarantee is claimed.
 
 ### Implementation ledger
 
@@ -612,8 +613,10 @@ evidence that changed course.
     model calls. Preserve its assisted label and exact terminal reason.
 13. ✅ Implement and qualify V12's direct-power-on, self-generated hindsight mechanism without
     imported answers or online decisions.
-14. 🟨 Run the fixed 48-hour V12 experiment after the T7 launch gate passes, then publish its
-    frozen terminal power-on evaluation regardless of outcome.
+14. ✅ Run the fixed V12 experiment after the T7 launch gate passes. Publish the 8.24-million-action
+    negative result, including zero competent skills and the absent stop-time terminal evaluation.
+15. ✅ Close the completion program without a Hall-of-Fame claim and preserve the full record for
+    reproducibility.
 
 The [experiment protocol](experiment-protocol.md) remains authoritative for official attempts. The
 [Evolutionary Explorer](neuroevolution.md) document describes the predecessor mechanism in more

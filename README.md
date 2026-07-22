@@ -11,17 +11,14 @@ The original game-naive, pixels-only condition remains a strict control. The Q0/
 baseline deliberately used a seeded random action emitter and a sealed, read-only referee; the next
 trials compare learned or optimized emitters under the same checkpoint and replay rules.
 
-> **Current status: the assisted V11 attempt is closed and preserved as an upper-bound control. It
-> stopped after 950.308 seconds, 329 controller actions, and 144 language-model calls with no party,
-> badges, or Hall-of-Fame result; the user rejected live per-decision model queries as the project's
-> final premise. Version 12 is the final local experiential learner: one recurrent visual policy,
-> random weights, direct verified power-on, dense future-frame hindsight lessons, correct-goal
-> contrast, replay-verified rare skills, and deterministic exams. Three bounded real-ROM canaries
-> qualify the mechanism, not competence. The T7 now has 220 GiB free. A first post-mount launcher
-> attempt was rejected as a zero-action orchestration failure, and a privacy-restricted LaunchAgent
-> was also rejected before execution. The source-frozen retry uses a dedicated Terminal-owned
-> foreground process. No whole-game result exists.** See
-> [Every journey creates its next lesson](docs/version-12-final-self-learner.md).
+> **Final status: the project is closed without a learned Pokémon Red completion.** V12's final
+> experiential run processed 8,236,144 observed actions in 9h54m56s, made 4,021 PPO updates, and
+> replay-verified seven discoveries through Route 1. Its frozen evaluation ended at 55/502 exams,
+> zero competent skills, zero composition attempts, and no Hall-of-Fame result. The first skill
+> briefly became competent and was forgotten twice; the second passed 0/342 exams. A shutdown
+> finalizer failure left no clean terminal power-on evaluation, and that limitation is published
+> rather than repaired after the fact. See the [final retrospective](docs/final-retrospective.md)
+> and [V12 result record](experiments/v12-final/README.md).
 > Stage 0 memorized and exactly replayed its one 419-action house-exit route. Reverse curriculum
 > completed that opening in development, and Frontier Apprentice proved that network updates can be
 > gated behind replay-verified milestones. Its limitation was equally important: almost every
@@ -203,10 +200,11 @@ The primary completion protocol is the
 [Hall of Fame completion program](docs/completion-program.md). The original
 [game-naive, pixels-only curiosity](docs/blind-curiosity.md) protocol remains the philosophical
 control. [Visual Apprentice v1](docs/visual-apprentice.md) and V7–V10 remain preserved learned-policy
-predecessors; V11 is a closed, explicitly assisted control. The active implementation is
-[Version 12's final self-learner](docs/version-12-final-self-learner.md): one local recurrent actor
+predecessors; V11 is a closed, explicitly assisted control. The final implementation was
+[Version 12's self-learner](docs/version-12-final-self-learner.md): one local recurrent actor
 that turns its own future frames into dense visual goals and must prove goal use and competence
-without online model decisions. The editorial direction lives in
+without online model decisions. Its closed negative result is summarized in the
+[final retrospective](docs/final-retrospective.md). The editorial direction lives in
 [The project narrative](docs/narrative.md), and evidence levels remain tracked in
 [Progress](docs/progress.md).
 
@@ -227,7 +225,7 @@ without online model decisions. The editorial direction lives in
 | Preserved random comparison | Monkey vs. pixels-only Archivist under matched budgets |
 | Completed 90-minute pretrial | Evolution reached tier 1; online learners plateaued around Pallet Town and Route 1 |
 | Concluded neural experiment | Six inherited-archive lanes all failed the second-map/party gate under equal fuel |
-| Current completion work | V12 mechanism qualified in three bounded canaries; T7 storage qualified at 220 GiB free; Terminal-owned source-frozen retry prepared after two zero-action launch failures |
+| Final experiential result | V12 observed 8,236,144 actions in 9h54m56s; Route 1 was discovered, but frozen exams ended 55/502 with zero competent skills and no composition |
 | North star | One fixed local learned policy reaches the strict Hall of Fame from power-on with no online LLM, imported playthrough, or live human rescue |
 
 ## The journey
@@ -250,12 +248,12 @@ flowchart LR
     V9 --> LONG["✅ V9 long run<br/>4/87; zero competent"]
     LONG --> V10["✅ V10 closed<br/>3/32; zero competent"]
     V10 --> V11["✅ V11 assisted control<br/>closed; no completion"]
-    V11 --> V12["✅ V12 mechanism<br/>three canaries qualified"]
-    V12 --> RUN["🟨 Fixed 48-hour run<br/>source-frozen retry prepared"]
-    RUN --> HF["⬜ Learned Hall of Fame<br/>terminal fixed-policy exam"]
+    V11 --> V12["✅ V12 final run<br/>8.24M actions; Route 1"]
+    V12 --> RUN["❌ Frozen competence<br/>0 skills; 0 composition"]
+    RUN --> HF["❌ Learned Hall of Fame<br/>not reached"]
 ```
 
-GitHub issues and experiment records will attach evidence to this roadmap. A checked engineering
+GitHub issues and experiment records attach evidence to this roadmap. A checked engineering
 task is not automatically model progress; the [detailed roadmap](docs/roadmap.md) keeps those tracks
 separate.
 
@@ -430,11 +428,13 @@ Start with [the documentation hub](docs/index.md), or jump directly to:
 - [Append-only decision register](docs/decision-register.md) — accepted, rejected, retired, superseded, and failed ideas with their evidence
 - [Progress](docs/progress.md) — current evidence, status, and reporting rules
 - [Roadmap](docs/roadmap.md) — engineering, learning, and storytelling milestones
+- [Final retrospective](docs/final-retrospective.md) — what changed, what V12 learned, why it failed, and what the result means
 - [Architecture](docs/architecture.md) — components, data flow, and authority boundaries
 - [Experiment protocol](docs/experiment-protocol.md) — what claims require what evidence
 - [State instrumentation](docs/state-observation.md) — exact read-only fields and caveats
 - [Run reports](docs/run-reports.md) — turning traces into local visual summaries
 - [Video outline](docs/video-outline.md) — a possible YouTube structure and shot plan
+- [V12 final result](experiments/v12-final/README.md) — public aggregate endpoint, milestone timeline, exam denominator, and integrity limitation
 - [Visual storytelling](docs/visual-storytelling.md) — charts and visuals worth collecting
 - [Glossary](docs/glossary.md) — technical ideas in audience-friendly language
 - [Development log](docs/devlog.md) and [changelog](CHANGELOG.md) — what changed and why

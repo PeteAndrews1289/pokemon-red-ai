@@ -1,0 +1,8 @@
+milestone_index,milestone_id,milestone_label,combined_action,verified_at_utc,stored_route_depth_actions,source
+1,game_started,The adventure begins,992,2026-07-22T04:51:43.772024Z,248,ppo_verified_promotion
+2,left_bedroom,Reached the ground floor,2132,2026-07-22T04:51:56.175660Z,517,ppo_verified_promotion
+3,left_home,Stepped outside,38972,2026-07-22T04:55:06.889667Z,1526,ppo_verified_promotion
+4,met_professor_oak,Followed Professor Oak into his lab,39884,2026-07-22T04:55:15.672185Z,1754,ppo_verified_promotion
+5,chose_starter,Chose a starter Pokemon,43564,2026-07-22T04:55:48.795832Z,2539,ppo_verified_promotion
+6,fought_lab_rival,Finished the first rival battle,64432,2026-07-22T04:57:48.692870Z,4811,ppo_verified_promotion
+7,reached_route_1,Reached Route 1,378388,2026-07-22T05:21:57.832304Z,17150,ppo_verified_promotion

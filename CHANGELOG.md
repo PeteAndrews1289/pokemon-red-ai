@@ -2,6 +2,21 @@
 
 ## Unreleased — Version 12 final experiential learner
 
+- Closed the final V12 run after 35,696.136 observed seconds and 8,236,144 observed actions. It
+  made 4,021 PPO updates, replay-verified seven milestones through Route 1, observed 694 unique
+  positions, and processed 903 episodes at 230.729 actions/second.
+- Published the negative behavioral result: 55/502 frozen exams, zero competent skills, zero
+  composition attempts, and no Hall-of-Fame completion. The first skill lost competence twice and
+  ended 1/10; the ground-floor skill passed 0/342.
+- Recorded 64,336 hindsight lessons over 3,518,624 trained action examples. The final correct-goal
+  advantage was effectively zero, so dense hindsight activity did not establish stable goal use.
+- Preserved the shutdown limitation. The requested interrupt hit a broken pipe before normal
+  terminal evaluation/final status. Model, curriculum, and self-skill hashes match the 8,224,768-
+  action checkpoint; the hindsight-learning state does not, and exact resume failed closed. No
+  terminal result was fabricated.
+- Added the final retrospective, public V12 result record, milestone and skill-exam CSVs, DR-0065,
+  and closed-status updates across the documentation. The video outline is retained but shelved.
+
 - Closed the V11 continuous assisted attempt after 950.308 seconds, 329 controller actions, and
   144 online model calls, without party or badge progress. V11 remains a disclosed assisted control
   rather than the final learning claim.

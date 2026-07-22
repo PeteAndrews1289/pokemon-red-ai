@@ -1,6 +1,6 @@
 # Progress and evidence
 
-> **Current research direction:** Parallel PPO Version 4 produced the first replay-verified PPO
+> **Final research record:** Parallel PPO Version 4 produced the first replay-verified PPO
 > promotion, from Route 1 into Viridian City. Version 5 verified the Viridian Mart and Oak's Parcel.
 > Version 5.1 then verified the return to Pallet Town, Oak's Lab, and the Pokédex before plateauing
 > for 3,035,252 additional actions. Version 5.2 decomposes the road through Viridian Forest and
@@ -53,19 +53,20 @@
 > RIGHT input caused real movement. C4 reached story objective 1 of 84. Its continuous successor was
 > then stopped after 950.308 seconds, 329 actions, and 144 live model calls because online assisted
 > decisions were no longer the intended premise.
-> Version 12 is the final experiential-learning iteration: one random-initialized recurrent visual
+> Version 12 was the final experiential-learning iteration: one random-initialized recurrent visual
 > actor turns its own visually meaningful rollouts into future-frame goals, explicitly contrasts
 > those goals against a blank goal, and is graded in checkpoint-separated no-update exams. Three
 > bounded real-ROM canaries qualified direct power-on, hindsight generation/training, telemetry,
 > and goal-use measurement. The corrective matched-budget canary moved correct-goal advantage from
-> `-0.00018086` to `+0.00353084`, but no skill became competent. The frozen 48-hour experiment is
-> prepared. The T7 now has 220 GiB free; a first post-mount start produced zero actions when its
-> detached process was reaped. A privacy-restricted LaunchAgent was then rejected before execution.
-> The source-frozen retry uses a dedicated Terminal foreground session.
+> `-0.00018086` to `+0.00353084`, but no skill became competent. The final run then observed
+> 8,236,144 actions over 35,696.136 seconds and reached Route 1. It performed 4,021 PPO updates and
+> trained 3,518,624 hindsight action examples, yet frozen exams ended 55/502 with zero competent
+> skills and no composition. The first skill lost competence twice; the next passed 0/342. The
+> user-requested stop exposed a finalizer defect, leaving no terminal power-on evaluation. V12 and
+> the project are closed on that negative result.
 
-- **Current stage:** V11 is a closed assisted control. V12 has passed three mechanism canaries, the
-  T7 storage gate has passed, and a Terminal-owned source-frozen launch retry is prepared after two
-  zero-action launch failures
+- **Current stage:** Project closed. V11 remains an assisted control; V12 is the final experiential
+  result at Route 1, 55/502 frozen exams, zero competent skills, and zero composition
 - **Status date:** 2026-07-22
 
 **Most important caveat:** Q1 verified one replayable house-exit lineage, but the acting suffix
@@ -189,7 +190,7 @@ flowchart LR
 | Version 11 canary C4 | ✅ Opening referee qualified | E3 mechanism | From a clean opening boundary, C4 used 136 controller actions and 70 language-model calls, produced empirical proof that RIGHT caused real movement, and advanced the verified story counter to 1/84. This qualifies control and objective evidence at the opening; it is not learning, whole-game progress, or a Hall-of-Fame result |
 | Version 11 continuous clean run | ✅ Closed assisted control | E1 diagnostic | The attempt stopped after 950.308 seconds, 329 controller actions, and 144 online model calls, without party or badge progress. It was ended because online per-decision assistance did not answer the chosen experiential-learning question |
 | Version 12 self-generated hindsight mechanism | ✅ Qualified narrowly | E3 mechanism | Three random-weight, direct-power-on real-ROM canaries generated and trained self-created future-frame goals. C2's correct-goal advantage was `-0.00018086`; the fixed contrastive objective moved C3 to `+0.00353084`. This proves the mechanism can measure and push goal use, not that a skill is competent |
-| Version 12 fixed 48-hour experiment | 🟨 Source-frozen retry prepared | E2 launch gate | The launcher freezes a 48-hour, four-environment, 150-million-action-ceiling contract and refuses dirty source, missing ROM, occupied dashboard port, or insufficient SSD space. The mounted T7 has 220 GiB free. A detached child was reaped and a privacy-restricted LaunchAgent was rejected before either created a run action; the Terminal-owned retry cannot silently restart |
+| Version 12 final experiential run | ❌ Closed negative learning result | E3 training / E2 terminal limitation | Source-frozen run `v12-final-48h-20260722-005136-seed20260722` observed 8,236,144 actions in 35,696.136s, 4,021 PPO updates, 694 positions, and seven promotions through Route 1. It trained 64,336 hindsight lessons / 3,518,624 action examples but ended 55/502 frozen exams, zero competent skills, no composition, and no Hall of Fame. The requested stop interrupted the finalizer; the model/curriculum/skill artifacts match the 8,224,768-action checkpoint, the hindsight state does not, and no terminal evaluation exists |
 | One retained model composes the route from power-on | ⬜ Not demonstrated | E0 | Backward training and frozen evaluation gates must expand to power-on before this claim exists |
 | Reverse curriculum reaches the complete opening horizon | ✅ Completed in development scope | E3 development | Seven adaptive rungs completed in 480 attempts with 451 successes; the final full-horizon rung passed 29/30 twice, but weights changed between attempts and no held-out H2 evaluation exists |
 | The apprentice-guided expedition continued beyond `left_home` | ✅ Preserved historical lane | E1 | Frozen pixel-policy actions and seeded exploration fed Archive v2's milestone search; this lane is retained as learned-policy evidence rather than presented as the active V11 completion runner |
@@ -217,8 +218,8 @@ suggest precision that does not exist before the training design and difficulty 
 | Q0 — Completion foundation | Reproducible checkpoint runner plus truthful completion referee | **Passed** | Runner, replay, resume, privacy, and corruption checks recorded |
 | 1 — Expedition opening | Replay-verified bedroom, house, starter, and Parcel frontiers | **Q1 concluded 1/2; Archive v2 qualified** | A materially different learned or optimized emitter reaches `left_home` under a frozen matched gate |
 | 2 — Assisted guided control | Planner, maps, memory, specialists, and strict referee | **V11 opening qualified; continuous attempt closed** | Retained only as a labeled assisted upper-bound control |
-| 3 — Experiential final experiment | One local recurrent actor, self-generated hindsight goals, frozen exams | **V12 mechanism qualified; source-frozen launch retry prepared** | Publish the fixed-budget result and terminal power-on evaluation regardless of outcome |
-| Later — Comparisons | Language-model, RL, and hybrid ablations | **Framework specified** | Same referee and declared budgets used for all configurations |
+| 3 — Experiential final experiment | One local recurrent actor, self-generated hindsight goals, frozen exams | **Closed negative: 55/502, zero competent skills** | Result and missing terminal artifact published without retroactive tuning |
+| Later — Comparisons | Language-model, RL, and hybrid ablations | **Project closed; framework preserved** | A successor would be a separate research project |
 
 ## What the current deterministic milestone proves
 

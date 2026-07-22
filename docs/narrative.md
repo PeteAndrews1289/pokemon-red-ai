@@ -70,13 +70,14 @@
 > system was auditable, but it answered an assisted-planning question rather than whether a local
 > model could learn the game from experience.
 
-> **Final turn:** V12 returns to that harder question without returning to sparse luck. One
-> random-initialized recurrent visual actor converts its own ordinary rollouts into local
-> future-screen goals. It must make the actions that reached a future screen more likely for that
+> **Final turn:** V12 returned to that harder question without returning to sparse luck. One
+> random-initialized recurrent visual actor converted its own ordinary rollouts into local
+> future-screen goals. It had to make the actions that reached a future screen more likely for that
 > real goal than for a blank goal, then pass checkpoint-separated no-update exams. Three bounded
-> real-ROM canaries qualified the mechanism but no competent skill. The 48-hour rules are frozen;
-> the T7 now has 220 GiB free, and a Terminal-owned source-frozen retry follows two preserved
-> zero-action launch failures: a reaped detached child and a privacy-rejected LaunchAgent.
+> real-ROM canaries qualified the mechanism. The final run observed 8,236,144 actions in 9h54m56s,
+> found seven replay-verified milestones through Route 1, and trained more than 3.5 million
+> hindsight examples. Yet it ended at 55/502 frozen exams, zero competent skills, and no
+> composition. It discovered faster than it remembered. The project closes on that answer.
 
 ## The question
 
@@ -106,7 +107,7 @@ journey without those restores before the project says one model learned the gam
 
 ## Where the project honestly stands
 
-**The checkpoint expedition has replayed named transitions. V8's committed canary built four
+**The checkpoint expedition replayed named transitions. V8's committed canary built four
 self-generated lessons through Oak's lab and failed 0/7 frozen exams; its later final run built
 seven through Route 1, improved offline fit, but finished at 1/47 with zero competent skills. V9's
 closed-loop self-correction mechanics now pass the 288-check engineering suite, and its corrected
@@ -114,10 +115,11 @@ real-ROM canary qualifies mechanism, observability, and wall-time control. The f
 reached Route 1 but passed only 4/87 frozen exams, with zero competent skills and no composition.
 The matched-configuration V10 campaign closed at 4,503.282 seconds and 534,924 actions with 3/32
 frozen exams and zero competent skills. V11's fourth canary qualified its assisted opening, then its
-continuous run closed. V12 has passed three mechanism canaries; its corrective canary moved the
-correct-goal diagnostic in the intended direction but produced zero competent skills. The fixed
-T7 storage gate has passed; a Terminal-owned source-frozen retry is prepared after two zero-action
-launch failures. No Hall-of-Fame result exists.**
+continuous run closed. V12's canaries moved the correct-goal diagnostic in the intended direction,
+then its final run exposed the deeper failure: 8.24 million actions and seven verified discoveries
+ended at 55/502 exams, zero competent skills, zero composition, and an effectively zero goal-use
+advantage. The stop-time finalizer failed before producing a terminal power-on artifact. No
+Hall-of-Fame result exists, and the project is closed.**
 
 Phase 0 built the measuring instrument: a reproducible emulator harness that can start the exact
 same game, issue timed controller inputs, observe a small and disclosed slice of state, restore an
@@ -163,8 +165,9 @@ test sequence used to prove that the laboratory works.
 | What did the V11 canaries establish? | C1 failed on path resolution; C2 failed on MCP authorization; C3 was operational but rejected for false initialized state; C4 qualified the opening referee with 136 actions, 70 language-model calls, real RIGHT-movement proof, and objective 1/84. |
 | Why did V11 close? | Its continuous run made 329 controller actions and 144 live model calls in 950.308 seconds without party or badge progress. More importantly, an online model choosing decisions tested access to assistance rather than the selected learning premise. |
 | What does V12 change? | One recurrent visual actor owns exploration, hindsight practice, recovery, and evaluation. It receives no route or live model decisions; its own future frames become local goals, and a contrastive diagnostic checks that those goals affect action probability. |
-| What is running now? | At source freeze, no long experiment. The mounted T7 has 220 GiB free; a detached child died and a privacy-restricted LaunchAgent was rejected before either created a run action. The Terminal-owned retry is ready. |
-| What comes next? | Mount the T7, pass the launch gates, run the frozen 48-hour V12 contract without mid-run tuning, and publish the terminal power-on evaluation regardless of outcome. |
+| What is running now? | Nothing. V12 and the project are closed; the dashboard process is no longer active. |
+| What happened in V12? | It observed 8,236,144 actions, reached Route 1, trained 3,518,624 hindsight examples, and ended with zero competent skills or composition. The shutdown finalizer failed, so no terminal power-on evaluation was produced. |
+| What comes next? | The repository remains as a completed negative result. Any new architecture should begin as a separately declared successor, not a retroactive repair to V12. |
 
 Keeping this table current is part of the project. A small true claim is more valuable than a large
 ambiguous one.

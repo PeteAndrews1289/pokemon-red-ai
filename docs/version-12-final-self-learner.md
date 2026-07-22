@@ -1,26 +1,61 @@
 # Version 12: every journey creates its next lesson
 
-> **Status, 2026-07-22 source freeze:** V12 is implemented and has passed three bounded real-ROM
-> mechanism canaries. The T7 is mounted with 220 GiB free. A first post-mount start produced zero
-> training actions because its detached child did not survive the desktop command session. A
-> second privacy-restricted LaunchAgent was rejected before execution. The source-frozen retry uses
-> a dedicated Terminal foreground session. No Hall-of-Fame result, learned skill competence, or
-> whole-game completion is claimed.
+> **Final status, 2026-07-22:** V12 is closed. Its declared final run observed 8,236,144 actions in
+> 35,696.136 seconds, reached Route 1, and performed 4,021 PPO updates. It ended at 55/502 frozen
+> exams, zero competent skills, zero composition attempts, and no Hall-of-Fame result. The process
+> was stopped at the user's request after a long plateau. A shutdown finalizer failure left the last
+> status stale and produced no terminal power-on evaluation; the last integrity-bound checkpoint
+> and this limitation are both published in the
+> [V12 final result](../experiments/v12-final/README.md).
 
-Version 12 is the final experimental learner, not another open-ended repair loop. Its rules are
-frozen before the long run, it begins with random neural parameters and a directly verified ROM
-power-on state, and it receives no live language-model decisions, walkthrough, demonstration,
-route, coordinates, or predecessor policy. The 48-hour result will be reported whether it succeeds,
-stalls, or never acquires one competent skill.
+Version 12 was the final experimental learner, not another open-ended repair loop. Its rules were
+frozen before the long run, it began with random neural parameters and a directly verified ROM
+power-on state, and it received no live language-model decisions, walkthrough, demonstration,
+route, coordinates, or predecessor policy. The attempt ended early by explicit user choice and is
+reported as run, without retroactive tuning.
 
 The governing question is:
 
 > Can one local recurrent visual policy turn ordinary experience into reusable, goal-sensitive
 > behavior, preserve rare discoveries, and eventually connect those behaviors from power-on?
 
-The ultimate target remains the Hall of Fame. V12 does not assume that 48 hours on an M1 is enough
-to reach it. The fixed run measures whether the learning architecture is moving in that direction
+The ultimate target was the Hall of Fame. V12 did not assume that 48 hours on an M1 would be enough
+to reach it. The fixed run measured whether the learning architecture was moving in that direction
 without a human repeatedly dividing the game into hand-selected slices.
+
+## Final result
+
+The run answered the governing question negatively under this implementation and budget. It found
+useful trajectories much faster than it learned reusable behavior.
+
+| Measure | Final value |
+| --- | ---: |
+| Last integrity-bound checkpoint | 8,224,768 actions / 35,634.036 s |
+| Last observed status | 8,236,144 actions / 35,696.136 s |
+| PPO updates observed | 4,021 |
+| Replay-verified frontier | Route 1, reached at action 378,388 |
+| Hindsight lessons / action examples | 64,336 / 3,518,624 |
+| Frozen exams | 55 / 502 |
+| Competent skills at end | 0 |
+| Composition attempts | 0 |
+| Hall-of-Fame completions | 0 |
+| Online decision-model calls | 0 |
+
+All seven promotions arrived in the first 30 minutes. More than 7.85 million additional observed
+actions produced no Viridian City promotion. “The adventure begins” passed 55/160 exams and
+briefly crossed the rolling competence gate, but lost that status twice and ended at 1/10. “Reached
+the ground floor” passed 0/342. Later discovered skills remained ineligible behind that sequential
+gate, so the actor never attempted restore-free composition.
+
+At qualification, correct-goal contrast had moved the matched canary diagnostic to a small positive
+`+0.00353084`. At the final checkpoint the goal-conditioned log-probability advantage was
+effectively zero and contrast loss sat at `0.10`. Millions of hindsight examples therefore did not
+produce stable goal use. The policy updated and briefly changed behavior, but it did not acquire
+durable cumulative competence.
+
+The full endpoint, milestone timeline, per-skill exam denominator, and shutdown-integrity note are
+in the [public final evidence record](../experiments/v12-final/README.md). The broader interpretation
+is in the [final retrospective](final-retrospective.md).
 
 ## Why this is different
 
@@ -252,7 +287,7 @@ milestones, that the actor will master its goals, or that 48 hours can solve Pok
 | Output ceiling | 100 GiB |
 | Dashboard | `http://127.0.0.1:8777/index.html` |
 
-The launcher records a SHA-256 of this configuration in the run manifest and declares mid-run rule
+The launcher recorded a SHA-256 of this configuration in the run manifest and declared mid-run rule
 changes forbidden. A defect may stop and invalidate the attempt; it may not be silently tuned into
 a better result while continuing under the same run name.
 
@@ -260,9 +295,11 @@ The checked launcher is [`scripts/launch_v12_final.sh`](../scripts/launch_v12_fi
 to begin unless the T7 is mounted, at least 150 GiB is free, the source tree is committed, the ROM
 exists, and the dashboard port is unused. It uses macOS `caffeinate -imsu`, allowing the display to
 turn off while keeping the computer and disks awake. It runs in a dedicated Terminal foreground
-session rather than as an orphaned shell child or privacy-restricted LaunchAgent. Terminal owns the
-process independently of Codex, and there is no automatic restart: a clean finish, crash, Terminal
-closure, or machine restart remains a visible terminal outcome.
+session rather than as an orphaned shell child or privacy-restricted LaunchAgent. The desktop
+safety layer did not operate Terminal directly, so the actual run used a persistent Codex terminal
+session and recorded that provenance inside the private run. There was no automatic restart. The
+user-requested interrupt terminated the process, but a broken pipe prevented the normal finalizer
+from writing its terminal evaluation and finished status.
 
 ## What would count as progress
 
@@ -294,8 +331,9 @@ success and deeper restore-free composition.
 - **The run reaches the Hall of Fame only through restored states:** reject the completion claim.
 - **The fixed terminal policy reaches the strict Hall of Fame from power-on:** report the first
   learned completion, with its exact information card and every denominator intact.
-- **The 48-hour budget ends anywhere else:** publish the deepest verified discovery, goal-use
-  diagnostic, exam record, composition depth, and terminal result as the final outcome.
+- **The run ends anywhere else:** publish the deepest verified discovery, goal-use diagnostic,
+  exam record, composition depth, and any missing terminal evidence as the final outcome. This is
+  the observed V12 ending.
 
 ## Narrative purpose
 

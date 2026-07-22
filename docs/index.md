@@ -2,8 +2,8 @@
 
 This project now has one central story and two deliberately separate research lanes:
 
-1. **Experiential-learning lane — final experiment prepared.** V12 starts one recurrent visual
-   policy from random parameters and clean ROM power-on. It converts visually different future
+1. **Experiential-learning lane — final experiment closed.** V12 started one recurrent visual
+   policy from random parameters and clean ROM power-on. It converted visually different future
    frames from its own rollouts into local goals, contrasts the real goal against a blank goal, and
    grades retained behavior in deterministic no-update exams. It imports no route, demonstration,
    predecessor policy, save state, or online model decision.
@@ -31,17 +31,18 @@ model calls, without party or badge progress. It was stopped because querying an
 decisions did not test the premise the project ultimately chose: learning to play through local
 experience.
 
-V12 has passed three bounded real-ROM mechanism canaries. Its latest matched-budget corrective
-canary processed 6,000 actions from random weights, trained 176 self-generated hindsight lessons,
-and moved demonstrated-action preference for the correct future goal from `-0.00018086` to
-`+0.00353084`. No skill became competent. The T7 has 220 GiB free. A zero-action detached-process
-failure and one privacy-rejected LaunchAgent are preserved; the source-frozen retry uses a
-dedicated Terminal foreground session.
+V12's three bounded real-ROM canaries qualified its mechanism, then the final run closed the
+learning question. It observed 8,236,144 actions in 9h54m56s, replay-verified seven milestones
+through Route 1, and generated 3,518,624 hindsight action examples. Frozen exams ended at 55/502,
+zero competent skills, and no composition. The first skill lost competence twice; the second
+passed 0/342 exams. The requested stop exposed a finalizer defect, so no terminal power-on
+evaluation was produced. That limitation and the last integrity-bound checkpoint are explicit in
+the [final result record](../experiments/v12-final/README.md).
 
-The through-line for the documentation and eventual video is the pivot itself. The project began
+The through-line for the completed documentation is the pivot itself. The project began
 with the “monkeys with typewriters” question, learned that randomness cannot retain luck, learned
 that local rewards and rare milestone lessons can still fail to compose a journey, and tested an
-auditable planner–memory–specialist system as an assisted control. The final iteration returns to
+auditable planner–memory–specialist system as an assisted control. The final iteration returned to
 the harder premise: one local policy must make dense lessons from its own experience and prove it
 uses their goals before the story credits it with learning.
 
@@ -67,6 +68,8 @@ uses their goals before the story credits it with learning.
 | Understand the assisted control | [Version 11: stop teaching one button at a time](version-11-hierarchical-pivot.md) | Why V10 closed; planner/navigation/memory/specialist roles; assistance label; opening canaries; and why the continuous run was stopped |
 | Understand the final experiential learner | [Version 12: every journey creates its next lesson](version-12-final-self-learner.md) | Hindsight goals, correct-goal contrast, fixed information rules, canary evidence, 48-hour contract, and falsifiers |
 | Audit the V12 qualification | [V12 qualification record](../experiments/v12-qualification/README.md) | Three ROM-free canary summaries and the narrow reason the mechanism qualified |
+| Read the final conclusion | [Final retrospective](final-retrospective.md) | What the agent actually learned, why discovery failed to become competence, and what a successor would need |
+| Audit the final V12 run | [V12 final result](../experiments/v12-final/README.md) | Public endpoint, milestones, frozen exams, assistance boundary, and shutdown integrity limitation |
 | Inspect the first verified expedition milestone | [Q1 `left_home` result](../experiments/q1-left-home/README.md) | Both seeds, full denominator, lineage hashes, replay cost, and why 1/2 is not a pass |
 | Audit the qualified memory substrate | [Archive v2 qualification](../experiments/archive-v2-qualification/README.md) | Bounded replay, exact resume, crash recovery, deterministic comparison, and the failed stop-timing attempt |
 | Audit every accepted and discarded idea | [Decision register](decision-register.md) | Append-only decisions, failed hypotheses, alternatives, evidence, and consequences |
@@ -110,9 +113,9 @@ flowchart LR
     V9 --> L9["✅ Version 9 long run<br/>4/87; zero competent"]
     L9 --> V10["✅ Version 10 closed<br/>3/32; zero competent"]
     V10 --> V11["✅ Version 11 assisted control<br/>closed after opening"]
-    V11 --> V12["✅ Version 12 mechanism<br/>three bounded canaries"]
-    V12 --> RUN["🟨 Fixed 48-hour run<br/>source-frozen retry prepared"]
-    RUN --> HF["⬜ Frozen-policy Hall of Fame<br/>strict power-on verifier"]
+    V11 --> V12["✅ Version 12 final run<br/>8.24M actions; Route 1"]
+    V12 --> RUN["❌ Frozen competence<br/>55/502; 0 skills"]
+    RUN --> HF["❌ Hall of Fame<br/>not reached"]
 ```
 
 The diagram shows project position, not game progress. Reaching the game-start state is a narrow

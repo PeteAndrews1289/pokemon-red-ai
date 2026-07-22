@@ -1,5 +1,30 @@
 # Development log
 
+## 2026-07-22 — Close V12 and the project
+
+- Ended `v12-final-48h-20260722-005136-seed20260722` at the user's request after its verified
+  frontier remained Route 1 for more than nine hours. The 48-hour value was a ceiling, not the
+  achieved duration.
+- Preserved two endpoints. The last integrity-bound checkpoint records 8,224,768 actions and
+  35,634.036 seconds. The last observed status records 8,236,144 actions, 35,696.136 seconds,
+  4,021 PPO updates, 903 episodes, 694 unique positions, and 230.729 actions/second.
+- Closed the discovery record at seven replay-verified promotions. They arrived quickly: game start
+  at action 992, ground floor at 2,132, outside at 38,972, Oak's lab at 39,884, starter at 43,564,
+  first rival battle at 64,432, and Route 1 at 378,388. Viridian City never promoted.
+- Closed the learning denominator at 64,336 hindsight lessons, 3,518,624 hindsight action examples,
+  39,328 self-imitation examples, and 154 imitation updates. The final correct-goal advantage was
+  effectively zero despite the qualified canary's earlier positive diagnostic.
+- Closed behavioral evaluation at 55/502 frozen exams and zero competent skills. “The adventure
+  begins” passed 55/160, temporarily became competent, lost that status twice, and ended 1/10.
+  “Reached the ground floor” passed 0/342. No later skill exam or composition attempt became
+  eligible.
+- Recorded the stop-time defect without repairing the result. The interrupt caused a broken pipe
+  before terminal evaluation and final status were written. The sealed model, curriculum, and
+  self-skill hashes still match the last checkpoint; the hindsight-learning state does not. Exact
+  resume failed closed, so no post-hoc terminal result was invented.
+- Added the public V12 endpoint, milestone CSV, exam CSV, final retrospective, DR-0065, and project-
+  wide status updates. Shelved the video plan while preserving it as historical production notes.
+
 ## 2026-07-22 — Freeze V12 as the final experiential-learning experiment
 
 - Closed V11's continuous attempt after 950.308 seconds, 329 controller actions, and 144 online

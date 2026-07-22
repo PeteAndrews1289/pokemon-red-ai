@@ -1,5 +1,11 @@
 # Video and series outline
 
+> **Status: shelved, preserved for reference.** The project closed without a learned completion,
+> and no video is currently planned. V12's final run observed 8.24 million actions and reached
+> Route 1, but frozen evaluation ended 55/502 with zero competent skills and no composition. The
+> material below remains a record of how the story could be told honestly; it is not an active
+> production schedule. See the [final retrospective](final-retrospective.md).
+
 > **Series-direction update:** Pure Monkey supplied the opening experiment and the conclusion: luck
 > cannot accumulate when success never changes later behavior. Evolutionary Explorer then showed
 > that a useful accident could have children—but the completed
@@ -77,11 +83,12 @@
 > calls with empirical RIGHT-movement proof and objective 1/84. Its continuous successor closed
 > after 950.308 seconds, 329 actions, and 144 online model calls. That made V11 a useful assisted
 > control, but not the desired experiential learner. Version 12 is the final turn: one local
-> recurrent visual actor makes goals from its own future frames, must prefer its demonstrated actions
-> under the correct goal over a blank goal, and faces a frozen 48-hour contract. Three canaries
-> qualify the mechanism, not competence. Preserve the zero-action first post-mount start as an
-> operational beat. Preserve the privacy-rejected LaunchAgent as the second zero-action beat, then
-> begin the source-frozen retry in a dedicated Terminal foreground session.
+> recurrent visual actor made goals from its own future frames and had to prefer demonstrated
+> actions under the correct goal over a blank goal. Three canaries qualified the mechanism. The
+> final run then observed 8.24 million actions, discovered Route 1, and failed the harder test:
+> 55/502 frozen exams, zero competent skills, no composition, and effectively zero final goal-use
+> advantage. The stop-time finalizer failure is also part of the ending. If this outline is ever
+> revived, discovery and frozen competence must remain on opposite sides of the final split-screen.
 
 This document is a production guide for telling the project's story without getting ahead of the
 evidence. The detailed Episode 0 section preserves the original before-training production plan;

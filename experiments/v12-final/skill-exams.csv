@@ -1,0 +1,8 @@
+skill_index,skill_label,attempts,successes,final_window_successes,final_window_attempts,competence_losses,competent_at_end
+1,The adventure begins,160,55,1,10,2,false
+2,Reached the ground floor,342,0,0,10,0,false
+3,Stepped outside,0,0,0,0,0,false
+4,Followed Professor Oak into his lab,0,0,0,0,0,false
+5,Chose a starter Pokemon,0,0,0,0,0,false
+6,Finished the first rival battle,0,0,0,0,0,false
+7,Reached Route 1,0,0,0,0,0,false

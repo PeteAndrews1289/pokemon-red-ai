@@ -2048,7 +2048,7 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
 ## DR-0062 — Freeze V12 as a fixed self-generated hindsight experiment
 
 - **Date:** 2026-07-22
-- **Status:** Accepted and mechanism-qualified; fixed 48-hour run waiting for T7 mount
+- **Status:** Completed with a negative final result; see DR-0065
 - **Scope:** Final learner architecture, information contract, self-generated training, exams,
   terminal evaluation, hardware budget, launch gates, and publication rule
 - **Information label:** `PIXELS + RECENT ACTIONS + SELF-GENERATED VISUAL GOAL / RANDOM WEIGHTS /
@@ -2139,12 +2139,55 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
   lifetime. A Terminal close, crash, reboot, duration limit, action ceiling, disk guard, or strict
   completion remains a terminal event and cannot silently create another run.
 - **Supersedes / superseded by:** Supersedes DR-0063 only for process ownership. DR-0063's
-  zero-action failure and no-auto-restart requirement remain part of the record. Not yet superseded.
+  zero-action failure and no-auto-restart requirement remain part of the record. Closed by DR-0065.
 
-## Unresolved decisions
+## DR-0065 — Close V12 and the project on the measured negative result
 
-These are questions, not hidden commitments. Each becomes a numbered entry when evidence supports
-a choice.
+- **Date:** 2026-07-22
+- **Status:** Accepted and final
+- **Scope:** V12 interpretation, terminal evidence, public reporting, and project continuation
+- **Decision:** End the plateaued V12 attempt at the user's request, publish its last
+  integrity-bound checkpoint and last observed status separately, make no Hall-of-Fame or stable-
+  competence claim, and close the project rather than begin another post-hoc repair iteration.
+- **Observation/evidence:** Run `v12-final-48h-20260722-005136-seed20260722`, clean source commit
+  `804ffe810fce5002afb03406f65dfac2ca5be214`, observed 35,696.136 seconds and 8,236,144 training
+  actions. It made 4,021 PPO updates, replay-verified seven promotions through Route 1, observed
+  694 unique positions, and generated/trained 64,336 hindsight lessons over 3,518,624 action
+  examples. Frozen evaluation ended at 55/502, zero competent skills, no composition attempt, and
+  no Hall-of-Fame completion. The first skill passed 55/160, lost competence twice, and ended 1/10;
+  the ground-floor skill passed 0/342. The correct-goal advantage ended effectively zero.
+- **Terminal limitation:** The user-requested interrupt reached the persistent terminal wrapper as
+  a broken pipe before the normal finalizer wrote `terminal-evaluation.json` or changed the stale
+  `running` status. The last sealed checkpoint is 8,224,768 actions / 35,634.036 seconds. Its model,
+  curriculum, and self-skill hashes still match. Its V12 hindsight-state hash does not match the
+  current file, so an exact resume correctly failed closed. The remaining 11,376 observed actions
+  are reported but not represented as a sealed checkpoint. No substitute terminal result is
+  invented.
+- **Alternatives considered:** Continue toward the 48-hour ceiling despite a nine-hour plateau;
+  bypass checkpoint validation to force finalization; reconstruct or edit private state until the
+  resume passed; run a post-hoc evaluator under changed source and present it as the declared
+  terminal exam; or begin V13 immediately. Each would either spend compute without addressing the
+  observed forgetting, weaken integrity, or turn a fixed experiment back into an open-ended repair
+  loop.
+- **Interpretation:** Parameter updates and transient behavior occurred, but stable cumulative
+  learning did not. V12 discovered trajectories much faster than it retained them. Millions of
+  dense hindsight examples did not prevent goal neglect or catastrophic forgetting, and the
+  competence gate correctly prevented seven archive milestones from being called one learned
+  journey.
+- **Consequence:** The public repository receives a redistribution-safe result record, final
+  retrospective, milestone and exam tables, and explicit shutdown limitation. The video plan is
+  retained as historical planning material but shelved. Any future attempt must be a separate,
+  newly declared project with a materially different representation, anti-forgetting, temporal-
+  abstraction, or compute strategy.
+- **Revisit when:** Never within this project's V12 protocol. A successor may cite this denominator
+  but must not rewrite it.
+- **Supersedes / superseded by:** Closes DR-0062's final experiment and DR-0064's process-lifetime
+  plan. No project decision supersedes this entry.
+
+## Archived unresolved questions
+
+These questions remain useful for a future, separately declared successor. They are not active
+commitments in this closed project.
 
 - Which emitter wins the Q2 matched comparison after the random-suffix Q1 denominator?
 - Whether Archive v2's provisional three visual alternatives per primary niche survive the staged

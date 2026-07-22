@@ -1,6 +1,6 @@
 # Architecture
 
-> **Primary-track update:** Versions 7–10 are now preserved controls rather than the active
+> **Final architecture record:** Versions 7–10 are preserved controls rather than the final
 > completion architecture. V8 separated exploration from a recurrent Student but ended at 1/47
 > frozen exams. V9 added reverse closed-loop practice and reached 68.5919% training accuracy, yet
 > ended at 4/87 with zero competent skills. V10 added bounded policy-controlled local recovery and
@@ -18,13 +18,14 @@
 > Canary 4 qualified the opening referee and empirical player-control gate. Its continuous run then
 > closed after 950.308 seconds, 329 actions, and 144 online model calls. V11 remains a labeled
 > assisted control.
-> [Version 12](version-12-final-self-learner.md) is the final implementation track: one
+> [Version 12](version-12-final-self-learner.md) was the final implementation track: one
 > random-initialized recurrent visual actor, direct clean power-on, self-generated future-frame
 > goals, correct-goal contrast, route-agnostic recovery, replay-verified rare discoveries, and
-> checkpoint-separated frozen exams. Three bounded real-ROM canaries qualified that mechanism. The
-> T7 storage gate now passes at 220 GiB free. After preserving a zero-action detached-process
-> failure and a privacy-rejected LaunchAgent, the fixed retry runs as a non-restarting,
-> Terminal-owned foreground process.
+> checkpoint-separated frozen exams. Three bounded real-ROM canaries qualified that mechanism.
+> The final run observed 8,236,144 actions and reached Route 1, but closed at 55/502 frozen exams,
+> zero competent skills, and no composition. Its stop-time finalizer failed before terminal
+> power-on evaluation. The project is closed; this document preserves the architecture and its
+> assistance boundaries rather than describing an active runner.
 
 ## Preserved Version-11 assisted boundary
 

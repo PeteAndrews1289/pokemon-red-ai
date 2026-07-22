@@ -3,7 +3,7 @@
 > **Direction update:** Pure Monkey, clean-start mutation, verify-only Frontier Apprentice, and the
 > [parallel recurrent PPO](parallel-ppo.md) family remain preserved controls. The assisted
 > [Version 11 hierarchy](version-11-hierarchical-pivot.md) also remains as a closed upper-bound
-> control rather than the active runner. The final track is
+> control rather than the active runner. The final track was
 > [Version 12](version-12-final-self-learner.md): one random-initialized recurrent visual policy,
 > self-generated future-frame goals, explicit goal-use contrast, deterministic frozen exams, and a
 > fixed result published whether it succeeds or fails.
@@ -38,9 +38,11 @@
 > and C4 qualified the opening referee with 136 actions, 70 language-model calls, empirical RIGHT-
 > movement proof, and story objective 1/84. The continuous run closed after 950.308 seconds, 329
 > actions, and 144 online model calls when the project rejected per-decision online assistance as
-> its final premise. V12 has since passed three bounded real-ROM mechanism canaries. Its fixed
-> 48-hour launcher is ready but refuses to begin until the external T7 is mounted with at least
-> 150 GiB free. No competent skill or Hall-of-Fame result is claimed.
+> its final premise. V12 then passed three bounded real-ROM mechanism canaries and ran its final
+> source-frozen experiment. It observed 8,236,144 actions in 9h54m56s, reached Route 1, and ended at
+> 55/502 frozen exams, zero competent skills, and no composition. A stop-time finalizer defect left
+> no terminal power-on artifact. The project is closed without a Hall-of-Fame result; its evidence
+> and limitations are preserved rather than extended into another repair loop.
 
 ## Completed blind-discovery arc
 
@@ -157,18 +159,20 @@
     route-agnostic recovery, rare-discovery verification, frozen exams, and terminal evaluation.
 41. ✅ Run three bounded real-ROM V12 canaries. Preserve the negative C2 goal-use diagnostic and
     the directional C3 correction without promoting either to competent behavior.
-42. 🟨 Mount and qualify the T7, commit the exact source, and launch the fixed 48-hour V12 contract.
-    Do not tune it mid-run. Publish actions, goal-use metrics, exams, composition, and terminal
-    power-on outcome regardless of success.
+42. ✅ Mount and qualify the T7, commit the exact source, and launch the fixed V12 contract without
+    mid-run tuning. Close at the explicit user stop after 8,236,144 observed actions; publish Route
+    1, 55/502 exams, zero competent skills, zero composition, and the missing terminal evaluation.
+43. ✅ Conclude the project. Publish a retrospective and redistribution-safe aggregate evidence;
+    preserve every failed premise and leave any future successor as a separately declared project.
 
-## Later informed-agent roadmap
+## Archived informed-agent roadmap
 
-The destination is a transparent hybrid agent that can plan, learn reusable skills, remember what
-it discovers, and recover from loops. The route there is a series of bounded experiments. Each
-milestone must produce evidence that can be understood without trusting a highlight reel.
+The former destination was a transparent hybrid agent that could plan, learn reusable skills,
+remember what it discovered, and recover from loops. The route was expressed as bounded
+experiments. This section is preserved as historical design context, not an active delivery plan.
 
-This roadmap records intent, not a delivery schedule. Training results are uncertain, and later
-designs should change when evidence points somewhere better.
+Any successor should treat this roadmap as evidence, declare a new scope, and change its design
+when the final V12 result points somewhere better.
 
 ## Dependency map
 
@@ -189,10 +193,10 @@ flowchart TD
     V8 --> V9["✅ V9<br/>self-correction result 4/87"]
     V9 --> V10["✅ V10<br/>recovery result 3/32"]
     V10 --> V11["✅ V11 assisted control<br/>closed"]
-    V11 --> V12["✅ V12 mechanism<br/>three canaries"]
-    V12 --> RUN["🟨 Fixed 48-hour run<br/>source-frozen retry prepared"]
-    RUN --> HOF["⬜ Frozen terminal policy<br/>power-on evaluation"]
-    HOF --> AB["🧭 LATER<br/>Controlled comparisons"]
+    V11 --> V12["✅ V12 final run<br/>8.24M actions; Route 1"]
+    V12 --> RUN["❌ Frozen competence<br/>55/502; 0 skills"]
+    RUN --> HOF["❌ Hall of Fame<br/>not reached"]
+    HOF --> AB["✅ Project closed<br/>evidence preserved"]
 ```
 
 Arrows mean “needs evidence from,” not necessarily “must be implemented in a single strict
