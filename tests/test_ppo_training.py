@@ -51,6 +51,7 @@ from pokemon_red_ai.ppo_training import (
     _copy_retained_ppo_policy,
     _ensure_run_manifest_identity,
     _hall_of_fame_stop_is_verified,
+    _hindsight_goal_log_probability_advantage,
     _merge_v9_success_student_report,
     _new_v12_learning_state,
     _ppo_protocol,
@@ -1656,6 +1657,7 @@ def test_self_imitation_updates_recurrent_policy_from_its_own_dataset(
     assert result["updates"] == 1
     assert result["examples"] == 4
     assert np.isfinite(result["mean_loss"])
+    assert np.isfinite(_hindsight_goal_log_probability_advantage(model, [dataset]))
     vector.close()
 
 

@@ -418,6 +418,7 @@ def build_parser() -> argparse.ArgumentParser:
     ppo.add_argument("--hindsight-min-changed-fraction", type=float, default=0.03)
     ppo.add_argument("--hindsight-min-mean-absolute-error", type=float, default=3.0)
     ppo.add_argument("--hindsight-epochs", type=int, default=1)
+    ppo.add_argument("--terminal-evaluation-actions", type=int, default=32_768)
     ppo.add_argument("--resume", action="store_true")
 
     ppo_status = subparsers.add_parser(
@@ -980,6 +981,7 @@ def run_parallel_ppo_command(args: argparse.Namespace) -> int:
         hindsight_min_changed_fraction=args.hindsight_min_changed_fraction,
         hindsight_min_mean_absolute_error=args.hindsight_min_mean_absolute_error,
         hindsight_epochs=args.hindsight_epochs,
+        terminal_evaluation_actions=args.terminal_evaluation_actions,
     )
     if args.port:
         print(

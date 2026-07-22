@@ -168,6 +168,7 @@ V12_CONFIG_FIELDS = frozenset(
         "hindsight_min_changed_fraction",
         "hindsight_min_mean_absolute_error",
         "hindsight_epochs",
+        "terminal_evaluation_actions",
     }
 )
 V9_PRACTICE_TERMINAL_REASONS = frozenset(
@@ -368,6 +369,7 @@ def _new_v12_learning_state() -> dict[str, Any]:
         "examples_trained": 0,
         "optimizer_updates": 0,
         "last_mean_loss": None,
+        "last_goal_log_probability_advantage": None,
         "pending_lessons": [],
         "terminal_evaluation": None,
         "updated_at": datetime.now(UTC).isoformat(),
@@ -1091,6 +1093,7 @@ class ParallelPpoConfig:
     hindsight_min_changed_fraction: float = 0.03
     hindsight_min_mean_absolute_error: float = 3.0
     hindsight_epochs: int = 1
+    terminal_evaluation_actions: int = 32_768
 
     def __post_init__(self) -> None:
         if self.mode not in PPO_MODES:
@@ -1187,8 +1190,8 @@ class ParallelPpoConfig:
             min_changed_fraction=self.hindsight_min_changed_fraction,
             min_mean_absolute_error=self.hindsight_min_mean_absolute_error,
         )
-        if self.hindsight_epochs < 1:
-            raise ValueError("Hindsight training epochs must be positive")
+        if self.hindsight_epochs < 1 or self.terminal_evaluation_actions < 1:
+            raise ValueError("Hindsight epochs and terminal evaluation actions must be positive")
         if _is_self_taught_mode(self.mode) and (
             not self.random_initialization or not self.power_on_only or self.consolidation
         ):
@@ -3397,6 +3400,97 @@ def _train_self_imitation_policy(
     }
 
 
+def _hindsight_goal_log_probability_advantage(
+    model: Any,
+    datasets: Sequence[Path],
+    *,
+    maximum_datasets: int = 8,
+    maximum_actions: int = 64,
+) -> float:
+    """Measure whether actions fit their future goal better than an all-zero goal."""
+
+    from sb3_contrib.common.recurrent.type_aliases import RNNStates
+
+    if maximum_datasets < 1 or maximum_actions < 1:
+        raise ValueError("Hindsight goal diagnostic limits must be positive")
+    policy = model.policy
+    previous_mode = bool(policy.training)
+    policy.set_training_mode(False)
+    advantages: list[float] = []
+    try:
+        for path in list(datasets)[:maximum_datasets]:
+            with np.load(path, allow_pickle=False) as data:
+                count = min(maximum_actions, len(data["actions"]))
+                if count < 1:
+                    continue
+                pixels = np.asarray(data["pixels"][:count], dtype=np.uint8)
+                histories = np.asarray(data["action_history"][:count], dtype=np.float32)
+                actions = np.asarray(data["actions"][:count], dtype=np.int64)
+                target = np.asarray(data["target_pixels"], dtype=np.uint8)
+            action_tensor = torch.as_tensor(actions, dtype=torch.long, device=policy.device)
+            episode_starts = torch.zeros(count, device=policy.device)
+            episode_starts[0] = 1
+            actor_shape = (
+                policy.lstm_actor.num_layers,
+                1,
+                policy.lstm_actor.hidden_size,
+            )
+            critic_lstm = policy.lstm_critic or policy.lstm_actor
+            critic_shape = (
+                critic_lstm.num_layers,
+                1,
+                critic_lstm.hidden_size,
+            )
+
+            def states(
+                actor_state_shape: tuple[int, ...] = actor_shape,
+                critic_state_shape: tuple[int, ...] = critic_shape,
+            ) -> RNNStates:
+                actor = torch.zeros(actor_state_shape, device=policy.device)
+                critic = torch.zeros(critic_state_shape, device=policy.device)
+                return RNNStates(
+                    pi=(actor, actor.clone()),
+                    vf=(critic, critic.clone()),
+                )
+
+            base = {
+                "pixels": torch.as_tensor(pixels, device=policy.device),
+                "action_history": torch.as_tensor(histories, device=policy.device),
+            }
+            actual = {
+                **base,
+                "target_pixels": torch.as_tensor(
+                    np.repeat(target[None, ...], count, axis=0),
+                    device=policy.device,
+                ),
+            }
+            blank = {
+                **base,
+                "target_pixels": torch.zeros(
+                    (count, *target.shape),
+                    dtype=torch.uint8,
+                    device=policy.device,
+                ),
+            }
+            with torch.no_grad():
+                _values, actual_log, _entropy = policy.evaluate_actions(
+                    actual,
+                    action_tensor,
+                    states(),
+                    episode_starts,
+                )
+                _values, blank_log, _entropy = policy.evaluate_actions(
+                    blank,
+                    action_tensor,
+                    states(),
+                    episode_starts,
+                )
+            advantages.append(float((actual_log - blank_log).mean().item()))
+    finally:
+        policy.set_training_mode(previous_mode)
+    return float(np.mean(advantages)) if advantages else 0.0
+
+
 def verify_promotion_candidate(
     rom_path: Path,
     curriculum_directory: Path,
@@ -3972,6 +4066,9 @@ class PpoRunCallback(BaseCallback):
         self.v12_learning["examples_trained"] += int(result["examples"])
         self.v12_learning["optimizer_updates"] += int(result["updates"])
         self.v12_learning["last_mean_loss"] = float(result["mean_loss"])
+        self.v12_learning["last_goal_log_probability_advantage"] = (
+            _hindsight_goal_log_probability_advantage(self.model, paths)
+        )
         self.v12_learning["pending_lessons"] = []
         self._write_v12_learning()
         for path in paths:
@@ -4088,6 +4185,9 @@ class PpoRunCallback(BaseCallback):
             "optimizer_updates": int(self.v12_learning["optimizer_updates"]),
             "pending_lessons": len(self.v12_learning["pending_lessons"]),
             "last_mean_loss": self.v12_learning["last_mean_loss"],
+            "last_goal_log_probability_advantage": self.v12_learning.get(
+                "last_goal_log_probability_advantage"
+            ),
             "lessons_per_rollout": lessons / rollouts if rollouts else 0.0,
             "terminal_evaluation": self.v12_learning["terminal_evaluation"],
             "human_demonstration_examples": 0,
@@ -4742,6 +4842,8 @@ class PpoRunCallback(BaseCallback):
                 f"{hindsight.get('lessons_trained', 0):,}\n"
                 f"- Hindsight action examples: "
                 f"{hindsight.get('examples_trained', 0):,}\n"
+                f"- Latest correct-goal log-probability advantage: "
+                f"{float(hindsight.get('last_goal_log_probability_advantage') or 0):.5f}\n"
                 f"- Online decision-model calls: "
                 f"{hindsight.get('online_decision_model_calls', 0):,}\n\n"
                 f"- Distilled self-generated actions: "
@@ -6247,12 +6349,24 @@ class PpoRunCallback(BaseCallback):
         if not model_path.is_file():
             raise RuntimeError("V12 terminal evaluation has no sealed policy checkpoint")
         chain = self._competent_skill_chain()
-        target_index = int(chain[-1]["target_index"]) if chain else 0
-        target_label = _milestone_label(target_index)
         previous_mode = bool(self.model.policy.training)
         self.model.policy.set_training_mode(False)
         try:
-            success, actions = self._run_frozen_composition_attempt(chain)
+            if chain:
+                target_index = int(chain[-1]["target_index"])
+                target_label = _milestone_label(target_index)
+                success, actions = self._run_frozen_composition_attempt(chain)
+                best_index = target_index if success else 0
+                best_label = _milestone_label(best_index)
+                evaluation_mode = "competent_self_generated_goal_chain"
+            else:
+                target_index = len(MILESTONES)
+                target_label = "Hall of Fame"
+                success, best_index, actions = self._run_v12_blank_goal_attempt(
+                    self.config.terminal_evaluation_actions
+                )
+                best_label = _milestone_label(best_index)
+                evaluation_mode = "unguided_blank_goal_from_power_on"
         finally:
             self.model.policy.set_training_mode(previous_mode)
         hall_of_fame_target = (
@@ -6275,10 +6389,13 @@ class PpoRunCallback(BaseCallback):
             "policy_updates_during_evaluation": 0,
             "restores_between_skills": 0,
             "trainer_selected_buttons": 0,
+            "evaluation_mode": evaluation_mode,
             "competent_skill_count": len(chain),
             "skill_ids": [str(skill["skill_id"]) for skill in chain],
             "target_index": target_index,
             "target_label": target_label,
+            "best_index": best_index,
+            "best_label": best_label,
             "success": success,
             "hall_of_fame_target": hall_of_fame_target,
             "hall_of_fame_verified": bool(success and hall_of_fame_target),
@@ -6287,6 +6404,48 @@ class PpoRunCallback(BaseCallback):
         self._write_v12_learning()
         _atomic_json(self.run_directory / "terminal-evaluation.json", result)
         return result
+
+    def _run_v12_blank_goal_attempt(self, limit: int) -> tuple[bool, int, int]:
+        """Give the terminal actor one deterministic, blank-goal run from exact power-on."""
+
+        if limit < 1:
+            raise ValueError("V12 blank-goal evaluation limit must be positive")
+        manifest = _load_curriculum_manifest(self.curriculum_directory)
+        roots = [entry for entry in manifest["entries"] if int(entry["milestone_index"]) == 0]
+        if len(roots) != 1:
+            raise ValueError("V12 terminal evaluation requires one power-on root")
+        root = _load_curriculum_entry(self.curriculum_directory, roots[0])
+        inherited = _progress_from_value(root["progress"])
+        recent: deque[int] = deque([-1] * ACTION_HISTORY_LENGTH, maxlen=ACTION_HISTORY_LENGTH)
+        recurrent_state: Any | None = None
+        best = inherited.index
+        actions = 0
+        with PokemonRedEmulator(self.rom_path) as emulator:
+            emulator.load_state(FrozenSnapshot.from_checkpoint_dict(root["snapshot"]).thaw())
+            reader = PokemonRedStateReader(emulator)
+            current = preprocess_apprentice_frame(emulator.screen_rgb())
+            previous = current
+            for step in range(limit):
+                action, recurrent_state = self._predict_student_action(
+                    {
+                        "pixels": np.stack((previous, current)),
+                        "action_history": _action_history(recent),
+                        "target_pixels": np.zeros((1, 72, 80), dtype=np.uint8),
+                    },
+                    recurrent_state,
+                    episode_start=step == 0,
+                )
+                actions += 1
+                if not _execute_action(emulator, action):
+                    break
+                recent.append(action)
+                previous = current
+                current = preprocess_apprentice_frame(emulator.screen_rgb())
+                progress = milestone_progress_for_state(reader.read(), inherited=inherited)
+                best = max(best, progress.index)
+                if progress.key == HALL_OF_FAME_KEY:
+                    return True, best, actions
+        return False, best, actions
 
     def _on_rollout_start(self) -> None:
         if _is_v12_mode(self.config.mode):

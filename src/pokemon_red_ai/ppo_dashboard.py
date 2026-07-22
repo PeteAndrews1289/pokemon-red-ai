@@ -826,6 +826,15 @@ def _hindsight_section(status: Mapping[str, Any]) -> str:
                 ),
             ),
             _metric_card(
+                "Correct-goal action advantage",
+                (
+                    "not measured yet"
+                    if hindsight.get("last_goal_log_probability_advantage") is None
+                    else f"{_number(hindsight.get('last_goal_log_probability_advantage')):+.5f}"
+                ),
+                note="demonstrated-action log probability: actual future goal minus blank goal",
+            ),
+            _metric_card(
                 "Online LLM decisions",
                 f"{_integer(hindsight.get('online_decision_model_calls')):,}",
                 note="must remain zero",
