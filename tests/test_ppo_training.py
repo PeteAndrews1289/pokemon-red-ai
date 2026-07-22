@@ -30,9 +30,12 @@ from pokemon_red_ai.ppo_training import (
     PPO_V8_PROTOCOL,
     PPO_V10_PROTOCOL,
     PPO_V10_REWARD_PROTOCOL,
+    PPO_V12_PROTOCOL,
+    PPO_V12_REWARD_PROTOCOL,
     PRIVILEGED_STATE_SIZE,
     SKILL_COUNT,
     V10_NARRATIVE_TELEMETRY_PROTOCOL,
+    V12_LEARNING_STATE_PROTOCOL,
     EpisodeMapMemory,
     ParallelPpoConfig,
     PokemonPpoFeatures,
@@ -49,6 +52,7 @@ from pokemon_red_ai.ppo_training import (
     _ensure_run_manifest_identity,
     _hall_of_fame_stop_is_verified,
     _merge_v9_success_student_report,
+    _new_v12_learning_state,
     _ppo_protocol,
     _ppo_reward_protocol,
     _remaining_action_budget,
@@ -70,6 +74,7 @@ from pokemon_red_ai.ppo_training import (
     _v10_narrative_telemetry,
     _validate_checkpoint_identity,
     _validate_student_practice_state,
+    _validate_v12_learning_state,
     _write_v8_replay_shards,
 )
 from pokemon_red_ai.self_taught import SelfTaughtSkillLibrary
@@ -122,6 +127,14 @@ def test_parallel_config_enforces_vector_batch_boundary() -> None:
     assert "explorer_recovery_window_actions" in v10.public_dict()
     assert _ppo_protocol(v10.mode) == PPO_V10_PROTOCOL
     assert _ppo_reward_protocol(v10.mode) == PPO_V10_REWARD_PROTOCOL
+    v12 = ParallelPpoConfig(mode="self_taught_v12", random_initialization=True, power_on_only=True)
+    assert v12.hindsight_max_lessons == 16
+    assert v12.hindsight_max_actions == 128
+    assert "hindsight_max_lessons" in v12.public_dict()
+    assert "explorer_recovery_window_actions" in v12.public_dict()
+    assert "student_practice_window" not in v12.public_dict()
+    assert _ppo_protocol(v12.mode) == PPO_V12_PROTOCOL
+    assert _ppo_reward_protocol(v12.mode) == PPO_V12_REWARD_PROTOCOL
     with pytest.raises(ValueError, match="one deterministic frozen attempt"):
         ParallelPpoConfig(
             mode="self_taught_v8",
@@ -166,6 +179,24 @@ def test_v10_episode_failures_are_terminal_but_time_limits_are_truncated() -> No
     assert _classify_episode_end(
         "self_taught_v9", alive=True, loop_reason="visual_cycle", action_limit=False
     ) == (False, True, "visual_cycle")
+    assert _classify_episode_end(
+        "self_taught_v12", alive=True, loop_reason="visual_recovery_expired", action_limit=False
+    ) == (True, False, "visual_recovery_expired")
+
+
+def test_v12_learning_state_is_bounded_and_fail_closed() -> None:
+    state = _new_v12_learning_state()
+    assert state["protocol"] == V12_LEARNING_STATE_PROTOCOL
+    assert _validate_v12_learning_state(state)["lessons_generated"] == 0
+    with pytest.raises(ValueError, match="wrong protocol"):
+        _validate_v12_learning_state({**state, "protocol": "wrong"})
+    with pytest.raises(ValueError, match="unsafe"):
+        _validate_v12_learning_state(
+            {
+                **state,
+                "pending_lessons": [{"file": "../outside.npz", "sha256": "a" * 64}],
+            }
+        )
 
 
 def test_v10_narrative_telemetry_restores_cumulative_evidence_fail_closed() -> None:
@@ -1662,6 +1693,7 @@ def test_privileged_state_vector_is_fixed_and_bounded() -> None:
         "self_taught_v8",
         "self_taught_v9",
         "self_taught_v10",
+        "self_taught_v12",
     ],
 )
 def test_feature_extractor_preserves_declared_information_boundary(mode: str) -> None:
@@ -1687,7 +1719,13 @@ def test_feature_extractor_preserves_declared_information_boundary(mode: str) ->
                 "map_context": gym.spaces.Box(0, 1, shape=(MAP_CONTEXT_SIZE,), dtype=np.float32),
             }
         )
-    if mode in {"self_taught", "self_taught_v8", "self_taught_v9", "self_taught_v10"}:
+    if mode in {
+        "self_taught",
+        "self_taught_v8",
+        "self_taught_v9",
+        "self_taught_v10",
+        "self_taught_v12",
+    }:
         spaces["target_pixels"] = gym.spaces.Box(
             0,
             255,
@@ -1714,7 +1752,13 @@ def test_feature_extractor_preserves_declared_information_boundary(mode: str) ->
                 "map_context": torch.zeros((2, MAP_CONTEXT_SIZE)),
             }
         )
-    if mode in {"self_taught", "self_taught_v8", "self_taught_v9", "self_taught_v10"}:
+    if mode in {
+        "self_taught",
+        "self_taught_v8",
+        "self_taught_v9",
+        "self_taught_v10",
+        "self_taught_v12",
+    }:
         observations["target_pixels"] = torch.zeros(
             (
                 2,
@@ -1735,7 +1779,14 @@ def test_feature_extractor_preserves_declared_information_boundary(mode: str) ->
         )
         + (
             128
-            if mode in {"self_taught", "self_taught_v8", "self_taught_v9", "self_taught_v10"}
+            if mode
+            in {
+                "self_taught",
+                "self_taught_v8",
+                "self_taught_v9",
+                "self_taught_v10",
+                "self_taught_v12",
+            }
             else 0
         )
         + (PRIVILEGED_STATE_SIZE if mode == "privileged" else 0)

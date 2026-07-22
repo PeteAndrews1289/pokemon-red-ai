@@ -43,6 +43,11 @@ from pokemon_red_ai.expedition import (
     referee_summary_for_state,
 )
 from pokemon_red_ai.frontier_learning import FullGameRewardConfig, FullGameRewardTracker
+from pokemon_red_ai.hindsight import (
+    HINDSIGHT_PROTOCOL,
+    HindsightConfig,
+    extract_hindsight_lessons,
+)
 from pokemon_red_ai.milestones import HALL_OF_FAME_KEY, MILESTONE_BY_KEY, MILESTONES
 from pokemon_red_ai.pixel_recovery import (
     PIXEL_LOOP_RECOVERY_PROTOCOL,
@@ -101,6 +106,8 @@ PPO_V9_PROTOCOL = "parallel-recurrent-ppo-v9"
 PPO_V9_REWARD_PROTOCOL = "self-correcting-student-v1"
 PPO_V10_PROTOCOL = "parallel-recurrent-ppo-v10"
 PPO_V10_REWARD_PROTOCOL = "recovery-before-reset-v1"
+PPO_V12_PROTOCOL = "parallel-recurrent-ppo-v12"
+PPO_V12_REWARD_PROTOCOL = "self-generated-hindsight-goals-v1"
 PPO_MODES = frozenset(
     {
         "pixels",
@@ -110,6 +117,7 @@ PPO_MODES = frozenset(
         "self_taught_v8",
         "self_taught_v9",
         "self_taught_v10",
+        "self_taught_v12",
     }
 )
 V8_CONFIG_FIELDS = frozenset(
@@ -152,6 +160,16 @@ V10_CONFIG_FIELDS = frozenset(
         "explorer_recovery_expiration_penalty",
     }
 )
+V12_CONFIG_FIELDS = frozenset(
+    {
+        "hindsight_max_lessons",
+        "hindsight_min_actions",
+        "hindsight_max_actions",
+        "hindsight_min_changed_fraction",
+        "hindsight_min_mean_absolute_error",
+        "hindsight_epochs",
+    }
+)
 V9_PRACTICE_TERMINAL_REASONS = frozenset(
     {"exact_target", "timeout", "emulator_stopped", "milestone_wrong_state"}
 )
@@ -160,6 +178,8 @@ V9_PRACTICE_CANCELLATION_REASONS = frozenset(
 )
 V9_DISK_BUDGET_REFRESH_SECONDS = 1.0
 V10_NARRATIVE_TELEMETRY_PROTOCOL = "v10-narrative-telemetry-v1"
+V12_NARRATIVE_TELEMETRY_PROTOCOL = "v12-narrative-telemetry-v1"
+V12_LEARNING_STATE_PROTOCOL = "v12-hindsight-learning-state-v1"
 V10_RECOVERY_CYCLE_WINDOW = 128
 V10_RECOVERY_CYCLE_UNIQUE_LIMIT = 8
 V10_RECOVERY_STAGNATION_ACTIONS = 1_024
@@ -267,10 +287,12 @@ def _v10_reward_counter(value: object) -> Counter[str]:
     return result
 
 
-def _v10_narrative_telemetry(value: object) -> dict[str, Any]:
-    if not isinstance(value, Mapping) or value.get("protocol") != (
-        V10_NARRATIVE_TELEMETRY_PROTOCOL
-    ):
+def _v10_narrative_telemetry(
+    value: object,
+    *,
+    expected_protocol: str = V10_NARRATIVE_TELEMETRY_PROTOCOL,
+) -> dict[str, Any]:
+    if not isinstance(value, Mapping) or value.get("protocol") != expected_protocol:
         raise ValueError("V10 checkpoint has invalid narrative telemetry")
     episodes = value.get("episodes")
     promotion_failures = value.get("promotion_failures")
@@ -334,8 +356,68 @@ def _v10_narrative_telemetry(value: object) -> dict[str, Any]:
     }
 
 
+def _new_v12_learning_state() -> dict[str, Any]:
+    return {
+        "schema_version": 1,
+        "protocol": V12_LEARNING_STATE_PROTOCOL,
+        "hindsight_protocol": HINDSIGHT_PROTOCOL,
+        "rollouts_observed": 0,
+        "rollouts_with_lessons": 0,
+        "lessons_generated": 0,
+        "lessons_trained": 0,
+        "examples_trained": 0,
+        "optimizer_updates": 0,
+        "last_mean_loss": None,
+        "pending_lessons": [],
+        "terminal_evaluation": None,
+        "updated_at": datetime.now(UTC).isoformat(),
+    }
+
+
+def _validate_v12_learning_state(value: object) -> dict[str, Any]:
+    if not isinstance(value, Mapping) or value.get("protocol") != V12_LEARNING_STATE_PROTOCOL:
+        raise ValueError("V12 learning state has the wrong protocol")
+    if value.get("hindsight_protocol") != HINDSIGHT_PROTOCOL:
+        raise ValueError("V12 learning state has the wrong hindsight protocol")
+    result = dict(value)
+    for name in (
+        "rollouts_observed",
+        "rollouts_with_lessons",
+        "lessons_generated",
+        "lessons_trained",
+        "examples_trained",
+        "optimizer_updates",
+    ):
+        raw = result.get(name)
+        if isinstance(raw, bool) or not isinstance(raw, int) or raw < 0:
+            raise ValueError(f"V12 learning state has invalid {name}")
+    pending = result.get("pending_lessons")
+    if not isinstance(pending, list):
+        raise ValueError("V12 learning state pending lessons must be a list")
+    for item in pending:
+        if not isinstance(item, Mapping):
+            raise ValueError("V12 pending lesson metadata must be an object")
+        filename = str(item.get("file", ""))
+        digest = str(item.get("sha256", ""))
+        if Path(filename).is_absolute() or Path(filename).parts[:1] != ("hindsight",):
+            raise ValueError("V12 pending lesson path is unsafe")
+        if len(digest) != 64 or any(character not in "0123456789abcdef" for character in digest):
+            raise ValueError("V12 pending lesson hash is invalid")
+    if result["lessons_trained"] > result["lessons_generated"]:
+        raise ValueError("V12 trained more hindsight lessons than it generated")
+    if result["rollouts_with_lessons"] > result["rollouts_observed"]:
+        raise ValueError("V12 lesson rollouts exceed observed rollouts")
+    return result
+
+
 def _is_self_taught_mode(mode: str) -> bool:
-    return mode in {"self_taught", "self_taught_v8", "self_taught_v9", "self_taught_v10"}
+    return mode in {
+        "self_taught",
+        "self_taught_v8",
+        "self_taught_v9",
+        "self_taught_v10",
+        "self_taught_v12",
+    }
 
 
 def _is_v8_mode(mode: str) -> bool:
@@ -348,6 +430,34 @@ def _is_v9_mode(mode: str) -> bool:
 
 def _is_v10_mode(mode: str) -> bool:
     return mode == "self_taught_v10"
+
+
+def _is_v12_mode(mode: str) -> bool:
+    return mode == "self_taught_v12"
+
+
+def _uses_pixel_recovery(mode: str) -> bool:
+    return mode in {"self_taught_v10", "self_taught_v12"}
+
+
+def _uses_blind_watchdog(mode: str) -> bool:
+    return _is_distilled_student_mode(mode) or _is_v12_mode(mode)
+
+
+def _requires_reproducible_source(mode: str) -> bool:
+    return _is_distilled_student_mode(mode) or _is_v12_mode(mode)
+
+
+def _uses_frozen_exam(mode: str) -> bool:
+    return _is_distilled_student_mode(mode) or _is_v12_mode(mode)
+
+
+def _narrative_telemetry_protocol(mode: str) -> str:
+    return (
+        V12_NARRATIVE_TELEMETRY_PROTOCOL
+        if _is_v12_mode(mode)
+        else V10_NARRATIVE_TELEMETRY_PROTOCOL
+    )
 
 
 def _uses_v9_practice(mode: str) -> bool:
@@ -369,7 +479,7 @@ def _classify_episode_end(
 
     failure_reason = loop_reason or (None if alive else "emulator_stop")
     if failure_reason is not None:
-        if _is_v10_mode(mode):
+        if _uses_pixel_recovery(mode):
             return True, False, failure_reason
         return False, True, failure_reason
     if action_limit:
@@ -378,6 +488,8 @@ def _classify_episode_end(
 
 
 def _ppo_protocol(mode: str) -> str:
+    if _is_v12_mode(mode):
+        return PPO_V12_PROTOCOL
     if _is_v10_mode(mode):
         return PPO_V10_PROTOCOL
     if _is_v9_mode(mode):
@@ -386,6 +498,8 @@ def _ppo_protocol(mode: str) -> str:
 
 
 def _ppo_reward_protocol(mode: str) -> str:
+    if _is_v12_mode(mode):
+        return PPO_V12_REWARD_PROTOCOL
     if _is_v10_mode(mode):
         return PPO_V10_REWARD_PROTOCOL
     if _is_v9_mode(mode):
@@ -398,7 +512,7 @@ def _hall_of_fame_stop_is_verified(
     status: Mapping[str, Any],
     library: SelfTaughtSkillLibrary | None,
 ) -> bool:
-    if _is_distilled_student_mode(mode):
+    if _uses_frozen_exam(mode):
         return library is not None and library.hall_of_fame_completions > 0
     return status.get("best_milestone", {}).get("key") == HALL_OF_FAME_KEY
 
@@ -971,6 +1085,12 @@ class ParallelPpoConfig:
     explorer_recovery_blocked_penalty: float = 0.25
     explorer_recovery_escape_reward: float = 0.25
     explorer_recovery_expiration_penalty: float = 1.0
+    hindsight_max_lessons: int = 16
+    hindsight_min_actions: int = 8
+    hindsight_max_actions: int = 128
+    hindsight_min_changed_fraction: float = 0.03
+    hindsight_min_mean_absolute_error: float = 3.0
+    hindsight_epochs: int = 1
 
     def __post_init__(self) -> None:
         if self.mode not in PPO_MODES:
@@ -1060,6 +1180,15 @@ class ParallelPpoConfig:
             raise ValueError("Explorer loop-recovery rewards must be finite and non-negative")
         if self.explorer_recovery_escape_reward > self.explorer_recovery_blocked_penalty:
             raise ValueError("Explorer recovery escape credit cannot exceed its activation penalty")
+        HindsightConfig(
+            max_lessons=self.hindsight_max_lessons,
+            min_actions=self.hindsight_min_actions,
+            max_actions=self.hindsight_max_actions,
+            min_changed_fraction=self.hindsight_min_changed_fraction,
+            min_mean_absolute_error=self.hindsight_min_mean_absolute_error,
+        )
+        if self.hindsight_epochs < 1:
+            raise ValueError("Hindsight training epochs must be positive")
         if _is_self_taught_mode(self.mode) and (
             not self.random_initialization or not self.power_on_only or self.consolidation
         ):
@@ -1077,8 +1206,11 @@ class ParallelPpoConfig:
         if not _uses_v9_practice(self.mode):
             for name in V9_CONFIG_FIELDS:
                 value.pop(name)
-        if not _is_v10_mode(self.mode):
+        if not _uses_pixel_recovery(self.mode):
             for name in V10_CONFIG_FIELDS:
+                value.pop(name)
+        if not _is_v12_mode(self.mode):
+            for name in V12_CONFIG_FIELDS:
                 value.pop(name)
         return value
 
@@ -1170,6 +1302,7 @@ def _import_verified_ppo_curriculum(
         "parallel-recurrent-ppo-v8",
         "parallel-recurrent-ppo-v9",
         "parallel-recurrent-ppo-v10",
+        "parallel-recurrent-ppo-v12",
     }:
         raise ValueError("Version 7 can import only a verified Version-4-or-later curriculum")
     source_status = json.loads((source_run / "status.json").read_text(encoding="utf-8"))
@@ -1427,6 +1560,82 @@ def freeze_verified_curriculum(
     return manifest
 
 
+def create_verified_power_on_curriculum(
+    rom_path: Path,
+    curriculum_directory: Path,
+    *,
+    target_protocol: str = PPO_V12_PROTOCOL,
+) -> dict[str, Any]:
+    """Create V12's sole starting state directly from two clean ROM boots.
+
+    Earlier self-taught versions imported a completed run merely to obtain its power-on snapshot
+    and then deleted every later entry. V12 removes that awkward dependency: it creates the root
+    itself and proves that a second clean emulator accepts the exact frozen state before training.
+    No controller action, predecessor snapshot, or predecessor policy participates.
+    """
+
+    if curriculum_directory.exists():
+        raise ValueError("Direct power-on curriculum output already exists")
+    curriculum_directory.mkdir(parents=True)
+    (curriculum_directory / "entries").mkdir()
+    progress = MilestoneProgress("power_on", 0, "Power-on")
+    with PokemonRedEmulator(rom_path) as emulator:
+        state = PokemonRedStateReader(emulator).read()
+        screen = preprocess_apprentice_frame(emulator.screen_rgb())
+        snapshot = FrozenSnapshot.freeze(emulator.save_state())
+        screen_sha256 = hashlib.sha256(screen.tobytes()).hexdigest()
+        referee = referee_summary_for_state(state, progress)
+    with PokemonRedEmulator(rom_path) as verifier:
+        verifier.load_state(snapshot.thaw())
+        verified_state = PokemonRedStateReader(verifier).read()
+        verified_screen = preprocess_apprentice_frame(verifier.screen_rgb())
+        if verified_state != state or hashlib.sha256(verified_screen.tobytes()).hexdigest() != (
+            screen_sha256
+        ):
+            raise RuntimeError("Direct power-on snapshot failed its clean-emulator replay gate")
+
+    entry_id = f"power-on-{snapshot.sha256[:16]}"
+    payload = {
+        "schema_version": 1,
+        "entry_id": entry_id,
+        "source_cell_id": None,
+        "progress": progress.public_dict(),
+        "snapshot": snapshot.checkpoint_dict(),
+        "lineage_actions": [],
+        "terminal_referee_summary": referee,
+        "clean_boot_replay_passes": 1,
+        "controller_actions": 0,
+    }
+    path = curriculum_directory / "entries" / f"{entry_id}.json.gz"
+    _atomic_gzip_json(path, payload)
+    entry = {
+        "entry_id": entry_id,
+        "file": f"entries/{path.name}",
+        "file_sha256": _sha256_file(path),
+        "milestone_id": progress.key,
+        "milestone_index": progress.index,
+        "milestone_label": progress.label,
+        "map_id": None,
+        "depth_actions": 0,
+        "source": "direct_verified_clean_boot",
+    }
+    manifest = {
+        "schema_version": 1,
+        "protocol": target_protocol,
+        "source_protocol": "direct-verified-clean-boot-v1",
+        "source_run": None,
+        "entries": [entry],
+        "best_milestone": progress.public_dict(),
+        "verified_promotions": 0,
+        "power_on_only": True,
+        "discarded_inherited_entries": 0,
+        "clean_boot_replay_passes": 1,
+        "updated_at": datetime.now(UTC).isoformat(),
+    }
+    _atomic_json(curriculum_directory / "manifest.json", manifest)
+    return manifest
+
+
 def _retain_power_on_only(curriculum_directory: Path) -> dict[str, Any]:
     """Remove inherited lessons while retaining one verified clean-start snapshot."""
 
@@ -1461,6 +1670,7 @@ def _load_curriculum_manifest(directory: Path) -> dict[str, Any]:
         PPO_V8_PROTOCOL,
         PPO_V9_PROTOCOL,
         PPO_V10_PROTOCOL,
+        PPO_V12_PROTOCOL,
     } or not isinstance(value.get("entries"), list):
         raise ValueError("PPO curriculum manifest is invalid")
     return value
@@ -1975,10 +2185,10 @@ class PokemonRedPpoEnvironment(gym.Env):
         self.recent_actions: deque[int] = deque(
             [-1] * ACTION_HISTORY_LENGTH, maxlen=ACTION_HISTORY_LENGTH
         )
-        # V8's blind Explorer must not receive authored quest information through
-        # episode length. V7 keeps its historical behavior for denominator compatibility.
+        # V8+ blind learners must not receive authored quest information through episode
+        # length. V7 keeps its historical behavior for denominator compatibility.
         self.loop_tracker = VisualStagnationTracker(
-            use_authored_guidance=not _is_distilled_student_mode(config.mode)
+            use_authored_guidance=not _uses_blind_watchdog(config.mode)
         )
         self.explorer_loop_recovery = (
             PixelLoopRecovery(
@@ -2002,7 +2212,7 @@ class PokemonRedPpoEnvironment(gym.Env):
                     ),
                 )
             )
-            if _is_v10_mode(config.mode)
+            if _uses_pixel_recovery(config.mode)
             else None
         )
         self.map_memory = EpisodeMapMemory()
@@ -3590,9 +3800,12 @@ class PpoRunCallback(BaseCallback):
             (self.run_directory / "manifest.json").read_text(encoding="utf-8")
         )
         checkpoint_path = self.run_directory / "checkpoint.json"
-        if _is_v10_mode(config.mode) and checkpoint_path.is_file():
+        if _uses_pixel_recovery(config.mode) and checkpoint_path.is_file():
             checkpoint = json.loads(checkpoint_path.read_text(encoding="utf-8"))
-            telemetry = _v10_narrative_telemetry(checkpoint.get("narrative_telemetry"))
+            telemetry = _v10_narrative_telemetry(
+                checkpoint.get("narrative_telemetry"),
+                expected_protocol=_narrative_telemetry_protocol(config.mode),
+            )
             self.episodes = telemetry["episodes"]
             self.promotion_failures = telemetry["promotion_failures"]
             self.reward_components = telemetry["reward_components"]
@@ -3660,6 +3873,110 @@ class PpoRunCallback(BaseCallback):
                 practice.get("terminal_reasons")
             )
             self.last_student_practice_rollout = int(practice.get("last_explorer_rollout", -1))
+        self.v12_learning: dict[str, Any] | None = None
+        v12_learning_path = self.run_directory / "v12-learning.json"
+        if _is_v12_mode(config.mode):
+            if not v12_learning_path.is_file():
+                raise ValueError("V12 run has no hindsight learning state")
+            self.v12_learning = _validate_v12_learning_state(
+                json.loads(v12_learning_path.read_text(encoding="utf-8"))
+            )
+            for item in self.v12_learning["pending_lessons"]:
+                path = self.run_directory / str(item["file"])
+                if not path.is_file() or _sha256_file(path) != item["sha256"]:
+                    raise ValueError("V12 pending hindsight lesson failed its recorded hash")
+
+    def _write_v12_learning(self) -> None:
+        if self.v12_learning is None:
+            return
+        self.v12_learning["updated_at"] = datetime.now(UTC).isoformat()
+        validated = _validate_v12_learning_state(self.v12_learning)
+        _atomic_json(self.run_directory / "v12-learning.json", validated)
+
+    def _collect_v12_hindsight(self) -> None:
+        if self.v12_learning is None:
+            return
+        if self.v12_learning["pending_lessons"]:
+            raise RuntimeError("V12 cannot overwrite untrained hindsight lessons")
+        buffer = self.model.rollout_buffer
+        observations = buffer.observations
+        if not isinstance(observations, Mapping):
+            raise RuntimeError("V12 requires a dictionary recurrent rollout buffer")
+        lessons = extract_hindsight_lessons(
+            np.asarray(observations["pixels"]),
+            np.asarray(observations["action_history"]),
+            np.asarray(buffer.actions),
+            np.asarray(buffer.episode_starts),
+            HindsightConfig(
+                max_lessons=self.config.hindsight_max_lessons,
+                min_actions=self.config.hindsight_min_actions,
+                max_actions=self.config.hindsight_max_actions,
+                min_changed_fraction=self.config.hindsight_min_changed_fraction,
+                min_mean_absolute_error=(self.config.hindsight_min_mean_absolute_error),
+            ),
+        )
+        self.v12_learning["rollouts_observed"] += 1
+        if lessons:
+            self.v12_learning["rollouts_with_lessons"] += 1
+        pending: list[dict[str, Any]] = []
+        rollout = int(self.v12_learning["rollouts_observed"])
+        for index, lesson in enumerate(lessons):
+            relative = Path("hindsight") / (
+                f"pending-rollout-{rollout:08d}-lesson-{index:03d}.npz"
+            )
+            path = self.run_directory / relative
+            _atomic_self_imitation_dataset(path, lesson.dataset())
+            pending.append(
+                {
+                    **lesson.public_dict(),
+                    "file": relative.as_posix(),
+                    "sha256": _sha256_file(path),
+                    "stored_bytes": path.stat().st_size,
+                }
+            )
+        self.v12_learning["lessons_generated"] += len(pending)
+        self.v12_learning["pending_lessons"] = pending
+        self._write_v12_learning()
+        with (self.run_directory / "hindsight" / "audit.jsonl").open(
+            "a", encoding="utf-8"
+        ) as output:
+            output.write(
+                json.dumps(
+                    {
+                        "recorded_at": datetime.now(UTC).isoformat(),
+                        "rollout": rollout,
+                        "total_actions": self.model.num_timesteps,
+                        "lessons": pending,
+                    },
+                    sort_keys=True,
+                )
+                + "\n"
+            )
+
+    def _train_pending_v12_hindsight(self) -> bool:
+        if self.v12_learning is None or not self.v12_learning["pending_lessons"]:
+            return False
+        pending = list(self.v12_learning["pending_lessons"])
+        paths: list[Path] = []
+        for item in pending:
+            path = self.run_directory / str(item["file"])
+            if not path.is_file() or _sha256_file(path) != item["sha256"]:
+                raise ValueError("V12 pending hindsight lesson changed before training")
+            paths.append(path)
+        result = _train_self_imitation_policy(
+            self.model,
+            paths,
+            epochs=self.config.hindsight_epochs,
+        )
+        self.v12_learning["lessons_trained"] += len(paths)
+        self.v12_learning["examples_trained"] += int(result["examples"])
+        self.v12_learning["optimizer_updates"] += int(result["updates"])
+        self.v12_learning["last_mean_loss"] = float(result["mean_loss"])
+        self.v12_learning["pending_lessons"] = []
+        self._write_v12_learning()
+        for path in paths:
+            path.unlink(missing_ok=True)
+        return True
 
     def _write_consolidation(self) -> None:
         if self.consolidation is not None:
@@ -3688,7 +4005,7 @@ class PpoRunCallback(BaseCallback):
         }
 
     def _explorer_loop_recovery_status(self) -> dict[str, Any]:
-        if not _is_v10_mode(self.config.mode):
+        if not _uses_pixel_recovery(self.config.mode):
             return {"enabled": False}
         started = self.explorer_loop_recovery_events["windows_started"]
         escaped = self.explorer_loop_recovery_events["escapes"]
@@ -3753,6 +4070,29 @@ class PpoRunCallback(BaseCallback):
             "uses_authored_guidance": False,
             "episode_local_state": True,
             "resume_behavior": "fresh_rollout_counts_inflight_windows_abandoned",
+        }
+
+    def _v12_learning_status(self) -> dict[str, Any]:
+        if self.v12_learning is None:
+            return {"enabled": False}
+        rollouts = int(self.v12_learning["rollouts_observed"])
+        lessons = int(self.v12_learning["lessons_generated"])
+        return {
+            "enabled": True,
+            "protocol": HINDSIGHT_PROTOCOL,
+            "rollouts_observed": rollouts,
+            "rollouts_with_lessons": int(self.v12_learning["rollouts_with_lessons"]),
+            "lessons_generated": lessons,
+            "lessons_trained": int(self.v12_learning["lessons_trained"]),
+            "examples_trained": int(self.v12_learning["examples_trained"]),
+            "optimizer_updates": int(self.v12_learning["optimizer_updates"]),
+            "pending_lessons": len(self.v12_learning["pending_lessons"]),
+            "last_mean_loss": self.v12_learning["last_mean_loss"],
+            "lessons_per_rollout": lessons / rollouts if rollouts else 0.0,
+            "terminal_evaluation": self.v12_learning["terminal_evaluation"],
+            "human_demonstration_examples": 0,
+            "imported_action_examples": 0,
+            "online_decision_model_calls": 0,
         }
 
     def _abandon_active_recoveries(self, reason: str) -> int:
@@ -4079,9 +4419,9 @@ class PpoRunCallback(BaseCallback):
             "novelty_files": novelty_files,
             "resume_semantics": "model_optimizer_exact_environment_rollout_restarts",
         }
-        if _is_v10_mode(self.config.mode):
+        if _uses_pixel_recovery(self.config.mode):
             checkpoint["narrative_telemetry"] = {
-                "protocol": V10_NARRATIVE_TELEMETRY_PROTOCOL,
+                "protocol": _narrative_telemetry_protocol(self.config.mode),
                 "episodes": self.episodes,
                 "promotion_failures": self.promotion_failures,
                 "reward_components": dict(sorted(self.reward_components.items())),
@@ -4097,6 +4437,20 @@ class PpoRunCallback(BaseCallback):
                 ),
                 "episode_local_recovery_state_persisted": False,
             }
+        if self.v12_learning is not None:
+            self._write_v12_learning()
+            learning_path = self.run_directory / "v12-learning.json"
+            checkpoint.update(
+                {
+                    "v12_learning_file": learning_path.name,
+                    "v12_learning_file_sha256": _sha256_file(learning_path),
+                    "hindsight_pending_lessons": len(
+                        self.v12_learning["pending_lessons"]
+                    ),
+                    "online_decision_model_calls": 0,
+                    "network_gameplay_calls": 0,
+                }
+            )
         if isinstance(run_manifest.get("v7_denominator"), Mapping):
             checkpoint["v7_denominator"] = dict(run_manifest["v7_denominator"])
         if self.student_model is not None and self.student_trainer is not None:
@@ -4212,6 +4566,7 @@ class PpoRunCallback(BaseCallback):
             "loop_events": dict(sorted(self.loop_events.items())),
             "episode_end_reasons": dict(sorted(self.episode_end_reasons.items())),
             "explorer_loop_recovery": self._explorer_loop_recovery_status(),
+            "hindsight_learning": self._v12_learning_status(),
             "consolidation": self._consolidation_status(),
             "self_taught": self._self_taught_status(),
             "student_practice": self._student_practice_status(),
@@ -4225,7 +4580,18 @@ class PpoRunCallback(BaseCallback):
                     "competence_source": "frozen Student exams",
                 }
                 if _is_distilled_student_mode(self.config.mode)
-                else {"explorer_and_student": "one shared policy"}
+                else (
+                    {
+                        "actor": "one recurrent goal-conditioned policy",
+                        "online_ppo": "learns from every sampled consequence",
+                        "hindsight": "relabels its own future visual states as local goals",
+                        "verified_skills": "rehearses replay-verified rare discoveries",
+                        "shared_parameters": True,
+                        "competence_source": "deterministic no-update checkpoint exams",
+                    }
+                    if _is_v12_mode(self.config.mode)
+                    else {"explorer_and_student": "one shared policy"}
+                )
             ),
             "reward_protocol": _ppo_reward_protocol(self.config.mode),
             "novelty_scope": "persistent per worker across episodes and resumes",
@@ -4242,11 +4608,20 @@ class PpoRunCallback(BaseCallback):
                         ". Explorer loop recovery reads only rendered pixels and the exact "
                         "policy-selected action; it supplies no direction and never replaces, "
                         "masks, or chooses a button"
-                        if _is_v10_mode(self.config.mode)
+                        if _uses_pixel_recovery(self.config.mode)
                         else ""
                     )
                     if _is_distilled_student_mode(self.config.mode)
                     else (
+                        "One recurrent actor: current/previous pixels + three recent actions + "
+                        "a self-observed goal frame. During open exploration the goal is blank; "
+                        "afterward, future frames from the actor's own rollout become hindsight "
+                        "goals. Trainer-only RAM grades durable consequences and verifies rare "
+                        "promotions, but no RAM, maps, coordinates, route, walkthrough, LLM "
+                        "output, or imported action reaches the actor. Pixel recovery never "
+                        "chooses or replaces a button"
+                        if _is_v12_mode(self.config.mode)
+                        else (
                         "pixels + three recent actions + a self-discovered target screen; "
                         "trainer-only RAM retains V7's historical route/Mart/milestone watchdog "
                         "shaping; no imported actions, actor-visible route graph, or target "
@@ -4258,6 +4633,7 @@ class PpoRunCallback(BaseCallback):
                             "+ next certified route map; assisted teacher lane"
                             if self.config.mode == "assisted"
                             else "pixels + three recent actions + disclosed RAM state comparator"
+                        )
                         )
                     )
                 )
@@ -4296,8 +4672,10 @@ class PpoRunCallback(BaseCallback):
             if _is_distilled_student_mode(self.config.mode)
             else "Combined actions"
         )
+        exam_actor_label = "V12 checkpoint" if _is_v12_mode(self.config.mode) else "Student"
+        hindsight = status.get("hindsight_learning", {})
         recovery = status.get("explorer_loop_recovery", {})
-        if _is_v10_mode(self.config.mode):
+        if _uses_pixel_recovery(self.config.mode):
             loop_lines = (
                 f"- Visual-loop detections: {status['loop_events'].get('visual_cycle', 0):,}\n"
                 "- Long-stagnation detections: "
@@ -4358,6 +4736,14 @@ class PpoRunCallback(BaseCallback):
                 f"{status['self_taught'].get('skills_competent', 0)}\n"
                 f"- Self-imitation examples: "
                 f"{status['self_taught'].get('imitation_examples', 0):,}\n\n"
+                f"- Hindsight lessons generated: "
+                f"{hindsight.get('lessons_generated', 0):,}\n"
+                f"- Hindsight lessons trained: "
+                f"{hindsight.get('lessons_trained', 0):,}\n"
+                f"- Hindsight action examples: "
+                f"{hindsight.get('examples_trained', 0):,}\n"
+                f"- Online decision-model calls: "
+                f"{hindsight.get('online_decision_model_calls', 0):,}\n\n"
                 f"- Distilled self-generated actions: "
                 f"{status['self_taught'].get('distillation', {}).get('distilled_actions', 0):,}/"
                 f"{status['self_taught'].get('distillation', {}).get('original_actions', 0):,}\n"
@@ -4365,7 +4751,7 @@ class PpoRunCallback(BaseCallback):
                 f"{status['self_taught'].get('student', {}).get('optimizer_updates', 0):,}\n"
                 f"- Separate Student action accuracy: "
                 f"{student_accuracy:.1%}\n"
-                f"- Frozen Student exams: "
+                f"- Frozen {exam_actor_label} exams: "
                 f"{status['self_taught'].get('frozen_exams', {}).get('successes', 0)}/"
                 f"{status['self_taught'].get('frozen_exams', {}).get('attempts', 0)}\n"
                 f"- Power-on composition exams: "
@@ -5233,6 +5619,17 @@ class PpoRunCallback(BaseCallback):
     def _v8_target_clip(self, skill: Mapping[str, Any]) -> np.ndarray:
         if self.self_skills is None:
             raise RuntimeError("Frozen Student exam has no self-generated skill ledger")
+        if _is_v12_mode(self.config.mode):
+            path = _validate_hashed_run_artifact(
+                self.run_directory,
+                skill["target_frame_file"],
+                skill["target_frame_sha256"],
+                label="V12 checkpoint exam target frame",
+            )
+            target = np.asarray(Image.open(path).convert("L"), dtype=np.uint8)[None, :, :]
+            if target.shape != (1, 72, 80):
+                raise ValueError("V12 checkpoint exam requires one self-observed goal frame")
+            return target
         shard = self.self_skills.replay_shard(str(skill["skill_id"]))
         path = _validate_hashed_run_artifact(
             self.run_directory,
@@ -5254,9 +5651,10 @@ class PpoRunCallback(BaseCallback):
         episode_start: bool,
         deterministic: bool = True,
     ) -> tuple[int, Any]:
-        if self.student_model is None:
-            raise RuntimeError("Frozen Student exam has no Student model")
-        action, next_state = self.student_model.predict(
+        evaluation_model = self.model if _is_v12_mode(self.config.mode) else self.student_model
+        if evaluation_model is None:
+            raise RuntimeError("Frozen checkpoint exam has no evaluation model")
+        action, next_state = evaluation_model.predict(
             observation,
             state=recurrent_state,
             episode_start=np.asarray([episode_start], dtype=np.bool_),
@@ -5774,15 +6172,18 @@ class PpoRunCallback(BaseCallback):
         return False, actions
 
     def _run_frozen_exam_round(self) -> bool:
-        if self.self_skills is None or self.student_model is None:
+        if self.self_skills is None or not _uses_frozen_exam(self.config.mode):
             return False
         if not self.self_skills.skills:
             self.self_skills.last_frozen_exam_actions = self.model.num_timesteps
             self._write_self_skills()
             return False
-        previous_mode = bool(self.student_model.policy.training)
+        evaluation_model = self.model if _is_v12_mode(self.config.mode) else self.student_model
+        if evaluation_model is None:
+            return False
+        previous_mode = bool(evaluation_model.policy.training)
         previous_exam_rng_state = self.exam_rng.getstate()
-        self.student_model.policy.set_training_mode(False)
+        evaluation_model.policy.set_training_mode(False)
         actions = 0
         competence_passed = False
         try:
@@ -5825,16 +6226,71 @@ class PpoRunCallback(BaseCallback):
             self.stop_reason = cancellation.reason
             return False
         finally:
-            self.student_model.policy.set_training_mode(previous_mode)
+            evaluation_model.policy.set_training_mode(previous_mode)
         self.self_skills.record_frozen_exam_round(actions=actions)
         self.self_skills.last_frozen_exam_actions = self.model.num_timesteps
         self.self_skills.exam_rng_state = _random_state_to_json(self.exam_rng.getstate())
         self._write_self_skills()
         self._checkpoint()
-        self._narrative(f"frozen Student exam: {self.last_exam_skill_label or 'unknown skill'}")
+        exam_label = "V12 checkpoint" if _is_v12_mode(self.config.mode) else "Student"
+        self._narrative(
+            f"frozen {exam_label} exam: {self.last_exam_skill_label or 'unknown skill'}"
+        )
         return competence_passed
 
+    def _run_v12_terminal_evaluation(self) -> dict[str, Any] | None:
+        """Evaluate the terminal V12 checkpoint once with no learning or restored subskills."""
+
+        if self.v12_learning is None or self.self_skills is None:
+            return None
+        model_path = self.run_directory / "ppo-latest.zip"
+        if not model_path.is_file():
+            raise RuntimeError("V12 terminal evaluation has no sealed policy checkpoint")
+        chain = self._competent_skill_chain()
+        target_index = int(chain[-1]["target_index"]) if chain else 0
+        target_label = _milestone_label(target_index)
+        previous_mode = bool(self.model.policy.training)
+        self.model.policy.set_training_mode(False)
+        try:
+            success, actions = self._run_frozen_composition_attempt(chain)
+        finally:
+            self.model.policy.set_training_mode(previous_mode)
+        hall_of_fame_target = (
+            target_index > 0 and MILESTONES[target_index - 1].key == HALL_OF_FAME_KEY
+        )
+        if chain:
+            self.self_skills.record_composition_exam(
+                success=success,
+                actions=actions,
+                target_index=target_index,
+                hall_of_fame_target=hall_of_fame_target,
+            )
+            self._write_self_skills()
+        result = {
+            "protocol": "v12-terminal-frozen-composition-v1",
+            "evaluated_at": datetime.now(UTC).isoformat(),
+            "policy_file": model_path.name,
+            "policy_sha256": _sha256_file(model_path),
+            "policy_actions": actions,
+            "policy_updates_during_evaluation": 0,
+            "restores_between_skills": 0,
+            "trainer_selected_buttons": 0,
+            "competent_skill_count": len(chain),
+            "skill_ids": [str(skill["skill_id"]) for skill in chain],
+            "target_index": target_index,
+            "target_label": target_label,
+            "success": success,
+            "hall_of_fame_target": hall_of_fame_target,
+            "hall_of_fame_verified": bool(success and hall_of_fame_target),
+        }
+        self.v12_learning["terminal_evaluation"] = result
+        self._write_v12_learning()
+        _atomic_json(self.run_directory / "terminal-evaluation.json", result)
+        return result
+
     def _on_rollout_start(self) -> None:
+        if _is_v12_mode(self.config.mode):
+            self._train_pending_v12_hindsight()
         if _is_distilled_student_mode(self.config.mode):
             if _uses_v9_practice(self.config.mode):
                 reason = self._v9_practice_cancellation_reason()
@@ -5875,6 +6331,10 @@ class PpoRunCallback(BaseCallback):
         self.self_imitation_pending = self.self_skills.imitation_pending
         self._write_self_skills()
         self._narrative("rehearsed self-generated verified skills")
+
+    def _on_rollout_end(self) -> None:
+        if _is_v12_mode(self.config.mode):
+            self._collect_v12_hindsight()
 
     def _handle_candidate(self, candidate_path: Path) -> None:
         try:
@@ -5953,7 +6413,7 @@ class PpoRunCallback(BaseCallback):
                         best_reached_index=int(info.get("episode_best_index", -1)),
                     )
                     self._write_consolidation()
-                if self.self_skills is not None:
+                if self.self_skills is not None and not _is_v12_mode(self.config.mode):
                     self_skill_passed |= self.self_skills.record_episode(
                         mode=str(info.get("start_mode", "")),
                         skill_id=(
@@ -5986,7 +6446,7 @@ class PpoRunCallback(BaseCallback):
 
         if (
             self.stop_reason is None
-            and _is_distilled_student_mode(self.config.mode)
+            and _uses_frozen_exam(self.config.mode)
             and self.self_skills is not None
             and self.model.num_timesteps - self.self_skills.last_frozen_exam_actions
             >= self.config.frozen_exam_interval_actions
@@ -6042,7 +6502,7 @@ def _remaining_action_budget(max_actions: int, current_actions: int, *, resume: 
 def run_parallel_ppo(
     rom_path: Path,
     run_directory: Path,
-    curriculum_source: Path,
+    curriculum_source: Path | None,
     learner_path: Path | None,
     config: ParallelPpoConfig,
     *,
@@ -6052,10 +6512,14 @@ def run_parallel_ppo(
 ) -> dict[str, Any]:
     rom = verify_rom(rom_path).public_dict()
     source = detect_source_provenance(
-        include_untracked=_is_distilled_student_mode(config.mode)
+        include_untracked=_requires_reproducible_source(config.mode)
     ).public_dict()
-    if _is_distilled_student_mode(config.mode):
+    if _requires_reproducible_source(config.mode):
         _require_reproducible_v8_source(source)
+    if _is_v12_mode(config.mode) and curriculum_source is not None:
+        raise ValueError("V12 creates its own clean power-on root and rejects curriculum imports")
+    if not _is_v12_mode(config.mode) and curriculum_source is None:
+        raise ValueError("This PPO mode requires a verified curriculum source")
     if v7_denominator is not None and (not _is_v8_mode(config.mode) or resume):
         raise ValueError("A V7 denominator may be locked only when a fresh V8 run begins")
     denominator_snapshot = (
@@ -6069,17 +6533,32 @@ def run_parallel_ppo(
     if run_directory.exists() and not resume:
         raise ValueError("PPO output directory already exists")
     run_directory.mkdir(parents=True, exist_ok=resume)
-    for name in ("candidate-spool", "milestones", "self-skills", "student-practice"):
+    for name in (
+        "candidate-spool",
+        "milestones",
+        "self-skills",
+        "student-practice",
+        "hindsight",
+    ):
         (run_directory / name).mkdir(exist_ok=True)
     curriculum_directory = run_directory / "curriculum"
     if not curriculum_directory.exists():
-        freeze_verified_curriculum(
-            curriculum_source,
-            curriculum_directory,
-            target_protocol=_ppo_protocol(config.mode),
-        )
-        if config.power_on_only:
-            _retain_power_on_only(curriculum_directory)
+        if _is_v12_mode(config.mode):
+            create_verified_power_on_curriculum(
+                rom_path,
+                curriculum_directory,
+                target_protocol=_ppo_protocol(config.mode),
+            )
+        else:
+            if curriculum_source is None:
+                raise ValueError("This PPO mode requires a verified curriculum source")
+            freeze_verified_curriculum(
+                curriculum_source,
+                curriculum_directory,
+                target_protocol=_ppo_protocol(config.mode),
+            )
+            if config.power_on_only:
+                _retain_power_on_only(curriculum_directory)
     consolidation_path = run_directory / "consolidation.json"
     if config.consolidation and not consolidation_path.exists() and not resume:
         curriculum_manifest = _load_curriculum_manifest(curriculum_directory)
@@ -6098,6 +6577,9 @@ def run_parallel_ppo(
             threshold=config.competence_threshold,
         )
         _atomic_json(self_skills_path, library.public_dict())
+    v12_learning_path = run_directory / "v12-learning.json"
+    if _is_v12_mode(config.mode) and not v12_learning_path.exists() and not resume:
+        _atomic_json(v12_learning_path, _new_v12_learning_state())
     started_at = datetime.now(UTC).isoformat()
     base_elapsed = 0.0
     checkpoint_path = run_directory / "checkpoint.json"
@@ -6117,7 +6599,7 @@ def run_parallel_ppo(
             checkpoint,
             source=source,
             rom=rom,
-            required=_is_distilled_student_mode(config.mode),
+            required=_requires_reproducible_source(config.mode),
         )
         run_manifest = json.loads((run_directory / "manifest.json").read_text(encoding="utf-8"))
         if _is_v8_mode(config.mode) and checkpoint.get("v7_denominator") != (
@@ -6131,8 +6613,8 @@ def run_parallel_ppo(
                 checkpoint,
                 protocol=_ppo_protocol(config.mode),
             )
-        elif _is_distilled_student_mode(config.mode):
-            raise ValueError("Distilled-Student checkpoint has no bound curriculum snapshot")
+        elif _requires_reproducible_source(config.mode):
+            raise ValueError("Modern self-taught checkpoint has no bound curriculum snapshot")
         else:
             legacy_curriculum = _load_curriculum_manifest(curriculum_directory)
             if legacy_curriculum.get("best_milestone") != checkpoint.get("best_milestone"):
@@ -6215,6 +6697,18 @@ def run_parallel_ppo(
                 raise ValueError("Student optimizer does not match its checkpoint") from error
         if _uses_v9_practice(config.mode):
             _restore_student_practice_state(run_directory, checkpoint)
+        if _is_v12_mode(config.mode):
+            if checkpoint.get("v12_learning_file") != "v12-learning.json":
+                raise ValueError("V12 checkpoint has no hindsight learning state")
+            if (
+                not v12_learning_path.is_file()
+                or _sha256_file(v12_learning_path)
+                != checkpoint.get("v12_learning_file_sha256")
+            ):
+                raise ValueError("V12 hindsight learning state does not match its checkpoint")
+            _validate_v12_learning_state(
+                json.loads(v12_learning_path.read_text(encoding="utf-8"))
+            )
         novelty_files = checkpoint.get("novelty_files")
         if not isinstance(novelty_files, list):
             raise ValueError("PPO checkpoint has no persistent novelty memory")
@@ -6265,7 +6759,11 @@ def run_parallel_ppo(
                 "actor_mode": config.mode,
                 "human_demonstrations": [],
                 "self_generated_verified_curriculum": True,
-                "curriculum_source": curriculum_source.name,
+                "curriculum_source": (
+                    "direct_verified_clean_boot"
+                    if curriculum_source is None
+                    else curriculum_source.name
+                ),
                 "novelty_scope": "persistent per worker across episodes and resumes",
                 "reward_protocol": _ppo_reward_protocol(config.mode),
                 "rom_path_recorded": False,
@@ -6283,6 +6781,50 @@ def run_parallel_ppo(
                     }
                     if config.random_initialization
                     else retained_policy_info
+                ),
+                **(
+                    {
+                        "v12_architecture": {
+                            "actor": "one recurrent goal-conditioned visual PPO policy",
+                            "online_decision_model_calls": 0,
+                            "network_gameplay_calls": 0,
+                            "pretrained_components": [],
+                            "imported_actions": 0,
+                            "imported_parameters": 0,
+                            "starting_state": "direct replay-verified clean ROM power-on",
+                            "ordinary_learning": (
+                                "on-policy PPO plus future-frame hindsight imitation from the "
+                                "same policy's own rollouts"
+                            ),
+                            "rare_discovery_learning": (
+                                "replay-verified self-generated visual skills and rehearsal"
+                            ),
+                            "competence_authority": (
+                                "deterministic no-update checkpoint exams and terminal "
+                                "power-on composition evaluation"
+                            ),
+                            "recovery": PIXEL_LOOP_RECOVERY_PROTOCOL,
+                            "trainer_selected_buttons": 0,
+                            "actor_visible_ram": False,
+                            "actor_visible_maps_or_coordinates": False,
+                            "authored_route_or_quest_plan": False,
+                        },
+                        "fixed_experiment_contract": {
+                            "duration_seconds": config.duration_seconds,
+                            "maximum_actions": config.max_actions,
+                            "configuration_sha256": hashlib.sha256(
+                                json.dumps(
+                                    config.public_dict(),
+                                    sort_keys=True,
+                                    separators=(",", ":"),
+                                ).encode("utf-8")
+                            ).hexdigest(),
+                            "mid_run_rule_changes_allowed": False,
+                            "human_controller_actions_after_launch": 0,
+                        },
+                    }
+                    if _is_v12_mode(config.mode)
+                    else {}
                 ),
             },
         )
@@ -6483,6 +7025,13 @@ def run_parallel_ppo(
     finally:
         callback.stop_reason = reason
         callback._abandon_active_recoveries("campaign_end")
+        if _is_v12_mode(config.mode):
+            callback._train_pending_v12_hindsight()
+            callback._checkpoint()
+            terminal = callback._run_v12_terminal_evaluation()
+            if terminal is not None and terminal["hall_of_fame_verified"]:
+                reason = "hall_of_fame_verified"
+                callback.stop_reason = reason
         callback._checkpoint()
         status = callback._status("finished", reason)
         callback._narrative(f"campaign stopped: {reason}", state="finished", reason=reason)

@@ -313,8 +313,10 @@ def build_parser() -> argparse.ArgumentParser:
     ppo.add_argument(
         "--curriculum-source",
         type=Path,
-        required=True,
-        help="Verified expedition or finished PPO run that seeds the private curriculum",
+        help=(
+            "Verified expedition or finished PPO run that seeds the private curriculum; "
+            "V12 creates and verifies its own clean power-on root instead"
+        ),
     )
     ppo.add_argument(
         "--learner",
@@ -344,6 +346,7 @@ def build_parser() -> argparse.ArgumentParser:
             "self_taught_v8",
             "self_taught_v9",
             "self_taught_v10",
+            "self_taught_v12",
         ),
         default="pixels",
     )
@@ -409,6 +412,12 @@ def build_parser() -> argparse.ArgumentParser:
     ppo.add_argument("--explorer-recovery-blocked-penalty", type=float, default=0.25)
     ppo.add_argument("--explorer-recovery-escape-reward", type=float, default=0.25)
     ppo.add_argument("--explorer-recovery-expiration-penalty", type=float, default=1.0)
+    ppo.add_argument("--hindsight-max-lessons", type=int, default=16)
+    ppo.add_argument("--hindsight-min-actions", type=int, default=8)
+    ppo.add_argument("--hindsight-max-actions", type=int, default=128)
+    ppo.add_argument("--hindsight-min-changed-fraction", type=float, default=0.03)
+    ppo.add_argument("--hindsight-min-mean-absolute-error", type=float, default=3.0)
+    ppo.add_argument("--hindsight-epochs", type=int, default=1)
     ppo.add_argument("--resume", action="store_true")
 
     ppo_status = subparsers.add_parser(
@@ -905,12 +914,24 @@ def run_parallel_ppo_command(args: argparse.Namespace) -> int:
         random_initialization=(
             args.random_initialization
             or args.mode
-            in {"self_taught", "self_taught_v8", "self_taught_v9", "self_taught_v10"}
+            in {
+                "self_taught",
+                "self_taught_v8",
+                "self_taught_v9",
+                "self_taught_v10",
+                "self_taught_v12",
+            }
         ),
         power_on_only=(
             args.power_on_only
             or args.mode
-            in {"self_taught", "self_taught_v8", "self_taught_v9", "self_taught_v10"}
+            in {
+                "self_taught",
+                "self_taught_v8",
+                "self_taught_v9",
+                "self_taught_v10",
+                "self_taught_v12",
+            }
         ),
         self_imitation_epochs=args.self_imitation_epochs,
         distillation_attempts=args.distillation_attempts,
@@ -953,6 +974,12 @@ def run_parallel_ppo_command(args: argparse.Namespace) -> int:
         explorer_recovery_expiration_penalty=(
             args.explorer_recovery_expiration_penalty
         ),
+        hindsight_max_lessons=args.hindsight_max_lessons,
+        hindsight_min_actions=args.hindsight_min_actions,
+        hindsight_max_actions=args.hindsight_max_actions,
+        hindsight_min_changed_fraction=args.hindsight_min_changed_fraction,
+        hindsight_min_mean_absolute_error=args.hindsight_min_mean_absolute_error,
+        hindsight_epochs=args.hindsight_epochs,
     )
     if args.port:
         print(
@@ -962,7 +989,11 @@ def run_parallel_ppo_command(args: argparse.Namespace) -> int:
     status = run_parallel_ppo(
         rom_path,
         args.output,
-        args.curriculum_source.expanduser().resolve(),
+        (
+            None
+            if args.curriculum_source is None
+            else args.curriculum_source.expanduser().resolve()
+        ),
         learner,
         config,
         resume=args.resume,

@@ -143,9 +143,19 @@ def _is_v9(status: Mapping[str, Any]) -> bool:
 
 def _is_v10(status: Mapping[str, Any]) -> bool:
     return (
-        str(status.get("mode", "")) == "self_taught_v10"
-        or str(status.get("protocol", "")) == "parallel-recurrent-ppo-v10"
-        or str(status.get("reward_protocol", "")) == "recovery-before-reset-v1"
+        str(status.get("mode", "")) in {"self_taught_v10", "self_taught_v12"}
+        or str(status.get("protocol", ""))
+        in {"parallel-recurrent-ppo-v10", "parallel-recurrent-ppo-v12"}
+        or str(status.get("reward_protocol", ""))
+        in {"recovery-before-reset-v1", "self-generated-hindsight-goals-v1"}
+    )
+
+
+def _is_v12(status: Mapping[str, Any]) -> bool:
+    return (
+        str(status.get("mode", "")) == "self_taught_v12"
+        or str(status.get("protocol", "")) == "parallel-recurrent-ppo-v12"
+        or str(status.get("reward_protocol", "")) == "self-generated-hindsight-goals-v1"
     )
 
 
@@ -774,6 +784,79 @@ def _practice_section(status: Mapping[str, Any]) -> str:
     )
 
 
+def _hindsight_section(status: Mapping[str, Any]) -> str:
+    hindsight = _mapping(status.get("hindsight_learning"))
+    terminal = _mapping(hindsight.get("terminal_evaluation"))
+    rollouts = _integer(hindsight.get("rollouts_observed"))
+    lesson_rollouts = _integer(hindsight.get("rollouts_with_lessons"))
+    generated = _integer(hindsight.get("lessons_generated"))
+    trained = _integer(hindsight.get("lessons_trained"))
+    cards = "".join(
+        (
+            _metric_card("Rollouts observed", f"{rollouts:,}"),
+            _metric_card(
+                "Rollouts yielding lessons",
+                f"{lesson_rollouts:,}",
+                note=_rate(lesson_rollouts, rollouts),
+            ),
+            _metric_card("Hindsight goals created", f"{generated:,}"),
+            _metric_card(
+                "Hindsight goals trained",
+                f"{trained:,}",
+                note=_rate(trained, generated),
+            ),
+            _metric_card(
+                "Self-generated action examples",
+                f"{_integer(hindsight.get('examples_trained')):,}",
+            ),
+            _metric_card(
+                "Hindsight optimizer updates",
+                f"{_integer(hindsight.get('optimizer_updates')):,}",
+            ),
+            _metric_card(
+                "Pending lessons",
+                f"{_integer(hindsight.get('pending_lessons')):,}",
+            ),
+            _metric_card(
+                "Latest hindsight loss",
+                (
+                    "not trained yet"
+                    if hindsight.get("last_mean_loss") is None
+                    else f"{_number(hindsight.get('last_mean_loss')):.4f}"
+                ),
+            ),
+            _metric_card(
+                "Online LLM decisions",
+                f"{_integer(hindsight.get('online_decision_model_calls')):,}",
+                note="must remain zero",
+            ),
+            _metric_card(
+                "Terminal clean-start exam",
+                (
+                    "not run yet"
+                    if not terminal
+                    else "passed" if bool(terminal.get("success")) else "did not pass"
+                ),
+                note=(
+                    "fixed terminal policy, no learning or restores between skills"
+                    if terminal
+                    else "runs when the campaign closes"
+                ),
+            ),
+        )
+    )
+    return _section(
+        "Hindsight: is ordinary experience becoming a lesson?",
+        (
+            "V12 selects visibly different future frames from its own completed rollouts, then "
+            "trains the same recurrent actor on the actions that genuinely reached those frames. "
+            "No human action or walkthrough is added; static and cross-reset excerpts are rejected."
+        ),
+        cards,
+        class_name="hindsight",
+    )
+
+
 def _exam_section(status: Mapping[str, Any]) -> str:
     self_taught = _mapping(status.get("self_taught"))
     exams = _mapping(self_taught.get("frozen_exams"))
@@ -878,14 +961,19 @@ def _exam_section(status: Mapping[str, Any]) -> str:
                     if hall_of_fame_completions is None
                     else f"{hall_of_fame_completions:,}"
                 ),
-                note="continuous frozen-Student runs from power-on",
+                note=(
+                    "continuous fixed-policy runs from power-on"
+                    if _is_v12(status)
+                    else "continuous frozen-Student runs from power-on"
+                ),
             ),
         )
     )
     return _section(
         "Frozen exams: can it reproduce the lesson?",
         (
-            "Student weights do not change during these attempts. Passing marks competence; "
+            ("Actor" if _is_v12(status) else "Student")
+            + " weights do not change during these attempts. Passing marks competence; "
             "later failures can revoke it. Composition exams test whether separate skills join "
             "into one continuous run while the trainer switches only among self-generated goal "
             "clips at declared RAM milestone endpoints."
@@ -1052,6 +1140,7 @@ def render_ppo_dashboard(status: Mapping[str, Any]) -> str:
     v8 = _is_v8(status)
     v9 = _is_v9(status)
     v10 = _is_v10(status)
+    v12 = _is_v12(status)
     mode = _escaped(str(status.get("mode", "unknown")).upper())
     updated_at = html.escape(str(status.get("updated_at", "")), quote=True)
     environment_label = "Explorer environment" if v8 else "Environment"
@@ -1066,7 +1155,11 @@ def render_ppo_dashboard(status: Mapping[str, Any]) -> str:
     headline = (
         "One agent explores.<br/>Another learns what worked."
         if v8
-        else "Failures now<br/>teach the policy."
+        else (
+            "Every journey creates<br/>its next lesson."
+            if v12
+            else "Failures now<br/>teach the policy."
+        )
     )
     intro = (
         "The live Explorer searches several games at once. A separate Student studies only "
@@ -1074,9 +1167,15 @@ def render_ppo_dashboard(status: Mapping[str, Any]) -> str:
         "exams."
         if v8
         else (
+            "One recurrent visual policy learns from consequences and from future-frame goals "
+            "created out of its own experience. Rare milestones still require strict replay, and "
+            "deterministic exams—not training fit—measure competence."
+            if v12
+            else (
             "Several games collect experience for one shared recurrent policy. Trainer-only RAM "
             "computes rewards and verifies promotions; the actor boundary is shown explicitly "
             "below."
+            )
         )
     )
     v8_sections = (
@@ -1089,6 +1188,14 @@ def render_ppo_dashboard(status: Mapping[str, Any]) -> str:
         + _exam_section(status)
         + _provenance_section(status)
         if v8
+        else ""
+    )
+    v12_sections = (
+        _hindsight_section(status)
+        + _explorer_loop_recovery_section(status)
+        + _exam_section(status)
+        + _provenance_section(status)
+        if v12
         else ""
     )
     common_cards = _common_cards(status, v8=v8, v10=v10)
@@ -1143,7 +1250,7 @@ repeat(2,minmax(0,1fr))}}.card strong{{font-size:1.25rem}}}}
 @media(max-width:430px){{.grid,.depth-grid{{grid-template-columns:1fr}}}}
 </style></head><body><main>
 <div class="eyebrow">PARALLEL RECURRENT PPO · {mode}</div><h1>{headline}</h1>
-<p>{html.escape(intro)}</p>{v8_sections}
+<p>{html.escape(intro)}</p>{v8_sections}{v12_sections}
 <section><div class="section-heading"><div><h2>Live run</h2>
 <p>Shared counters from the current experiment.</p>
 </div></div><div class="grid">{common_cards}</div></section>

@@ -335,6 +335,45 @@ def test_version_10_dashboard_exposes_policy_controlled_recovery_denominators() 
     assert "No route, coordinate, preferred direction, mask, or forced action" in page
 
 
+def test_version_12_dashboard_explains_hindsight_and_terminal_evidence() -> None:
+    page = render_ppo_dashboard(
+        {
+            "state": "running",
+            "mode": "self_taught_v12",
+            "protocol": "parallel-recurrent-ppo-v12",
+            "reward_protocol": "self-generated-hindsight-goals-v1",
+            "hindsight_learning": {
+                "enabled": True,
+                "rollouts_observed": 20,
+                "rollouts_with_lessons": 18,
+                "lessons_generated": 288,
+                "lessons_trained": 272,
+                "examples_trained": 21_760,
+                "optimizer_updates": 272,
+                "pending_lessons": 16,
+                "last_mean_loss": 1.2345,
+                "online_decision_model_calls": 0,
+                "terminal_evaluation": None,
+            },
+            "explorer_loop_recovery": {"enabled": True},
+            "self_taught": {
+                "skills_discovered": 2,
+                "skills_competent": 1,
+                "frozen_exams": {"rounds": 3, "attempts": 3, "successes": 1},
+                "composition": {"attempts": 1, "successes": 0},
+            },
+        }
+    )
+
+    assert "Every journey creates" in page
+    assert "Hindsight: is ordinary experience becoming a lesson?" in page
+    assert "Hindsight goals created" in page and ">288<" in page
+    assert "Self-generated action examples" in page and ">21,760<" in page
+    assert "Online LLM decisions" in page and ">0<" in page
+    assert "Terminal clean-start exam" in page and "not run yet" in page
+    assert "One agent explores" not in page
+
+
 def test_dashboard_escapes_public_labels_and_survives_missing_v8_metrics() -> None:
     page = render_ppo_dashboard(
         {
