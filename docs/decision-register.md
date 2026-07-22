@@ -1755,8 +1755,8 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
 ## DR-0058 — Let the Explorer recover before resetting
 
 - **Date:** 2026-07-21
-- **Status:** Accepted and implemented; deterministic E2 qualification and direct E3 mechanism
-  calibration passed; real-ROM campaign canary and behavioral value pending
+- **Status:** Accepted and implemented; deterministic E2 qualification, direct E3 calibration, and
+  one bounded real-ROM E3 campaign canary passed; matched comparison and behavioral value pending
 - **Scope:** Version-10 Explorer loop handling, actor authority, generic recovery feedback,
   telemetry, qualification, and successor narrative
 - **Information label:** Explorer receives processed pixels, recent executed actions, and recurrent
@@ -1797,11 +1797,23 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
   Start (37.708% / 89.667) as material context change. Up×3 → Start closed as zero-credit
   `context_changed`; a fresh Up×3 → Down closed as credited `escaped`. Both retained
   `submitted == executed`. This is E3 mechanism calibration, not a campaign canary; no V10 campaign
-  result exists.
+  result existed at that checkpoint.
+- **Campaign-canary evidence:** On 2026-07-22 UTC (2026-07-21 local), a one-environment real-ROM
+  canary ran from clean commit `a0ec14a5506fe3a0c4bcb15787f68be4d512d764` with seed 20260810.
+  It stopped cleanly at `duration_limit` after 144.102 seconds, 6,099 actions at 42.324
+  actions/second, and 47 PPO updates. It made two verified promotions, reached the ground floor,
+  observed 93 unique map positions, verified its checkpoint hashes, and occupied 40 MiB. All 73
+  windows were `blocked_repeat`: 36 credited `escaped`, 32 zero-credit `context_changed`, and five
+  expired across 702 recovery actions, yielding 36/73 = 49.315% credited escapes. The five
+  expirations matched five `visual_recovery_expired` episodes. Active, abandoned, unresolved, and
+  trainer-selected-action counts ended at zero. Visual-cycle and long-stagnation recovery were not
+  activated.
 - **Interpretation:** Immediate reset protects compute but may remove the local off-distribution
   state in which PPO could compare repeated failure with a self-chosen escape. A bounded recovery
   window can test that hypothesis without telling the actor which way to move. Fewer resets alone
-  would be an operational difference, not meaningful exploration or competence.
+  would be an operational difference, not meaningful exploration or competence. The clean canary
+  qualifies this bounded mechanism and earns a matched longer V9/V10 comparison; its two promotions,
+  93 positions, and 49.315% credited escape rate are not superiority evidence without that match.
 - **Reward-audit correction:** Reduced the draft escape credit from 1.0 to 0.25 raw units and
   constrained it not to exceed the 0.25 repeated-block activation penalty. A credited directional
   blocked/escape pair is recovery-reward-neutral before ordinary game consequences. A
@@ -1822,10 +1834,10 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
   practice the recovery?” Keep `TRAINER-SELECTED BUTTONS: 0` on screen; distinguish a green credited
   directional escape from a blue zero-credit context change; and show every expiry, active window,
   and abandonment.
-- **Revisit when:** A real-ROM campaign canary exercises recovery; false positives appear in menus,
-  dialogue, or battle; the policy farms recovery feedback; recovery consumes a material action
-  fraction; a matched V9/V10 comparison closes; or V10 changes verified discovery or frozen Student
-  competence.
+- **Revisit when:** False positives appear in menus, dialogue, or battle; the policy farms recovery
+  feedback; recovery consumes a material action fraction; the visual-cycle or long-stagnation paths
+  receive campaign evidence; a matched V9/V10 comparison closes; or V10 changes verified discovery
+  or frozen Student competence.
 - **Supersedes / superseded by:** Extends the architecture after DR-0057 without altering that
   frozen V9 campaign or its eventual result. It supersedes immediate termination as the proposed
   successor behavior only for new V10 runs. Not yet superseded.

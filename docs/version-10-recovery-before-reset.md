@@ -7,10 +7,11 @@ the episode. That protected the action budget, but it also removed the exact loc
 which the policy needed to learn a different response.
 
 > **Status on 2026-07-21:** the V10 recovery mechanism is implemented as a new protocol and has
-> passed deterministic E2 qualification plus direct E3 mechanism calibration. A real-ROM campaign
-> canary and matched behavioral comparison remain pending. No V10 gameplay, exploration, learning, or competence result is
-> claimed. The active V9 campaign remains a separately frozen experiment; its live wall-bouncing
-> observation is diagnostic evidence, not a rewritten terminal result.
+> passed deterministic E2 qualification, direct E3 mechanism calibration, and one bounded E3
+> real-ROM campaign canary. A matched behavioral comparison remains pending. No V10 exploration
+> superiority, learning, or competence result is claimed. The active V9 campaign remains a
+> separately frozen experiment; its live wall-bouncing observation is diagnostic evidence, not a
+> rewritten terminal result.
 
 The central idea is simple:
 
@@ -313,15 +314,43 @@ open recovery, then policy-submitted Start closes it as `context_changed` with z
 escape/success count. From a fresh state, another three Up actions open recovery and policy-submitted
 Down closes it as the credited `escaped` outcome. Both sequences preserve `submitted == executed`.
 This is E3 calibration of one deterministic real-ROM mechanism. It is not a fresh campaign,
-exploration comparison, or learning result, so Gate 2 remains open.
+exploration comparison, or learning result; by itself it did not close Gate 2. The following clean
+campaign canary did close that mechanism gate.
 
-### Gate 2 — real-ROM canary
+### Gate 2 — real-ROM canary — passed at E3 mechanism scope
 
-A short fresh-start canary must exercise at least one recovery activation, separate credited
-escapes from zero-credit context changes, preserve active ranks through checkpoint accounting,
-leave zero unresolved inactive windows, preserve the information boundary, stop within its declared
-budget, and produce a clean checkpoint. If it never encounters an eligible failure, the canary is
-inconclusive rather than a pass.
+The first source-bound canary ran on 2026-07-22 UTC (2026-07-21 local) from clean commit
+`a0ec14a5506fe3a0c4bcb15787f68be4d512d764`, with the verified private ROM, seed 20260810, and one
+environment. It stopped cleanly at `duration_limit` after 144.102 seconds and 6,099 Explorer actions
+(42.324 actions/second), completing 47 PPO updates. Checkpoint hashes verified and the run occupied
+40 MiB.
+
+| Canary measure | Result |
+| --- | ---: |
+| Verified promotions | 2 |
+| Best milestone | `Reached the ground floor` |
+| Unique map positions | 93 |
+| Recovery windows opened | 73 |
+| Trigger mix | 73 `blocked_repeat`; 0 visual-cycle; 0 long-stagnation |
+| Credited `escaped` | 36 |
+| Zero-credit `context_changed` | 32 |
+| `expired` | 5 |
+| Credited escape rate | 36 / 73 completed = 49.315% |
+| Recovery actions | 702 |
+| Active / abandoned / unresolved at close | 0 / 0 / 0 |
+| `visual_recovery_expired` episodes | 5 |
+| Trainer-selected action overrides | 0 |
+
+The accounting closes exactly: 36 escaped + 32 context-changed + 5 expired = 73 opened windows.
+The five expirations equal the five classified `visual_recovery_expired` episodes. No active,
+abandoned, or unresolved window disappeared at shutdown, and the PPO policy remained the source of
+every executed action.
+
+This passes the bounded mechanism, action-authority, telemetry, checkpoint, and clean-stop gate. It
+does **not** demonstrate that 93 positions, two promotions, or a 49.315% credited escape rate are
+better than V9 under matched compute. Because this canary activated only `blocked_repeat`, the
+visual-cycle and pixels-only long-stagnation recovery paths remain deterministic-test evidence, not
+real-ROM campaign evidence.
 
 ### Gate 3 — matched behavioral comparison
 
@@ -372,10 +401,11 @@ add “walk north here” or another task-specific patch.
 | Unique positions or milestones improve | “V10 sustained broader exploration under this declared budget.” | “The Student became competent.” |
 | Frozen exams improve | “The named Student gate improved under the declared denominator.” | “It can beat Pokémon Red” without restore-free completion |
 
-Until a real-ROM campaign canary and matched comparison exist, the current statement is:
+Until a matched behavioral comparison exists, the current statement is:
 
 > V10's route-agnostic, policy-controlled recovery mechanism passed deterministic E2 qualification
-> and direct E3 mechanism calibration. Its exploration and gameplay value remain untested.
+> plus direct and bounded campaign-level E3 mechanism checks. Its exploration superiority,
+> learning, and competence remain untested.
 
 ## Video chapter: “The reset button was hiding the lesson”
 

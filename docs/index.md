@@ -46,8 +46,11 @@ selected ROM-bearing checks with the private ROM in 19.02 seconds. A direct grou
 private-ROM fixture proved Up×3 → Start is zero-credit `context_changed`, while a fresh Up×3 → Down
 is credited `escaped`; both preserve submitted/executed action identity. Telemetry separately
 accounts for every escaped, context-changed, expired, active, or abandoned window; unresolved
-inactive windows must remain zero. This is E3 mechanism calibration. A campaign canary and any
-behavioral improvement claim remain pending.
+inactive windows must remain zero. A clean 144.102-second E3 campaign canary then processed 6,099
+actions, made two promotions through the ground floor, and closed all 73 blocked-repeat windows as
+36 credited escapes, 32 zero-credit context changes, and five expirations. It ended with zero
+active, abandoned, unresolved, or overridden-action counts. This qualifies the bounded mechanism,
+not exploration superiority or learning; a matched longer V9/V10 comparison is next.
 
 ## Start here
 
@@ -109,7 +112,7 @@ flowchart LR
     V7 --> V8["✅ Version 8<br/>0/7 canary; 1/47 final"]
     V8 --> V9["✅ Version 9 mechanism<br/>0/3 qualification"]
     V9 --> L9["🟨 Version 9 long run<br/>active; provisional"]
-    L9 --> V10["✅ Version 10 mechanism<br/>E2 checked; E3 calibrated"]
+    L9 --> V10["✅ Version 10 mechanism<br/>E3 canary passed"]
 ```
 
 The diagram shows project position, not game progress. Reaching the game-start state is a narrow

@@ -55,8 +55,19 @@
   by policy-submitted Down closed as credited `escaped`; both sequences preserved
   `submitted == executed`. This calibrates the detector on the private ROM; it is not a gameplay
   canary.
-- V10 remains awaiting a real-ROM campaign canary and matched behavioral comparison. No exploration
-  gain, learned competence, or gameplay improvement is claimed in this entry.
+- Passed the first bounded real-ROM V10 campaign canary on 2026-07-22 UTC (2026-07-21 local) from
+  clean commit `a0ec14a5506fe3a0c4bcb15787f68be4d512d764`, seed 20260810, and one environment. It
+  stopped cleanly at `duration_limit` after 144.102 seconds, 6,099 actions at 42.324 actions/second,
+  and 47 PPO updates; checkpoint hashes verified and the run occupied 40 MiB. It made two verified
+  promotions, reached the ground floor, and observed 93 unique map positions.
+- Closed the canary's recovery denominator exactly: all 73 windows were `blocked_repeat`; 36 were
+  credited `escaped`, 32 were zero-credit `context_changed`, and five expired, for a 36/73 = 49.315%
+  credited escape rate across 702 recovery actions. The five expirations matched five
+  `visual_recovery_expired` episodes. Active, abandoned, unresolved, and trainer-selected-action
+  counts all ended at zero.
+- V10 now earns a matched longer V9/V10 comparison. The canary did not activate visual-cycle or
+  long-stagnation recovery and does not establish exploration superiority, learning, competence,
+  long-run reliability, or Hall-of-Fame capability.
 
 ## Unreleased — Version 9 self-correcting Student
 

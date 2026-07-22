@@ -31,15 +31,20 @@
 > button under PPO policy authority but defers reset inside a bounded, generic recovery window. V10
 > passed deterministic E2 qualification: 67 focused checks, 293 default-suite passes with 13
 > private-ROM skips, and 54/54 selected ROM-bearing checks with the private ROM in 19.02 seconds. A
-> real-ROM campaign canary remains pending. A direct ground-floor private-ROM fixture separately
-> passed E3 mechanism calibration: Up×3 → Start is zero-credit `context_changed`, while a fresh
+> direct ground-floor private-ROM fixture separately passed E3 mechanism calibration: Up×3 → Start
+> is zero-credit `context_changed`, while a fresh
 > Up×3 → Down is credited `escaped`; both preserve submitted/executed action identity. Fewer resets,
-> broader exploration, and learned competence are all still unproven.
+> broader exploration, and learned competence were still unproven. The following 144.102-second
+> clean real-ROM canary passed the E3 mechanism gate with 6,099 actions, two promotions through the
+> ground floor, and an exactly closed 73-window denominator: 36 escaped, 32 context-changed, five
+> expired, and zero active/abandoned/unresolved. This authorizes a matched longer comparison; it
+> does not prove exploration superiority or competence.
 
 - **Current stage:** Version 7 remains the locked denominator; Version 8 is closed after its 0/7
   qualification canary and 1/47 final run; Version 9 mechanism qualification passed at 0/3 frozen
   exams, and its declared long behavioral run is active with only provisional evidence; Version 10
-  recovery passed deterministic E2 qualification and awaits a real-ROM campaign canary
+  recovery passed deterministic E2 qualification, direct E3 calibration, and one bounded E3
+  real-ROM campaign canary; a matched longer V9/V10 comparison is next
 - **Status date:** 2026-07-21
 
 **Most important caveat:** Q1 verified one replayable house-exit lineage, but the acting suffix
@@ -153,7 +158,8 @@ flowchart LR
 | Version 9 closed-loop practice observability | ✅ Real-ROM mechanism checked | E3 pipeline | The corrected canary recorded 16/22 exact targets (72.727%), two wrong-state outcomes, and four timeouts; retained 16 successes; applied 32 success-only updates; and exposed three aggregated datasets / 39 examples / 20,000 bytes in the last replay round. These are assisted practice metrics, not competence |
 | Version 9 automatic PPO recovery | ⬜ Deferred and disabled | E0 | A future no-success trigger may escalate the canonical Student to same-boundary recurrent PPO. It is not implemented or active in initial qualification and cannot be claimed before closed-loop plumbing plus a matched BC-only ablation pass |
 | Version 9 strict frozen evaluation | 🟨 Exercised; 0/3 | E3 denominator | Three frozen attempts all failed. Reverse-rung success and aggregated rollouts remain training evidence only; competence still requires the full checkpoint-separated gate and restore-free composition remains a separate power-on test |
-| Version 10 recovery-before-reset mechanism | ✅ Checked and directly calibrated | E2 / E3 mechanism | A separate `self_taught_v10` successor preserves V9 and gives repeated generic ineffective directional action/pixel outcomes a bounded chance to recover before classified reset. The PPO policy still chooses every button; no direction, route, coordinate, map, action mask, or controller override enters the actor. Focused checks passed 67/67, the default suite passed 293 with 13 private-ROM skips, and selected ROM-bearing files passed 54/54 with the private ROM in 19.02 seconds. After blocked-repeat, only a directional material visual outcome is credited; Start closes as zero-credit `context_changed`. A direct fixture proved Up×3 → Start context change and fresh Up×3 → Down credited escape with submitted action equal to executed. Long stagnation opens at 1,024 ineffective outcomes; backtracking resets its hard timer without clearing short-cycle detection. Every opened window is accounted for as escaped, context-changed, expired, active, or abandoned; unresolved inactive windows must remain zero. A campaign canary is pending |
+| Version 10 recovery-before-reset mechanism | ✅ Checked and directly calibrated | E2 / E3 mechanism | A separate `self_taught_v10` successor preserves V9 and gives repeated generic ineffective directional action/pixel outcomes a bounded chance to recover before classified reset. The PPO policy still chooses every button; no direction, route, coordinate, map, action mask, or controller override enters the actor. Focused checks passed 67/67, the default suite passed 293 with 13 private-ROM skips, and selected ROM-bearing files passed 54/54 with the private ROM in 19.02 seconds. After blocked-repeat, only a directional material visual outcome is credited; Start closes as zero-credit `context_changed`. Long stagnation opens at 1,024 ineffective outcomes; backtracking resets its hard timer without clearing short-cycle detection. Every opened window is accounted for as escaped, context-changed, expired, active, or abandoned; unresolved inactive windows must remain zero |
+| Version 10 bounded real-ROM canary | ✅ Mechanism qualified; comparison pending | E3 pipeline | Clean commit `a0ec14a5506fe3a0c4bcb15787f68be4d512d764`, seed 20260810, one environment: `duration_limit` at 144.102s, 6,099 actions (42.324/s), 47 PPO updates, two verified promotions through the ground floor, 93 unique positions, verified checkpoint hashes, and 40 MiB. All 73 windows were blocked-repeat: 36 escaped, 32 context-changed, five expired, 702 recovery actions, 49.315% credited escape rate, and zero active/abandoned/unresolved/overrides. Five expirations matched five recovery-expired episodes. Visual-cycle and long-stagnation paths were not activated. This earns a matched longer comparison, not an exploration, learning, competence, or Hall-of-Fame claim |
 | Version 10 improves exploration | ⬜ Not demonstrated | E0 | Recovery activations or fewer resets are not sufficient. A declared comparison must account for recovery actions and show broader unique positions/maps or deeper replay-verified milestones before claiming an exploration gain |
 | Version 10 improves learned competence | ⬜ Not demonstrated | E0 | Explorer recovery does not itself train a competent Student. Checkpoint-separated frozen local exams and restore-free composition remain the behavioral authority |
 | One retained model composes the route from power-on | ⬜ Not demonstrated | E0 | Backward training and frozen evaluation gates must expand to power-on before this claim exists |

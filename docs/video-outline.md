@@ -61,8 +61,8 @@
 > the watchdog resets the episode. Version 10 asks whether that correct safety reset is also erasing
 > the exact local lesson PPO needs. It opens a bounded recovery window, keeps every button under
 > policy control, and separates credited escapes, zero-credit context changes, expirations, active
-> windows, and abandonments. This is an implemented
-> hypothesis that passed deterministic engineering qualification, not a gameplay success beat.
+> windows, and abandonments. The bounded E3 campaign canary now qualifies that mechanism; it is not
+> a gameplay-success or superiority beat.
 
 This document is a production guide for telling the project's story without getting ahead of the
 evidence. The detailed Episode 0 section preserves the original before-training production plan;
@@ -133,8 +133,8 @@ Keep three safeguards visible throughout:
 The payoff is not a lower reset count by itself. Put reset rate beside unique positions, verified
 milestones, and frozen Student exams. If only the first changes, say the harness preserved more
 episodes but did not improve meaningful progress. If exploration broadens but exams remain flat,
-call it an Explorer result, not whole-agent learning. Until the canary runs, label every V10 diagram
-**ENGINEERING-CHECKED HYPOTHESIS — GAMEPLAY VALUE UNTESTED**. If the reward design appears on
+call it an Explorer result, not whole-agent learning. The bounded canary has now passed, so label
+every V10 diagram **BOUNDED CANARY PASSED — SUPERIORITY UNTESTED**. If the reward design appears on
 screen, show that escape credit was cut from the draft 1.0 to 0.25 and capped at the 0.25 blocked
 activation penalty: a credited directional blocked/escape pair is reward-neutral, while
 `context_changed` earns zero and retains the -0.25 penalty.
@@ -143,6 +143,14 @@ Up/Right remain at or below 0.642% changed pixels, Down/Left reach at least 20.9
 reaches 37.708%. Then show both tested sequences: Up×3 → Start closes blue as `context_changed`,
 while fresh Up×3 → Down closes green as credited `escaped`; submitted and executed buttons match.
 Label this **MECHANISM CALIBRATION**, not evidence that the agent explores better.
+
+Then reveal the real-ROM canary as a complete denominator, not a victory montage: 6,099 actions in
+144.102 seconds, 47 PPO updates, two promotions through the ground floor, and 93 unique positions.
+Draw 73 blocked-repeat windows as tiles: 36 green credited escapes, 32 blue zero-credit context
+changes, and five red expirations. Add 702 recovery actions and `36/73 = 49.315%`, then show
+`ACTIVE 0 · ABANDONED 0 · UNRESOLVED 0 · TRAINER OVERRIDES 0`. State that visual-cycle and
+long-stagnation paths did not activate. The narrative payoff is permission to run a matched longer
+V9/V10 comparison—not proof of better exploration, learning, competence, or a path to Hall of Fame.
 
 ## Planned Episode 10: “The Discoverer and the Student”
 

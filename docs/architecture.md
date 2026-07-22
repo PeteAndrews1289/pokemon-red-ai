@@ -16,9 +16,10 @@
 > [Version 9](version-9-self-correcting-student.md). Version 10 is implemented as a separate
 > successor, not a change to that campaign. It preserves V9's Student and lets the Explorer policy
 > continue for a bounded recovery window after generic ineffective directional action/pixel
-> outcomes, with no route hint or
-> trainer-selected button. Deterministic E2 qualification and direct E3 mechanism calibration
-> passed; a real-ROM campaign canary and any behavioral claim remain pending.
+> outcomes, with no route hint or trainer-selected button. Deterministic E2 qualification and
+> direct E3 mechanism calibration
+> passed. A bounded real-ROM E3 campaign canary then closed all 73 recovery windows and stopped
+> cleanly; a matched comparison and any behavioral-superiority claim remain pending.
 > See [Version 10](version-10-recovery-before-reset.md).
 
 ## Active Version-10 implementation boundary
@@ -82,6 +83,15 @@ zero. This qualifies engineering behavior, not a real-ROM campaign result, explo
 competence. Direct E3 mechanism calibration at the committed ground-floor fixture proves Up×3 →
 Start is zero-credit `context_changed`, while a fresh Up×3 → Down is credited `escaped`; the
 submitted and executed buttons remain identical in both sequences.
+
+The first clean campaign canary bound this architecture to commit
+`a0ec14a5506fe3a0c4bcb15787f68be4d512d764`, seed 20260810, the private ROM, and one environment.
+It stopped at `duration_limit` after 144.102 seconds, 6,099 actions, and 47 PPO updates. All 73
+windows were `blocked_repeat`: 36 escaped, 32 context-changed, and five expired; active, abandoned,
+unresolved, and action-override counts ended at zero. Its two verified promotions, ground-floor
+depth, and 93 positions are canary observations, not evidence of better exploration or learning.
+Visual-cycle and long-stagnation campaign paths remain unexercised. The architecture is ready for a
+matched longer V9/V10 comparison, not a Hall-of-Fame claim.
 
 ## Active Version-9 implementation boundary
 

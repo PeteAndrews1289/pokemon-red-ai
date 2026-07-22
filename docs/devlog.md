@@ -49,8 +49,21 @@
   draft 1.0 to 0.25 raw units and constrained it to no more than the 0.25 repeated-block activation
   penalty. A credited directional blocked/escape pair is reward-neutral before ordinary game
   consequences; a non-directional `context_changed` closure earns zero and retains the -0.25.
-- Kept the evidence boundary narrow. A real-ROM campaign canary is still pending, and no navigation,
-  exploration, learning, competence, or gameplay improvement is claimed.
+- Ran the first bounded V10 campaign canary on 2026-07-22 UTC (2026-07-21 local) from clean commit
+  `a0ec14a5506fe3a0c4bcb15787f68be4d512d764`, the private ROM, seed 20260810, and one environment.
+  It stopped cleanly at `duration_limit` after 144.102 seconds, 6,099 actions at 42.324
+  actions/second, and 47 PPO updates. Its checkpoint hashes verified and its output occupied 40 MiB.
+- Recorded two verified promotions, a best milestone of `Reached the ground floor`, and 93 unique map
+  positions. All 73 recovery windows came from `blocked_repeat`: 36 closed as credited `escaped`, 32
+  as zero-credit `context_changed`, and five as `expired`. The credited escape rate was 36/73 =
+  49.315% across 702 recovery actions.
+- Closed the operational ledger exactly. The five expirations matched five
+  `visual_recovery_expired` episodes; active, resume/episode/campaign abandonment, unresolved, and
+  trainer-selected-action counts all ended at zero. Visual-cycle and long-stagnation recovery were
+  not activated in this canary.
+- Kept the evidence boundary narrow. This is E3 campaign-level mechanism evidence that authorizes a
+  matched longer V9/V10 comparison. It is not evidence of exploration superiority, learning,
+  competence, long-run reliability, gameplay completion, or Hall-of-Fame capability.
 
 ## 2026-07-21 — Freeze the rules, then let V9 run
 

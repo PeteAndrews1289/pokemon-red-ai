@@ -14,8 +14,8 @@ trials compare learned or optimized emitters under the same checkpoint and repla
 > **Current status: V9's mechanism is qualified and its declared eight-hour fresh-start campaign is
 > live. The first 0/1 exam checkpoint is provisional, not a learning result. V10's bounded
 > policy-controlled loop recovery has passed deterministic E2 qualification and direct E3
-> mechanism calibration; a real-ROM campaign canary and any claim about exploration or competence
-> remain pending.**
+> mechanism calibration plus one bounded real-ROM E3 canary. A matched V9/V10 comparison and any
+> claim about exploration superiority or competence remain pending.**
 > Stage 0 memorized and exactly replayed its one 419-action house-exit route. Reverse curriculum
 > completed that opening in development, and Frontier Apprentice proved that network updates can be
 > gated behind replay-verified milestones. Its limitation was equally important: almost every
@@ -132,7 +132,16 @@ trials compare learned or optimized emitters under the same checkpoint and repla
 > inactive windows must remain zero. A direct
 > private-ROM ground-floor fixture proved Up×3 → Start is zero-credit `context_changed`, while a
 > fresh Up×3 → Down is credited `escaped`; both preserve `submitted == executed`. That is E3
-> mechanism calibration, not a gameplay result; V10 has no campaign run result yet. See
+> mechanism calibration, not a gameplay result.
+> The first V10 campaign canary then ran from clean commit
+> `a0ec14a5506fe3a0c4bcb15787f68be4d512d764`, the private ROM, seed 20260810, and one environment.
+> It stopped cleanly at `duration_limit` after 144.102 seconds, 6,099 actions at 42.324
+> actions/second, and 47 PPO updates, with verified checkpoint hashes and 40 MiB of output. It made
+> two verified promotions, reached the ground floor, and observed 93 unique map positions. Its 73
+> blocked-repeat windows closed as 36 credited escapes, 32 zero-credit context changes, and five
+> expirations: a 49.315% credited escape rate across 702 recovery actions. Active, abandoned,
+> unresolved, and action-override counts ended at zero. This is E3 mechanism evidence, not proof of
+> better exploration, learning, competence, or long-run performance. See
 > [Let the Explorer recover before resetting](docs/version-10-recovery-before-reset.md).
 
 The current code preserves every historical runner, including Monkey, Archivist, online learners,
@@ -179,7 +188,7 @@ current implemented successor hypothesis is
 | Preserved random comparison | Monkey vs. pixels-only Archivist under matched budgets |
 | Completed 90-minute pretrial | Evolution reached tier 1; online learners plateaued around Pallet Town and Route 1 |
 | Concluded neural experiment | Six inherited-archive lanes all failed the second-map/party gate under equal fuel |
-| Current completion work | V9's qualified mechanism is running its frozen eight-hour fresh-start campaign; V10 recovery passed deterministic E2 checks and direct E3 mechanism calibration, and awaits a real-ROM campaign canary |
+| Current completion work | V9's qualified mechanism is running its frozen eight-hour fresh-start campaign; V10 recovery passed deterministic E2 checks, direct E3 calibration, and one bounded E3 campaign canary, authorizing a matched longer comparison |
 | North star | First discover a replayable Hall-of-Fame lineage, then train and evaluate one frozen pixel policy |
 
 ## The journey
@@ -200,7 +209,7 @@ flowchart LR
     V7 --> V8["✅ V8<br/>0/7 canary; 1/47 final"]
     V8 --> V9["✅ V9 mechanism<br/>0/3 qualification"]
     V9 --> LONG["🟨 V9 long run<br/>active; evidence provisional"]
-    LONG --> V10["✅ V10 mechanism<br/>E2 checked; E3 calibrated"]
+    LONG --> V10["✅ V10 mechanism<br/>E3 canary passed"]
     V10 --> HF["⬜ Hall of Fame<br/>one frozen policy"]
 ```
 
@@ -374,7 +383,7 @@ Start with [the documentation hub](docs/index.md), or jump directly to:
 - [Version 7: let a new player teach itself](docs/version-7-self-taught.md) — random power-on start, self-generated visual skills, direct self-imitation, competence gates, and canary evidence
 - [Version 8: separate discovery from learning](docs/version-8-distilled-student.md) — qualified 0/7 canary, longer 1/47 final run, unchanged V7 denominator, replay-backed compression, separate Explorer and Student, and lessons learned
 - [Version 9: let the Student practice being wrong](docs/version-9-self-correcting-student.md) — exposure bias, consecutive edges, reverse closed-loop practice, the failed and corrected canaries, success-only aggregation, strict 0/3 exams, and video narrative
-- [Version 10: let the Explorer recover before resetting](docs/version-10-recovery-before-reset.md) — why immediate loop reset may hide the local recovery lesson, how policy action authority stays intact, and what the canary must prove before any behavioral claim
+- [Version 10: let the Explorer recover before resetting](docs/version-10-recovery-before-reset.md) — why immediate loop reset may hide the local recovery lesson, how policy action authority stays intact, what its bounded canary proved, and why a matched comparison is still required
 - [Version 6: remember the journey](docs/version-6-consolidation.md) — retained PPO weights, backward competence gates, failed and passed canaries, and the new claim ladder
 - [Append-only decision register](docs/decision-register.md) — accepted, rejected, retired, superseded, and failed ideas with their evidence
 - [Progress](docs/progress.md) — current evidence, status, and reporting rules
