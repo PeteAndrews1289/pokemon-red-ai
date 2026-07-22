@@ -1,6 +1,29 @@
 # Changelog
 
-## Unreleased — Version 11 hierarchical completion pivot
+## Unreleased — Version 12 final experiential learner
+
+- Closed the V11 continuous assisted attempt after 950.308 seconds, 329 controller actions, and
+  144 online model calls, without party or badge progress. V11 remains a disclosed assisted control
+  rather than the final learning claim.
+- Added `self_taught_v12`: one random-initialized recurrent visual policy, four emulator workers,
+  direct replay-verified ROM power-on, zero imported curriculum/actions/weights/save states, and
+  zero online decision-model calls.
+- Added bounded future-frame hindsight that converts visually meaningful 8–128-action excerpts from
+  each rollout into at most 16 self-generated goal lessons without crossing episode resets.
+- Added a correct-goal-versus-blank contrast objective and dashboard diagnostic. A matched-budget
+  canary moved demonstrated-action correct-goal advantage from `-0.00018086` to `+0.00353084` after
+  the fixed 0.25-weight, 0.10-margin term was introduced.
+- Added direct terminal evaluation from sealed power-on, checkpoint-separated frozen exams, V12
+  learning/audit telemetry, and explicit zero-assistance counters.
+- Added a fail-closed 48-hour launcher with a 150-million-action safety ceiling, four environments,
+  source/ROM/port/storage gates, a 100 GiB output ceiling, localhost dashboard on port 8777, and
+  macOS sleep prevention. It does not launch until the T7 is mounted with at least 150 GiB free.
+- Preserved three real-ROM canaries as a ROM-free qualification record. They qualify the V12
+  mechanism and throughput, not a competent skill or whole-game completion.
+- Added the V12 design, aggregate qualification CSV, fixed falsifiers, and updated project narrative,
+  progress, roadmap, architecture, decision register, and video outline.
+
+## Version 11 — Hierarchical completion pivot
 
 - Closed V10 cleanly before changing architectures. Run
   `parallel-ppo-v10-recovery-8h-20260721-seed20260809` ended by SIGINT after 4,503.282 seconds

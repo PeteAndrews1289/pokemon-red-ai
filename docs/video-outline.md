@@ -74,9 +74,12 @@
 > persistent memory, and controller specialists. Its canary sequence now supplies four honest beats:
 > C1 path resolution failed, C2 MCP authorization failed, C3 ran but was rejected for false
 > initialized story state, and C4 qualified the opening referee after 136 actions and 70 planner
-> calls with empirical RIGHT-movement proof and objective 1/84. A fresh unbounded clean-start run is
-> active. The new chapter remains an architectural hypothesis, not a Hall-of-Fame result or a
-> guarantee of eventual completion.
+> calls with empirical RIGHT-movement proof and objective 1/84. Its continuous successor closed
+> after 950.308 seconds, 329 actions, and 144 online model calls. That made V11 a useful assisted
+> control, but not the desired experiential learner. Version 12 is the final turn: one local
+> recurrent visual actor makes goals from its own future frames, must prefer its demonstrated actions
+> under the correct goal over a blank goal, and faces a frozen 48-hour contract. Three canaries
+> qualify the mechanism, not competence; the long run is waiting for the T7 mount.
 
 This document is a production guide for telling the project's story without getting ahead of the
 evidence. The detailed Episode 0 section preserves the original before-training production plan;
@@ -218,9 +221,9 @@ Show progress in four simultaneous layers:
 4. **Reliability:** clean-start receipt, hashes, intervention count, and strict terminal fields.
 
 The canary's honest ending is tiny: C4 qualifies opening control and objective evidence at 1/84. It
-does not count as learning or evidence that the hierarchy can complete the game. The fresh
-unbounded clean-start run begins only after that gate. Put `NO PLANNED WALL-CLOCK LIMIT` beside
-`NO COMPLETION GUARANTEE`; “unbounded” is a scheduling choice, not a result.
+does not count as learning or evidence that the hierarchy can complete the game. The continuous
+attempt begins only after that gate and later closes at 950.308 seconds. Put `144 ONLINE MODEL
+CALLS` beside `ASSISTED CONTROL`; access to a planner is not experiential learning.
 
 If V11 eventually reaches the Hall of Fame, say **A DISCLOSED ASSISTED HIERARCHICAL AI COMPLETED POKÉMON
 RED FROM POWER-ON**. Do not say the model learned the game from pixels, discovered the route
@@ -378,9 +381,15 @@ hard promises:
    declared in advance.
 
 Keep two horizontal tracks on screen from this point forward. The upper `ASSISTED HIERARCHY` track
-contains V11 and its active unbounded clean-start run. The lower `FROZEN LEARNED POLICY` track ends
-at V10's 3/32 and zero competent skills until a genuinely frozen successor is evaluated. Never move
-an assisted milestone onto the learned track for dramatic convenience.
+contains the closed V11 control. The lower `EXPERIENTIAL LEARNED POLICY` track runs from V7–V10's
+negative competence evidence into V12's fixed final experiment. Never move an assisted milestone
+onto the learned track for dramatic convenience.
+
+The V12 visual should show one rollout splitting into many short goal lessons. Pair the ordinary
+imitation-loss curve with the correct-goal-versus-blank diagnostic: Canary 2's attractive training
+story is rejected at `-0.00018086`, then Canary 3 moves directionally to `+0.00353084`. Keep `0
+COMPETENT SKILLS` on screen throughout. The narrative payoff is methodological honesty, not a
+manufactured victory.
 
 The false Hall-of-Fame audit is a particularly useful visual beat. Put two green checks on screen:
 `SNAPSHOT HASH MATCHED` and `SCREEN HASH MATCHED`. Then strike through the headline `HALL OF FAME`

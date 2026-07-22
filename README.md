@@ -11,14 +11,15 @@ The original game-naive, pixels-only condition remains a strict control. The Q0/
 baseline deliberately used a seeded random action emitter and a sealed, read-only referee; the next
 trials compare learned or optimized emitters under the same checkpoint and replay rules.
 
-> **Current status: V10 is closed at 534,924 Explorer actions, Route 1, 3/32 frozen exams, and zero
-> competent skills. Its generic recovery mechanism worked as designed but did not solve reliable
-> composition. Version 11's disclosed hierarchical planner, map navigator, persistent memory, and
-> controller specialists are now operational. Four bounded canaries qualified the opening referee
-> only after exposing path, tool-authorization, and state-truth failures. A fresh continuous V11
-> run is active from true power-on; it has not reached the Hall of Fame and is not guaranteed to
-> finish.** See
-> [Stop teaching one button at a time](docs/version-11-hierarchical-pivot.md).
+> **Current status: the assisted V11 attempt is closed and preserved as an upper-bound control. It
+> stopped after 950.308 seconds, 329 controller actions, and 144 language-model calls with no party,
+> badges, or Hall-of-Fame result; the user rejected live per-decision model queries as the project's
+> final premise. Version 12 is the final local experiential learner: one recurrent visual policy,
+> random weights, direct verified power-on, dense future-frame hindsight lessons, correct-goal
+> contrast, replay-verified rare skills, and deterministic exams. Three bounded real-ROM canaries
+> qualify the mechanism, not competence. The fixed 48-hour run is prepared but has not launched
+> because the external T7 is not mounted. No whole-game result exists.** See
+> [Every journey creates its next lesson](docs/version-12-final-self-learner.md).
 > Stage 0 memorized and exactly replayed its one 419-action house-exit route. Reverse curriculum
 > completed that opening in development, and Frontier Apprentice proved that network updates can be
 > gated behind replay-verified milestones. Its limitation was equally important: almost every
@@ -166,8 +167,18 @@ trials compare learned or optimized emitters under the same checkpoint and repla
 > (596.087 metrics seconds), 136 actions, and 70 language-model calls, in `RedsHouse2f` at `(0,2)`
 > with story index 1/84 and no party, badges, or Hall-of-Fame result. Its early server telemetry
 > still leaked the pre-game bedroom map before the public state did; that final server-layer leak
-> was fixed before the fresh continuous run `v11-continuous-20260721-233300` began. The local live
-> dashboard is served on port 8775. This is qualified plumbing, not whole-game capability.
+> was fixed before `v11-continuous-20260721-233300` began. The user then ended that attempt after
+> 950.308 seconds, 329 actions, and 144 language-model calls. It produced no party, badges, or
+> Hall-of-Fame result. V11 remains useful assisted-control evidence, but it is not the desired
+> learning result.
+> V12 Canary 1 processed 20,000 actions in 126.161 seconds, replay-verified progress through
+> `Stepped outside`, and trained 624 hindsight lessons over 19,748 self-generated examples, but
+> passed only 1/9 frozen exams and produced zero competent skills. Canary 2 then rejected an
+> attractive loss curve when correct-goal action advantage measured `-0.00018086`. A matched-seed
+> 6,000-action Canary 3 added the frozen 0.25-weight/0.10-margin goal contrast; advantage moved to
+> `+0.00353084`, throughput remained 133.055 actions/s, and progress reached the ground floor.
+> That qualifies the mechanism and its diagnostic. It does not establish causal improvement,
+> competence, composition, or completion.
 
 The current code preserves every historical runner, including Monkey, Archivist, online learners,
 and clean-start neuroevolution, so rejected approaches remain reproducible. See
@@ -190,10 +201,10 @@ The primary completion protocol is the
 [Hall of Fame completion program](docs/completion-program.md). The original
 [game-naive, pixels-only curiosity](docs/blind-curiosity.md) protocol remains the philosophical
 control. [Visual Apprentice v1](docs/visual-apprentice.md) and V7–V10 remain preserved learned-policy
-predecessors. The active implementation is
-[Version 11's hierarchical completion pivot](docs/version-11-hierarchical-pivot.md); it discloses
-maps, objectives, memory, and deterministic navigation instead of presenting them as pixels-only
-learning. The editorial direction lives in
+predecessors; V11 is a closed, explicitly assisted control. The active implementation is
+[Version 12's final self-learner](docs/version-12-final-self-learner.md): one local recurrent actor
+that turns its own future frames into dense visual goals and must prove goal use and competence
+without online model decisions. The editorial direction lives in
 [The project narrative](docs/narrative.md), and evidence levels remain tracked in
 [Progress](docs/progress.md).
 
@@ -214,8 +225,8 @@ learning. The editorial direction lives in
 | Preserved random comparison | Monkey vs. pixels-only Archivist under matched budgets |
 | Completed 90-minute pretrial | Evolution reached tier 1; online learners plateaued around Pallet Town and Route 1 |
 | Concluded neural experiment | Six inherited-archive lanes all failed the second-map/party gate under equal fuel |
-| Current completion work | V10 closed at Route 1 with 3/32 frozen exams and zero competent skills; V11's opening referee is qualified and a fresh continuous assisted-hierarchy run is active from power-on |
-| North star | First obtain one trustworthy, fully recorded hierarchical Hall-of-Fame journey; then distill it into learned specialists and a frozen power-on system |
+| Current completion work | V12 mechanism qualified in three bounded canaries; fixed 48-hour launch is waiting for the external T7 to be mounted |
+| North star | One fixed local learned policy reaches the strict Hall of Fame from power-on with no online LLM, imported playthrough, or live human rescue |
 
 ## The journey
 
@@ -236,9 +247,10 @@ flowchart LR
     V8 --> V9["✅ V9 mechanism<br/>0/3 qualification"]
     V9 --> LONG["✅ V9 long run<br/>4/87; zero competent"]
     LONG --> V10["✅ V10 closed<br/>3/32; zero competent"]
-    V10 --> V11["🟨 V11 hierarchy<br/>opening qualified; run active"]
-    V11 --> HF["⬜ Guided Hall of Fame<br/>strictly verified journey"]
-    HF --> DISTILL["⬜ Distill + freeze<br/>learned specialists"]
+    V10 --> V11["✅ V11 assisted control<br/>closed; no completion"]
+    V11 --> V12["✅ V12 mechanism<br/>three canaries qualified"]
+    V12 --> RUN["⬜ Fixed 48-hour run<br/>waiting for T7"]
+    RUN --> HF["⬜ Learned Hall of Fame<br/>terminal fixed-policy exam"]
 ```
 
 GitHub issues and experiment records will attach evidence to this roadmap. A checked engineering

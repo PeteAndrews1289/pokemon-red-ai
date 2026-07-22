@@ -1,12 +1,14 @@
 # Roadmap
 
 > **Direction update:** Pure Monkey, clean-start mutation, verify-only Frontier Apprentice, and the
-> [parallel recurrent PPO](parallel-ppo.md) family remain preserved controls. They form the frozen
-> learned-policy lane; none is the current completion runner. The active track is now the
-> [Version 11 assisted hierarchy](version-11-hierarchical-pivot.md), whose fourth opening canary has
-> qualified.
-> The Hall-of-Fame referee and the project's evidence rules remain unchanged even though V11
-> deliberately exposes more planning information. Version 5.1 reached the Pokédex and exposed a
+> [parallel recurrent PPO](parallel-ppo.md) family remain preserved controls. The assisted
+> [Version 11 hierarchy](version-11-hierarchical-pivot.md) also remains as a closed upper-bound
+> control rather than the active runner. The final track is
+> [Version 12](version-12-final-self-learner.md): one random-initialized recurrent visual policy,
+> self-generated future-frame goals, explicit goal-use contrast, deterministic frozen exams, and a
+> fixed result published whether it succeeds or fails.
+> The Hall-of-Fame referee and the project's evidence rules remain unchanged. Version 5.1 reached
+> the Pokédex and exposed a
 > 3,035,252-action plateau;
 > Version 5.2 reached Route 1 but showed that verified slices do not prove one policy composed them.
 > Version 6 retained the policy but finished at 5/10, short of its 8/10 first connection gate.
@@ -28,14 +30,17 @@
 > matched-configuration V10 recovery campaign then closed after 1h15m03.282s and 534,924 Explorer
 > actions. It again stopped at Route 1: 3/32 frozen exams, zero competent skills, and no composition.
 > Recovery itself was measurable—956 of 1,977 windows escaped—but it did not solve long-horizon
-> learning. [Version 11](version-11-hierarchical-pivot.md) is now being implemented as a disclosed
-> assisted hierarchy: a structured-state language-model planner, map-local A* navigation,
+> learning. [Version 11](version-11-hierarchical-pivot.md) was implemented as a disclosed assisted
+> hierarchy: a structured-state language-model planner, map-local A* navigation,
 > persistent memory, controller specialists, and a strict Hall-of-Fame referee. The canary sequence
 > is part of the result: C1 exposed a path-resolution failure, C2 exposed an MCP-authorization
 > failure, C3 ran but was rejected when initialized bedroom RAM falsely described story progress,
 > and C4 qualified the opening referee with 136 actions, 70 language-model calls, empirical RIGHT-
-> movement proof, and story objective 1/84. A fresh unbounded power-on run is active. It has no
-> promised completion time and no Hall-of-Fame result is claimed.
+> movement proof, and story objective 1/84. The continuous run closed after 950.308 seconds, 329
+> actions, and 144 online model calls when the project rejected per-decision online assistance as
+> its final premise. V12 has since passed three bounded real-ROM mechanism canaries. Its fixed
+> 48-hour launcher is ready but refuses to begin until the external T7 is mounted with at least
+> 150 GiB free. No competent skill or Hall-of-Fame result is claimed.
 
 ## Completed blind-discovery arc
 
@@ -145,12 +150,16 @@
     resolution; C2 failed on MCP authorization; C3 was operational but rejected for false initialized
     state; C4 qualified after 136 actions and 70 language-model calls with real RIGHT-movement proof
     and one of 84 story objectives verified.
-39. 🟨 Run the fresh unbounded V11 attempt from clean power-on with empty run memory. “Unbounded”
-    means no planned wall-clock limit, not guaranteed completion; strict terminal evidence, disk
-    guards, interventions, failures, and operator stops remain authoritative.
-40. ⬜ After one verified guided completion, distill its success and failure states into learned
-    specialists through behavioral cloning and DAgger-style correction. Freeze and replace one
-    component at a time rather than relabeling the assisted run as pixels-only learning.
+39. ✅ Close the fresh V11 continuous attempt after 950.308 seconds, 329 controller actions, and
+    144 online model calls. Preserve it as an assisted diagnostic, not a learned completion.
+40. ✅ Implement [Version 12](version-12-final-self-learner.md): direct replay-verified ROM
+    power-on, one recurrent visual actor, bounded future-frame hindsight, correct-goal contrast,
+    route-agnostic recovery, rare-discovery verification, frozen exams, and terminal evaluation.
+41. ✅ Run three bounded real-ROM V12 canaries. Preserve the negative C2 goal-use diagnostic and
+    the directional C3 correction without promoting either to competent behavior.
+42. 🟨 Mount and qualify the T7, commit the exact source, and launch the fixed 48-hour V12 contract.
+    Do not tune it mid-run. Publish actions, goal-use metrics, exams, composition, and terminal
+    power-on outcome regardless of success.
 
 ## Later informed-agent roadmap
 
@@ -179,12 +188,11 @@ flowchart TD
     V7 --> V8["✅ V8<br/>Student result 1/47"]
     V8 --> V9["✅ V9<br/>self-correction result 4/87"]
     V9 --> V10["✅ V10<br/>recovery result 3/32"]
-    V10 --> V11["✅ V11<br/>opening canary qualified"]
-    V11 --> RUN["🟨 Fresh clean run<br/>unbounded; active"]
-    RUN --> HOF["⬜ Assisted<br/>Hall of Fame"]
-    HOF --> SK["⬜ Distilled specialists<br/>frozen evaluation"]
-    SK --> P2["⬜ Learned hierarchy<br/>power-on evaluation"]
-    P2 --> AB["🧭 LATER<br/>Controlled agent comparisons"]
+    V10 --> V11["✅ V11 assisted control<br/>closed"]
+    V11 --> V12["✅ V12 mechanism<br/>three canaries"]
+    V12 --> RUN["🟨 Fixed 48-hour run<br/>waiting for T7"]
+    RUN --> HOF["⬜ Frozen terminal policy<br/>power-on evaluation"]
+    HOF --> AB["🧭 LATER<br/>Controlled comparisons"]
 ```
 
 Arrows mean “needs evidence from,” not necessarily “must be implemented in a single strict

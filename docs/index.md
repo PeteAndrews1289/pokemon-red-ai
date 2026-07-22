@@ -2,20 +2,22 @@
 
 This project now has one central story and two deliberately separate research lanes:
 
-1. **Assisted hierarchical lane — active.** V11 uses a structured-state language-model planner,
-   declared objectives, processed maps, A* navigation, persistent run memory, controller
-   specialists, and a strict read-only referee. Those are visible runtime aids, so this lane is
-   labeled `ASSISTED` / `HYBRID-SYSTEM`, not pixels-only learning.
-2. **Frozen learned-policy lane — preserved.** The blind, evolutionary, PPO, and recurrent-Student
-   experiments remain the evidence for what policies discovered, learned, forgot, and failed to
-   compose. V7–V10 are historical controls; they are not silently converted into V11 results.
+1. **Experiential-learning lane — final experiment prepared.** V12 starts one recurrent visual
+   policy from random parameters and clean ROM power-on. It converts visually different future
+   frames from its own rollouts into local goals, contrasts the real goal against a blank goal, and
+   grades retained behavior in deterministic no-update exams. It imports no route, demonstration,
+   predecessor policy, save state, or online model decision.
+2. **Assisted hierarchical lane — closed control.** V11 used a structured-state language-model
+   planner, declared objectives, processed maps, A* navigation, persistent run memory, controller
+   specialists, and a strict read-only referee. It is retained as an explicitly assisted upper
+   bound, not presented as local experiential learning.
 
 There is still **no whole-game result and no frozen learned policy that can complete Pokémon Red**.
 V10 is the terminal learned-policy record immediately before the architectural pivot: it closed at
 4,503.282 seconds, 534,924 actions, 3/32 frozen exams, and zero competent skills. Its recovery
 mechanism worked, but long-horizon competence did not emerge.
 
-V11's opening qualification is now complete, and all four canaries remain part of the public story:
+V11's opening qualification is complete, and all four canaries remain part of the public story:
 
 | Canary | Outcome | What it taught us |
 | --- | --- | --- |
@@ -24,17 +26,23 @@ V11's opening qualification is now complete, and all four canaries remain part o
 | C3 | Operational but rejected | The hierarchy ran, but initialized bedroom RAM falsely described later story state; visible game evidence overruled the attractive false result |
 | C4 | Opening referee qualified | 136 controller actions and 70 language-model calls produced empirical RIGHT-movement proof and verified story objective 1/84 |
 
-A fresh unbounded V11 run is active from clean power-on with empty run memory. Here, “unbounded”
-means there is no planned wall-clock cutoff. It does **not** mean the agent is guaranteed to finish,
-that it will run through every failure, or that a Hall-of-Fame result already exists. Completion
-still requires the strict referee, a complete provenance record, and no disallowed intervention.
+The later V11 continuous attempt closed after 950.308 seconds, 329 controller actions, and 144 live
+model calls, without party or badge progress. It was stopped because querying an online model for
+decisions did not test the premise the project ultimately chose: learning to play through local
+experience.
+
+V12 has passed three bounded real-ROM mechanism canaries. Its latest matched-budget corrective
+canary processed 6,000 actions from random weights, trained 176 self-generated hindsight lessons,
+and moved demonstrated-action preference for the correct future goal from `-0.00018086` to
+`+0.00353084`. No skill became competent. The fixed 48-hour run has not started because the T7 SSD
+is not mounted.
 
 The through-line for the documentation and eventual video is the pivot itself. The project began
 with the “monkeys with typewriters” question, learned that randomness cannot retain luck, learned
-that local rewards and self-generated lessons can still fail to compose a journey, and then changed
-the unit of reasoning from isolated button habits to an auditable planner–memory–specialist system.
-If V11 succeeds, that is an assisted hierarchical completion. The harder learned-policy question
-remains open in its own lane.
+that local rewards and rare milestone lessons can still fail to compose a journey, and tested an
+auditable planner–memory–specialist system as an assisted control. The final iteration returns to
+the harder premise: one local policy must make dense lessons from its own experience and prove it
+uses their goals before the story credits it with learning.
 
 ## Start here
 
@@ -55,7 +63,9 @@ remains open in its own lane.
 | Understand the closed V8 result | [Version 8: separate discovery from learning](version-8-distilled-student.md) | Why V7 remains the denominator; how the 0/7 canary qualified the mechanism; why the longer seven-skill run still ended at 1/47 and zero competent skills |
 | Understand the closed self-correction experiment | [Version 9: let the Student practice being wrong](version-9-self-correcting-student.md) | Exposure bias, consecutive edges, reverse practice, the failed and corrected canaries, success-only aggregation, campaign timing, and frozen-exam result |
 | Understand the loop-recovery successor | [Version 10: let the Explorer recover before resetting](version-10-recovery-before-reset.md) | Why immediate reset may hide the recovery lesson; strict policy action authority; route-agnostic recovery, telemetry, falsifiers, canary gates, and claim limits |
-| Understand the whole-game architecture pivot | [Version 11: stop teaching one button at a time](version-11-hierarchical-pivot.md) | Why V10 closed; planner/navigation/memory/specialist roles; assistance label; clean-start safeguards; strict completion; canary and distillation plan |
+| Understand the assisted control | [Version 11: stop teaching one button at a time](version-11-hierarchical-pivot.md) | Why V10 closed; planner/navigation/memory/specialist roles; assistance label; opening canaries; and why the continuous run was stopped |
+| Understand the final experiential learner | [Version 12: every journey creates its next lesson](version-12-final-self-learner.md) | Hindsight goals, correct-goal contrast, fixed information rules, canary evidence, 48-hour contract, and falsifiers |
+| Audit the V12 qualification | [V12 qualification record](../experiments/v12-qualification/README.md) | Three ROM-free canary summaries and the narrow reason the mechanism qualified |
 | Inspect the first verified expedition milestone | [Q1 `left_home` result](../experiments/q1-left-home/README.md) | Both seeds, full denominator, lineage hashes, replay cost, and why 1/2 is not a pass |
 | Audit the qualified memory substrate | [Archive v2 qualification](../experiments/archive-v2-qualification/README.md) | Bounded replay, exact resume, crash recovery, deterministic comparison, and the failed stop-timing attempt |
 | Audit every accepted and discarded idea | [Decision register](decision-register.md) | Append-only decisions, failed hypotheses, alternatives, evidence, and consequences |
@@ -98,10 +108,10 @@ flowchart LR
     V8 --> V9["✅ Version 9 mechanism<br/>0/3 qualification"]
     V9 --> L9["✅ Version 9 long run<br/>4/87; zero competent"]
     L9 --> V10["✅ Version 10 closed<br/>3/32; zero competent"]
-    V10 --> V11["✅ Version 11 hierarchy<br/>opening canary qualified"]
-    V11 --> RUN["🟨 Clean power-on run<br/>unbounded; active"]
-    RUN --> HF["⬜ Assisted Hall of Fame<br/>strict dual-condition verifier"]
-    HF --> DS["⬜ Distill + freeze<br/>learned specialists"]
+    V10 --> V11["✅ Version 11 assisted control<br/>closed after opening"]
+    V11 --> V12["✅ Version 12 mechanism<br/>three bounded canaries"]
+    V12 --> RUN["🟨 Fixed 48-hour run<br/>waiting for T7 mount"]
+    RUN --> HF["⬜ Frozen-policy Hall of Fame<br/>strict power-on verifier"]
 ```
 
 The diagram shows project position, not game progress. Reaching the game-start state is a narrow

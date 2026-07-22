@@ -1,5 +1,35 @@
 # Development log
 
+## 2026-07-22 — Freeze V12 as the final experiential-learning experiment
+
+- Closed V11's continuous attempt after 950.308 seconds, 329 controller actions, and 144 online
+  model calls, without party or badge progress. Retained it as a disclosed assisted control rather
+  than treating model access as learned play.
+- Added `self_taught_v12`, a direct-ROM-power-on mode with random parameters, one recurrent visual
+  actor, four emulator workers, zero imported curriculum/actions/weights/save states, and zero
+  online decision-model calls.
+- Added bounded future-frame hindsight. Each rollout can generate at most 16 visually meaningful
+  8–128-action lessons from the run's own experience. Lessons cannot cross resets and are trained
+  before the next rollout.
+- Canary 2 exposed a new failure mode: falling hindsight loss while the actor ignored the goal. Its
+  demonstrated-action preference for the correct future goal over a blank goal was `-0.00018086`.
+  Added a fixed 0.25-weight, 0.10-margin correct-goal contrast and the same diagnostic to dashboard,
+  checkpoint, and final evidence.
+- Canary 3 repeated Canary 2's seed and 6,000-action training budget. It trained 176 hindsight
+  lessons over 4,968 examples, sustained 133.055 actions/s, and moved correct-goal advantage to
+  `+0.00353084`. No skill became competent; the directional diagnostic qualifies the corrective
+  mechanism, not behavior.
+- Added checkpoint-separated deterministic exams and a sealed terminal evaluation from exact
+  power-on. When no competent self-generated skill chain exists, the terminal policy receives a
+  blank goal for a fixed 32,768-action budget.
+- Froze a 48-hour launch contract with four environments, a 150-million-action safety ceiling,
+  fixed hindsight/contrast settings, 8/10 competence, storage guards, source-cleanliness checks,
+  localhost dashboard on port 8777, and macOS sleep prevention. The launcher correctly refuses to
+  begin because `/Volumes/T7 Developer` is not currently mounted.
+- Added the V12 design, qualification record, aggregate canary CSV, narrative updates, and explicit
+  falsifiers. The result will be published whether it reaches the Hall of Fame, stalls, or produces
+  no competent skill.
+
 ## 2026-07-21 local / 2026-07-22 UTC — Three canaries taught V11 to distrust its sensors
 
 - Ran four bounded V11 canaries from clean power-on and retained every failed boundary. Canary 1

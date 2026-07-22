@@ -1,9 +1,10 @@
 # Version 11: stop teaching one button at a time
 
-> **Status:** V10 closed cleanly. V11 is operational, and its fourth bounded canary qualified the
-> opening referee after three failed-but-useful diagnostics. A fresh continuous run is active from
-> clean power-on. No Hall-of-Fame result exists, and an active run is not a promise that the system
-> will complete the game.
+> **Status, closed 2026-07-22:** V10 closed cleanly. V11 became operational, and its fourth bounded
+> canary qualified the opening referee after three failed-but-useful diagnostics. The following
+> continuous run stopped after 950.308 seconds, 329 controller actions, and 144 online model calls,
+> with no party or badge progress. V11 is retained as an assisted control; V12 is the final
+> experiential learner. No Hall-of-Fame result exists.
 
 The first ten versions asked increasingly capable neural policies to discover, remember, and join
 small pieces of Pokémon Red. They produced real advances: deterministic evidence, inherited
@@ -207,8 +208,11 @@ The qualification gate requires all of the following:
 - no V10 process remains; and
 - the final run record reports every intervention and stop reason.
 
-Canary 4 passed the opening-referee portion of that gate. The fresh continuous run
-`v11-continuous-20260721-233300` is now active from power-on, with its local dashboard on port 8775.
+Canary 4 passed the opening-referee portion of that gate. The following continuous run,
+`v11-continuous-20260721-233300`, closed after 950.308 seconds, 329 controller actions, and 144
+online model calls. It produced no party or badge progress. The project stopped it because live
+per-decision model assistance did not answer the selected experiential-learning question. See
+[Version 12](version-12-final-self-learner.md) for the successor and its fixed information rules.
 It must still show that the planner changes strategy after stalls and advances later required story
 objectives without a human rescue. Neither launch nor elapsed time implies eventual completion.
 

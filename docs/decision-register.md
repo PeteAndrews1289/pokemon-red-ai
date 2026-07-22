@@ -2021,6 +2021,72 @@ Fields that genuinely do not apply should say `Not applicable` rather than disap
   changing V11's disclosed assistance label. It supersedes planner self-attestation and permissive
   raw-state exposure as acceptable evidence. Not yet superseded.
 
+## DR-0061 — Close online assisted play as the final premise
+
+- **Date:** 2026-07-22
+- **Status:** Completed; V11 retained as a closed assisted control
+- **Scope:** V11 continuous run, project premise, information labeling, compute use, and narrative
+- **Information label:** `STRUCTURED-STATE LLM PLANNER + A* NAVIGATOR + CONTROLLER SPECIALISTS /
+  ONLINE ASSISTED CONTROL`
+- **Decision:** Stop `v11-continuous-20260721-233300` and preserve every recorded call and action.
+  Do not use an online language model to choose routine gameplay decisions in the final experiment.
+- **Observation/evidence:** The clean-start attempt ran for 950.308 seconds, issued 329 controller
+  actions and 144 live model calls, and ended without party or badge progress. The more important
+  mismatch was conceptual: even a future V11 success would establish an assisted planner's ability
+  to use tools, not a local model learning Pokémon Red through experience.
+- **Alternatives considered:** Continue V11 without a time limit; call the hierarchy the final AI;
+  reduce model-call frequency; use the assisted trajectory as a demonstration; or present V11 and
+  a local learner as equivalent completion attempts.
+- **Interpretation:** V11 remains valuable as an auditable upper-bound control and as evidence that
+  semantic state must be server-enforced. It does not answer the chosen self-learning premise.
+- **Consequence:** The final learner must make zero online model/API decisions, import zero V11
+  actions or state, and begin with random weights from direct verified power-on.
+- **Supersedes / superseded by:** Supersedes DR-0059 only as the primary completion strategy.
+  DR-0059 and DR-0060 remain valid records of the assisted system and its safeguards. Superseded as
+  final architecture by DR-0062.
+
+## DR-0062 — Freeze V12 as a fixed self-generated hindsight experiment
+
+- **Date:** 2026-07-22
+- **Status:** Accepted and mechanism-qualified; fixed 48-hour run waiting for T7 mount
+- **Scope:** Final learner architecture, information contract, self-generated training, exams,
+  terminal evaluation, hardware budget, launch gates, and publication rule
+- **Information label:** `PIXELS + RECENT ACTIONS + SELF-GENERATED VISUAL GOAL / RANDOM WEIGHTS /
+  POWER-ON / ZERO ONLINE DECISION CALLS`
+- **Decision:** Use one recurrent visual actor across four clean emulator workers. Continue PPO on
+  game-general consequences, but turn visually meaningful 8–128-action excerpts from the actor's
+  own rollouts into bounded future-frame goals. Train the demonstrated actions under their actual
+  goal and impose a 0.25-weight, 0.10-margin contrast against a blank goal. Preserve V10's generic
+  pixels-only recovery, replay-verify rare milestone discoveries, and grade retained behavior only
+  in checkpoint-separated deterministic no-update exams. Freeze a 48-hour run, 150-million-action
+  safety ceiling, 8/10 competence rule, and final power-on evaluation before launch.
+- **Forbidden inputs:** Online LLM/API decisions, internet gameplay help, walkthroughs, OCR,
+  authored routes/coordinates/quest objectives, human or scripted demonstrations, V11 traces,
+  predecessor actions/weights/skills/save states, actor-visible RAM/maps, and trainer-selected or
+  replaced buttons.
+- **Qualification evidence:** C1 processed 20,000 actions in 126.161 seconds, trained 624/624
+  hindsight lessons, and replay-verified three discoveries through `left_home`, but passed only
+  1/9 exams. C2 showed the loophole: correct-goal advantage was `-0.00018086` despite 176 trained
+  lessons. The matched-seed/action-budget C3 added the frozen contrast term, trained 176 lessons
+  over 4,968 examples, sustained 133.055 actions/s, and moved the diagnostic to `+0.00353084`.
+  Zero skills became competent. Terminal evaluation remained at power-on.
+- **Alternatives considered:** Another sparse milestone reward; larger authored curriculum;
+  Explorer/Student handoff; model-based world learning too large for the current 8 GB host; offline
+  demonstrations; V11-generated teaching data; a success-conditioned replay buffer without a
+  goal-use diagnostic; or another open-ended run whose rules change after every stall.
+- **Interpretation:** Future-state hindsight makes training opportunities much denser without
+  importing answers. Correct-goal contrast closes the most immediate shortcut, but the small
+  positive canary value is directional mechanism evidence only. It does not establish competence,
+  composition, whole-game scalability, or a causal performance gain.
+- **Consequence:** Launch only from committed source, exact ROM, free dashboard port, mounted T7
+  with at least 150 GiB free, and the checked fixed configuration. Do not tune mid-run. Publish the
+  terminal result, deepest verified milestone, goal-use diagnostic, exam denominator, composition
+  depth, and all failure conditions whether the run succeeds or fails.
+- **Revisit when:** The fixed 48-hour result has closed. Any successor is a new declared experiment,
+  not a repair applied inside V12.
+- **Supersedes / superseded by:** Supersedes DR-0061 as the final experiment architecture. It does
+  not invalidate any earlier denominator or assisted-control result. Not yet superseded.
+
 ## Unresolved decisions
 
 These are questions, not hidden commitments. Each becomes a numbered entry when evidence supports

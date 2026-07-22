@@ -9,15 +9,22 @@
 > complete; the result does not support broader exploration or long-horizon competence. See
 > [Version 9](version-9-self-correcting-student.md) and
 > [Version 10](version-10-recovery-before-reset.md).
-> [Version 11](version-11-hierarchical-pivot.md) is the implementation track. It changes the unit of
+> [Version 11](version-11-hierarchical-pivot.md) was the assisted implementation track. It changed
+> the unit of
 > reasoning from flat button-level reward optimization to a disclosed assisted hierarchy: a
 > structured-state language-model planner, persistent run memory, processed maps, map-local A*
 > navigation, controller specialists, and a separate strict completion referee. It begins from
 > power-on with no imported save, action lineage, evolved policy, or prior-run gameplay memory.
-> Canary 4 qualified the opening referee and empirical player-control gate. A fresh continuous V11
-> run is active from power-on, but later-game planning and the Hall of Fame remain unverified.
+> Canary 4 qualified the opening referee and empirical player-control gate. Its continuous run then
+> closed after 950.308 seconds, 329 actions, and 144 online model calls. V11 remains a labeled
+> assisted control.
+> [Version 12](version-12-final-self-learner.md) is the final implementation track: one
+> random-initialized recurrent visual actor, direct clean power-on, self-generated future-frame
+> goals, correct-goal contrast, route-agnostic recovery, replay-verified rare discoveries, and
+> checkpoint-separated frozen exams. Three bounded real-ROM canaries qualified that mechanism. The
+> fixed 48-hour run is prepared but has not launched because the T7 is unmounted.
 
-## Active Version-11 implementation boundary
+## Preserved Version-11 assisted boundary
 
 ```mermaid
 flowchart TD
@@ -69,9 +76,9 @@ Canary 4 qualified this opening boundary when RIGHT moved RED from `(3,6)` to `(
 `2026-07-22T03:22:41Z`. Only afterward did the server accept `pallet_000`. The bounded run finished
 at story index 1/84 with no party, badges, or Hall-of-Fame result. A residual server-only pre-game
 map leak found during that canary motivated extending the same gates across the HTTP state and map
-endpoints, MCP state/map/navigation tools, and formatter. The fresh continuous run
-`v11-continuous-20260721-233300` is active from power-on; it tests sustained use of this boundary
-and does not make an advance completion claim.
+endpoints, MCP state/map/navigation tools, and formatter. The following continuous run,
+`v11-continuous-20260721-233300`, closed after 950.308 seconds and does not make an advance
+completion claim.
 
 The planner owns the next subgoal and may use explicit structured assistance. The navigator converts
 a same-map destination into directional controller inputs. Specialists handle interactions where a

@@ -1,8 +1,8 @@
 # Parallel recurrent PPO
 
 > **Status:** Versions 4–6 established replay-verified PPO discovery, assisted lessons, and the
-> distinction between a stored lineage and one-policy competence. Version 7 is the live
-> random-start, self-generated denominator. Version 8 keeps that no-imported-solution boundary but
+> distinction between a stored lineage and one-policy competence. Version 7 is the preserved
+> random-start, self-generated denominator. Version 8 kept that no-imported-solution boundary but
 > separates four PPO Explorers from a replay-distilled recurrent Student and frozen examiner. A
 > clean source-bound V8 canary reached Oak's lab, created four distilled skills, survived two
 > resumes, and passed 0/7 frozen exams. That qualifies the pipeline. The final longer V8 run reached
@@ -11,8 +11,10 @@
 > [Version 9](version-9-self-correcting-student.md) canary qualifies closed-loop mechanism,
 > observability, and wall-time control at 0/3 frozen exams; it does not weaken the exam boundary or
 > establish competence. Its long campaign closed intentionally after 2h52m39.143s at Route 1,
-> 4/87 frozen exams, zero competent skills, and no composition. A matched-configuration V10
-> recovery run is active; its recorded 310.686-second snapshot is a heartbeat, not a result.
+> 4/87 frozen exams, zero competent skills, and no composition. The matched-configuration V10
+> recovery run later closed after 4,503.282 seconds at Route 1, 3/32 frozen exams, zero competent
+> skills, and no composition. V12 is the final recurrent-policy successor; see
+> [its fixed protocol](version-12-final-self-learner.md).
 
 ## Why this lane exists
 

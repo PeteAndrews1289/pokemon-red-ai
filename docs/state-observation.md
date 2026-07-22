@@ -71,8 +71,11 @@ to `(4,6)`; only after that observed transition could `pallet_000` complete, at 
 server-only pre-game map leak found during the canary was then closed by applying the same gates to
 the dashboard, map endpoint, formatter, and direct tools.
 
-The fresh continuous run `v11-continuous-20260721-233300` is active from power-on. That launch
-establishes neither sustained planning nor completion: the Hall of Fame remains unverified.
+The continuous run `v11-continuous-20260721-233300` closed after 950.308 seconds, 329 actions, and
+144 online model calls. It established neither sustained planning nor completion: the Hall of Fame
+remains unverified. V12 returns actor input to rendered frames, recent actions, recurrent state,
+and a self-generated or blank visual goal; trainer-only referee fields remain excluded from policy
+observations.
 
 The expanded referee additionally reads badges, party species/levels/moves, Pokédex bitfields,
 event flags, bag item identifiers, and the Pokédex story flag. Parallel PPO version 3 adds each

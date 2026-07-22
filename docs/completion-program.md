@@ -1,18 +1,22 @@
 # The Hall of Fame completion program
 
-> **Status, 2026-07-21:** The checkpoint, evolutionary, PPO, and recurrent-Student work remains the
+> **Status, 2026-07-22:** The checkpoint, evolutionary, PPO, and recurrent-Student work remains the
 > frozen learned-policy lane. It produced real local mechanisms and verified fragments but no
 > competent whole-game policy. V10 is its latest terminal record: 4,503.282 seconds, 534,924
 > actions, 3/32 frozen exams, and zero competent skills. It is closed.
 >
-> The active completion attempt is now the separately labeled V11 assisted hierarchical lane: a
+> V11 became the separately labeled assisted hierarchical lane: a
 > structured-state language-model planner, processed maps and A* navigation, persistent run memory,
 > controller specialists, and a strict read-only Hall-of-Fame referee. Its canary history is part of
 > the evidence. C1 failed on path resolution; C2 failed on MCP authorization; C3 became operational
 > but was rejected after initialized bedroom RAM falsely described story progress; and C4 qualified
 > the opening referee after 136 controller actions and 70 language-model calls with empirical RIGHT-
-> movement proof and story objective 1/84. A fresh unbounded run is active from clean power-on and
-> empty run memory. No Hall-of-Fame result, success probability, or completion guarantee is claimed.
+> movement proof and story objective 1/84. Its continuous attempt closed after 950.308 seconds, 329
+> controller actions, and 144 online model calls. V12 is now the final experiential experiment: one
+> local recurrent visual actor learns from self-generated future-frame goals and receives no live
+> model decisions, walkthrough, demonstrations, or predecessor policy. Three bounded canaries
+> qualified the mechanism; the fixed 48-hour run is waiting for the T7 to be mounted. No competent
+> skill, Hall-of-Fame result, success probability, or completion guarantee is claimed.
 
 ### Implementation ledger
 
@@ -602,10 +606,12 @@ evidence that changed course.
     do not extend the flat-policy reward loop as the primary completion strategy.
 11. ✅ Preserve the V11 canary ladder: C1 path failure, C2 authorization failure, C3 rejected false
     state, and C4's qualified 136-action/70-call opening with real RIGHT-movement proof and 1/84.
-12. 🟨 Audit the fresh unbounded V11 clean-start run. Record every objective, planner/tool call,
-    controller action, intervention, invalid-state rejection, storage condition, and terminal reason.
-13. ⬜ If V11 reaches the strict Hall of Fame, publish it as HA assisted completion and use its
-    success-and-correction record to train the separate frozen learned-policy lane.
+12. ✅ Close and retain the V11 clean-start run after 950.308 seconds, 329 actions, and 144 online
+    model calls. Preserve its assisted label and exact terminal reason.
+13. ✅ Implement and qualify V12's direct-power-on, self-generated hindsight mechanism without
+    imported answers or online decisions.
+14. 🟨 Run the fixed 48-hour V12 experiment after the T7 launch gate passes, then publish its
+    frozen terminal power-on evaluation regardless of outcome.
 
 The [experiment protocol](experiment-protocol.md) remains authoritative for official attempts. The
 [Evolutionary Explorer](neuroevolution.md) document describes the predecessor mechanism in more
