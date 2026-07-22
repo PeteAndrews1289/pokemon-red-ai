@@ -1131,6 +1131,10 @@ margin-top:12px}}.meter-row>div:first-child{{display:flex;justify-content:space-
 .meter i{{display:block;height:100%;background:linear-gradient(90deg,var(--student),var(--good));
 border-radius:inherit}}.frames{{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;
 margin-top:12px}}img{{width:100%;image-rendering:pixelated;border-radius:8px;display:block}}
+.frame-heartbeat{{background:#14251f;border:1px solid #2f6d52;border-radius:12px;color:#bce9cf;
+padding:12px 14px;margin-top:12px}}.frame-heartbeat strong{{display:block;color:var(--good)}}
+.frame-heartbeat.stale{{background:#2b2415;border-color:#8b6f2f;color:#ead9ac}}
+.frame-heartbeat.stale strong{{color:var(--gold)}}
 .boundary{{margin-top:24px;padding:17px;border-left:4px solid var(--gold);background:#151d2a}}
 .boundary strong{{display:block;color:var(--gold)}}footer{{color:var(--muted);margin:28px 0 8px}}
 @media(max-width:900px){{.depth-grid{{grid-template-columns:repeat(2,minmax(0,1fr))}}}}
@@ -1145,12 +1149,43 @@ repeat(2,minmax(0,1fr))}}.card strong{{font-size:1.25rem}}}}
 </div></div><div class="grid">{common_cards}</div></section>
 <section><div class="section-heading"><div><h2>Explorer screens</h2>
 <p>Current frames from each parallel
-game world.</p></div></div><div class="frames">{frame_cards}</div></section>
+game world.</p></div></div>
+<div class="frame-heartbeat" id="frame-heartbeat" data-updated-at="{updated_at}">
+<strong>Explorer frames are live</strong>
+<span>Snapshots are written during Explorer rollout steps.</span>
+</div><div class="frames">{frame_cards}</div></section>
 <div class="boundary"><strong>Information boundary</strong>
 {_escaped(status.get("information_boundary"), "not reported")}</div>
 <footer>Refreshes every five seconds · Last status:
 {_escaped(status.get("updated_at"), "waiting")}</footer>
-</main></body></html>"""
+</main><script>
+(() => {{
+  const heartbeat = document.getElementById("frame-heartbeat");
+  const strong = heartbeat.querySelector("strong");
+  const detail = heartbeat.querySelector("span");
+  const updated = Date.parse(heartbeat.dataset.updatedAt);
+  const renderAge = () => {{
+    if (!Number.isFinite(updated)) {{
+      heartbeat.classList.add("stale");
+      strong.textContent = "Waiting for the first Explorer frame";
+      detail.textContent = " The run has not published a frame timestamp yet.";
+      return;
+    }}
+    const age = Math.max(0, Math.floor((Date.now() - updated) / 1000));
+    const stale = age > 20;
+    heartbeat.classList.toggle("stale", stale);
+    strong.textContent = stale
+      ? "Explorer frames are temporarily paused"
+      : "Explorer frames are live";
+    detail.textContent = stale
+      ? ` Last frame ${{age.toLocaleString()}}s ago. The trainer may be doing synchronous Student `
+        + "replay, practice, or an exam; gameplay snapshots resume with the next Explorer rollout."
+      : ` Last frame/status update ${{age}}s ago.`;
+  }};
+  renderAge();
+  window.setInterval(renderAge, 1000);
+}})();
+</script></body></html>"""
 
 
 __all__ = ["render_ppo_dashboard"]

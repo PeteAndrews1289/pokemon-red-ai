@@ -578,6 +578,14 @@ The live page refreshes every five seconds and shows:
 - opponent-damage credit and classified loop/stagnation exits; and
 - the latest rendered frame from every emulator worker.
 
+Frames are written during Explorer environment steps. Separate Student replay, closed-loop
+practice, and frozen exams run synchronously between Explorer rollouts, so a healthy trainer phase
+can temporarily leave both the action counter and gameplay PNGs unchanged. The dashboard measures
+the public heartbeat in the browser: after 20 seconds without a new status/frame timestamp it turns
+amber and explains that Explorer frames are paused, rather than implying that cached pixels are
+live. It never manufactures an intermediate gameplay frame or counts trainer work as an Explorer
+action.
+
 V8 adds raw/compressed action totals and replay cost; separate Explorer and Student hashes, updates,
 loss, accuracy, and entropy; prerequisite eligibility and competence losses; every frozen exam
 attempt; separate discovery, library, local-competence, and restore-free composition depths; an

@@ -82,6 +82,12 @@
   expired, and two active; completed 364, abandoned/unresolved/overrides zero, and 3,475 recovery
   actions. `checkpoint.json` recorded 20,480 actions, both policy hashes matched independently, and
   the dashboard returned HTTP 200. No trend or result is claimed.
+- Clarified a live-dashboard observability gap exposed by V10. Explorer frames and the public
+  status heartbeat paused for 524 seconds while the still-healthy process performed CPU-heavy,
+  synchronous Student work between rollouts, then resumed without intervention. The dashboard now
+  turns its frame heartbeat amber after 20 seconds and explains that replay, practice, or an exam
+  can temporarily pause gameplay snapshots. It does not fabricate frames or treat trainer work as
+  Explorer actions.
 
 ## Unreleased — Version 9 self-correcting Student
 

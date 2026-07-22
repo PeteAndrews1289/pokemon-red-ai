@@ -178,6 +178,11 @@ def test_version_8_dashboard_separates_explorer_student_and_exams() -> None:
     assert "at action 1,500,000" in page
     assert "Composition exam record" in page
     assert "3/10" in page
+    assert 'id="frame-heartbeat"' in page
+    assert 'data-updated-at=""' in page
+    assert "Explorer frames are temporarily paused" in page
+    assert "synchronous Student" in page
+    assert "replay, practice, or an exam" in page
     assert "Best restore-free depth" in page
     assert "Received Pokédex" in page
     assert "Hall-of-Fame completions" in page
@@ -345,7 +350,9 @@ def test_dashboard_escapes_public_labels_and_survives_missing_v8_metrics() -> No
         }
     )
 
-    assert "<script" not in page
+    assert '<script id="bad">' not in page
+    assert "<script>alert(2)</script>" not in page
+    assert "<img src=x onerror=alert(3)>" not in page
     assert "<img src=x" not in page
     assert "<em>fake skill" not in page
     assert "&lt;script id=&quot;bad&quot;&gt;" in page

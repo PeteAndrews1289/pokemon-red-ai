@@ -30,6 +30,12 @@
   blocked-repeat: 165 escaped, 169 context-changed, 30 expired, and two active; completed 364,
   abandoned/unresolved/overrides zero, and 3,475 recovery actions. Both policy hashes matched and
   dashboard HTTP was 200. This proves the run is alive; it is not a trend or result.
+- Investigated apparently frozen dashboard snapshots rather than assuming browser caching. All four
+  worker PNGs and `status.json` stopped changing from `00:53:38Z` until `01:02:22Z`, while the main
+  process remained alive and CPU-active inside synchronous Student work. Explorer actions and all
+  four images resumed without intervention. The dashboard now exposes frame age and changes to an
+  amber “temporarily paused” explanation after 20 seconds, so trainer work cannot silently look
+  like a dead run. The current run was not restarted or altered.
 
 ## 2026-07-21 — The reset button was hiding the lesson
 
