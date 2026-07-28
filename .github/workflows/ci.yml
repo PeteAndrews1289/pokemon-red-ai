@@ -15,5 +15,28 @@ jobs:
           cache: pip
       - run: python -m pip install -e ".[dev]"
       - run: python scripts/check_private_artifacts.py
+      - run: python scripts/check_docs.py
       - run: ruff check .
       - run: pytest -m "not integration"
+
+  apprentice:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+      - run: python -m pip install -e ".[dev,apprentice]"
+      - run: pytest -q tests/test_apprentice_model.py tests/test_apprentice_stage0.py
+
+  recurrent-ppo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: python -m pip install -e ".[dev,apprentice,rl]"
+      - run: pytest -q tests/test_ppo_training.py tests/test_student_training.py

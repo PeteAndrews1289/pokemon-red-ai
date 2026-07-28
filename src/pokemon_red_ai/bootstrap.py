@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Protocol
 
 from pokemon_red_ai.emulator import PokemonRedEmulator
+from pokemon_red_ai.provenance import detect_source_provenance
 from pokemon_red_ai.rom import RomFingerprint
 from pokemon_red_ai.smoke import save_screen
 from pokemon_red_ai.state import PokemonRedState, PokemonRedStateReader, ReadOnlyMemory
@@ -214,12 +215,21 @@ def run_bootstrap_test(
 ) -> BootstrapTestResult:
     output = run_directory or default_bootstrap_run_directory()
     output.mkdir(parents=True, exist_ok=False)
+    provenance = detect_source_provenance()
 
     with JsonlTrace(output / "trace.jsonl") as trace:
         trace.write(
             "manifest",
             created_at=datetime.now(UTC).isoformat(),
+            run_type="calibration",
+            run_name="Clean-game bootstrap calibration",
+            actor="scripted_harness",
+            start_condition="clean_boot",
+            instrumentation_schema="state-instrumentation-v1",
+            action_schema="controller-v1",
+            intervention_count=0,
             rom=rom.public_dict(),
+            source=provenance.public_dict(),
             software={
                 "python": platform.python_version(),
                 "pyboy": version("pyboy"),

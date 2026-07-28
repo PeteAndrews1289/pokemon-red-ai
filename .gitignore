@@ -23,5 +23,7 @@ savestates/
 # Generated experiment artifacts
 runs/
 checkpoints/
+expeditions/
+frontiers/
 recordings/
 videos/

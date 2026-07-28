@@ -1,78 +1,151 @@
-# Pokémon Red AI
+# Pokémon Red AI — Discovery Without Durable Competence
 
-A transparent experiment in teaching an AI agent to play Pokémon Red.
+[![CI](https://github.com/PeteAndrews1289/pokemon-red-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/PeteAndrews1289/pokemon-red-ai/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Status: Concluded](https://img.shields.io/badge/status-concluded-6b7280.svg)](docs/final-retrospective.md)
 
-The planned system combines a language model for high-level planning, trained reinforcement-
-learning skills for execution, persistent memory, and a watchdog that detects loops. The immediate
-goal is smaller: build a reliable emulator harness, then work toward delivering Oak's Parcel and
-defeating Brock.
+**Can one recurrent visual policy teach itself Pokémon Red from pixels and buttons—without a
+walkthrough, imported gameplay, save-state start, online decision model, or human-selected action?**
 
-> **Project status:** Phase 0 — emulator harness and reproducibility groundwork.
+> **Status: completed research project, July 2026.** The final V12 run processed 8,236,144
+> self-generated actions in 9h54m56s and replay-verified seven discoveries through Route 1.
+> Frozen no-update evaluation ended at 55/502 exams, zero competent skills, zero composition
+> attempts, and no Hall-of-Fame result. The project is closed without claiming that the agent
+> learned to play Pokémon Red.
 
-## What makes this project different?
+![V12 final result: discovery did not become durable competence](docs/assets/v12-final-result.svg)
 
-The goal is not merely to produce one successful run. It is to make the agent's behavior
-inspectable and the results reproducible. The project will record:
+## Final result
 
-- What the agent could observe
-- Which component chose each action
-- What the agent remembered
-- When human intervention occurred
-- Training time, emulator steps, language-model usage, and cost
-- Every official evaluation attempt, not only the best run
+| Measurement | V12 outcome |
+| --- | ---: |
+| Observed training actions | 8,236,144 |
+| PPO updates | 4,021 |
+| Self-generated hindsight examples | 3,518,624 |
+| Replay-verified discoveries | 7, through Route 1 |
+| Frozen exam successes | 55 / 502 |
+| Competent skills at the end | 0 |
+| Composition attempts | 0 |
+| Hall-of-Fame completions | 0 |
 
-This begins as an instrumented experiment, not a screen-only challenge. Emulator memory may be
-read for observation, scoring, and debugging; every use will be documented explicitly.
+The first local skill briefly crossed its 8/10 competence threshold and was then forgotten twice.
+The second skill passed 0/342 exams. More than 7.85 million actions after the Route 1 discovery
+produced no Viridian City promotion.
 
-## Planned architecture
+That gap is the result: **the system became much better at finding and preserving promising
+trajectories than at turning them into durable, cumulative closed-loop behavior.**
 
-- **Planner:** chooses goals and strategies
-- **Skills:** execute navigation and battle behaviors
-- **Memory:** stores discoveries, map connections, and failed approaches
-- **Executor:** converts decisions into controller inputs
-- **Watchdog:** detects repeated actions and unproductive loops
-- **Referee:** measures progress without controlling the agent
-- **Recorder:** saves sanitized traces, metrics, and video-ready artifacts
+Read the [final retrospective](docs/final-retrospective.md) for the interpretation and the
+[V12 experiment record](experiments/v12-final/README.md) for the complete numerical denominator,
+milestone timeline, integrity note, and claim boundary.
 
-The project will eventually compare three configurations:
+## What I built
 
-1. Language-model only
-2. Reinforcement-learning only
-3. Hybrid planner plus trained skills
+- A deterministic PyBoy harness that refuses any ROM outside one declared fingerprint.
+- Explicit controller timing, clean power-on starts, in-memory snapshots, and exact restore checks.
+- Separate actor and referee authority: the policy chooses every evaluated button while
+  trainer-only state measures consequences and verifies discoveries.
+- Random, archive, neuroevolution, recurrent-PPO, imitation, recovery, and hindsight-learning
+  experiment families preserved as an auditable progression rather than rewritten as successes.
+- Replay-verified milestone admission and source-, ROM-, model-, optimizer-, and curriculum-bound
+  checkpoints that fail closed on inconsistent resume state.
+- Frozen no-update skill exams and prerequisite gates that prevent archive depth or training loss
+  from being presented as one capable policy.
+- Local dashboards, structured traces, experiment templates, decision logs, and redistribution-safe
+  aggregate evidence.
+- Automated guards that reject ROMs, saves, snapshots, checkpoints, recordings, credentials,
+  private paths, and other unsafe artifacts from publication.
 
-See [the architecture document](docs/architecture.md) for the component boundaries.
+The repository contains 300+ ROM-free checks plus separate private-ROM integration coverage. CI
+tests the core harness, the Visual Apprentice stack, and recurrent-PPO components on Linux and
+macOS.
 
-## Current Phase 0 features
+## System boundary
 
-- Exact ROM revision validation before emulation starts
-- Headless, unlimited-speed PyBoy wrapper
-- Explicit press/release controller timing
-- In-memory save-state snapshots with integrity hashes
-- PNG screenshots and sanitized JSONL traces
-- Read-only memory access at the harness boundary
-- A deterministic clean boot to RED's bedroom, using the built-in RED and BLUE names
-- A versioned six-field read-only state observation
-- Unit and opt-in private-ROM integration tests
-- CI guard against accidentally committing ROMs or save data
+```mermaid
+flowchart LR
+    ROM["Private, fingerprinted ROM"] --> Game["PyBoy runtime"]
+    Game --> Pixels["Current/previous pixels"]
+    Pixels --> Actor["Recurrent visual policy"]
+    Goal["Self-observed future-frame goal"] --> Actor
+    History["Recent actions"] --> Actor
+    Actor --> Buttons["Controller buttons"]
+    Buttons --> Game
 
-## Quick start
+    Game --> Referee["Read-only trainer/referee state"]
+    Referee --> Reward["Training feedback"]
+    Referee --> Verify["Replay-verified milestones"]
+    Verify --> Exams["Frozen no-update exams"]
+    Reward --> Actor
+    Exams --> Evidence["Sanitized aggregate evidence"]
+```
 
-Requirements:
+The referee may grade or verify behavior, but it cannot choose, replace, or mask the actor's
+evaluated actions. Checkpoint restores are training tools and are disabled when testing one frozen
+policy from power-on. Every historical experiment declares any broader assistance separately.
 
-- Python 3.11 or newer
-- A legally obtained supported Pokémon Red ROM
-- macOS, Linux, or Windows with a PyBoy-supported Python build
+## Research progression
+
+| Stage | Question | Result |
+| --- | --- | --- |
+| Random and pixels-only controls | Can blind exploration create reusable progress? | Luck produced events; randomness could not retain them |
+| Neuroevolution | Can inheritance extend a narrow success? | Learned game start, then failed the next-map gate in all six lanes |
+| Archive and curriculum systems | Can verified slices push the frontier? | Reached later milestones, but archive depth did not prove one policy |
+| Recurrent PPO and Students | Can one model retain and compose the route? | Better fit and occasional exam passes; zero durable composition |
+| Assisted V11 control | Can an auditable planner hierarchy operate the game? | Operational control, but online reasoning changed the scientific claim |
+| Final V12 self-learner | Can self-generated goals create stable competence? | Seven discoveries; 55/502 exams; zero competent skills |
+
+The [append-only decision register](docs/decision-register.md) records the accepted, rejected,
+retired, superseded, and failed-to-qualify choices behind that progression.
+
+## Why the negative result matters
+
+This project deliberately separates four things that are easy to conflate:
+
+1. **Activity:** parameters updated and losses changed.
+2. **Discovery:** some run reached a new milestone.
+3. **Retention:** a frozen policy could reproduce a local skill repeatedly.
+4. **Composition:** one frozen policy could connect retained skills from power-on.
+
+V12 established the first two and failed the last two. Publishing that distinction is more useful
+than presenting a lucky Route 1 clip as an AI that learned Pokémon.
+
+## Reproduce the public checks
+
+Python 3.11 or newer is required.
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/pokemon-red-ai.git
+git clone https://github.com/PeteAndrews1289/pokemon-red-ai.git
 cd pokemon-red-ai
 
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -e ".[dev]"
+
+python scripts/check_private_artifacts.py
+python scripts/check_docs.py
+ruff check .
+pytest -m "not integration"
 ```
 
-Keep the ROM outside the repository and provide its path at runtime:
+The public suite does not need the game ROM. Optional learning stacks are installed separately:
+
+```bash
+python -m pip install -e ".[apprentice]"
+python -m pip install -e ".[rl]"
+```
+
+[`requirements-closeout.txt`](requirements-closeout.txt) records the exact Python packages used
+for the final repository validation. It is a closeout snapshot, not an assertion that the
+historical V12 runtime can be reconstructed without its private external artifacts.
+
+## Private-ROM verification
+
+The ROM is not included. The harness supports exactly the revision identified in the
+[experiment protocol](docs/experiment-protocol.md), and contributors must obtain and use any game
+software lawfully.
+
+Keep the ROM outside the repository and provide its path only at runtime:
 
 ```bash
 export POKEMON_RED_ROM="/absolute/path/to/Pokemon Red.gb"
@@ -80,100 +153,43 @@ export POKEMON_RED_ROM="/absolute/path/to/Pokemon Red.gb"
 pokemon-red-ai doctor
 pokemon-red-ai smoke-test
 pokemon-red-ai bootstrap-test
+pytest -m integration
 ```
 
-You can use `--rom "/absolute/path/to/Pokemon Red.gb"` instead of the environment variable.
-Generated screenshots and traces go under `runs/`, which Git ignores.
+Generated traces, screenshots, saves, model checkpoints, and runtime artifacts remain ignored and
+private. The committed experiment records contain aggregate measurements and hashes, not
+proprietary game data.
 
-Run the test and safety checks:
+## Evidence map
 
-```bash
-python scripts/check_private_artifacts.py
-ruff check .
-pytest -m "not integration"
-pytest -m integration  # Requires POKEMON_RED_ROM
-```
+- [Final retrospective](docs/final-retrospective.md) — conclusion, recurring failure modes, and
+  successor requirements
+- [V12 final result](experiments/v12-final/README.md) — frozen identity, measurements, exams, and
+  shutdown limitation
+- [Architecture](docs/architecture.md) — component and authority boundaries
+- [Experiment protocol](docs/experiment-protocol.md) — evidence levels and evaluation rules
+- [Documentation hub](docs/index.md) — all historical designs and experiment records
+- [Roadmap](docs/roadmap.md) — the completed research sequence and intentionally unpursued work
+- [Decision register](docs/decision-register.md) — chronological technical decisions and failures
+- [Contributing](CONTRIBUTING.md) — supported maintenance scope and artifact rules
 
-The larger RL stack is optional until training begins:
+## Known limitations
 
-```bash
-python -m pip install -e ".[rl]"
-```
+- No learned policy completed Pokémon Red or retained even the opening skill at project close.
+- The final stop interrupted the normal finalizer. The last integrity-bound checkpoint is valid,
+  but no clean terminal power-on evaluation was produced and 11,376 later observed actions remain
+  outside that checkpoint.
+- The work evaluates one game revision, one hardware class, and the declared algorithm families;
+  it does not establish a general impossibility result.
+- Historical systems include trainer-side curricula, checkpoint restores, RAM-derived grading,
+  or online reasoning only where their experiment records explicitly disclose them.
 
-No OpenAI API key is needed for Phase 0. Language-model setup will be added when the planner is
-implemented.
+## Legal and license
 
-## Supported ROM
+Pokémon is owned by Nintendo, Game Freak, and The Pokémon Company. This independent educational
+research project is not affiliated with or endorsed by them and distributes no ROM, save data,
+emulator state, extracted game asset, or gameplay recording.
 
-**The ROM is not included in this repository.** The Phase 0 harness supports exactly:
-
-```text
-Title:   POKEMON RED
-Size:    1,048,576 bytes
-SHA-1:   ea9bcae617fdf159b045185467ae58b2e4a48b9a
-SHA-256: 5ca7ba01642a3b27b0cc0b5349b52792795b62d3ed977e98a09390659af96b7b
-```
-
-The filename is not used as proof of identity. Other revisions may use different memory layouts
-and save states, so the harness refuses them until they are deliberately supported.
-
-## Roadmap
-
-### Phase 0 — Emulator harness
-
-- [x] Verify the target ROM fingerprint
-- [x] Boot the ROM headlessly in PyBoy
-- [x] Add controller, screenshot, save-state, and trace primitives
-- [x] Prevent ROM and save artifacts from entering Git
-- [x] Define and test named read-only game-state fields
-- [x] Reproducibly reach the first playable bedroom state
-- [x] Calibrate one-tile overworld controller timing at the bedroom start
-- [ ] Record a human Oak's Parcel baseline
-- [ ] Run an extended random-action stability test
-
-### Phase 1 — Oak's Parcel
-
-- [ ] Leave the bedroom and house
-- [ ] Trigger Professor Oak
-- [ ] Choose a starter
-- [ ] Complete the first rival battle
-- [ ] Reach Viridian City
-- [ ] Collect and return Oak's Parcel
-
-### Phase 2 — Brock
-
-- [ ] Navigate Route 1 and Viridian Forest
-- [ ] Train reusable navigation and battle skills
-- [ ] Integrate planner, memory, and watchdog
-- [ ] Defeat Brock from a clean game start
-
-### Later experiments
-
-- [ ] Compare language-model, RL, and hybrid agents
-- [ ] Test stricter observation settings
-- [ ] Run held-out evaluations across multiple seeds
-- [ ] Explore a full-game run
-
-## Reproducibility rules
-
-Each reported experiment should identify its Git commit, configuration, ROM fingerprint, random
-seeds, training budget, model usage, success criteria, and intervention count. Development save
-states may accelerate training, but official end-to-end evaluations begin from a clean game unless
-clearly stated otherwise.
-
-The full rules are in [docs/experiment-protocol.md](docs/experiment-protocol.md).
-
-## Legal and project hygiene
-
-Pokémon is owned by Nintendo, Game Freak, and The Pokémon Company. This is an independent
-educational and research project and is not affiliated with or endorsed by them.
-
-This repository does not distribute game ROMs or proprietary game assets. Contributors are
-responsible for obtaining and using game software in accordance with applicable law. Never commit
-ROMs, save files, emulator states, API keys, private machine paths, checkpoints, or recordings.
-
-## Development log
-
-Decisions and milestones are recorded in [docs/devlog.md](docs/devlog.md).
-The exact initial RAM observation and its limits are documented in
-[docs/state-observation.md](docs/state-observation.md).
+Original source code and documentation are available under the [MIT License](LICENSE).
+The historical V11 adaptation patch retains its upstream attribution in
+[Third-Party Notices](THIRD_PARTY_NOTICES.md).

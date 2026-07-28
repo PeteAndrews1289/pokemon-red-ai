@@ -1,0 +1,6 @@
+run,role,seed,exploration_actions,first_stop_action,final_stop_reason,attempts,stored_cells,active_cells,primary_niches,edge_replay_actions,promotion_replay_actions,total_replay_actions,edge_ratio,total_replay_ratio,best_milestone,elapsed_seconds,private_bytes,qualifying
+continuous,deterministic_control,20260740,4096,,action_limit,78,18,14,4,453,831,1284,0.110596,0.313477,game_started,18.321464,388583,true
+stop_timing_calibration,failed_interruption_attempt,20260741,2048,,action_limit,40,5,4,1,56,0,56,0.027344,0.027344,power_on,8.399000,131675,false
+graceful_resume,planned_stop_and_resume,20260741,4096,1023,action_limit,58,5,4,1,56,0,56,0.013672,0.013672,power_on,15.966206,166065,true
+hard_crash,guarded_sigkill_and_resume,20260740,4096,,action_limit,78,18,14,4,453,831,1284,0.110596,0.313477,game_started,18.495783,430382,true
+

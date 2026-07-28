@@ -1,0 +1,872 @@
+# Video and series outline
+
+> **Status: shelved, preserved for reference.** The project closed without a learned completion,
+> and no video is currently planned. V12's final run observed 8.24 million actions and reached
+> Route 1, but frozen evaluation ended 55/502 with zero competent skills and no composition. The
+> material below remains a record of how the story could be told honestly; it is not an active
+> production schedule. See the [final retrospective](final-retrospective.md).
+
+> **Series-direction update:** Pure Monkey supplied the opening experiment and the conclusion: luck
+> cannot accumulate when success never changes later behavior. Evolutionary Explorer then showed
+> that a useful accident could have children—but the completed
+> [selection × mutation lab](selection-mutation-lab.md) showed that better inheritance still did not
+> create meaningful game progress. That failure produced the checkpoint-expedition pivot: first make
+> long-horizon discoveries reproducible, then use them to train and evaluate one frozen policy. Q1
+> now supplies the first payoff and complication: one random-emitter seed replayed a route outside,
+> the other failed, and verification cost almost one million additional controller actions.
+> Archive v2 is the engineering resolution to that cliff: bounded local proof, a preserved failed
+> stop attempt, and a hard-crash twin that returned to the same deterministic terminal state. The
+> next protagonist is the model asked to turn the lucky route into a recoverable visual skill.
+> Its Stage-0 audition has now passed: after fitting the one 419-action route, the frozen model
+> reproduced that route exactly from power-on. The dramatic question is no longer whether the
+> wires connect; it is what happens when the apprentice starts midway with no remembered context
+> or makes its first mistake. Frontier Apprentice supplied the next honest limitation: it could
+> learn a replay-verified victory, but almost every ordinary failed attempt taught the network
+> nothing. Four-worker recurrent PPO became the next protagonist because every rollout could change
+> the shared policy. The verifier still decided whether any apparent progress was real.
+> Version 4 now supplies the payoff: at action 790,900 a worker reached Viridian City and survived
+> all four replay tests. It also supplies the next complication. Across the completed run, 968
+> episodes produced 499 visual loops and 469 long stagnations; arriving once did not make the next
+> errand reliably learnable. Version 5 turns Viridian into a visible classroom. The teacher gets a
+> map of where it has looked and a lesson card saying “enter the Mart.” The future student must
+> eventually take the exam without either aid. Version 5 then passed both classroom lessons: it
+> entered the Mart and obtained Oak's Parcel. The twist is that the reward system kept pointing at
+> the Mart after the task changed. The model had not “forgotten Oak”; the experiment had encoded
+> novelty and an expired lesson more clearly than intent. Version 5.1 turns the route around, makes
+> backtracking measurable, and asks whether a demonstrated path can become a two-way skill. It
+> succeeds through the Pokédex—then spends another 3.0 million actions trapped before the Forest.
+> Version 5.2 supplies the next turn: finishing one errand did not teach the abstraction of an
+> errand. The road to Brock becomes a ten-step staircase, with training hints and replay-verified
+> progress shown as separate meters. V5.2 reaches Route 1 and then reveals that the verified chain
+> can be assembled from successful fragments without one current policy knowing the whole chain.
+> Version 6 draws two lines: how far the archive has ever discovered, and how far backward one
+> retained model can reliably connect that discovery.
+> Its first line begins at 0/10 and eventually reaches 5/10, but never passes the promised 8/10
+> gate in one million actions. Partial learning without reliable composition is the moment to admit
+> the project has become a sequence of host-authored lessons. Version 7 erases the inherited policy, imported trajectories, later
+> checkpoints, and route reward. The new protagonist begins at power-on with random weights and can
+> study only successes it generated itself. Its first canary unexpectedly reaches the ground floor,
+> giving the story a genuine restart rather than another patched obstacle.
+> V8 supplies the next causal question without rewriting that result. The then-live V7 run became a
+> locked historical denominator. Its one network both explored under noisy PPO and imitated raw
+> verified traces. V8
+> draws two characters: an orange Explorer that wanders and a blue Student that studies only
+> replay-distilled self-generated sequences. Loss remains a practice graphic; frozen exam tiles
+> decide competence. The first real-ROM canary now gives this planned chapter a mechanism beat:
+> distillation, separate updates, frozen attempts, and two clean resumes worked for `game_started`.
+> Its duplicate deterministic attempts are now explicitly superseded as robustness evidence. The
+> clean committed canary supplies the stronger visual: four orange discovery cards light up through
+> Oak's lab, then all seven blue exam tiles turn red. It survived two resumes and bounded replay
+> worked, but the Student learned no qualified skill. Discovery is progress; a library is not
+> competence. The
+> corrected visual is one grade, then 16,384 Explorer actions, then a new Student checkpoint; 8/10
+> spans ten versions. It does not yet supply the learning payoff; chance and useful later skills
+> remain untested. V8's longer 1/47 result then creates V9's question: the Student studied only
+> successful recorded states and never practiced the consequences of its own wrong buttons. V9
+> turns those mistakes into closed-loop practice without weakening the frozen exam. Its completed
+> long campaign supplies a revealing split-screen: 68.5919% Student training accuracy beside only
+> 4/87 frozen exam passes, zero competent skills, and no composition after 1,431,556 Explorer
+> actions. It also adds another visual failure: the Explorer can visibly bounce against an obstacle
+> until the watchdog resets the episode. Version 10 asks whether that correct safety reset is also erasing
+> the exact local lesson PPO needs. It opens a bounded recovery window, keeps every button under
+> policy control, and separates credited escapes, zero-credit context changes, expirations, active
+> windows, and abandonments. The bounded E3 campaign canary now qualifies that mechanism; it is not
+> a gameplay-success or superiority beat. V9 was intentionally stopped at 2h52m39.143s—not eight
+> hours—to launch a matched-configuration V10 run. V10 then ended after 1h15m03.282s and 534,924
+> actions. Its complete 1,977-window recovery ledger proves the mechanism operated, but Route 1,
+> 3/32 frozen exams, zero competent skills, and no composition answer the larger question negatively.
+> Version 11 changes the unit of reasoning instead of adding another local reward: an openly assisted
+> language-model planner receives structured state, objectives, processed maps, A* navigation,
+> persistent memory, and controller specialists. Its canary sequence now supplies four honest beats:
+> C1 path resolution failed, C2 MCP authorization failed, C3 ran but was rejected for false
+> initialized story state, and C4 qualified the opening referee after 136 actions and 70 planner
+> calls with empirical RIGHT-movement proof and objective 1/84. Its continuous successor closed
+> after 950.308 seconds, 329 actions, and 144 online model calls. That made V11 a useful assisted
+> control, but not the desired experiential learner. Version 12 is the final turn: one local
+> recurrent visual actor made goals from its own future frames and had to prefer demonstrated
+> actions under the correct goal over a blank goal. Three canaries qualified the mechanism. The
+> final run then observed 8.24 million actions, discovered Route 1, and failed the harder test:
+> 55/502 frozen exams, zero competent skills, no composition, and effectively zero final goal-use
+> advantage. The stop-time finalizer failure is also part of the ending. If this outline is ever
+> revived, discovery and frozen competence must remain on opposite sides of the final split-screen.
+
+This document is a production guide for telling the project's story without getting ahead of the
+evidence. The detailed Episode 0 section preserves the original before-training production plan;
+the evolutionary sections above it should follow the current evidence.
+
+## The editorial premise
+
+**Working series title:** *Can an AI Beat Pokémon Red—and Show Its Work?*
+
+**One-sentence promise:** Follow the project from blind button presses to an auditable assisted
+hierarchy, while keeping learned-policy evidence, supplied help, failed attempts, interventions, and
+rules visible.
+
+The hook is not “AI beats an old game.” Many projects can produce a successful clip. The hook is
+building an honest, understandable record of how competence appears: what was engineered, what was
+learned, what was supplied in advance, and what failed along the way.
+
+The host's role is not to pretend to know the ending. The host forms a concrete hypothesis, builds
+the next test, and lets the evidence change the plan.
+
+## Proposed series arc
+
+| Episode | Central question | Honest endpoint |
+| --- | --- | --- |
+| 0. Before the AI | How do we know a later success is real and repeatable? | A deterministic, instrumented clean start in the bedroom |
+| 1. Monkeys with controllers | What can true randomness accomplish, and what can it never retain? | Preserved baseline plus the retirement decision |
+| 2. Survival of the luckiest | Can useful accidents accumulate through selection and mutation? | Better retention, no next map, and an honest failed mechanism |
+| 3. Leave home | Can checkpointed search discover and exactly replay one tiny step? | One success, one failure, a verified 419-action lineage, and no false two-seed victory |
+| 4. The apprentice | Can one lucky route become a reusable pixel-conditioned skill? | Deliberate overfit smoke, recovery failures, and the first frozen local evaluation |
+| 5. Four games, one memory | Can failures teach one shared recurrent policy? | PPO learning curves, complete denominator, and a replay-verified milestone result or plateau |
+| 6. The road back | What happens when the correct progress is through familiar territory? | Parcel return checkpoints, active-goal reward accounting, and an honest test of route reuse |
+| 7. Ten steps north | Can chapter-scale lessons compose navigation, gates, encounters, and a Gym? | A replay-verified Boulder Badge or the exact step where the curriculum fails |
+| 8. One brain, not a scrapbook | Can one retained model connect the verified fragments as its training start moves backward? | Separate discovery and competence meters, including every failed rolling gate |
+| 9. We became the walkthrough | Can the agent restart with no inherited answer and teach itself from its own discoveries? | Random-start visual skills, imitation evidence, competence windows, and the first clean-start exam |
+| 10. The discoverer and the student | Does replay-distilling the agent's own routes into a separate recurrent Student create competence that survives frozen exams? | Unchanged V7 denominator, raw/compressed audit, all local exams, and an honest architecture verdict |
+| 11. It never practiced being wrong | Can closed-loop success-only practice repair the Student's exposure bias? | Every practice outcome beside checkpoint-separated frozen exams, whether competence appears or not |
+| 12. The reset button was hiding the lesson | Can the Explorer recover from a generic loop without being told a direction? | Trigger types; credited escapes; context changes; expirations, active, and abandoned windows; compute; and matched exploration evidence—or an honest null result |
+| 13. We stopped teaching one button at a time | Can a disclosed planner, map, memory, and specialist hierarchy hold together one whole adventure? | A strict guided Hall-of-Fame result—or the exact planning/tool boundary that fails |
+| 14. Nature or nurture? | Which progress came from pixels, rewards, RAM, replay, planning, or selection? | Successor comparisons with declared information and compute budgets |
+| 15. The clean exam | Can the guided journey become frozen learned specialists? | Every power-on attempt, component replacement, intervention count, and success denominator |
+
+Do not promise a full playthrough in the first episode. Promise an investigation with the next
+milestone close enough to be credible.
+
+## Planned Episode 12: “The reset button was hiding the lesson”
+
+**Central question:** When the watchdog detects a real loop, does immediately ending the episode
+save compute at the cost of removing the state in which the Explorer could learn to recover?
+
+**Cold open:** show the Explorer pressing against a wall. Put the chosen buttons under the footage.
+When the loop counter fires, cut instantly back to the run's current self-generated frontier. Play
+the sequence twice, then freeze on: **WHEN DOES IT PRACTICE TURNING AWAY?**
+
+The V10 visual should split at loop detection. The V9 branch ends at reset. The V10 branch enters a
+short amber recovery window while the same policy keeps choosing every button. Label the trigger.
+After `blocked_repeat`, turn the branch green only for a policy-chosen directional material visual
+outcome. Show a non-directional material change in blue as `CONTEXT CHANGED · 0 CREDIT · NOT AN
+ESCAPE`. After `visual_cycle` or pixels-only `progress_stagnation`, a generic material action may be
+green, but keep the trigger's -2 loop penalty beside its at-most +0.25 escape credit. Turn expiry
+red. Show active windows in amber and abandonment on resume, episode end, or campaign end in gray;
+the unresolved inactive counter must remain zero. Never remove failed or unfinished windows from
+the montage.
+
+Keep three safeguards visible throughout:
+
+- `TRAINER-SELECTED BUTTONS: 0`;
+- `AUTHORED DIRECTION HINTS: 0`; and
+- `RECOVERY ACTIONS` as a separate compute meter.
+
+The payoff is not a lower reset count by itself. Put reset rate beside unique positions, verified
+milestones, and frozen Student exams. If only the first changes, say the harness preserved more
+episodes but did not improve meaningful progress. If exploration broadens but exams remain flat,
+call it an Explorer result, not whole-agent learning. The bounded canary has now passed, so label
+every V10 diagram **BOUNDED CANARY PASSED — SUPERIORITY UNTESTED**. If the reward design appears on
+screen, show that escape credit was cut from the draft 1.0 to 0.25 and capped at the 0.25 blocked
+activation penalty: a credited directional blocked/escape pair is reward-neutral, while
+`context_changed` earns zero and retains the -0.25 penalty.
+For the detector graphic, use the direct private-ROM calibration rather than an invented diagram:
+Up/Right remain at or below 0.642% changed pixels, Down/Left reach at least 20.972%, and Start
+reaches 37.708%. Then show both tested sequences: Up×3 → Start closes blue as `context_changed`,
+while fresh Up×3 → Down closes green as credited `escaped`; submitted and executed buttons match.
+Label this **MECHANISM CALIBRATION**, not evidence that the agent explores better.
+
+Then reveal the real-ROM canary as a complete denominator, not a victory montage: 6,099 actions in
+144.102 seconds, 47 PPO updates, two promotions through the ground floor, and 93 unique positions.
+Draw 73 blocked-repeat windows as tiles: 36 green credited escapes, 32 blue zero-credit context
+changes, and five red expirations. Add 702 recovery actions and `36/73 = 49.315%`, then show
+`ACTIVE 0 · ABANDONED 0 · UNRESOLVED 0 · TRAINER OVERRIDES 0`. State that visual-cycle and
+long-stagnation paths did not activate. The narrative payoff is permission to run a matched longer
+V9/V10 comparison—not proof of better exploration, learning, competence, or a path to Hall of Fame.
+
+Close the chapter with the terminal V10 card rather than the earlier launch heartbeat:
+`1h15m03.282s · 534,924 ACTIONS · ROUTE 1 · FROZEN 3/32 · COMPETENT 0 · COMPOSITION 0`. Under it,
+animate the complete recovery denominator: 956 escaped, 910 context-changed, 110 expired, and one
+abandoned at campaign end, totaling 1,977. The correct conclusion is two-sided: recovery was real,
+but another local mechanism did not create long-horizon competence.
+
+## Planned Episode 13: “We Stopped Teaching the AI One Button at a Time”
+
+**Central question:** If a flat policy cannot reliably join its own local lessons, can an explicitly
+assisted hierarchy maintain a plan from power-on all the way to the Hall of Fame?
+
+**Cold open:** place the four final V10 frames side by side, all pressing into the same corner.
+Freeze the controller traces. Instead of drawing a fifth reward arrow, zoom out and reveal the
+missing layers: `PLANNER`, `MEMORY`, `MAP NAVIGATOR`, `SPECIALISTS`, and `REFEREE`.
+
+Keep the information card on screen whenever V11 footage appears:
+
+- `STRUCTURED-STATE LLM PLANNER + A* NAVIGATOR + CONTROLLER SPECIALISTS`;
+- `ASSISTED MAP + OBJECTIVE + RUN MEMORY`;
+- `POWER-ON`; and
+- `HYBRID-SYSTEM`.
+
+The assistance is the experiment, not a disclaimer in small print. The planner chooses the next
+subgoal, A* turns a same-map destination into ordinary directional inputs, specialists handle
+dialogue, menus, battles, and puzzles, and persistent notes preserve discoveries and failures. A
+read-only referee records progress and may stop on the strict terminal condition, but never presses
+a button.
+
+Use the four real canaries as the evidence hook. Give each an equal-width card so the repaired run
+cannot erase the failed one:
+
+1. `C1 · PATH RESOLUTION FAILED` — the runtime could not prove the intended input path;
+2. `C2 · MCP AUTHORIZATION FAILED` — the planner connection was unavailable;
+3. `C3 · OPERATIONAL · RESULT REJECTED` — initialized bedroom RAM falsely described later story
+   state, and the visible screen overruled it; and
+4. `C4 · OPENING REFEREE QUALIFIED` — 136 actions, 70 language-model calls, empirical RIGHT-
+   movement proof, and story objective 1/84.
+
+Then show the strict terminal rule `EVENT 0x901 + MAP 0x76`. The Hall-of-Fame light stays dark until
+both are true. The principle is visual: a working planner, a changing dashboard, or even a plausible
+state field is not the same as beating the game.
+
+Show progress in four simultaneous layers:
+
+1. **Game:** frame, map, coordinates, party, and context;
+2. **Plan:** current objective, next subgoal, and recent tool/reasoning event;
+3. **Journey:** ordered objectives, badges, maps, stalls, and recoveries; and
+4. **Reliability:** clean-start receipt, hashes, intervention count, and strict terminal fields.
+
+The canary's honest ending is tiny: C4 qualifies opening control and objective evidence at 1/84. It
+does not count as learning or evidence that the hierarchy can complete the game. The continuous
+attempt begins only after that gate and later closes at 950.308 seconds. Put `144 ONLINE MODEL
+CALLS` beside `ASSISTED CONTROL`; access to a planner is not experiential learning.
+
+If V11 eventually reaches the Hall of Fame, say **A DISCLOSED ASSISTED HIERARCHICAL AI COMPLETED POKÉMON
+RED FROM POWER-ON**. Do not say the model learned the game from pixels, discovered the route
+unassisted, or trained new foundation-model weights. The next season begins with the completed
+journey becoming success-and-correction data for behavioral cloning and DAgger-style specialists.
+If V11 fails, end on the first repeated plan/tool failure that its memory cannot resolve; do not
+hide it behind another reward adjustment.
+
+## Planned Episode 10: “The Discoverer and the Student”
+
+**Central question:** V7 found its own lessons. Was one noisy network capable of both discovering
+and retaining them, or did those jobs need to be separated?
+
+**Cold open:** show one successful route as a chaotic controller timeline. Delete a large section.
+The replay fails. Restore it. Delete a smaller loop. The replay passes. Freeze on the caption:
+**THE GAME EDITED THIS LESSON, NOT ME.**
+
+### Beat 1 — Keep the denominator alive
+
+- Put V7 and V8 protocol cards side by side.
+- Lock the V7 card visually and explain that the already-running trial was neither stopped nor
+  upgraded after seeing its behavior.
+- Briefly show `--v7-denominator` pairing the V7 checkpoint with its hash-matching model, then erase
+  the private path. Leave only run ID, Explorer actions, milestone, two short hashes, and the lock
+  time. On resume, the card stays fixed.
+- Show common inputs and prohibited assistance: no demonstrations, imported actions, previous
+  weights, route graph, coordinates, or semantic actor goal.
+
+### Beat 2 — One brain, two gradients
+
+- Use an orange arrow for PPO exploration and a blue arrow for self-imitation entering the same V7
+  network.
+- Explain that a verified success proves the route worked but not that every detour is worth
+  copying.
+- Avoid saying PPO “erased” a skill unless checkpoint comparisons actually demonstrate it. Present
+  overwrite as the hypothesis V8 tests.
+
+### Beat 3 — Replay as the editor
+
+- Draw the original action count as a long bar.
+- Animate repeated-state loop proposals and chunk proposals.
+- Show rejected edits returning to the bar and accepted edits shortening it.
+- Keep oracle calls, original actions, compressed actions, and ratio on screen. A 90-percent
+  reduction is not automatically better if frozen success falls.
+
+### Beat 4 — Split the cast
+
+- Orange Explorer: four live games, PPO updates, novelty, discoveries.
+- Blue Student: contiguous replay windows, recurrent burn-in, balanced skill sampling, separate
+  optimizer.
+- Put each full verified NPZ behind a provenance seal. Beside it, show immutable replay shards with
+  at most 512 colored loss examples and a gray burn-in prefix; highlight only the shard selected by
+  the persisted cursor and display **FULL SOURCE OPENS: 0**.
+- The verifier and scheduler stay gray and outside both controller loops. Display
+  `PRIVILEGED TRAINER / NO BUTTON AUTHORITY` rather than hiding their RAM access.
+
+### Beat 5 — Practice is not proof
+
+- Let action loss and accuracy animate upward or downward.
+- Close a visible door labeled **FROZEN EXAM**.
+- Reset Student memory, freeze its weights, and show one local grade. Advance 16,384 Explorer
+  actions, label the new Student checkpoint, then add the next tile. The ten-tile strip must contain
+  ten checkpoint hashes rather than ten duplicate resets.
+- A passing local skill moves one prerequisite node from hollow to filled. A later retention failure
+  can empty it again.
+
+### Beat 6 — Four progress lines
+
+End with four distinct horizontal meters:
+
+1. furthest discovery;
+2. furthest replay-distilled skill;
+3. furthest locally competent prerequisite chain; and
+4. furthest restore-free frozen composition from power-on.
+
+Never merge them into one “AI progress” percentage. If the first line advances while the fourth
+does not, that gap is the result.
+
+On the fourth line, visibly mark each trainer-side RAM goal switch. The ordered target clips all
+come from the run's own discoveries and the frozen Student still presses every button, but this is
+goal-conditioned hierarchical control. Narrate a success as completion under the declared
+switching protocol, not unaided pixel-only autonomy.
+
+Use the real-ROM composition regression as a short engineering reveal: a live state and reloaded
+snapshot agree on processed pixels and exact gameplay RAM while PyBoy's broader game-area hash
+changes. Cross out only that volatile field, then show the stored 230+59-action opening pass and a
+wrong endpoint fail. Keep **MECHANISM TEST — NOT STUDENT COMPETENCE** on screen throughout.
+
+### Honest endings
+
+- **Mechanism fails:** V8 cannot reproduce artifacts, separate checkpoints, or no-update exams.
+  Stop before a long run and make the engineering failure the ending.
+- **Fit without competence:** Student loss falls but frozen success stays flat. The cleaner dataset
+  did not solve compounding error.
+- **Local but not composed:** individual nodes pass while power-on attempts fail. The hierarchy,
+  goal switching, or memory horizon becomes the next question.
+- **Matched improvement:** V8 beats the complete V7 frozen denominator under disclosed compute.
+  Call it evidence for separation and distillation, not evidence of understanding the whole game.
+
+**Do not claim:** a V8 canary is a learned result; compressed actions are an optimal route; a local
+snapshot exam is clean-start play; the scheduler is a planner learned by the agent; or Hall-of-Fame
+capability before one frozen restore-free attempt actually reaches it. If that attempt uses V8's
+RAM-triggered self-generated goal playlist, do not call it an unaided pixels-only playthrough.
+
+## Featured completed episode: “What If Luck Could Reproduce?”
+
+- **Central narrative:** Random play can create a miracle but cannot inherit it. Evolution turns an
+  accident into an ancestor.
+- **Honest endpoint:** Frontier selection made the known game-start behavior much more heritable,
+  yet all six lanes remained on one map and most policies collapsed into a repeated-action habit.
+- **Do not claim:** that one network learned during its lifetime, that checkpoint-assisted search
+  equals one clean-start policy, or that a rising archive score means the game is solved.
+
+### Current evidence turn: “It remembered Start—and then stalled”
+
+The 90-minute pretrial supplies the middle of the episode, not its triumphant ending. The population
+found an inheritable title-sequence behavior: children of game-starting parents repeated it far more
+often than children of non-starting parents. Then progress stopped. Reveal the two suspects only
+after showing the family tree: useful parents rarely reproduced under uniform selection, and broad
+mutations often destroyed their fragile behavior.
+
+Turn those suspects into a full-screen 2 × 3 board. Rows are uniform versus frontier selection;
+columns are broad, gentle, and multiscale mutation. Give every lane a visible action “fuel tank” of
+1,536,000 actions. This transforms parameter tuning into an audience-readable question: **should
+evolution choose better parents, make smaller changes, or do both?**
+
+The result card must say `INHERITED ARCHIVE — FAILED NEXT-MAP GATE`. Frontier selection retained
+game start in 78.1% of children versus 39.6% under uniform selection, but no lane reached a second
+map or formed a party. Do not crown Frontier–Broad because it visited seven local positions. The
+next honest step is the checkpoint-expedition pivot, not a larger copy of the same run.
+
+## The central narrative: “When local learning never became a journey”
+
+The strongest story is no longer a tournament between four agents. It is a sequence of increasingly
+hard promises:
+
+1. **Randomness can stumble forward, but cannot retain the lesson.** Pure Monkey establishes the
+   denominator.
+2. **Inheritance can retain one behavior, but still fail to compose the next.** The population and
+   six-lane lab make that failure visible.
+3. **A checkpoint can remember progress, but a saved state can also create a convincing lie.** The
+   first replay verifier accepted a forged Hall-of-Fame label because the bytes replayed exactly.
+   Semantic recomputation rejected it: the real replay was still at power-on.
+4. **Local lessons did not become a journey.** V7–V10 improved self-generated data, training fit,
+   closed-loop practice, and recovery, yet frozen competence and composition remained near zero.
+   That repeated null result motivates an architectural change rather than another hidden patch.
+5. **The hierarchy must name its help.** V11 gives a language-model planner structured state,
+   objectives, maps, A* navigation, persistent memory, and controller specialists. A success is a
+   disclosed assisted completion from power-on, not pixels-only learning. C1–C3 show the experiment
+   rejecting operational and semantic failure; C4's 136 actions, 70 calls, real RIGHT
+   movement, and 1/84 objective are the first qualified opening boundary.
+6. **Completion becomes curriculum, not the end of scrutiny.** A verified guided journey can train
+   smaller specialists on both successful and corrected states. The later difficult claim remains
+   one frozen learned hierarchy reaching the Hall of Fame with every attempt and intervention
+   declared in advance.
+
+Keep two horizontal tracks on screen from this point forward. The upper `ASSISTED HIERARCHY` track
+contains the closed V11 control. The lower `EXPERIENTIAL LEARNED POLICY` track runs from V7–V10's
+negative competence evidence into V12's fixed final experiment. Never move an assisted milestone
+onto the learned track for dramatic convenience.
+
+The V12 visual should show one rollout splitting into many short goal lessons. Pair the ordinary
+imitation-loss curve with the correct-goal-versus-blank diagnostic: Canary 2's attractive training
+story is rejected at `-0.00018086`, then Canary 3 moves directionally to `+0.00353084`. Keep `0
+COMPETENT SKILLS` on screen throughout. The narrative payoff is methodological honesty, not a
+manufactured victory.
+
+The false Hall-of-Fame audit is a particularly useful visual beat. Put two green checks on screen:
+`SNAPSHOT HASH MATCHED` and `SCREEN HASH MATCHED`. Then strike through the headline `HALL OF FAME`
+when the independent referee reads `POWER ON`. The lesson is memorable: deterministic evidence can
+reproduce a false label perfectly unless meaning is checked separately.
+
+### Episode 3 result turn: “It left—and that still was not a pass”
+
+Show both seed timelines at equal scale. Seed `20260730` reaches the ground floor and spends the rest
+of its 20,000-action fuel without finding the exit. Seed `20260731` reaches the same point sooner,
+then steps outside at action 17,832. Pause on the tempting successful clip before revealing the
+predeclared rule: **both seeds had to succeed**. Put `H3 MILESTONE VERIFIED` beside `Q1 GATE: 1/2 —
+FAILED` so the audience can see that a real achievement and a failed experiment can coexist.
+
+Then reveal the second denominator. The two agents spent 40,000 actions exploring and 954,704
+actions proving local checkpoints from power-on. Animate a short exploration bar beside a replay
+bar almost twenty-four times longer. This turns an implementation bottleneck into the episode's
+next question: can the experiment remember selectively without weakening proof?
+
+Answer that question with the
+[Archive v2 qualification card](../experiments/archive-v2-qualification/replay-cost.svg). First
+replace the `23.87×` replay bar with `0.31× total / 0.11× ordinary edge`. Then show the interruption
+denominator: the first stop command arrived too late and the run is visibly stamped `NOT RESUME
+EVIDENCE`. Finally freeze the crash twin with one selection event in flight, preserve its 396-byte
+tail, and reveal the exact terminal-state match. This is an engineering victory, not model
+learning; use it to open the next act rather than as the episode's gameplay climax.
+
+The exact `left_home` screenshot is a dark transition frame. Keep it on screen as `EXACT EVENT
+FRAME`, then cut to the later clear outdoor frame as `STABLE NARRATIVE FRAME`. Do not substitute the
+prettier image silently. That contrast expresses the whole editorial premise: evidence and
+storytelling serve different jobs, and both should be visible.
+
+### Episode 4 opening turn: “It copied perfectly. Did it learn?”
+
+Use the [Stage-0 gate card](../experiments/visual-apprentice-stage0/stage0-gates.svg) as a fast
+four-beat escalation: two independent data captures agree, offline feedback reaches 419/419, the
+frozen reload stays identical, and the live model leaves the house in exactly 419 actions. Let the
+moment feel like a win—then reveal that every one of those actions matched its only lesson. The
+experiment proved the nervous system connects, not that the apprentice can recover.
+
+The next visual should literally cut the route into a backward staircase: 8, 16, 32, 64, 128,
+256, and 419 actions remaining. Reset the model's memory at each stair. Show successes moving into
+the training tray and failures remaining visibly counted. This makes the distinction between
+memorization and learning understandable without pretending that a high loss curve is the story.
+
+### Episode 5 turn: “The failures were being thrown away”
+
+Begin with the Frontier Apprentice rule as a physical sorting table. A verified named milestone
+enters the training tray; every other attempt falls through a trapdoor. This was a deliberate trust
+decision, not a coding accident—but it makes the limitation visible in one shot.
+
+Then split the screen into four live Game Boy frames feeding one shared brain. Each worker gathers
+a different experience; after one rollout, draw a single optimizer pulse back into all four. Put
+the privileged referee outside the actor loop and label its two jobs: `REWARD` and `VERIFY`. The
+actor side should remain visibly labeled `PIXELS + THREE RECENT ACTIONS` for Version 4.
+
+Use the worker benchmark as a short comic beat. Two games leave empty CPU seats. Six games crowd
+the machine and slow down. Four wins at 419.34 collection actions per second in the setup test.
+Then immediately replace that number with the production-shaped 218.65 actions/s figure and explain
+why four optimizer epochs do more work per rollout. This prevents a microbenchmark from becoming a
+misleading headline.
+
+The result reveal needs three meters that can disagree:
+
+1. **Learning:** PPO updates and loss/entropy curves;
+2. **Behavior:** map positions, reward components, loops, battles, and episodes; and
+3. **Proof:** the furthest milestone that passed exact local replay plus three power-on replays.
+
+If reward rises but the proof meter does not move, that is the episode's result. If a new milestone
+passes, show the replay four times before celebrating it. If the archive-assisted system eventually
+reaches the Hall of Fame, end on the next harder question: can one frozen policy do it from power-on
+without checkpoint help?
+
+Use PPO versions 1–4 as a compact objective-design sequence. Version 1 repeatedly rediscovered
+familiar coordinates after resets. Version 2 remembered those coordinates, then made battle endings
+its dominant return while Route 1 remained the verified frontier. Freeze on the word **ENDED**, cross
+it out, and replace it with **DURABLE PROGRESS: EXPERIENCE OR CAPTURE**. The visual argument is that
+better bookkeeping exposed a second ambiguity. Then show Version 3's nine wins among 152 battle
+starts: it knew when a battle had paid off, but gave no credit to the actions between menu entry and
+victory. Version 4 adds a visible opponent-HP bar that pays only while it falls. When a worker loops,
+stamp the frame `VISUAL CYCLE` or `STAGNATION` and recycle its episode budget. Keep Route 1 on the
+proof meter throughout; the sequence explains why the design changed without pretending Version 4
+has already solved the game.
+
+Then let Version 4 finally move the proof meter. Put `790,900 ACTIONS` beside the 2,109-action
+candidate suffix, play its parent-edge replay once, and stack three full power-on replay checks
+behind it. Only after the fourth check lands should `ROUTE 1` change to `VIRIDIAN CITY`. Follow the
+celebration with the complete denominator: 1,776,644 actions, 968 episodes, 499 visual loops, and
+469 long stagnations.
+
+Version 5 should look like school. Put one card above all four workers: `CURRENT LESSON: ENTER THE
+VIRIDIAN MART`. Draw their episode-local explored tiles onto a tiny fog-of-war map. Each time a
+worker reaches a new closest distance, illuminate one small step; erase the map at reset so the
+audience understands that it is short-term working memory, not a supplied world map. Keep three
+meters visible and distinct: `GETTING WARMER` for bounded lesson reward, `LEARNING` for PPO updates,
+and `PROOF` for replay-verified milestones.
+
+The honesty beat is essential. When the teacher succeeds, do not say “the AI can now do it from the
+beginning.” Place the map and lesson card into a tray labeled `TRAINING AIDS`, use the successful
+trajectories to teach a new pixels-only student, then remove the tray for the restore-free power-on
+exam. That separation is the central narrative: scaffolding can create competence, but graduation
+requires doing without the scaffold.
+
+### Suggested beats
+
+1. **The retirement:** replay Pure Monkey's best moments, then reveal that every next action still
+   had exactly the same random distribution.
+2. **The inheritance rule:** draw one small neural genome, copy it, mutate a visible subset, and
+   give the child one fixed lifetime.
+3. **The first generation:** show policies as queues feeding emulator workers, not hundreds or
+   thousands of simultaneous windows.
+4. **Why one winner is dangerous:** show a Route 1 grinding dynasty taking over a naive
+   winner-takes-all population.
+5. **The ecosystem:** replace the leaderboard with the MAP-Elites grid and keep several behavioral
+   champions alive.
+6. **The family album:** follow one successful mutation backward through parent IDs and exact
+   generation records.
+7. **The replay test:** distinguish a checkpoint-assisted branch from the complete power-on action
+   lineage used to verify it.
+8. **The result:** report descendants evaluated, archive coverage, lineage depth, milestones,
+   compute, crashes, interventions, and all failed children.
+
+### Core visuals
+
+- an animated family tree whose branches brighten, reproduce, or become extinct;
+- a 2D MAP-Elites grid filling with colored champions;
+- the six-cell selection × mutation dashboard, each cell with the same action-budget gauge;
+- a parent/child weight-difference heat map;
+- two side-by-side labels: `ONE FIXED LIFETIME` and `LEARNING BETWEEN GENERATIONS`;
+- a continuous ancestral action ribbon replaying from power-on;
+- a claim card separating `POPULATION REACHED`, `LINEAGE REPLAYED`, and `ONE POLICY SOLVED`.
+
+## Episode 0: “Before I Train an AI to Play Pokémon”
+
+- **Target length:** 12–16 minutes
+- **Purpose:** Introduce the ambition, show why instrumentation matters, and end at the exact point
+  where training can begin.
+- **Historical status represented:** At the time this Episode 0 plan was drafted, no model had been
+  trained and no acting agent had played the game. Later episodes must replace this card with the
+  current evidence ladder rather than reuse it as a present-tense claim.
+
+### Cold open — the future, interrupted (0:00–0:35)
+
+**Narration idea**
+
+> I want to build an AI that can plan its way through Pokémon Red. But before I show you a learning
+> curve or one lucky victory, I need to answer a less exciting question: how would either of us know
+> that it really learned anything?
+
+**Picture**
+
+- Begin with an original schematic of the future system: Planner, Skills, Memory, Watchdog.
+- Flash three short original animations: a route loop, a rising graph that does not equal success,
+  and twenty attempt marks with only one check.
+- Pull the camera back to reveal that the system boxes are outlines marked “not built yet.”
+- Title card: `EPISODE 0 — BUILDING THE MEASURING INSTRUMENT`.
+
+**Claim shown on screen:** `TRAINING STATUS: NOT STARTED`.
+
+Avoid opening with a fabricated “trained agent” sequence. If a future clip is used after later
+episodes exist, label it with its episode, checkpoint, and evaluation status.
+
+### Beat 1 — Why this game is an interesting test (0:35–1:45)
+
+Explain that the controller is simple while the task is not. Movement, menus, battles, memory, and
+long-delayed goals demand different forms of competence.
+
+**Picture**
+
+- Original icons for navigation, menu choice, battle, memory, and recovery.
+- A widening decision tree made from generic arrows and buttons—not copied game graphics.
+- A milestone ladder: Bedroom → House → Oak/Starter → Rival → Parcel → Brock.
+
+**Audience takeaway:** A small action space does not imply a small reasoning problem.
+
+### Beat 2 — The edited-success problem (1:45–3:00)
+
+Stage a generic demonstration with twenty run markers. Highlight one success, then reveal the
+nineteen failures. Explain why training reward, best run, and official success rate answer different
+questions.
+
+**Picture**
+
+- First, a single large `✓` with the headline “IT WORKED.”
+- Then zoom out to the complete run strip: `✓ × × ↻ × ...`.
+- Split screen: `BEST CLIP` versus `17/20 PREDECLARED ATTEMPTS`.
+
+**Narration point:** The project will keep the denominator, count help, and separate practice from
+evaluation.
+
+### Beat 3 — Defining the rules (3:00–4:30)
+
+Introduce the observation boundary. The acting system will receive only declared inputs. The
+referee may read limited state to score an attempt but cannot whisper those values to the policy.
+
+**Picture**
+
+- Original flow diagram: `GAME → OBSERVATION → AGENT → BUTTONS → GAME`.
+- Put `REFEREE` beside the loop, connected to the game but not the agent.
+- Animate six small labels for the current read-only observation: game started, map number, X, Y,
+  party count, battle state.
+- Add a large one-way sign over the interface: `READ ONLY`.
+
+**Important wording:** Call the current setup **instrumented**, not screen-only. Explain that map
+number and coordinates come from disclosed read-only memory fields.
+
+### Beat 4 — The ROM fingerprint and private boundary (4:30–5:35)
+
+Explain a hash as a fingerprint. Different game revisions can arrange internal data differently, so
+the harness accepts one verified revision instead of assuming a filename is correct.
+
+**Picture**
+
+- Generic file card enters a fingerprint scanner.
+- Show a shortened public hash such as `5ca7ba…96b7b`, plus size and title.
+- Place the ROM outside a diagram of the Git repository, with a closed boundary around it.
+- Show a green test result: `ROM OR SAVE DATA IN REPOSITORY: NONE`.
+
+Do not display the user's path, ROM bytes, download source, or instructions for acquiring a ROM.
+
+### Beat 5 — What a controller action actually means (5:35–6:45)
+
+A press is not instantaneous in an emulator. Show the current action as eight held frames followed
+by sixteen released frames. Explain why explicit timing makes runs comparable.
+
+**Picture**
+
+- A 24-cell timeline with the first eight cells filled and the next sixteen outlined.
+- A tile-grid animation that moves a generic marker one square.
+- Overlay: `SAME INPUT CONTRACT ON EVERY RUN`.
+
+If gameplay footage is available and cleared for use, a brief side-by-side of “held too long” and
+“one calibrated tile” can support the point. The explanation must still work with the original grid
+animation alone.
+
+### Beat 6 — The save-state trap (6:45–8:00)
+
+Explain that development snapshots make repeated experiments practical, but they can also hide an
+advantage. The harness stores snapshots privately in memory and binds them to the exact game and
+emulator version. Official clean-start evaluations will say when snapshots are prohibited.
+
+**Picture**
+
+- A generic timeline rewinds from frame 12 to frame 5.
+- Show both the visual state and the logical frame counter rewinding together.
+- Stamp: `DEVELOPMENT TOOL ≠ CLEAN-START EVALUATION`.
+
+**Claim boundary:** Snapshot restore has been tested for determinism; it is not evidence of agent
+learning.
+
+### Beat 7 — The first reproducibility test (8:00–10:00)
+
+Describe the fixed sequence that advances through the introduction, chooses built-in names, and
+stops in the bedroom. Run it twice. Compare the resulting named state fields, screen hash, snapshot
+hash, and logical frame.
+
+**Picture**
+
+- Two parallel lanes labeled `RUN A` and `RUN B`.
+- Identical action blocks flow through both.
+- Four comparison rows click into place:
+  - logical frame: match;
+  - named state: match;
+  - screen pixels: match;
+  - private snapshot payload: match.
+- End with a generic bedroom-shaped tile grid or a rights-reviewed, brief emulator capture. Do not
+  add extracted sprites, maps, or ROM-derived artwork to the repository or downloadable graphics.
+
+**On-screen disclaimer:** `FIXED TEST SEQUENCE — NO POLICY, NO LEARNING`.
+
+Let this disclaimer remain visible long enough to read. The dramatic result is reproducibility,
+not autonomy.
+
+### Beat 8 — What has actually been built (10:00–11:10)
+
+Return to the system diagram. Light up only the emulator harness, read-only instrumentation,
+recorder, and tests. Leave the policy observation adapter, Planner, Learned Skills, Memory, and
+Watchdog dimmed or outlined.
+
+**Picture**
+
+- `TEST SUITE PASS`, with the count generated from the release run rather than typed into the edit.
+- Checklist: exact revision, timed inputs, in-memory snapshots, sanitized traces, clean bootstrap.
+- A second list headed `NOT YET`: training environment, reward, policy, planner, learned behavior.
+
+This is the episode's clearest status scene. Never let the visual imply that outlined components
+already exist.
+
+### Beat 9 — The first real experiment (11:10–13:10)
+
+Introduce the next question: can a learned policy leave the bedroom? Explain the three reference
+points planned before training:
+
+1. a human action-count baseline;
+2. a random-action baseline;
+3. a frozen evaluation set and action budget.
+
+Then show the proposed milestone card with blanks rather than invented results.
+
+**Picture**
+
+```text
+MILESTONE        Leave the bedroom
+OBSERVATION      To be frozen
+ACTION SPACE     To be frozen
+SUCCESS          Cross the declared exit
+BUDGET           To be frozen
+BASELINES        Human / Random
+RESULT           Pending
+```
+
+**Prediction prompt:** Record a specific hypothesis before training. For example: “Coordinates may
+speed up learning, but they may also let the policy memorize one start state.” Mark it as a
+hypothesis, not a result.
+
+### Close — invite the audience into the notebook (13:10–14:00)
+
+**Narration idea**
+
+> Today the AI did not play Pokémon. We built the thing that will let us tell when it finally does.
+> Next, it gets its first objective, its first reward, and plenty of ways to fail.
+
+**Picture**
+
+- An empty training curve axes appears.
+- Twenty blank evaluation slots appear underneath it.
+- The first milestone, `Measuring instrument`, receives a check.
+- The next milestone, `Leave the bedroom`, begins pulsing.
+- End card links to the repository and the exact tagged release used for the video.
+
+## Shot inventory for Episode 0
+
+Capture or produce these before editing. Re-run all displayed measurements from the release commit.
+
+| Asset | Format | Notes |
+| --- | --- | --- |
+| Master architecture animation | 16:9 vector/motion graphic | Original geometric design; components can light up by phase |
+| Observation boundary | 16:9 diagram | Clearly separate agent inputs and referee-only state |
+| Run-strip reveal | Motion graphic | Reveal all attempts after the tempting success clip |
+| Controller timing | 24-cell animation | Eight held, sixteen released; label frame rate only if verified |
+| Snapshot rewind | Motion graphic | Rewind game state and logical frame counter together |
+| Dual-run comparison | Screen recording + overlay | Use actual current hashes or shortened identifiers from fresh runs |
+| Status card | Full-screen graphic | “Training not started” must be prominent |
+| Test output | Screen capture or recreated data card | Show only current, verified counts; hide private paths and machine details |
+| Roadmap ladder | Original vector graphic | Bedroom, house, Oak/starter, rival, parcel, Brock; use text and generic symbols |
+| Host segments | Camera | Record clean openings/endings so claims can be revised late in edit |
+
+Keep repository-safe originals in a dedicated future media source folder only after its policy is
+defined. Never commit generated recordings accidentally; the current repository intentionally
+ignores them.
+
+## A visual grammar for later episodes
+
+Use the same visual elements in every episode so the audience learns how to read the experiment.
+
+### Always-visible status chip
+
+During demonstrations, show one of:
+
+- `DEVELOPMENT` — system or reward is being changed;
+- `TRAINING` — policy may learn from the attempt;
+- `EVALUATION` — policy and rules are frozen;
+- `ILLUSTRATION` — animation or reconstruction, not a recorded run.
+
+### Information badges
+
+When the acting configuration changes, briefly show:
+
+```text
+ACTOR        PPO skill / LLM planner / Hybrid / Scripted test
+SEES         Pixels / Coordinates / Text / Memory
+START        Clean boot / Development snapshot
+HELP         Intervention count
+SPEED        Real-time / 8× / 64× / Cut
+```
+
+### Results trio
+
+Pair three visuals rather than relying on one curve:
+
+1. **Training curve:** median objective and spread across steps or seeds.
+2. **Evaluation strip:** every frozen attempt and terminal reason.
+3. **Representative run:** one run selected by a declared rule.
+
+### Failure card
+
+```text
+FAILURE          DOORWAY_OSCILLATION
+FIRST OBSERVED   experiment identifier
+RATE             6 / 20 evaluation attempts
+EVIDENCE         repeated two-tile cycle
+HYPOTHESIS       policy overreacts to alternating frames
+NEXT TEST        four-frame action history
+```
+
+Keep “evidence,” “hypothesis,” and “next test” as separate lines. This prevents a plausible story
+about a failure from becoming an asserted cause.
+
+## Claims discipline checklist
+
+Complete this before recording narration and again before publishing.
+
+- [ ] Does every numerical result have an experiment identifier or reproducible source?
+- [ ] Is the Git commit or tagged release recorded?
+- [ ] Were evaluation rules and budgets frozen before the displayed attempts?
+- [ ] Are all attempts represented, not only successes?
+- [ ] Are training, development, evaluation, scripted tests, and illustrations labeled distinctly?
+- [ ] Does “the agent saw” exclude referee-only and debugging-only information?
+- [ ] Are human interventions, resets, and hand-written knowledge counted?
+- [ ] Are emulator steps, emulator-hours, and wall-clock time kept distinct?
+- [ ] Is a reward curve presented as a diagnostic rather than proof of task success?
+- [ ] Is sped-up, cut, reconstructed, or reenacted footage labeled?
+- [ ] Have test counts, package versions, and roadmap status been refreshed since the script draft?
+- [ ] Are private paths, keys, ROM data, snapshots, and local usernames absent from the frame?
+- [ ] Are repository visuals original and free of extracted proprietary assets?
+- [ ] If gameplay footage appears, has the creator made and documented a separate platform-specific
+      rights decision?
+
+## Words to use carefully
+
+| Tempting line | Better line |
+| --- | --- |
+| “I trained an AI to beat Pokémon.” | “The frozen learned-policy lane ended V10 with zero competent skills; V11 is a separately labeled assisted hierarchy.” |
+| “It learned the room.” | “It crossed the exit in 17 of 20 held-out attempts.” |
+| “It only saw the game.” | “The policy received pixels plus the declared X/Y coordinates.” |
+| “No cheating.” | “The policy could not write memory or load snapshots; the referee read these six fields.” |
+| “Completely autonomous.” | “There were zero interventions during these frozen evaluation attempts.” |
+| “It figured this out from scratch.” | “It used this pretrained planner, these prompts, and this trained skill.” |
+| “It beat the game.” | “It completed the declared Brock milestone from a clean start.” |
+| “It will finish if we leave it running.” | “The fresh V11 attempt has no planned wall-clock cutoff; completion remains unproved and is not guaranteed.” |
+| “Training took four hours.” | “Training used N emulator steps, H emulator-hours, and four wall-clock hours.” |
+
+Specific language is not less exciting. It gives the audience a reason to trust the exciting part.
+
+## Publishing notes
+
+- Link the source release, experiment summary, and readable narrative—not a private run directory.
+- Put key limitations in the spoken video and description, not only in a distant technical note.
+- Avoid game music, extracted sprites, box art, official fonts, and downloadable ROM-derived assets.
+- Keep any necessary gameplay excerpts short, analytical, and surrounded by original commentary;
+  platform rules and rights questions require a separate review by the creator.
+- Captions should spell out acronyms the first time they appear.
+- Charts need direct labels and shapes in addition to color.
+- Supply alt text or a text transcript for every result visual.
+- Archive the final script and the release identifier so later episodes do not rewrite what was
+  claimed at the time.
+
+## Description template
+
+Use this as a checklist, not as final copy:
+
+```text
+Question:
+What this episode built:
+What it did not build:
+Acting system:
+Agent observation:
+Referee-only information:
+Start condition:
+Evaluation protocol:
+Results and denominator:
+Human interventions:
+Training budget and compute:
+Source release:
+Experiment artifacts:
+Known limitations:
+Next hypothesis:
+```
+
+The description should remain useful to someone who never watches the video. The video should
+remain honest to someone who never opens the description.

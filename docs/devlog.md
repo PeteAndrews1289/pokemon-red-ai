@@ -1,5 +1,1331 @@
 # Development log
 
+## 2026-07-22 — Close V12 and the project
+
+- Ended `v12-final-48h-20260722-005136-seed20260722` at the user's request after its verified
+  frontier remained Route 1 for more than nine hours. The 48-hour value was a ceiling, not the
+  achieved duration.
+- Preserved two endpoints. The last integrity-bound checkpoint records 8,224,768 actions and
+  35,634.036 seconds. The last observed status records 8,236,144 actions, 35,696.136 seconds,
+  4,021 PPO updates, 903 episodes, 694 unique positions, and 230.729 actions/second.
+- Closed the discovery record at seven replay-verified promotions. They arrived quickly: game start
+  at action 992, ground floor at 2,132, outside at 38,972, Oak's lab at 39,884, starter at 43,564,
+  first rival battle at 64,432, and Route 1 at 378,388. Viridian City never promoted.
+- Closed the learning denominator at 64,336 hindsight lessons, 3,518,624 hindsight action examples,
+  39,328 self-imitation examples, and 154 imitation updates. The final correct-goal advantage was
+  effectively zero despite the qualified canary's earlier positive diagnostic.
+- Closed behavioral evaluation at 55/502 frozen exams and zero competent skills. “The adventure
+  begins” passed 55/160, temporarily became competent, lost that status twice, and ended 1/10.
+  “Reached the ground floor” passed 0/342. No later skill exam or composition attempt became
+  eligible.
+- Recorded the stop-time defect without repairing the result. The interrupt caused a broken pipe
+  before terminal evaluation and final status were written. The sealed model, curriculum, and
+  self-skill hashes still match the last checkpoint; the hindsight-learning state does not. Exact
+  resume failed closed, so no post-hoc terminal result was invented.
+- Added the public V12 endpoint, milestone CSV, exam CSV, final retrospective, DR-0065, and project-
+  wide status updates. Shelved the video plan while preserving it as historical production notes.
+
+## 2026-07-22 — Freeze V12 as the final experiential-learning experiment
+
+- Closed V11's continuous attempt after 950.308 seconds, 329 controller actions, and 144 online
+  model calls, without party or badge progress. Retained it as a disclosed assisted control rather
+  than treating model access as learned play.
+- Added `self_taught_v12`, a direct-ROM-power-on mode with random parameters, one recurrent visual
+  actor, four emulator workers, zero imported curriculum/actions/weights/save states, and zero
+  online decision-model calls.
+- Added bounded future-frame hindsight. Each rollout can generate at most 16 visually meaningful
+  8–128-action lessons from the run's own experience. Lessons cannot cross resets and are trained
+  before the next rollout.
+- Canary 2 exposed a new failure mode: falling hindsight loss while the actor ignored the goal. Its
+  demonstrated-action preference for the correct future goal over a blank goal was `-0.00018086`.
+  Added a fixed 0.25-weight, 0.10-margin correct-goal contrast and the same diagnostic to dashboard,
+  checkpoint, and final evidence.
+- Canary 3 repeated Canary 2's seed and 6,000-action training budget. It trained 176 hindsight
+  lessons over 4,968 examples, sustained 133.055 actions/s, and moved correct-goal advantage to
+  `+0.00353084`. No skill became competent; the directional diagnostic qualifies the corrective
+  mechanism, not behavior.
+- Added checkpoint-separated deterministic exams and a sealed terminal evaluation from exact
+  power-on. When no competent self-generated skill chain exists, the terminal policy receives a
+  blank goal for a fixed 32,768-action budget.
+- Froze a 48-hour launch contract with four environments, a 150-million-action safety ceiling,
+  fixed hindsight/contrast settings, 8/10 competence, storage guards, source-cleanliness checks,
+  localhost dashboard on port 8777, and macOS sleep prevention. The initial qualification correctly
+  refused to begin while the T7 was unmounted; the later post-mount gate found 220 GiB free.
+- Preserved the first post-mount launch as an operational failure before training began. The
+  detached shell child was reaped when its desktop command session ended: it created only an empty
+  launch log and PID receipt, never created a run directory, never opened the dashboard, and
+  consumed zero training actions. Replaced orphaned `nohup` backgrounding with a run-specific
+  macOS launch job. macOS then rejected that job before execution because privacy-isolated
+  LaunchAgents cannot read the removable T7 or Downloads; a direct test returned `Operation not
+  permitted`. That second failure also consumed zero actions. The final launcher therefore runs in
+  a dedicated Terminal foreground session, which owns the process independently of Codex and
+  inherits the user's existing file access. It keeps the Mac awake and cannot silently restart.
+- Added the V12 design, qualification record, aggregate canary CSV, narrative updates, and explicit
+  falsifiers. The result will be published whether it reaches the Hall of Fame, stalls, or produces
+  no competent skill.
+
+## 2026-07-21 local / 2026-07-22 UTC — Three canaries taught V11 to distrust its sensors
+
+- Ran four bounded V11 canaries from clean power-on and retained every failed boundary. Canary 1
+  ended after 25.559 seconds without an action because an already absolute planner scratch path was
+  resolved a second time. The launch path is now absolute once, and an unguarded zero harness exit
+  fails closed instead of looking like success.
+- Canary 2 proved the local planner could launch but not touch the game. The operator stopped it at
+  108.110 seconds after 13 language-model calls and zero actions; every Pokémon MCP request had
+  been cancelled by the unattended approval policy. The server is now required, explicitly
+  preapproved, and restricted to the exact audited tool allowlist. Repeated MCP-only cancellation
+  also terminates instead of retrying forever.
+- Canary 3 was the first end-to-end control run. The planner read state, pressed ordinary buttons,
+  called navigation and memory tools, refreshed the dashboard, and produced a recording. That
+  success exposed the more dangerous failure: while the screen visibly showed Oak's introduction,
+  initialized RAM claimed `RedsHouse2f`, `(3,6)`, `$3000`, and `overworld`. The planner's
+  self-attested completion advanced `pallet_000`, A* queued a bedroom path, and every direction was
+  classified blocked. The operator stopped it after 251.630 seconds and 50 actions. Its apparent
+  objective progress is rejected.
+- Replaced prompt-level caution with a server-enforced opening referee. Pre-control map,
+  coordinates, and generic milestones remain unavailable; completed dialogue remains detectable;
+  and `pallet_000` cannot advance until a directional input proves that RED can actually change
+  bedroom coordinates. Menu-direction outcomes are no longer graded as failed walking merely
+  because overworld coordinates stay fixed.
+- Canary 4 supplied that proof at `2026-07-22T03:22:41Z`: RIGHT moved RED from `(3,6)` to `(4,6)`.
+  The opening objective completed only later, at 450.05 seconds and 111 actions. The bounded run
+  ended at the 600.521-second supervisor ceiling (596.087 seconds in the metrics ledger), with 136
+  final actions, 70 language-model calls, 2,438,617 logged tokens, and $0.5150955 logged estimated
+  cost. Its final state was `RedsHouse2f (0,2)`, story index 1/84, with no party, badges, or
+  Hall-of-Fame result.
+- Qualified only the opening referee. Canary 4 proves true power-on, authenticated local planning,
+  ordinary-button control, state suppression before control, evidence-gated first-objective
+  completion, recording, and bounded shutdown. It does not prove later-game planning, battles,
+  puzzles, recovery, or eventual completion.
+- Found one residual early server-layer pre-game map leak during Canary 4 even though the guarded
+  public planner state and objective ledger remained honest. Fixed it before launching the fresh
+  continuous run `v11-continuous-20260721-233300` from clean power-on. Its localhost dashboard is
+  on port 8775. The run is an active test of sustained planning, not a promise that it will finish
+  Pokémon Red.
+- Changed the video centerpiece. Split Oak's visible “Hello there!” frame against telemetry saying
+  `RedsHouse2f · OVERWORLD`, then show the false green objective and blocked PC path. The resolution
+  is Canary 4's measured RIGHT move. V11's first lesson was not how to play Pokémon; it was how to
+  decide which part of its own laboratory to believe.
+
+## 2026-07-21 local / 2026-07-22 UTC — Close V10 and change the unit of reasoning
+
+- Ended `parallel-ppo-v10-recovery-8h-20260721-seed20260809` cleanly with SIGINT before beginning
+  the V11 implementation. No V10 process remained. The run closed after 4,503.282 seconds
+  (1h15m03.282s), not its eight-hour ceiling, with 534,924 Explorer actions at 118.785/s, 522 PPO
+  updates, 122 episodes, 567 unique positions, and seven verified promotions through Route 1.
+- Recorded the terminal learning denominator rather than extrapolating from the early heartbeat.
+  The Student completed 270 rounds and 3,366 updates over 121,194 examples, ending at 43.2519%
+  action accuracy and 1.556849 NLL. Frozen exams passed 3/32; zero skills became competent and no
+  composition ran. Final Explorer and Student hashes matched. Artifacts occupied 51,716,995 bytes.
+- Closed all 1,977 recovery windows: 956 `escaped`, 910 `context_changed`, 110 `expired`, and one
+  abandoned when the campaign ended. Zero controller actions were overridden. This preserves the
+  two-sided V10 conclusion: bounded local recovery operated and was auditable, but it did not
+  demonstrate broader exploration, reliable learned competence, or a path beyond Route 1.
+- Rejected a fifth flat-policy reward iteration as the primary completion strategy. V8–V10
+  progressively improved lesson production, imitation fit, closed-loop correction, and local
+  recovery without producing one competent frozen skill or restore-free composition. Running the
+  same architecture longer, increasing reward magnitudes, extending recovery, or exposing a few
+  more coordinates would not supply multi-hour quest planning, durable symbolic memory, or distinct
+  navigation/menu/battle/puzzle control.
+- Began Version 11 as a disclosed hierarchical hybrid. The planned actor is a structured-state
+  language-model planner with persistent run memory, hand-authored current objectives, processed
+  maps, map-local A* navigation, and controller specialists. It still acts through ordinary Game
+  Boy inputs. A separate read-only referee records evidence and stops only on strict completion.
+- Pinned the adaptation target to `sethkarten/continual-harness` commit
+  `bbab97ad73e460b7cd7c08527d10ced30cc03fbe`. The guided lane is labeled
+  `STRUCTURED-STATE LLM PLANNER + A* NAVIGATOR + CONTROLLER SPECIALISTS`, `ASSISTED`,
+  `POWER-ON`, and `HYBRID-SYSTEM`. It imports no save, prior action lineage, evolved policy, or
+  prior-run gameplay memory. A future success must not be relabeled as pixels-only learning.
+- Found two pre-launch validity hazards in the pinned harness. Its Red wrapper could automatically
+  load a ROM-adjacent state, and its `CHAMPION` milestone could fire on entering the Champion room.
+  The V11 boundary disables adjacent-state auto-load by default and defines completion as event bit
+  `0x901` together with Hall-of-Fame map `0x76`. The Red recording path also uses the native 160×144
+  frame size, and the objective sequence includes the post-battle Hall-of-Fame transition.
+- Defined the bounded canary before any long claim. It must prove true power-on, local authenticated
+  planner execution, complete objective visibility, expert map/navigation/memory tools, refreshing
+  dashboard evidence, intervention accounting, strict completion fields, disk limits, and clean
+  child-process shutdown. At that design checkpoint implementation and canary preparation were in
+  progress; the later canary record above supersedes this provisional status.
+- Reframed the video chapter as “We Stopped Teaching the AI One Button at a Time.” The opening image
+  is four V10 agents converging on the same corner; the reveal is the missing planner/map/memory/
+  specialist hierarchy. A guided completion would then become success-and-correction data for
+  behavioral cloning and DAgger-style specialist training, not retrospective proof that V10 worked.
+
+## 2026-07-21 local / 2026-07-22 UTC — Close V9, launch matched-configuration V10
+
+- Intentionally stopped V9 run `parallel-ppo-v9-self-correcting-8h-20260721-seed20260809` at the
+  user's request so its recovery-enabled successor could begin. The clean `d1c0c0d` run started at
+  `2026-07-21T21:43:57.163627Z` and ended `stop_requested` at
+  `2026-07-22T00:36:38.849066Z`, after 10,359.143 seconds (2h52m39.143s). The `8h` in its name was a
+  ceiling, not its duration.
+- Closed V9 at 1,431,556 Explorer actions (138.1925/s), 1,398 PPO updates, 558 episodes, 716 unique
+  positions, seven promotions through Route 1, eight discovered skills, 139 visual-cycle endings,
+  419 stagnation endings, and 146 battle successes. Final hashes verified; output occupied 57 MiB.
+- Recorded the decisive Student denominator: 797 training rounds, 10,692 updates, 330,505 examples,
+  68.5919% accuracy, and 0.904136 NLL. Closed-loop practice reached 558/698 exact targets across
+  651,629 actions and 882 updates. Frozen exams passed only 4/87; zero skills became competent and
+  composition never ran. Better fit and isolated successes did not become reliable behavior.
+- Launched `parallel-ppo-v10-recovery-8h-20260721-seed20260809` from clean commit
+  `513afc378d091d18560efb4af4931d882c05000d` at `2026-07-22T00:37:44.442964Z`. It keeps seed
+  20260809, the same V8 root curriculum, four environments, eight-hour/150-million-action ceiling,
+  and V9's PPO/Student practice configuration. Dashboard remains on port 8774. The source commit and
+  start time differ, so this is matched configuration rather than a bit-identical causal ablation.
+- Froze V10 recovery at a 32-action window after three blocked outcomes; ineffective thresholds are
+  changed pixels below 2% and MAE below 2, while material-escape thresholds are changed pixels at
+  least 5% or MAE at least 5. Repeated-block penalty, credited escape, and expiry penalty are 0.25,
+  0.25, and 1.0.
+- Preserved the stronger launch heartbeat at about `2026-07-22T00:42:55Z`. Status was running at
+  310.686 seconds, 22,532 actions (72.523/s), 22 updates, 30 episodes, five promotions through
+  `chose_starter`, 286 positions, five skills, and 0/1 frozen exams with zero competent skills.
+  `checkpoint.json` recorded 20,480 actions, past the 16,384 boundary. All 366 windows were
+  blocked-repeat: 165 escaped, 169 context-changed, 30 expired, and two active; completed 364,
+  abandoned/unresolved/overrides zero, and 3,475 recovery actions. Both policy hashes matched and
+  dashboard HTTP was 200. This proves the run is alive; it is not a trend or result.
+- Investigated apparently frozen dashboard snapshots rather than assuming browser caching. All four
+  worker PNGs and `status.json` stopped changing from `00:53:38Z` until `01:02:22Z`, while the main
+  process remained alive and CPU-active inside synchronous Student work. Explorer actions and all
+  four images resumed without intervention. The dashboard now exposes frame age and changes to an
+  amber “temporarily paused” explanation after 20 seconds, so trainer work cannot silently look
+  like a dead run. The current run was not restarted or altered.
+
+## 2026-07-21 — The reset button was hiding the lesson
+
+- Preserved the active V9 campaign and its immutable DR-0057 declaration. The visible wall-bouncing
+  and rising loop resets are diagnostic observations only; no live counter has been promoted into a
+  terminal V9 result.
+- Implemented Version 10 as a separate successor mode rather than editing V9 mid-run. V10 retains
+  fresh random power-on initialization, the separate Explorer and Student, consecutive
+  self-generated skills, reverse closed-loop Student practice, success-only aggregation, and the
+  unchanged frozen exam authority.
+- Changed the Explorer's proposed response to repeated generic ineffective directional
+  action/pixel outcomes. A loop can
+  open a bounded recovery opportunity before reset, allowing the same PPO policy to experience its
+  own failed actions and a self-chosen response in one rollout. After `blocked_repeat`, a
+  directional material visual outcome is credited `escaped`; non-directional change closes as zero-credit
+  `context_changed`, not an escape or success. Generic material changes remain eligible after
+  visual-cycle or pixels-only long-stagnation triggers, which already incur the -2 loop penalty.
+  Expiry still produces a classified reset, so one wall cannot consume an unbounded campaign.
+- Opened pixels-only long-stagnation recovery after 1,024 ineffective outcomes before the legacy
+  hard watchdog can terminate. Visually effective backtracking resets the hard timer without
+  clearing the independent 128-frame/eight-signature short-cycle detector.
+- Kept button authority strict. Trainer-only recovery code may grade processed visual effect, but
+  it cannot choose, replace, sample, or mask an action. It receives no RAM, map, coordinate, route
+  distance, destination, or direction hint.
+- Added a fail-closed Explorer-recovery telemetry contract. Trigger types, activations, credited
+  escapes, zero-credit context changes, expirations, active ranks, recovery actions, abandonment on
+  resume/episode/campaign end, and trainer-selected buttons remain separate. Every opened window is
+  accounted for; unresolved inactive windows and trainer-selected buttons must remain zero.
+- Added the Version-10 design, falsifiers, comparison rules, claim boundary, and video chapter. The
+  mechanism then passed deterministic E2 qualification: 67 focused V10/PPO/dashboard checks; 293
+  checks in the whole default suite with 13 private-ROM checks skipped; and 54/54 across all
+  selected ROM-bearing files with the private ROM in 19.02 seconds. Ruff, the private-artifact
+  guard, documentation links/placeholders, compilation, and diff checks also passed.
+- Added deterministic environment-step and hourly-narrative checks. A simultaneous pixels-only
+  stagnation start suppresses legacy termination; exact expiry is terminal; the ordinary action
+  ceiling remains truncated and abandons an active window; perceptual activity still permits
+  short-cycle detection; active checkpoint ranks become abandoned on resume; and hourly Markdown
+  exposes detections with the full recovery denominator.
+- Added direct E3 mechanism calibration at the committed 289-action ground-floor fixture plus six
+  settling noops. Up (0% changed pixels / 0 MAE) and Right (0.642% / 0.509) classified blocked;
+  Down (20.972% / 23.165) and Left (21.215% / 26.851) classified as material directional visual
+  outcomes; and Start
+  (37.708% / 89.667) materially changed context. Up×3 → Start closed as zero-credit
+  `context_changed`; a fresh Up×3 → Down closed as credited `escaped`. Both preserved
+  `submitted == executed`. This calibrates one real-ROM mechanism; it is not the pending fresh
+  campaign canary.
+- Corrected the reward before a campaign canary. An adversarial audit reduced escape credit from the
+  draft 1.0 to 0.25 raw units and constrained it to no more than the 0.25 repeated-block activation
+  penalty. A credited directional blocked/escape pair is reward-neutral before ordinary game
+  consequences; a non-directional `context_changed` closure earns zero and retains the -0.25.
+- Ran the first bounded V10 campaign canary on 2026-07-22 UTC (2026-07-21 local) from clean commit
+  `a0ec14a5506fe3a0c4bcb15787f68be4d512d764`, the private ROM, seed 20260810, and one environment.
+  It stopped cleanly at `duration_limit` after 144.102 seconds, 6,099 actions at 42.324
+  actions/second, and 47 PPO updates. Its checkpoint hashes verified and its output occupied 40 MiB.
+- Recorded two verified promotions, a best milestone of `Reached the ground floor`, and 93 unique map
+  positions. All 73 recovery windows came from `blocked_repeat`: 36 closed as credited `escaped`, 32
+  as zero-credit `context_changed`, and five as `expired`. The credited escape rate was 36/73 =
+  49.315% across 702 recovery actions.
+- Closed the operational ledger exactly. The five expirations matched five
+  `visual_recovery_expired` episodes; active, resume/episode/campaign abandonment, unresolved, and
+  trainer-selected-action counts all ended at zero. Visual-cycle and long-stagnation recovery were
+  not activated in this canary.
+- Kept the evidence boundary narrow. This is E3 campaign-level mechanism evidence that authorizes a
+  matched longer V9/V10 comparison. It is not evidence of exploration superiority, learning,
+  competence, long-run reliability, gameplay completion, or Hall-of-Fame capability.
+
+## 2026-07-21 — Freeze the rules, then let V9 run
+
+- Declared active run `parallel-ppo-v9-self-correcting-8h-20260721-seed20260809` against source
+  commit `d1c0c0d`. It began at `2026-07-21T21:43:57.163627Z` with seed 20260809.
+- Froze the campaign budget before reading results: eight hours, 150,000,000-action safety ceiling,
+  four emulator environments, 256-step rollouts, 100 GiB output cap, 50 GiB free-space floor, and
+  dashboard port 8774. Frozen exams occur every 16,384 Explorer actions.
+- Kept the strict self-correction protocol unchanged: reverse-rung promotion requires 27/30 twice,
+  practice runs every four Explorer rollouts with two attempts, terminal reasons remain complete,
+  only replay-verified exact successes aggregate, and PPO recovery stays disabled.
+- Began from fresh power-on. The V8 source supplies only the root curriculum state required to boot
+  the new expedition. V8 model weights, optimizer state, controller actions, distilled skills, and
+  success buffers do not enter the run.
+- Rejected two background handoffs after both failed before creating a run. The generic `nohup`
+  attempt did not survive as the campaign owner. The launchd wrapper could not access the external
+  SSD under its service permissions. A detached user-session process succeeded, preserving the
+  same filesystem authority as the interactive launch while adding sleep prevention.
+- Recorded the first scheduled exam boundary at 16,388 Explorer actions and 161.420 seconds as E1
+  live telemetry. Throughput was 101.524 actions/second; the Explorer had 16 PPO updates, two
+  verified promotions, three skills, and milestone index 2, `Reached the ground floor`.
+- At that same boundary, the Student had completed 13 rounds and 60 optimizer updates. Action
+  accuracy was 0.1396277 and NLL was 2.105477. Practice recorded seven exact targets and one timeout
+  across eight attempts, retained seven successes, and applied 14 success-only updates.
+- The first frozen exam used 556 actions and failed 0/1. Zero skills were competent and zero
+  compositions ran. One early grade cannot establish a trend, so none of these figures is a final
+  V9 result. The run continues under its original declaration; no mid-run rule changes are allowed.
+
+## 2026-07-21 — The timer had to become part of the experiment
+
+- Ran the first V9 real-ROM canary,
+  `parallel-ppo-v9-canary-20260721-seed20260801`, under a configured 180-second limit. Synchronous
+  campaign work did not return to the outer wall-time check promptly, so the campaign
+  passed its budget. A manual STOP ended it at 248.801 seconds and 12,360 Explorer actions.
+- Preserved the failed canary rather than hiding it. It reached milestone index 3,
+  `left_home` / `Stepped outside`, with three promotions, zero promotion failures, and six skills.
+  Closed-loop practice recorded 19 exact targets and three timeouts in 22 attempts. Frozen exams
+  ended 0/3. Immediate success-only training reports replaced rather than merged the richer
+  periodic dashboard diagnostics, so its final Student/replay panel is not authoritative. Manual
+  STOP exposed the defect; shutdown did not cause it.
+- Fixed cancellation through synchronous campaign work and merged partial/final status sections in
+  commit `e1ea199` (`Keep V9 work inside campaign boundaries`). The fix makes elapsed wall time and
+  reporting part of qualification rather than treating them as dashboard polish.
+- Ran the authoritative replacement,
+  `parallel-ppo-v9-canary2-20260721-seed20260802`, from
+  `2026-07-21T21:31:41.473766Z` to `2026-07-21T21:34:08.155927Z`. The 146.682-second process span
+  includes roughly 2.6 seconds of setup/finalization. The measured campaign clock ended
+  automatically with `duration_limit` at 144.082 seconds against a configured 144.0 seconds.
+- Recorded 12,520 Explorer actions at 86.895 actions/second, 12 PPO updates, two verified promotions,
+  zero promotion failures, and three skills through milestone index 2, `Reached the ground floor`.
+  The run occupied 42,336,864 bytes.
+- Recorded 20 Student rounds, 64 optimizer updates, and 1,400 examples. Final action accuracy was
+  0.1415313 and NLL 2.211105. These are fit diagnostics, not evidence of competence.
+- The real-ROM practice denominator stayed complete: 16/22 exact targets (72.727%), two
+  `milestone_wrong_state`, and four `timeout`. Sixteen replay-verified successes were retained and
+  caused 32 success-only updates. The last bounded replay round exposed three aggregated practice
+  datasets containing 39 train examples and 20,000 bytes.
+- Frozen exams ended 0/3, with zero competent skills and no composition. The V9 canary therefore
+  qualifies mechanism, observability, and wall-time control. It does not demonstrate that the
+  Student learned a reliable skill or that V9 will progress through the game.
+- Passed the expanded engineering suite: 276 non-integration plus 12 integration checks, 288 total.
+  The next legitimate step is a declared longer V9 run with unchanged frozen competence rules;
+  recurrent PPO recovery remains disabled.
+
+## 2026-07-21 — Better imitation was still not competence
+
+- Stopped the longer V8 pretrial by request and preserved its terminal artifacts under run ID
+  `parallel-ppo-v8-distilled-student-8h-20260721-seed20260793`. It ran from
+  `2026-07-21T18:52:49Z` to `20:27:21Z`, 5,668.623 seconds, rather than silently being described as
+  an eight-hour result.
+- Recorded 784,386 Explorer actions at 138.373 actions/second, 1,532 PPO updates, and seven verified
+  promotions through milestone 7, `reached_route_1`. Seven skills compressed 13,011 original
+  actions to 8,582 through 238 oracle calls and 373,639 replay actions.
+- Recorded 387 Student rounds, 2,513 optimizer updates, and 137,437 examples. Final action accuracy
+  rose to 53.0817% and NLL fell to 1.295676, a dramatic improvement over the clean canary's
+  13.7795% / 2.07149 fit diagnostics.
+- Kept the behavioral conclusion separate from that fit improvement. Only 1/47 frozen exams
+  succeeded; the rolling checkpoint-separated gate therefore granted zero competent skills, and
+  zero composition attempts ran. V8 closes with this 1/47 final behavioral result. The earlier
+  3,584-action 0/7 run remains the clean qualification canary rather than being erased.
+- Integrated the V9 consecutive graph into skill construction and bound its public audit hash into
+  each skill and checkpoint. Exact replay-local first hits still reject skipped, aliased,
+  non-monotonic, or incomplete edges.
+- Integrated closed-loop Student practice. Exact target identity now requires both milestone depth
+  and the target's sealed signature; ordinal-only crossings end as `milestone_wrong_state` rather
+  than success. `timeout`, `emulator_stopped`, `milestone_wrong_state`, and `exact_target` counters
+  account for every attempt.
+- Implemented success-only bounded replay. Exact-target attempts must replay before admission;
+  deterministic per-rung reservoirs retain at most 32 successes, each success is split into
+  immutable bounded shards, and Student replay rotates across retained rollout/shard choices.
+- Bound practice state to the Student checkpoint generation. Atomic checkpoint/previous snapshots
+  preserve pending choice, attempt seed, 27/30×2 windows, retention decisions, counters,
+  reservoirs, and artifact hashes; resume rolls a newer live practice ledger back with an older
+  recovered Student rather than mixing generations.
+- Passed the current engineering suite: 271 non-integration checks plus 12 integration checks, 283
+  total. This is E2 evidence for implementation paths, not a V9 real-ROM mechanism canary or
+  learned-behavior result. Recurrent PPO recovery remains disabled and unimplemented.
+- Updated the video turn: first show the clean canary's seven red exam tiles, then reveal the longer
+  run's rising fit line beside 1/47. The sharper contradiction is no longer “it barely learned the
+  labels”; it is “it learned the labels much better and still could not reliably recover from its
+  own state distribution.”
+
+## 2026-07-21 — The Student had never practiced being wrong
+
+- Closed V8 as a qualified engineering mechanism with a negative behavioral result. Its clean,
+  committed canary reached `met_professor_oak`, created four verified/distilled skills, completed
+  51 Student rounds and 134 optimizer updates, and resumed twice. Final accuracy was 13.7795%, but
+  the only competence evidence was 0/7 frozen exams, zero competent skills, and no eligible
+  composition.
+- At that decision point, kept the V8 canary intact instead of silently relabeling more cloning as
+  a success. Its
+  final supported-ROM suite passed 245/245 in 24.80 seconds; that qualifies predecessor machinery,
+  not the V9 hypothesis.
+- Identified exposure bias as the next falsifiable explanation. V8 cloned state/action pairs from
+  successful traces, while exams exposed the Student to states caused by its own imperfect actions.
+  One deviation could therefore create an unfamiliar observation and compound later errors. This
+  is a hypothesis, not a claim that optimization, capacity, or visual ambiguity are ruled out.
+- Accepted Version 9's self-correcting Student design. The run's verified lineage becomes exact
+  consecutive source-to-next-target edges, retaining original offsets and hashes rather than
+  rewriting V8 artifacts. The canonical Student receives bounded sequence BC as a warm start.
+- Began the standalone edge normalizer under `self-generated-consecutive-skill-graph-v1`. It keys
+  replay-local nodes by exact first-hit offset, stable-state hash, private-snapshot hash, and
+  verification provenance; it rejects missing intermediate hits, non-monotonic coverage, duplicate
+  concrete states, and ordinal-only state reuse. Public audits omit actions and save payloads.
+- Began the reverse closed-loop practice core under protocol
+  `v9-student-closed-loop-reverse-practice-v1`. Practice horizons expand 8/16/32/64 actions through
+  the full edge. Promotion requires 27/30 successes in two consecutive non-overlapping windows;
+  deterministic retention receives 25% of scheduling opportunities.
+- Bound practice reset to `zero-recurrent-sentinel-history-duplicate-frame-v1`. The actor keys are
+  exactly `pixels`, `action_history`, and `target_pixels`; skill/checkpoint/rung/horizon and attempt
+  identity remain trainer-only. Pending choice and derived attempt seed are serialized so resume
+  repeats the same work rather than redrawing an easier attempt.
+- Defined success-only aggregation. A Student rollout may enter protocol
+  `v9-student-successful-rollout-v1` only after exact outcome and replay verification. Failed
+  attempts remain in the denominator but cannot become imitation targets. Each rung retains at
+  most 32 success metadata records through deterministic reservoir sampling.
+- Preserved strict claim boundaries. Reverse-rung promotion is training progress, not competence.
+  Frozen local exams still reset memory, apply no updates or aggregation, permit one grade per
+  Student checkpoint, and require 8/10 across ten versions. Restore-free composition from power-on
+  remains a separate stronger meter.
+- Predeclared recurrent PPO as a future conditional automatic escalation if BC plus success-only
+  practice cannot produce one verified success. It is not implemented in the current scope and
+  must remain disabled and unclaimed during initial qualification. Closed-loop plumbing and a
+  matched BC-only ablation must pass before PPO is eligible; the canonical Student, not a
+  disposable hidden expert, is its eventual target.
+- At this initial design checkpoint, began documentation and integration only. No V9 automated qualification, supported-ROM canary,
+  frozen-exam success, PPO recovery, or live-game progress is claimed.
+- Defined the video turn: show four perfect V8 lesson cards, then seven red exam tiles. Let one
+  wrong button fall off the recorded rail, move a disclosed reverse-practice start backward, and
+  allow only a replay-verified green Student success to write the next lesson. Keep the PPO lever
+  visibly behind glass until a later declared qualification.
+
+## 2026-07-21 — One brain was doing two incompatible jobs
+
+- Preserved the active V7 long run without stopping it, changing its configuration, or loading new
+  source into its already-running process. Its eventual result remains the raw-trace, shared-policy
+  denominator.
+- Reframed the next bottleneck. V7 solved where positive examples come from—they come only from
+  the run itself—but one network still had to absorb noisy PPO exploration and direct imitation.
+  Its verified sequences could also preserve long loops and lucky corrections as if every action
+  were equally worth copying.
+- Rejected another obstacle reward, a human demonstration, a named quest goal, imported V5/V6
+  actions, and a silent increase in V7 training as the default response. Those would either change
+  the question or destroy the comparison.
+- Froze Version 8's two-policy boundary. Four recurrent PPO workers are Explorers. A separately
+  optimized recurrent Student may train only on self-generated transitions that already survived
+  exact replay. Explorer PPO cannot overwrite Student weights.
+- Began replay-backed trajectory distillation. Repeated trainer-only state signatures propose loop
+  deletions; bounded chunk reduction proposes additional deletions. Every proposal replays from the
+  original source and must preserve the same protected outcome. The raw trace, retained indices,
+  rejected edits, oracle cost, and final replay stay auditable.
+- Began sequence-aware Student training with overlapping windows, loss-free recurrent burn-in,
+  detached memory boundaries, balanced skill replay, a separate optimizer, and fit/entropy
+  diagnostics. A short terminal pixel clip replaces V7's single target frame for V8.
+- Added continuous composition replay so independent local clips are no longer the only lessons.
+  Once two or more adjacent skills are competent, the full compressed chain streams from exact
+  power-on and every protected endpoint must match. Failed fingerprints are ledgered and never
+  train. A passing chain stores only bounded pre/post-switch excerpts with continuous context at
+  the switch, compact per-skill clips, goal indices, and full hash provenance.
+- Bounded composition replay growth. Only the current deepest verified composition is active in
+  Student loading; prior composition ledgers and audits remain archived. The active composition
+  receives one ticket per constituent skill, at least half of its draws rotate deterministically
+  across switch boundaries through a persisted cursor, and each local skill is divided at
+  admission into immutable hash-bound shards. A shard owns no more than 512 loss-bearing examples
+  plus up to the configured burn-in predecessor context. One persisted per-skill cursor opens one
+  shard per routine round, advances only after successful training and diagnostics, and covers all
+  shards across resume. The original full NPZ stays as provenance and routine replay never opens
+  it. Student status exposes shard counts, loss-bearing/context examples, bytes read, cursor and
+  coverage state, full-artifact opens, retained ceilings, active/archived composition counts,
+  sampling-cycle size, and failed builds.
+- Tightened routine checkpoint cost without trusting mutable history. New or changed skill
+  artifacts and every shard are validated, as are every new composition and the active
+  composition. An unchanged inactive archive may skip rehashing only when its exact seal comes
+  from the skill snapshot already bound by `checkpoint.json`; an interrupted, uncommitted snapshot
+  cannot suppress validation. Resume and full audit validate all full skill artifacts, shards,
+  archived compositions, hashes, and sizes.
+- Found and fixed a P0 real-ROM verifier defect. PyBoy's full game-area hash changed across a
+  save/load boundary even though the processed visual and enumerated gameplay RAM matched exactly,
+  which made valid composition boundaries fail. Composition now uses that exact save/load-stable
+  visual-plus-RAM signature. Distillation retains the stricter game-area hash because each edit
+  candidate replays from the same snapshot.
+- Qualified the corrected composition mechanism on the real ROM. A stored 230-action power-on to
+  `game_started` skill plus a 59-action `left_bedroom` skill replayed continuously as one 289-action
+  chain and matched both protected endpoints. A four-noop fixture reproduced the save/load-hash
+  mismatch and composed successfully, while validly encoded wrong endpoints failed closed. The
+  final focused replay/Student/PPO/dashboard suite passed 61 tests, and the final supported-ROM
+  suite passed 245/245 in 24.80 seconds. These are verifier, bounded-I/O, and training-data
+  mechanics—not proof that a Student learned or autonomously produced either chain.
+- Defined prerequisite-aware scheduling with minimum evaluation, mastery, retention, frontier
+  allocation, starvation protection, and competence revocation. The graph may contain only
+  transitions discovered by the same run; referee labels remain trainer-only.
+- Moved competence to periodic frozen Student exams. Local snapshot exams and restore-free
+  power-on composition are separate meters. Training loss, PPO reward, replay promotion, and a
+  moving-policy success window are explicitly insufficient on their own.
+- Specified the expanded checkpoint boundary: Explorer, Student, both optimizers, skill and exam
+  ledger, distillation datasets and audits, four worker memories, and action counter must resume as
+  one compatible set or fail closed.
+- Added the V8 design, qualification ladder, falsifiers, ablations, dashboard requirements, claim
+  language, and video chapter.
+- Passed the first real-ROM mechanism canary,
+  `parallel-ppo-v8-resume-canary-20260721-seed20260791`. It stopped and resumed cleanly twice, then
+  ended for `stop_requested` at 5,248 Explorer actions and 48.038 seconds.
+- Verified one self-generated `game_started` skill. Replay distillation shortened its raw 256
+  actions to 254, and the final compressed edge still reached the protected outcome.
+- Trained the separate Student for eight rounds and eight updates over 128 examples. Its final
+  action NLL was 2.06915 and accuracy was 16.14%. Student model, optimizer, and bound ledger hashes
+  all matched the saved checkpoint after resume.
+- Exercised the original frozen-grading wiring: 2/2 local and 14/14 power-on deterministic attempts.
+  Every attempt used the same Student version and covered only the trivial first `game_started`
+  milestone. The final audit now classifies these as duplicate mechanism stress, explicitly
+  superseded and not robustness evidence.
+- Withheld the learning claim. The canary had no chance control, no later skill, and no matched V7
+  budget; it cannot show that the Student updates caused success or that distillation helped.
+- Recorded the unchanged live V7 snapshot at `2026-07-21T17:29:11Z`: 6,466,564 actions, Route 1,
+  seven discoveries, zero competent skills, 19/1,274 rehearsals, and 66,560 imitation examples.
+  This is a comparison anchor, not V7's terminal result.
+- Replaced repeated same-checkpoint grading with exactly one deterministic attempt per Student
+  checkpoint. Frozen exams run every 16,384 Explorer actions; a 10-wide, 8/10 window now spans ten
+  distinct Student versions. The full-catalogue local opportunity floor is
+  `66 × 10 × 16,384 = 10,813,440` Explorer actions, below 150 million but excluding discovery,
+  replay, training, composition, and recovery.
+- Removed a subtle authored-information leak from the V8 stagnation watchdog. It no
+  longer treats improved route distance, milestone index, or Viridian Mart script as evidence that
+  wandering became useful. It still recognizes new positions and general durable consequences.
+- Hardened the matching reward boundary: with V8's authored navigation and Mart weights at zero,
+  the reward tracker now skips route guidance, active-goal lookup, Mart distance, and Mart-script
+  calculations rather than merely multiplying their outputs by zero.
+- Kept that historical trainer-side shaping in V7 so its active process can resume under unchanged
+  semantics. V7 remains demo-free and actor-blind, but its termination watchdog was not fully blind;
+  the comparison now says so explicitly.
+- Tightened V8 provenance. Launch now requires a clean commit and counts untracked files as dirty.
+  Checkpoints bind exact source, verified ROM, frozen curriculum, Explorer, Student, Student
+  optimizer, and checkpoint-specific skill/exam ledger. Mismatched resume fails closed.
+- Hardened repeated artifact recovery. When only a hash-matching `previous` generation survives,
+  resume atomically copies it back to `latest` and preserves the fallback. A unit test simulates a
+  second interrupted rotation and recovers the same bytes again; the process-kill real-ROM crash
+  twin is still required.
+- Preserved the already-running V7 campaign by omitting V8-only fields from V7's serialized config.
+  A legacy manifest missing ROM identity receives that verified identity only during resume, while
+  its original source record remains unchanged.
+- Replaced the compact inherited dashboard with the V8 evidence view: four separate depth meters,
+  explicit Hall-of-Fame completions, Explorer and Student hashes, a locked V7 denominator, and
+  distillation-audit fallbacks that say “not recorded yet” when old artifacts lack a field.
+- Made the denominator card a reproducible lock rather than a manually copied status. A fresh V8
+  launch may take `--v7-denominator PATH`; the read-only snapshot pairs the V7 checkpoint with a
+  hash-matching latest/previous model generation and writes no source path. It seals the run ID,
+  Explorer actions, best milestone, model/checkpoint hashes, state and update timestamp, and lock
+  time into the V8 manifest. Resume uses that record and refuses a new denominator argument.
+- Renamed the V8 total card **Explorer actions**. The Student card now shows selected versus total
+  shards, stored/owned/loss-free-context footprint, shard bytes, minimum complete coverage cycles,
+  and the expected zero full skill files opened during routine replay. Exam copy explicitly says
+  the trainer switches self-generated goals at RAM milestone endpoints.
+- Tightened the composition claim boundary. Restore-free composition keeps one frozen Student in
+  control of every button, but a trainer-side RAM referee switches an ordered playlist of the
+  run's self-generated visual targets at declared milestones. That is goal-conditioned
+  hierarchical control with no authored quest direction or controller actions, not unaided
+  pixel-only autonomy; any Hall-of-Fame claim must name the switching protocol.
+- Ran the hardened code from clean commit `4c3c1fc` as
+  `parallel-ppo-v8-canary-20260721-seed20260792`. The one-environment canary started from random
+  power-on, stopped and resumed cleanly twice, and ended by request at 3,584 Explorer actions.
+- The Explorer reached milestone index 4, `met_professor_oak`, and produced four verified,
+  replay-distilled skills. Distillation retained 1,528 of 1,537 actions after eight accepted and
+  eight rejected edits; 24 oracle calls replayed 7,653 actions.
+- The Student completed 51 replay rounds and 134 optimizer updates. Final action NLL was 2.07149
+  and accuracy was 13.7795%. It passed 0/7 checkpoint-separated frozen exams, leaving zero
+  competent skills and therefore zero eligible composition attempts. This supersedes the earlier
+  canary as current wiring evidence, but it does not qualify useful learning.
+- Exercised the bounded replay path on real run artifacts. The final round selected four of five
+  shards, loaded 1,016 loss-bearing examples plus eight loss-free context examples, completed at
+  least five full coverage cycles, and opened zero full skill artifacts during routine replay.
+  Persistent cursors and the two-shard skill survived both resumes.
+- Locked a read-only, path-free V7 comparison snapshot at 7,442,496 actions and milestone index 8,
+  `Reached Viridian City`. V7 remained running unchanged; the lock is a provenance anchor rather
+  than a matched-budget or terminal comparison.
+
+## 2026-07-21 — We had become the walkthrough
+
+- Accepted the user's concern that successive local reward repairs had moved the project away from
+  its original premise. Distinguished a useful trainer-assisted curriculum from the stricter
+  question of whether a new player could learn without seeing a solution.
+- Audited the reference implementation and follow-up research. The published systems used dense
+  state, long episodes, 32–64 workers, and easier starting conditions, yet reported only the early
+  game and explicitly identified reward exploitation, forgetting, and hierarchy as open problems.
+- Defined V7's strict boundary: random parameters, one verified power-on snapshot, no imported
+  actions, no model, no demonstration, no route graph, no coordinates, and no semantic target in
+  the actor. A rehearsal target may be only a terminal screen reached by the same run.
+- Implemented a two-level self-taught system. Open PPO exploration can create a skill only after
+  exact edge and three power-on replays; the scheduler then prioritizes weak skills while one
+  recurrent policy receives their visual targets.
+- Added direct self-imitation. Successful visual/action observations are reconstructed through
+  replay, compressed and hashed, then used to increase the likelihood of the run's own actions.
+  Up to eight skills are balanced during rehearsal to reduce forgetting.
+- Removed authored quest-direction reward from V7 by zeroing named milestones, Mart lessons,
+  active-route potential, and landmark recovery. General novelty and consequence signals remain
+  trainer-only; referee labels never enter the policy.
+- Passed 188 tests with the real ROM, including a real recurrent self-imitation gradient update and
+  persistence of pending imitation work across restarts.
+- Passed the first four-worker V7 canary from random weights and power-on only. It discarded 25
+  inherited entries, imported zero actions/parameters, and reached two replay-verified milestones
+  in 8,192 actions: game start through a 326-action edge and the ground floor through a 409-action
+  edge. It created two skills, trained eight self-imitation updates over 2,048 examples, reproduced
+  the ground-floor skill once, and recorded zero verification failures.
+- Verified the terminal model, self-skill ledger, two target images, two compressed datasets, and
+  all four novelty memories against their hashes. The canary qualifies the loop, not 8/10 skill
+  competence or a complete opening.
+- Launched the first longer V7 preflight from clean commit `7ae26e0`. In 41,256 actions it created
+  five skills through starter selection, applied 66 self-imitation updates over at least 16,896
+  examples, and recorded zero promotion failures. It was stopped deliberately rather than treated
+  as the long run after a crash-recovery audit found that the mutable skill ledger could move ahead
+  of its saved model between checkpoints.
+- Added a checkpoint-specific skill-ledger snapshot and resume rollback. A hard restart now loads
+  the exact model/ledger pair and ignores later uncheckpointed ledger changes instead of rejecting
+  the run. A regression changes the live ledger after checkpoint and proves the saved copy wins.
+- Closed V6 at its declared diagnostic boundary: 1,001,476 actions, 978 updates, 390 episodes, and
+  4,371.17 seconds. Its first consolidation edge succeeded 11 times in 206 attempts and improved
+  from an opening 0/10 to a terminal 5/10, but failed the 8/10 gate. It passed no backward gate and
+  made no power-on competence claim.
+
+## 2026-07-21 — The archive knew the route; one policy did not
+
+- Audited the active PPO implementation after V5.2 required another explicit lesson. Confirmed
+  that 90 percent of resets favored the newest checkpoint, every major protocol version restarted
+  PPO from the Frontier Apprentice seed, and promotion verified a recorded action lineage rather
+  than the current policy's ability to reproduce earlier segments.
+- Split future evidence into discovery, training consolidation, frozen local competence, and frozen
+  power-on competence. Replay promotion remains the discovery gate and is no longer described as
+  proof that one model composed the route.
+- Implemented Version 6 policy retention. A cleanly finished, hash-valid, compatible V5.2-or-later
+  run now supplies the actual recurrent PPO policy and optimizer. The successor receives a fresh
+  action counter and budget while retaining source provenance.
+- Implemented backward consolidation. Episodes are explicitly frontier or consolidation practice.
+  Only earlier-start episodes can enter the rolling window. Passing the declared rate moves the
+  start one verified checkpoint toward power-on while the target remains fixed.
+- Persisted attempts, successes, rolling outcomes, best reached index, passed gates, and the
+  explicit power-on training gate in an atomic ledger whose hash enters every PPO checkpoint.
+- Added consolidation start, target, rolling competence, and passed-gate cards to the dashboard and
+  hourly Markdown narrative.
+- Passed 180 tests with the real ROM. The tests freeze source compatibility, frontier exclusion,
+  rolling thresholds, one-rung expansion, target changes after promotion, state round trips,
+  power-on labeling, and fresh-versus-resume action budgets.
+- Preserved the first failed canary. It loaded the retained policy but stopped after one 1,024-
+  action rollout because the predecessor's timestep count was subtracted before the new campaign
+  reset. Added a regression and corrected the budget calculation.
+- Passed the corrected four-worker 8,192-action canary with eight updates at 202.73 actions/s. The
+  model, four novelty memories, and consolidation state matched their hashes. One of two true
+  earlier-start attempts reached the Pokédex; the shortened 3/4 gate remained correctly closed.
+- Documented that Stage 1 rehearses accumulated spans with retained PPO but does not yet apply an
+  offline imitation loss to every lineage action. That is the next compatible ablation, not a
+  capability silently claimed by this version.
+- Closed the V5.2 denominator cleanly at 5,354,500 actions, 5,229 updates, 3,146 episodes, 1,099
+  positions, eight verified promotions, and zero replay failures after 23,717.317 seconds. Its
+  model and all four terminal novelty memories matched their recorded hashes.
+- Preserved the scale of the failure: after Route 1 promoted at action 707,472, V5.2 consumed more
+  than four million additional actions without reaching Viridian City. Of 3,146 episodes, 2,249
+  ended in progress stagnation and 897 in a visual cycle.
+- Launched the first declared V6 run from that exact policy and optimizer with four workers, a
+  50/50 discovery-to-consolidation episode split, an 8/10 rolling gate, a 24-hour duration, and a
+  150-million-action ceiling. At the first 20,484-action heartbeat it had completed 20 new PPO
+  updates at 222.49 actions/s, written all four frames, and recorded three honest failures from
+  `left_oaks_lab_with_pokedex` to Route 1.
+
+## 2026-07-20 — One solved errand is not yet the idea of an errand
+
+- Closed Version 5.1 cleanly at 3,437,572 actions, 3,357 updates, 1,900 episodes, and 15,101.119
+  seconds. The terminal PPO model and four novelty memories all matched their hashes.
+- Preserved six promotions with zero verification failures. The model returned to Pallet Town with
+  the Parcel at action 105,760, entered Oak's Lab at 123,068, and received the Pokédex at 402,320.
+  The complete verified lineage reached 10,819 actions.
+- Preserved the negative denominator instead of extending it indefinitely: after the Pokédex,
+  3,035,252 more actions produced no Forest promotion and only 305 more global positions. All 1,900
+  episodes ended as 1,241 long stagnations or 659 visual cycles.
+- Interpreted this as a successful V5.1 backtracking hypothesis followed by a missing chapter-level
+  abstraction. Rejected more unchanged runtime, larger novelty reward, a target-tile walkthrough,
+  and a scripted “press B” recovery rule.
+- Added Version 5.2's seven new checkpoints. Together with three existing outcomes, they form ten
+  visible steps from the Pokédex through Route 2, both Viridian Forest gates, Pewter City, Pewter
+  Gym, and the Boulder Badge. The complete catalogue now contains 66 outcomes.
+- Added a declared trainer topology only through the first Gym. Its map IDs were verified against
+  the supported game source. The teacher exposes next-map context, not coordinates or buttons.
+- Added bounded recovery credit when movement resumes after at least 12 stationary navigation
+  actions. Waiting does not pay; battle disables it; each episode can receive at most three awards.
+- Passed 174 tests with the private supported ROM. Audited the actual finished V5.1 archive: all 24
+  curriculum entries, six promotions, the terminal model, and four novelty memories imported under
+  the new protocol while Pokédex remained index 15.
+- Passed an 8,192-action, four-worker real-ROM canary in 31.978 seconds. It completed eight updates,
+  wrote all four frames and the dashboard, exercised the recovery cap for +24 credit, recorded zero
+  promotion failures, and ended with matching model plus four novelty-memory hashes.
+- Wrote the result, rationale, assistance boundary, falsifiable run questions, stop rules, and video
+  beat in `docs/version-5-2-northbound.md` before launching behavioral training.
+- Launched the declared four-worker, 24-hour V5.2 run at 9:43:21 PM EDT from commit `c8a4be3`, seed
+  `20260782`, with the 150-million-action safety ceiling. Its first detailed heartbeat reported
+  6,148 actions, six updates, 36 unique positions, +24 recovery credit, and zero verification
+  failures while the active lesson remained leaving Oak's Lab with the Pokédex.
+
+## 2026-07-20 — The Parcel teaches us that progress can point backward
+
+- Stopped Version 5 cleanly at 1,390,596 actions, 1,358 PPO updates, 723 episodes, and 5,862.825
+  seconds. Its model and four terminal novelty memories matched their checkpoint hashes.
+- Preserved three verified promotions. The run entered the Viridian Mart at action 619,660 and
+  obtained Oak's Parcel at 619,956, advancing the complete verified lineage to 9,238 actions.
+- Audited the apparent post-Parcel plateau and found a reward-design contradiction: Mart-approach
+  credit grew from 923.00 at the Parcel promotion to 2,774.75 by shutdown. A finished lesson was
+  still encouraging the policy to return north.
+- Rejected simply increasing novelty, route-table size, or runtime. Fetch quests, healing, dungeon
+  exits, and field-move revisits all require familiar travel; the missing abstraction was an active
+  goal, not more undirected exploration.
+- Implemented Version 5.1 with three Parcel-qualified return milestones, lesson ownership and
+  expiry, bidirectional reuse of certified map edges, observed-edge graph growth, signed route
+  potential, next-route-map actor context, and a goal-aware watchdog.
+- Kept the information boundary explicit. This is an assisted teacher: it sees route context
+  assembled from demonstrated or observed transitions, but no future walkthrough, collision map,
+  scripted button, or emulator write.
+- Audited migration against the finished Version-5 artifacts. All 21 curriculum entries imported,
+  Oak's Parcel remained canonical index 10, and all three promotions were retained. Version-5 PPO
+  weights do not resume under the changed observation/reward protocol.
+- Passed 160 non-integration tests, including regressions proving expired Mart credit is absent and
+  a forward/backward route cycle produces exactly zero net route reward.
+- Passed all 10 private-ROM integration tests, then a four-worker 8,192-action canary in 34.705
+  seconds. It completed eight updates, paid +24 net route credit, paid no expired Mart lesson,
+  recorded zero verification failures, and ended with matching model plus four worker hashes. It
+  did not promote Route 1, which is not interpreted as a behavioral failure at this canary length.
+
+## 2026-07-20 — Viridian becomes a classroom, not another lottery
+
+- Stopped Version 4 cleanly after 1,776,644 actions, 1,735 PPO updates, 968 episodes, and 6,033.643
+  seconds. Its final model and all four novelty memories matched the checkpoint hashes.
+- Preserved its first PPO promotion: a 2,109-action suffix reached Viridian City at action 790,900
+  and passed one exact parent replay plus three complete power-on lineage replays. Version 4 ended
+  with 19 curriculum entries, 986 unique positions, 49 durable battle successes, 563 no-progress
+  battle exits, 50 blackouts, 499 visual loops, and 469 long stagnations.
+- Rejected “wait longer under the identical setup” as the only response. The promotion proves that
+  useful chance can be retained; the loop denominator shows that chance alone is still an expensive
+  way to discover each long behavior chain.
+- Added the Version-5 assisted-teacher lane. Its recurrent policy receives pixels, three recent
+  self-actions, an episodic two-plane visited map, a one-hot current lesson, a coarse skill hint,
+  and normalized map/goal context. The dashboard and artifacts label this boundary explicitly.
+- Inserted `entered_viridian_mart` as milestone 9 without renumbering the eight achievements already
+  verified by Version 4. Added a new-best-only approach reward toward the Mart door and bounded
+  trainer-only dialogue-stage progress; walking away and returning cannot repay either lesson.
+- Added fail-closed migration from a completed Version-4 run. It validates the clean terminal state,
+  final model and all novelty hashes, each entry hash and canonical ordinal, the best milestone,
+  and one power-on root before copying the private curriculum. Version-4 PPO weights are preserved
+  but do not resume under Version 5's changed objective.
+- Passed the first real-ROM Version-5 canary: four workers, 16,384 actions, 16 PPO updates, 19
+  imported entries, 14.5 Mart-approach credit, 266 reported positions, zero verification failures,
+  and matching terminal model/worker hashes. It did not enter the Mart, so only the engineering
+  path—not the behavioral lesson—is qualified.
+- Made the eventual claim ladder explicit: assisted teacher, verified trajectory, pixels-only
+  student distillation, aid removal, then frozen restore-free power-on evaluation. Teacher progress
+  will never be relabeled as an unassisted full-game solution.
+
+## 2026-07-20 — Version 3 closes; Version 4 learns from the middle of a battle
+
+- Stopped Version 3 gracefully after 1,147,988 actions, 1,121 updates, and 280 episodes. It retained
+  500 positions and nine durable battle successes but did not promote beyond Route 1. The model and
+  all four worker memories matched their checkpoint hashes.
+- Audited the actual Version-2 code in `PWhiddy/PokemonRedExperiments`. Its policy receives health,
+  levels, badges, events, a visited-map image, and three recent actions in addition to screens; its
+  longest recommended episodes are 163,840 actions across 64 environments. We recorded these as
+  useful engineering evidence, not a pixels-only comparison.
+- Added read-only, source-verified enemy and party HP instrumentation. Opponent damage now supplies
+  bounded local battle credit while durable battle success still requires experience or capture.
+- Added a perceptual cycle detector and a hard stagnation timer. Both are trainer-only, terminate
+  the episode with an explicit reason, and remain visible in status and hourly narrative records.
+- Expanded the local horizon to 16,384 actions and the actor's declared internal action history to
+  three actions. Version 4 starts fresh under new observation and reward protocol identifiers.
+- Ran a 65,536-action four-worker real-ROM stress canary at 295.60 actions/s. It produced 27.157
+  points of opponent-damage credit, seven durable battle successes, 18 visual-cycle exits, four
+  long-stagnation exits, no verification failure, four live frames, and exact final model/memory
+  hash matches. Review then found that the seed model's previous-action weights occupied the oldest
+  new history slot, so this run was retained as wiring evidence rather than final qualification.
+- Remapped the inherited previous-action weights to the newest history slot, zeroed the two new
+  older slots, and locked the behavior with a tensor-level test. The corrected four-worker canary
+  completed 16,384 actions and 16 updates, credited 5.412 opponent damage and two durable wins,
+  classified six loops/stagnations, and matched the final model plus all four memory hashes. Route 1
+  remained the verified frontier, so this is an engineering gate rather than gameplay progress.
+
+## 2026-07-20 — Ending a battle was not the same as winning it
+
+- Version 2 initially improved global coverage after persistent novelty removed the first reset
+  loophole, surpassing version 1's final coverage with less than half as many actions.
+- The next interval revealed a new plateau: at 724,996 actions and 41 minutes it remained at Route
+  1, added only 24 global positions across 366,592 actions, and received 2,930 reward for 293 battle
+  endings. The optimizer remained active; the objective was cheaper than the story goal.
+- Removed the generic ten-point battle-ending payment. Version 3 gives two points only when a
+  battle ends after durable experience or capture progress. No-progress exits receive no reward and
+  are counted explicitly rather than disappearing from the narrative ledger.
+- Added read-only three-byte party experience from the verified Pokémon Red structure. Only a new
+  worker-lifetime total can pay experience reward, and at most 500 points are credited in one
+  observation, preventing checkpoint resets or a large party change from producing an unbounded
+  windfall.
+- Added battle-start, success, no-progress exit, and blackout telemetry to the live status,
+  dashboard, and hourly Markdown chronicle. Bumped the PPO protocol and made cross-version resume
+  fail with a direct error.
+- Passed a real-ROM battle canary: 8,192 actions, 64 PPO updates, one battle start, 24 experience,
+  one classified success, no generic battle-ending reward, and exact final model/novelty hashes.
+  Passed a separate graceful-resume canary from action 7,607 to the original 8,192-action ceiling
+  with the version-3 protocol and persistent experience memory intact.
+- Passed the clean-commit production shape with four simultaneous workers, 2,048 actions, two full
+  updates, four current frames, and exact model plus four worker-memory hashes at 376.10 actions/s.
+- Preserved the video beat: return rose while the verified-progress meter stayed flat. The lesson
+  is not “the AI was lazy”; it is that the machine optimized the exact transition we rewarded.
+- Closed version 2 at its planned one-hour evidence boundary: 1,064,964 actions, 1,040 updates, 260
+  episodes, 515 positions, Route 1, zero promotions, and 1,003 rewarded battle endings worth 10,030.
+  The final model and all four worker-memory hashes matched. Its last 706,560 actions added only 26
+  global positions, making the plateau much stronger than a single screenshot or short interval.
+
+## 2026-07-20 — Episode novelty was the wrong lesson
+
+- Stopped the first long PPO run deliberately at 862,212 actions, 208 episodes, 469 globally unique
+  positions, and Route 1 after diagnosing a reward-reset loophole.
+- The decisive ten-minute slice contained 238,592 actions and 1,784 rewarded episode-local position
+  discoveries but only five genuinely new global positions. Policy entropy recovered during that
+  period, so continuing to add randomness would not address the familiar-route reward.
+- Changed the reward tracker to absorb every restored parent and retain novelty across every
+  episode in that worker's campaign. A familiar map, coordinate, warp, event, party change, item,
+  move, species, badge, level, or milestone can now pay once per worker rather than once per reset.
+- Added versioned compressed novelty files for every worker. Each file hash and coverage summary is
+  bound into the PPO checkpoint; resume refuses missing, duplicated, out-of-range, or modified
+  worker memory.
+- Bumped the PPO protocol rather than allowing a version-1 run to resume under different reward
+  semantics. The next run starts from uncontaminated Frontier Apprentice weights and the same
+  verified Archive-v2 curriculum.
+- Passed a real-ROM reset canary across four episode lifetimes and eight updates. Passed a
+  production-shaped four-worker canary across 2,048 actions, eight episodes, two updates, and four
+  exact novelty hashes at 375.69 actions/s.
+- Preserved version 1 as negative evidence: the optimizer worked, but it was learning a repeatable
+  shortcut in the objective rather than extending the game frontier.
+
+## 2026-07-20 — Parallel PPO turns failures into training data
+
+- Reviewed Peter Whidden's Pokémon Red PPO project and video as an influence, then documented the
+  parts adopted and the evidence rules deliberately retained here.
+- Added one shared recurrent-PPO learner over several PyBoy environments, with pixels-only and
+  separately labeled 24-value privileged actor modes.
+- Reused the Visual/Frontier Apprentice convolution, actor LSTM, and action-head weights; the PPO
+  value head starts new, and privileged-only LSTM columns start at zero.
+- Froze 18 replay-verified curriculum starts from one atomic Archive-v2 checkpoint instead of
+  reading a changing live store or choosing an undocumented save state.
+- Kept named progress stricter than reward: a candidate needs an exact parent-edge replay and three
+  exact complete power-on replays before admission.
+- Added atomic latest/previous model archives, hash-bound checkpoint validation, stop requests,
+  bounded storage checks, hourly Markdown chapters, TensorBoard metrics, and a multi-frame live
+  dashboard.
+- Preserved the honest resume boundary: model and optimizer state resume exactly, while partial
+  emulator rollouts restart.
+- Ran pixels-only canaries at 1, 2, 4, and 6 environments plus a privileged-input canary. All
+  completed real PPO updates. Four workers produced the best measured collection rate on the 8 GB
+  M1: 419.34 actions/s, versus 178.06 with two and 351.39 with six.
+- Ran the production-shaped four-worker canary with 256-step rollouts, batch size 256, four epochs,
+  and 4,096-action episodes. It completed 2,048 actions, two updates, all four live frames, and a
+  hash-matched final checkpoint at 218.65 actions/s.
+- Retained the still-running Frontier Apprentice as the baseline until the PPO replacement passed
+  this gate. The benchmark and canaries are mechanism evidence, not later-game progress.
+- Gracefully stopped that baseline at 493,127 actions, Route 1, and 773/773 replay passes. The first
+  detached PPO launch was then terminated by the app's shell process-group cleanup after only four
+  actions and before its first model checkpoint. Preserved that directory as a failed launch rather
+  than overwriting it, switched to the managed long-running session used by earlier campaigns, and
+  required multiple PPO updates plus a hash-matched checkpoint before calling the relaunch healthy.
+- The 24-hour managed pixels run crossed 21,508 actions, 21 PPO updates, 278 unique positions, all
+  four live frames, zero promotion-verification failures, and its first hash-matched checkpoint at
+  action 16,384 during launch observation. It began from the baseline's frozen 18-entry verified
+  curriculum through Route 1. These are launch-health facts; later progress remains open.
+
+## 2026-07-20 — From a frozen handoff to a full-game learning ratchet
+
+- At the 6-hour-41-minute interruption observation, the apprentice-guided expedition had reached
+  the Pokédex after roughly 68 minutes, taken 3.24 million actions, retained 2,336 active archive
+  cells, and passed 12,442/12,442 replay checks. It had not promoted Viridian Forest during the
+  following five-plus hours. The app update interruption was resumed from the exact checkpoint.
+- Measured the plateau rather than guessing: 22,888 of 24,918 completed suffixes ended in visual
+  loops; post-Pokédex attempts averaged about 130 actions; and only about 7% of post-Pokédex starts
+  came from Route 2 while larger earlier maps absorbed much more scheduler attention.
+- Implemented the Frontier Apprentice foundation for the complete milestone catalogue: generic
+  non-repeatable trainer rewards, map-balanced frontier selection, adaptive exploration up to
+  100% during stagnation, bounded exploratory loop escapes, and pixel/action self-imitation only
+  after edge and power-on promotion replays pass.
+- Added atomic latest/previous learner files whose hashes, update counts, reward memory, and tensor
+  identities enter the runner checkpoint. A restart cannot silently load parameters from the wrong
+  side of a crash boundary.
+- Kept recurrent PPO as a controlled next ablation. Version 1 first tests the simpler causal claim
+  that a verified success can become a retained local policy skill without teaching from failures.
+- Passed the first real-ROM mechanism canary: 11,495 actions, five verified promotions through
+  choosing a starter, 763 successful actions learned, 38 optimizer updates, and 49/49 replay
+  checks. Stopped at action 8,467 and resumed with the exact learner file/tensor hashes, reward
+  memory, archive, and counters before advancing another 3,028 actions. This verifies the learning
+  and restart plumbing, not Viridian-Forest performance or game completion.
+- Preserved the less successful second seed too: it learned three promotions but ended its
+  12,000-action budget at `left_home` with 52/52 replay checks. A non-terminal twin on the final
+  build stopped at action 8,045, resumed with unchanged model and parameter hashes plus the same
+  19 updates, then reached action 11,858 with 55/55 replay checks. The canaries establish mechanism
+  reliability and seed variance; neither is a Forest qualification.
+- Gracefully concluded the frozen eight-hour handoff when the Frontier Apprentice was ready. It
+  retained 3,535,933 actions, 13,136/13,136 passing replay checks, and `obtained_pokedex` as its
+  best milestone after 26,930 seconds. Since the Pokédex had arrived near minute 68, the final
+  record contains more than six hours without a Viridian-Forest promotion rather than silently
+  allowing the obsolete actor to compete for compute.
+- Launched the first fresh eight-hour Frontier Apprentice campaign from power-on at commit
+  `6c49cc4`, seed `20260751`, with an 8,192-cell archive, 150-million-action safety ceiling, and
+  50-GiB free-space floor. In its first 13 seconds it reached `left_home`, learned three verified
+  promotions from 616 successful actions in 42 optimizer updates, and passed 14/14 replay checks.
+  This is a launch health observation; the Forest gate and later game remain open outcomes.
+
+## 2026-07-20 — Leaving home becomes the beginning
+
+- Completed the full reverse-curriculum development gate in 233.9 seconds rather than eight hours:
+  480 adaptive attempts, 451 successful exits, 451 self-imitation updates, and two final 29/30
+  windows from the complete 419-action horizon. The run stopped normally at
+  `curriculum_complete`; its vanished live server was restored as a read-only dashboard.
+- Identified the scope error plainly: `left_home` was still a terminal condition even though the
+  project goal is the Hall of Fame. Preserved the result rather than stretching a completed local
+  curriculum into eight hours of redundant episodes.
+- Added a hybrid full-game expedition emitter. It loads the completed private apprentice model by
+  file and tensor hash, keeps the weights frozen, resets recurrent memory at every archive restore,
+  and mixes seeded random actions with pixel-policy argmax decisions. The trainer raises that
+  exploration rate from 2% to 35% only after the verified house-exit frontier.
+- Retained Archive v2's complete Hall-of-Fame milestone catalogue, semantic referee, bounded
+  primary niches, local edge proofs, three fresh power-on promotion replays, crash-tail recovery,
+  disk limits, and continuously refreshed gameplay dashboard. The frozen network does not receive
+  RAM, milestone identity, coordinates, snapshots, or route position.
+- Classified this as a hybrid development campaign: the model supplies a learned opening prior,
+  seeded exploration proposes unfamiliar actions, and the archive/scheduler accumulate progress.
+  Neural weights do not update on unseen-game failures in this run.
+
+### Real-ROM handoff and overnight launch
+
+- Ran a 2,279-action real-ROM handoff canary. It promoted `game_started`, `left_bedroom`, and
+  `left_home`, retained 24 active frontier cells, and continued acting after the house exit. At the
+  live acceptance observation, all 23 attempted replays had passed; the canary was then stopped
+  intentionally rather than mistaken for the overnight experiment.
+- Rejected the first overnight launch after 11,767 actions. Its provisional 32-action minimum
+  produced 184 short restore cycles and reached the ground floor, but not the house exit. Because
+  the frozen LSTM starts with zero recurrent state after every restore, this was evidence that the
+  scheduler could fragment the learned opening more aggressively than the successful canary.
+- Restarted the eight-hour clock from a fresh power-on and seed with a 512-action minimum and
+  2,048-action maximum. That run passed `left_home`, followed Professor Oak into the lab, and kept
+  running toward `chose_starter`; the first live observation recorded 3,135 actions, 25 archive
+  cells, and 41/41 replay checks. These are development observations, not evidence that the frozen
+  policy can already complete the game.
+
+## 2026-07-19 — From one lucky route toward a learned visual skill
+
+### Restore the publication baseline
+
+- Diagnosed two red GitHub checks as duplicate push/PR executions of one pytest collection error,
+  not two independent experiment failures. The safety guard, documentation check, and Ruff had
+  already passed.
+- Declared the repository root in pytest's import path so the artifact-guard regression can import
+  the standalone check script under the same command contributors and CI use.
+- Re-ran 92 non-integration tests locally and required both GitHub jobs to pass before adding
+  scaling changes.
+
+### Remove bookkeeping that grows with the archive
+
+- Rebuilt successful replay counts once from the validated event hash chain and update the index
+  only after an audit append reaches durable storage. Replay-count lookup is now constant-time.
+- Stream action lineages segment by segment instead of joining every ancestral action into one
+  large tuple. Replaced repeated ancestry walks with one iterative topological validation pass.
+- Replaced recursive run-directory scans on every controller action with incremental file
+  accounting, periodic exact reconciliation, and timed free-space checks. Disk limit observations
+  latch rather than disappearing after a later estimate.
+- Ran the complete private-ROM suite: 109 tests passed. The 1,300-cell successful Q1 store opened
+  in about 1.38 seconds, and all 1,528 successful replay counts were queried in about 0.00013
+  seconds. These are development-machine measurements, not portable performance promises.
+
+### Freeze the next learning design before training
+
+- Selected Archive v2 for bounded qualification: one primary semantic/spatial niche with a few
+  visual alternatives, at most one ordinary candidate per suffix, exact parent-to-child edge
+  verification for training eligibility, and three complete power-on replays for named promotion
+  claims.
+- Wrote [Visual Apprentice v1](visual-apprentice.md): a small recurrent pixel policy warm-started
+  from self-generated action lineages, then trained on recovery states in a backward checkpoint
+  curriculum. The first 419-action route is enough for an intentional overfit smoke, not a
+  generalization claim.
+- Declared the first frozen local-skill gate as at least 45/50 branch-grouped held-out successes,
+  followed later by at least 18/20 snapshot-free power-on attempts. No model result exists yet.
+
+### Implement Archive v2 without rewriting Q1
+
+- Stamped fresh stores and runner checkpoints as v2 while retaining schema-v1 Q1 stores as
+  readable historical evidence. Legacy stores preserve their original full-replay reporting rule,
+  but cannot enter a mutable v2 archive or mint a local edge certificate.
+- Required successful promotion evidence to bind the complete replay envelope: planned and
+  executed action counts, snapshot and screen hashes, descriptor, milestone identity, and the
+  deterministic referee-summary projection. A passing milestone label alone no longer increments
+  the promotion ledger.
+- Bound each semantic/spatial primary niche to one representative plus three visual alternatives.
+  Each suffix may persist at most one ordinary candidate, and a side-effect-free preflight rejects
+  certainly uncompetitive candidates before their snapshots or segments are written.
+- Bound ordinary verification to the exact parent-to-child segment. Cumulative edge-replay actions
+  cannot exceed cumulative exploration actions by construction; named promotions still require
+  three complete fresh power-on replays.
+- Bound resume to the exact store event sequence and hash-chain head, moved the single-writer lease
+  ahead of every resume mutation, made long promotion replays cancellable for explicit or disk
+  safety stops, and made the finished dashboard's disk measurement exact.
+- Bound every runner checkpoint to the store event byte offset, ordered cell IDs, and an immutable
+  embedded RGB frame; the separately mutable dashboard image can no longer invalidate resume. A
+  post-checkpoint crash tail is copied into a content-addressed private recovery bundle before
+  rollback, including orphan cell metadata and incomplete final event bytes. A durable
+  checkpoint-hash-bound transaction marker makes rollback repeatable after another power loss.
+  Simulated interruptions after cell metadata, event append, index update, event-log rollback, and
+  index rollback all resumed exactly. Behind, tampered, corrupt-frame, and invalid checkpoint or
+  pending-recovery states refused without mutating the store, trace, or stop marker.
+- Reopened both Q1 stores under the read-only compatibility path with zero historical deficits and
+  verified that neither can enter a v2 archive. The complete private-ROM suite passed 121 tests.
+  These checks authorize staged qualification, not a multi-day run or a learning claim.
+
+### Pass the staged Archive v2 qualification
+
+- Published the complete Archive v2 implementation at Git commit `e4e50b1` and required both
+  GitHub Actions jobs to pass before opening any real-ROM result.
+- Completed a 4,096-action continuous seed with 453 edge-replay actions, 831 named-promotion
+  replay actions, 18 stored cells, 14 active cells, four primary niches, and `game_started` as the
+  best named milestone.
+- Preserved a failed stop-timing attempt: the 2,048-action run finished before the separate stop
+  command arrived, so it was not counted as resume evidence. Repeated with a 4,096-action ceiling,
+  stopped at action 1,023, resumed identically, and finished at the exact action limit.
+- Deliberately killed the continuous seed's twin with one `frontier_selected` event beyond its
+  stable checkpoint. Resume preserved all 396 tail bytes in one hashed private recovery bundle,
+  completed at 4,096 actions, and matched the uninterrupted trial's complete non-time counters,
+  RNG, archive, parent attempts, milestones, ordered cell IDs, and checkpoint-frame hash.
+- Reopened all three stores and checked replay certificates, suffix admission bounds, archive
+  grouping, event/checkpoint identity, exact final disk bytes, and public-file privacy. The full
+  gate passed. Published the complete denominator and visual summary in
+  [Archive v2 qualification](../experiments/archive-v2-qualification/README.md).
+- Authorized Archive v2 for the next bounded Visual Apprentice pipeline. Did not relabel the
+  random emitter as learned or authorize an unbounded multi-day random search.
+
+### Implement the first end-to-end learning smoke
+
+- Selected the one actual Q1 `left_home` promotion rather than any of its 161 descendants that
+  inherited the same milestone. Bound extraction to its explicit cell ID, 419-action lineage hash,
+  three historical power-on certificates, and zero verification deficits.
+- Added a read-only extractor that captures 420 processed decision-boundary frames without
+  auditing or repairing the historical store. Dataset arrays, action alignment, source prefix,
+  terminal snapshot/screen/descriptor, and manifest receive independent integrity checks.
+- Froze a 468,312-parameter two-frame CNN-LSTM with previous action and recurrent state as its only
+  non-pixel inputs. Chose direct PyTorch 2.13 on CPU for Stage 0; deferred sb3-contrib and recurrent
+  PPO until recovery learning actually needs them.
+- Added a bounded full-sequence cloning run, teacher-forced and predicted-feedback 419/419 gates,
+  container-independent parameter hash, safe frozen reload, live status page, and model metadata.
+- Added one clean-power-on evaluator with zero restored recurrent state, snapshots, reward,
+  updates, retries, or interventions. Its RAM reader is referee-only and can stop the attempt at
+  exact `left_home`; no semantic value enters the actor.
+- Extended publication safety to reject dataset and model payload extensions. The Stage-0 data,
+  model, sealing, live-rollout, and composite suite passes 15 automated checks; the real-ROM result
+  remains pending and no trained-policy
+  claim has been made.
+
+### Pass Stage 0 on the real ROM
+
+- Captured the certified route twice through independent emulator instances. Both results contained
+  419 labels and 420 decision-boundary frames and produced logical dataset SHA-256
+  `a8b03101d6f145e9d19831bc7d75caae90ca9f41b0c6518adf52e89eaa730aec`.
+- Trained the 468,312-parameter CPU model for 316 epochs and 99.112 seconds. Teacher-forced and
+  predicted-feedback evaluation both reached 419/419, and the frozen reload was identical.
+- Ran the one planned clean-power-on attempt. With zero recurrent state and no snapshots, rewards,
+  updates, retries, or interventions, the model reached `left_home` after 419 actions. Its complete
+  selected sequence exactly matched its one training route.
+- Sealed data, training, evaluation, and composite bundles; published their reviewed aggregate and
+  full denominator in [Visual Apprentice Stage 0](../experiments/visual-apprentice-stage0/README.md).
+  Recorded the result as a connected learning pipeline, not H2, recovery, or generalization.
+
+### Build the first interactive recovery learner
+
+- Rejected an eight-hour repeat of the already saturated one-route overfit and deferred recurrent
+  PPO from power-on. Chose a smaller reverse-curriculum self-imitation pilot so the next run asks a
+  new question: can the model succeed when it begins partway through the route with zero memory?
+- Added seven backward starts at 8, 16, 32, 64, 128, 256, and 419 actions remaining. Each start
+  duplicates its first visible frame, sets previous action to the sentinel, and resets the LSTM;
+  checkpoint identity and route position remain trainer-only.
+- Separated demonstration priming from learner-generated updates. Every failed attempt is logged
+  and receives no gradient. Only an actual `left_home` rollout can enter the self-imitation half of
+  an update.
+- Froze promotion at 27/30 successes in two consecutive non-overlapping windows. Added atomic model,
+  optimizer, random-stream, counter, and gate checkpoints; hash-checked resume; status and event
+  ledgers; a local dashboard; and STOP, time, action, stagnation, process-memory, and free-disk
+  boundaries.
+- Capped the first development run at eight hours, 15 million emulator actions, two million actions
+  without a rung promotion, 1.5 GiB process memory, and a 50 GiB free-space floor. The three-minute
+  canary uses a visibly relaxed 2/3 gate once and cannot become qualification evidence.
+- Recorded one prelaunch audit limitation: a hard-crash resume restores the last hash-checked
+  learner state but does not yet reconcile append-only rows written after that checkpoint. Such a
+  run may contain duplicate diagnostic episode/update IDs and cannot become formal evidence. The
+  process therefore runs under macOS sleep prevention, and later qualification must add the same
+  explicit crash-tail reconciliation already proved for Archive v2.
+
+## 2026-07-19 — Q1 steps outside once, but fails its two-seed gate
+
+### Complete denominator
+
+- Ran both predeclared seeds sequentially against the real ROM with identical one-hour,
+  20,000-exploration-action, 2 GiB, suffix, selection, and replay limits. Both stopped normally at
+  exactly 20,000 actions with zero human interventions.
+- Seed `20260730` reached `game_started` at exploration action 6,407 and `left_bedroom` at 8,766,
+  then exhausted its budget without stepping outside.
+- Seed `20260731` reached `game_started` at 6,231, `left_bedroom` at 7,941, and `left_home` at
+  17,832. Its shortest accepted house-exit lineage contained 419 actions and replayed from power-on
+  three of three times with matching hashes and canonical semantics.
+- Reported the target as 1/2. Accepted the H3 claim that the expedition reached a verified named
+  milestone, but failed Q1's requirement that both fresh seeds reach it.
+
+### Cost and new failure vocabulary
+
+- Spent 954,704 replay actions to verify 40,000 exploration actions—23.87 replay actions per new
+  exploration action. All 2,984 replay attempts passed.
+- Stored 2,502 evidence cells and admitted 2,317, leaving 2,284 active frontier cells. Archive
+  breadth grew faster than useful new frontiers could be revisited, exposing selection starvation
+  alongside the already known full-lineage replay cost.
+- Preserved seed one's miss instead of extending it or reporting only the successful seed. The
+  random emitter remains a baseline; it did not learn from either result.
+- Found a narrative-recording limitation: the exact verified `left_home` image was a transition
+  frame, while a later frame clearly showed Red outside. Future runners must keep both the exact
+  causal frame and a separately labeled stable narrative frame.
+
+### Decision
+
+- Do not increase the random emitter's budget and do not begin a multi-day run.
+- First stream/index replay work, bound local verification, repair frontier starvation, and compare
+  optimized action-sequence and learned visual emitters under the unchanged Q1 protocol.
+- Published the full result, integrity anchors, failed seed, and interpretation in
+  [`experiments/q1-left-home`](../experiments/q1-left-home/README.md).
+
+## 2026-07-19 — Hall-of-Fame completion foundation passes Q0
+
+### The goal and the evidence ladder
+
+- Made the long-term target explicit: first discover a complete, power-on-replayable lineage through
+  the Hall of Fame; then use that record as curriculum for a single frozen policy. Only the latter
+  supports the claim that one learned model knows enough to complete the game.
+- Defined seven claim levels, H0 through H6, so a reliable emulator, an archived discovery, an exact
+  lineage replay, and one-policy completion cannot be described with the same word.
+- Replaced loose progress counts with 55 ordered named outcomes. The catalogue includes mandatory
+  keys and HMs as well as story events, and Hall of Fame requires the Champion event and Hall-of-Fame
+  map at the same time.
+
+### Failed designs found before they became results
+
+- Rejected the first hash-only replay verifier after an adversarial real-ROM audit reproduced the
+  correct snapshot and screen hashes for a cell falsely labeled Hall of Fame. The independently
+  recomputed state was still `power_on`. Exact replay is now necessary but never sufficient for a
+  semantic claim.
+- Bound every descriptor, quality field, lineage boundary, and referee summary into content identity
+  after the same audit showed that edited metadata could survive under an unchanged cell ID.
+- Prevented “replay laundering,” where a replayed child could promote through an ancestor that had
+  never passed its own gate. Every non-root ancestor must now satisfy its own required replay count.
+- Fixed resume accounting so evicted archive members no longer consume the selection allowance of
+  their replacements, and so active-cell counts reconstruct exactly after restart.
+- Changed audit recovery after a torn final write: preserve the damaged bytes privately, resume from
+  the valid prefix, and append a recovery event. A complete corrupt record still fails closed.
+- Fixed the runner ledger after a first resume implementation replaced the prior `stop_requested`
+  ending. The trace now retains `stop_requested`, appends `run_resumed`, and later records the true
+  terminal reason.
+- Strengthened the publication guard so a private artifact cannot bypass review merely by being
+  force-added beneath an ignored run directory.
+
+### What Q0 proved—and did not prove
+
+- Implemented a single-writer checkpoint expedition with private content-addressed snapshots,
+  exact action segments, complete ancestry, quarantine, replay promotion, reproducible random state,
+  bounded disk/time/action limits, clean stop/resume, and a localhost-only dashboard that cannot
+  serve frontier payloads.
+- Qualified the runner against the real ROM. A 512-exploration-action run created 42 active cells;
+  all 42 exact replays passed and consumed another 4,392 actions. Its latest image reached Oak's
+  introduction, while the semantic referee correctly remained at `power_on`.
+- Repeated the check with a deliberate stop at 384 actions and an exact resume to 512. Archive,
+  counters, selection state, random state, and the intervention ledger remained intact.
+- Labeled the current branch generator truthfully as
+  `RANDOM-ACTION-EMITTER / PRIVILEGED-TRAINING-REFEREE`. The archive can learn where to spend search
+  effort; the button emitter receives neither pixels nor RAM and does not learn.
+
+### Frozen next gate and deliberate blocker
+
+- Froze Q1 before running it: the exact target is `left_home`; two fresh seeds receive at most
+  20,000 exploration actions, one hour, and 2 GiB each. A milestone advance requires three complete
+  power-on replays. Failure changes the emitter comparison rather than silently enlarging the budget.
+- Refused to launch the requested multi-day campaign yet. A 1,024-action qualification spent 9,280
+  additional actions on replay—about 9.1 replay actions per exploration action—and remained at
+  `power_on`. Full lineage materialization, repeated ledger scans, ancestry validation, verification
+  backlog, and rejected-payload retention must be bounded before marathon scale.
+- Recorded the SSD's available capacity separately from computational readiness: free space is not
+  evidence that replay growth is safe.
+
+## 2026-07-19 — Six-lane lab concludes without a winner
+
+- Completed all six selection × mutation treatments at exactly 128 children and 1,536,000 actions
+  per lane, or 9,216,000 actions total.
+- Frontier selection retained game start in 300 of 384 children (78.1%), versus 152 of 384 (39.6%)
+  under uniform selection. This supports the narrow claim that selection changed inheritance.
+- Every lane nevertheless remained at tier 1, one map, zero warps, zero party members, and zero
+  badges. Frontier–Broad's seven positions did not pass the predeclared second-map gate and was not
+  relabeled as a winner.
+- Found a deeper failure signal: the median longest repeated-action streak in every treatment was
+  roughly 11,800 of 12,000 actions. The deterministic argmax policy had mostly become a
+  constant-action controller.
+- Concluded that improved parent choice and gentler mutation preserve existing behavior without
+  solving behavior composition or the clean-start horizon. Preserved the matrix as negative
+  evidence and moved the primary completion track to verified checkpoint search.
+
+## 2026-07-19 — Six-lane mechanism lab qualifies
+
+- Implemented the generic N-lane orchestrator and the paired 2 × 3 preset: uniform/frontier parent
+  selection crossed with broad/gentle/multiscale mutation.
+- Imported the sealed 33-elite predecessor archive without carrying over emulator state, recurrent
+  memory, the interrupted child, or any private filesystem path.
+- Ran all six treatments concurrently against the real ROM for one exact 12,000-action child each;
+  all six wrote genealogy, checkpoint, status, and dashboard artifacts and returned successfully.
+- Interrupted a separate archive-seeded lane after 2,040 actions, resumed it against the same
+  predecessor hash, and verified that it crossed the 12,000-action child boundary with one intact
+  genealogy record before a second graceful stop.
+- Repeated recovery at the orchestrator level: stopped all six lanes mid-child, relaunched against
+  the identical manifest, and required all six to finish at exactly 12,000 actions before setting
+  `comparison_complete`.
+- Confirmed the paired first births chose matching parents within each selection row. Broad changed
+  1,311 of 13,096 parameters while gentle changed 272, verifying the intended intervention.
+- Added a responsive combined dashboard, safe local-only serving boundary, synchronized JSONL
+  comparisons, and an append-only Markdown chronicle for later charts and video scripting.
+- Added ten-minute synchronized six-frame sets, dashboard hashes, and exact first-milestone images;
+  the accelerated recovery rehearsal preserved 19 complete frame sets and three game-start frames.
+- Held the full lab to 128 children and 1,536,000 actions per lane, with wall time serving only as a
+  safety ceiling. This qualification is engineering evidence, not a result for the six hypotheses.
+
+## 2026-07-19 — First inheritance found; six-lane branch begins
+
+### The 90-minute pretrial concluded
+
+- Stopped the four-lane successor run deliberately after roughly 90 minutes and preserved every
+  final checkpoint. All four runners returned cleanly with zero supervisor restarts.
+- Evolutionary Explorer completed 2,838,873 actions and 236 fixed-policy evaluations. The nominal
+  generation counter reached 14; the final archive contained 33 elites, 38 insertions, milestone
+  tier 1, one map, four positions, and 71 evaluations that reached the game-start state.
+- Visually Curious completed 2,557,662 actions, Outcome-Rewarded 2,262,634, and Conventional
+  2,223,674. All three observed six maps and reached maximum party levels 27–29, but plateaued in
+  the Pallet Town/Route 1 region.
+- Classified these as development observations, not official success rates or a common-agent
+  leaderboard. Different reward and information channels make raw score and level comparisons
+  misleading.
+
+### The evidence changed the mechanism
+
+- Found that children of game-starting parents repeated the behavior about 79% of the time in this
+  run, versus about 4.7% for children of non-starting parents. This is evidence that a narrow useful
+  accident became inheritable, not that one policy learned during its lifetime.
+- Found that archive-wide uniform selection still chose non-starting parents for roughly 64% of
+  child evaluations.
+- Found that broad mutation often erased fragile behavior: one of 23 observed children of the best
+  four-position parent retained all four positions.
+- Froze the 33-elite archive and its provenance rather than continuing a mechanism whose two main
+  bottlenecks were already visible.
+
+### The 2 × 3 decision
+
+- Chose a six-lane factorial engineering fork: uniform versus 80/20 frontier selection crossed with
+  broad-control, gentle, and multiscale mutation.
+- Fixed each lane to 128 children × 12,000 actions = 1,536,000 actions, all starting Pokémon from
+  power-on and all importing the same neural archive.
+- Defined frontier selection as 80% from the highest milestone tier through a three-candidate
+  lexicographic tournament and 20% from the whole archive for diversity.
+- Defined gentle mutation as `p=0.02`, sigma `0.01`; defined multiscale mutation as 80% micro
+  (`p=0.01`, sigma `0.02`), 15% broad (`p=0.10`, sigma `0.05`), and 5% macro (`p=0.10`, sigma
+  `0.20`). The broad lane preserves the existing mutation mechanism as a control.
+- Labeled the design an inherited-archive engineering fork. The selected mechanism must later
+  restart from unrelated random founders across multiple seeds before any general learning claim.
+- Made the 2 × 3 dashboard the central narrative visual: equal action fuel, visible family trees,
+  parent tiers, mutation channels, retention, improvements, failures, and infrastructure health.
+
+## 2026-07-19 — Evolutionary Explorer implemented; pretrial begins
+
+### Mechanism built
+
+- Implemented a deterministic 13,096-parameter recurrent neural policy that receives only the
+  frozen coarse pixel grid and its previous action.
+- Implemented clean-start 12,000-action child evaluations, a 16-genome founding population,
+  mutation-only descendants, a bounded quality-diversity archive, genealogy, recovery checkpoints,
+  storage guards, and a living family-tree dashboard.
+- Replaced the retired Monkey lane with Evolutionary Explorer while retaining Monkey's command and
+  artifacts as the historical baseline.
+
+### Qualification changed the design
+
+- Two full child lifetimes completed 24,000 actions in 26.2 seconds when run alone.
+- The first version placed both non-progressing founders in one archive cell. That would have erased
+  behavioral variety before useful milestones became reachable.
+- Added a bounded action-profile component to the behavior descriptor. Repeating the exact
+  qualification preserved both founders in separate cells.
+- Kept every child at a clean power-on start for this pretrial. Checkpoint-assisted expeditions are
+  explicitly deferred until the clean-start evidence is trustworthy.
+
+### Current question
+
+Can any lineage turn an initially meaningless pixel-to-button habit into a useful inherited
+accident while three online learners run beside it under the same machine conditions?
+
+## 2026-07-19 — Random baseline retired; Evolutionary Explorer designed
+
+### Evidence changed the plan
+
+- Concluded that Pure Monkey had answered its question: a fixed uniform action distribution can
+  create lucky game progress, but it cannot retain or amplify that success.
+- Retired Monkey from future headline arenas while preserving its command, artifacts, and role as
+  the reproducible random baseline.
+- Gracefully ended the active four-lane pretrial rather than spend the remaining budget on an
+  obsolete comparison. All four final checkpoints and narrative artifacts were preserved.
+
+### Evolutionary decision
+
+- Chose fixed-topology, mutation-only neuroevolution for version 1 rather than starting with NEAT
+  topology growth and crossover.
+- Chose MAP-Elites-style quality diversity instead of allowing one scalar-score dynasty to erase
+  behaviorally different champions.
+- Split evidence into clean-start policy evolution and checkpoint-assisted expedition modes.
+- Required every promoted checkpoint-assisted milestone to replay its full ancestral action lineage
+  from power-on.
+- Specified a small recurrent pixel policy, four-worker evaluation queue, immutable genealogy,
+  milestone-first selection, dashboard family tree, and bounded calibration sequence.
+
+### Next
+
+1. Implement deterministic recurrent inference and genome round trips.
+2. Implement mutation, archive replacement, genealogy, and resume tests.
+3. Qualify 16-candidate and 128-candidate populations before changing the living arena.
+
+## 2026-07-19 — Game-naive direction and first curiosity runner
+
+### Decisions
+
+- Made pixels-only curiosity the primary experimental track.
+- Defined Monkey, Curious, and Archivist arms so random luck, learned novelty seeking, and
+  snapshot-assisted archive search can be compared instead of conflated.
+- Started every strict run at clean power-on; the scripted bedroom bootstrap remains calibration.
+- Prohibited RAM, tile data, OCR, semantic rewards, walkthroughs, demonstrations, and language-model
+  calls from the action/reward loop.
+- Chose a non-neural visual archive as the first learner because it can produce millions of local
+  decisions overnight without additional downloads or model usage.
+
+### Implemented and calibrated
+
+- Added a narrow pixels-and-buttons runner capability with no public privileged emulator methods;
+  the current button sampler itself receives only a seeded pseudorandom-number generator.
+- Added a frozen 20×18 quantized pixel-cell representation and bounded first-visit reward.
+- Added compressed snapshot lineage, under-visited archive selection, deterministic seeds,
+  recoverable checkpoints, and time/action/disk limits.
+- Added a self-contained live dashboard showing the information contract, discovery curve, action
+  histogram, latest screen, and discovery reel.
+- A 5,000-action calibration completed in about 19 seconds, found 591 coarse visual cells, retained
+  a 591-cell archive in 4.4 MiB, and reached the name-entry interface without any game-state reward.
+
+### Next
+
+1. Run matched overnight Monkey and Archivist development arms.
+2. Inspect whether visual novelty represents progress, text variation, or animation farming.
+3. Freeze the next visual-cell version only after the failure evidence is understood.
+
 ## 2026-07-18 — Project start
 
 ### Decisions
@@ -34,3 +1360,29 @@
 1. Build the human action recorder for the Oak's Parcel baseline.
 2. Define the first Gymnasium-compatible observation and action space.
 3. Add loop detection for repeated screens and coordinate cycles.
+
+## 2026-07-19 — Public baseline
+
+### Published
+
+- Created the public `PeteAndrews1289/pokemon-red-ai` repository under the MIT license.
+- Published the verified Phase 0 harness on `main` before beginning model-training claims.
+- Used the GitHub private commit address so the local personal email is not exposed in history.
+
+### Documentation direction
+
+- Treat the project as both an engineering experiment and a documented story.
+- Keep infrastructure, training, and evaluation progress visually distinct.
+- Generate local run reports from sanitized traces while keeping gameplay captures outside Git.
+- Preserve failed attempts and interventions so a future video can show the real learning process,
+  not only a successful montage.
+
+### Verified on the documentation branch
+
+- The expanded suite contains 25 passing unit and private-ROM integration tests.
+- Trace manifests now identify the source commit, worktree state, run class, actor, start condition,
+  schemas, and intervention count without recording a checkout path.
+- The report generator keeps training and evaluation evidence separate, bounds large traces, escapes
+  content, redacts common sensitive forms, and refuses to overwrite its source trace.
+- A reviewed public Phase 0 trace and standalone report make the repeated calibration claim
+  inspectable without publishing gameplay images or snapshot payloads.
