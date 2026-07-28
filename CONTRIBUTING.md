@@ -1,7 +1,9 @@
 # Contributing
 
-Early contributions should focus on deterministic emulator control, observation validation, tests,
-and reproducible documentation.
+> **Maintenance status:** the research program is concluded. Contributions should focus on
+> security, reproducibility, compatibility, tests, or corrections to the published record. New
+> agent architectures and experiments should begin as a separately declared successor project so
+> the frozen V12 result and its claim boundary remain intact.
 
 Before opening a change:
 

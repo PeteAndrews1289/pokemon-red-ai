@@ -33,8 +33,13 @@ from typing import Any
 from pokemon_red_ai.rom import RomFingerprint, resolve_rom_path, verify_rom
 
 UPSTREAM_COMMIT = "bbab97ad73e460b7cd7c08527d10ced30cc03fbe"
-DEFAULT_HARNESS = Path("/Volumes/T7 Developer/PokemonRedAI/v11/continual-harness-bbab97ad73e4")
-DEFAULT_RUN_ROOT = Path("/Volumes/T7 Developer/PokemonRedAI/v11/runs")
+DEFAULT_HARNESS = Path(
+    os.environ.get(
+        "POKEMON_RED_V11_HARNESS",
+        "runtime/v11/continual-harness-bbab97ad73e4",
+    )
+)
+DEFAULT_RUN_ROOT = Path(os.environ.get("POKEMON_RED_V11_RUN_ROOT", "runs/v11"))
 DEFAULT_PORT = 8_775
 DEFAULT_MODEL = "gpt-5.6-terra"
 DEFAULT_MIN_FREE_GIB = 50.0

@@ -347,33 +347,18 @@ knowledge, and tool access must be reported rather than compressed into a single
 | Brock defeated | Clean-start Brock success meets a frozen threshold and budget |
 | Comparison credible | Configurations share a referee and disclose differing resources and information |
 
-## Near-term work queue
+## Closeout decision
 
-1. **Freeze the learned-policy lane** — retain V7–V10 artifacts and terminal denominators without
-   rewriting their labels. V10 closed at 4,503.282 seconds, 534,924 actions, 3/32 frozen exams, and
-   zero competent skills. Its recovery mechanism passed; its learned-competence result did not.
-2. **Preserve the V11 canary ladder** — C1 path resolution, C2 authorization, C3 rejected false
-   state, and C4's qualified 136-action/70-call opening are all part of the evidence. Do not edit the
-   earlier failures out of the story.
-3. **Keep assistance visible** — label the actor `STRUCTURED-STATE LLM PLANNER + A* NAVIGATOR +
-   CONTROLLER SPECIALISTS` and the run `ASSISTED` / `HYBRID-SYSTEM`. Record model/tool usage,
-   objective changes, interventions, and every controller action rather than presenting it as a
-   pixels-only discovery experiment.
-4. **Fail closed on provenance** — reject a run if an adjacent state loads, prior-run memory enters,
-   an objective advances without game evidence, or the Champion room is mistaken for the Hall of
-   Fame. Completion requires event bit `0x901` together with map `0x76`.
-5. **Audit the active unbounded run** — it began fresh at power-on only after C4 verified real
-   movement and story objective 1/84. Require visible game evidence, bounded disk growth, narrative
-   chapters, and an exact terminal reason. Do not infer eventual completion from unlimited planned
-   wall time.
-6. **Turn completion into curriculum** — after a verified assisted journey, train reusable
-   navigation, dialogue, battle, menu, and puzzle specialists on both success and correction states.
-   Freeze replacements one component at a time and keep the assisted teacher as a separate result.
-
-The corrected exam cadence fits the ceiling arithmetically: `66 × 10 × 16,384 = 10,813,440`
-Explorer actions, about 10.8 million, for the local-grade opportunity floor across all catalogue
-outcomes. Discovery, replay, Student training, composition, and recovery make the real requirement
-higher.
+- V7–V10 remain frozen with their terminal denominators and original assistance labels.
+- All four V11 canaries and the stopped continuous attempt remain preserved as an explicitly
+  assisted control; there is no active V11 run.
+- V12 is the final experiential-learning architecture in this repository. Its 8,236,144-action
+  result, 55/502 frozen-exam denominator, zero competent skills, and shutdown limitation are final.
+- No additional reward repair, longer continuation, or V13 experiment is planned here. A successor
+  would need a new representation, anti-forgetting method, temporal abstraction, and separately
+  declared protocol rather than another iteration inside this result record.
+- Maintenance is limited to security, compatibility, reproducibility, and corrections to the
+  published evidence.
 
 ## What is deliberately not promised
 

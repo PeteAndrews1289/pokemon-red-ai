@@ -5,14 +5,31 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "pokemon-red-ai"
 version = "0.1.0"
-description = "A transparent game-naive, pixels-only AI experiment for Pokemon Red"
+description = "A completed recurrent-policy study of discovery, retention, and cumulative learning in Pokemon Red"
 readme = "README.md"
 requires-python = ">=3.11"
+authors = [
+  { name = "Peter Andrews Jr." },
+]
+license = "MIT"
+keywords = [
+  "reinforcement-learning",
+  "recurrent-ppo",
+  "continual-learning",
+  "game-ai",
+  "pyboy",
+  "reproducible-research",
+]
 dependencies = [
   "numpy>=2",
   "pillow>=11",
   "pyboy==2.7.0",
 ]
+
+[project.urls]
+Repository = "https://github.com/PeteAndrews1289/pokemon-red-ai"
+Documentation = "https://github.com/PeteAndrews1289/pokemon-red-ai/tree/main/docs"
+Results = "https://github.com/PeteAndrews1289/pokemon-red-ai/tree/main/experiments/v12-final"
 
 [project.optional-dependencies]
 dev = [

@@ -1,65 +1,39 @@
 # Documentation hub
 
-This project now has one central story and two deliberately separate research lanes:
+This is the documentation hub for a **completed research project**. The repository preserves two
+deliberately separate lanes:
 
-1. **Experiential-learning lane — final experiment closed.** V12 started one recurrent visual
-   policy from random parameters and clean ROM power-on. It converted visually different future
-   frames from its own rollouts into local goals, contrasts the real goal against a blank goal, and
-   grades retained behavior in deterministic no-update exams. It imports no route, demonstration,
-   predecessor policy, save state, or online model decision.
-2. **Assisted hierarchical lane — closed control.** V11 used a structured-state language-model
-   planner, declared objectives, processed maps, A* navigation, persistent run memory, controller
-   specialists, and a strict read-only referee. It is retained as an explicitly assisted upper
-   bound, not presented as local experiential learning.
+1. **Experiential learning.** The final V12 experiment started one recurrent visual policy from
+   random parameters and clean ROM power-on. It imported no route, demonstration, predecessor
+   policy, save state, or online decision model.
+2. **Assisted control.** V11 tested a structured-state language-model planner, A* navigation,
+   persistent memory, and controller specialists as an explicitly assisted upper-bound control.
 
-There is still **no whole-game result and no frozen learned policy that can complete Pokémon Red**.
-V10 is the terminal learned-policy record immediately before the architectural pivot: it closed at
-4,503.282 seconds, 534,924 actions, 3/32 frozen exams, and zero competent skills. Its recovery
-mechanism worked, but long-horizon competence did not emerge.
+V12 observed 8,236,144 actions in 9h54m56s, replay-verified seven milestones through Route 1, and
+generated 3,518,624 hindsight action examples. Frozen exams ended at 55/502, zero competent skills,
+and no composition. The first skill lost competence twice; the second passed 0/342 exams.
 
-V11's opening qualification is complete, and all four canaries remain part of the public story:
-
-| Canary | Outcome | What it taught us |
-| --- | --- | --- |
-| C1 | Path-resolution failure | The launcher could not prove it was using the intended runtime inputs, so it failed closed |
-| C2 | MCP-authorization failure | The planner connection was unavailable; no gameplay claim survived the failed authorization boundary |
-| C3 | Operational but rejected | The hierarchy ran, but initialized bedroom RAM falsely described later story state; visible game evidence overruled the attractive false result |
-| C4 | Opening referee qualified | 136 controller actions and 70 language-model calls produced empirical RIGHT-movement proof and verified story objective 1/84 |
-
-The later V11 continuous attempt closed after 950.308 seconds, 329 controller actions, and 144 live
-model calls, without party or badge progress. It was stopped because querying an online model for
-decisions did not test the premise the project ultimately chose: learning to play through local
-experience.
-
-V12's three bounded real-ROM canaries qualified its mechanism, then the final run closed the
-learning question. It observed 8,236,144 actions in 9h54m56s, replay-verified seven milestones
-through Route 1, and generated 3,518,624 hindsight action examples. Frozen exams ended at 55/502,
-zero competent skills, and no composition. The first skill lost competence twice; the second
-passed 0/342 exams. The requested stop exposed a finalizer defect, so no terminal power-on
-evaluation was produced. That limitation and the last integrity-bound checkpoint are explicit in
-the [final result record](../experiments/v12-final/README.md).
-
-The through-line for the completed documentation is the pivot itself. The project began
-with the “monkeys with typewriters” question, learned that randomness cannot retain luck, learned
-that local rewards and rare milestone lessons can still fail to compose a journey, and tested an
-auditable planner–memory–specialist system as an assisted control. The final iteration returned to
-the harder premise: one local policy must make dense lessons from its own experience and prove it
-uses their goals before the story credits it with learning.
+The project therefore closes without a whole-game result or a frozen learned policy that can
+reliably reproduce even the opening sequence. The central finding is that discovery and training
+activity can look substantial while durable, cumulative competence remains absent. The
+[final retrospective](final-retrospective.md) explains that result; the
+[V12 record](../experiments/v12-final/README.md) preserves the full denominator and shutdown
+integrity limitation.
 
 ## Start here
 
 | If you want to… | Read… | What it answers |
 | --- | --- | --- |
-| Understand the project in a few minutes | [Project README](../README.md) | What is being built and how to run it |
+| Understand the project in a few minutes | [Project README](../README.md) | What was built, what happened, and how to verify it |
 | Audit the primary experiment | [Blind curiosity protocol](blind-curiosity.md) | What the agent sees, how novelty works, and what counts as leakage |
 | Watch the four agents together | [Four-agent arena](four-agent-arena.md) | Exact information ladder, rewards, dashboard, and 48-hour procedure |
 | Learn what evolutionary training tested | [Evolutionary Explorer](neuroevolution.md) | Genomes, mutation, MAP-Elites, lab results, checkpoint successor, and claim boundaries |
-| Inspect the current experiment branch | [Selection × mutation lab](selection-mutation-lab.md) | The 90-minute result, six-lane matrix, measurements, narrative, and claim limits |
-| See the path to completing the game | [Hall of Fame completion program](completion-program.md) | Expedition architecture, information labels, claim ladder, qualification gates, and policy distillation |
-| Understand the next learned model | [Visual Apprentice v1](visual-apprentice.md) | Pixel inputs, self-generated demonstrations, reverse curriculum, recovery training, hardware bounds, and frozen evaluation gates |
-| Follow learning through the remainder of the game | [Frontier Apprentice](frontier-apprentice.md) | Verify-before-update milestone ratchet, adaptive exploration, full-game rewards, crash safety, and evaluation limits |
-| Understand the active shared-policy learner | [Parallel recurrent PPO](parallel-ppo.md) | Four-worker PPO, pixels/RAM boundaries, verified curriculum, dense rewards, checkpoints, dashboard, and benchmark evidence |
-| Audit the current curriculum | [Version 5.2: the road to Brock](version-5-2-northbound.md) | V5.1's completed result, ten northbound lessons, recovery reward, evidence limits, and run questions |
+| Inspect the concluded selection experiment | [Selection × mutation lab](selection-mutation-lab.md) | The 90-minute result, six-lane matrix, measurements, narrative, and claim limits |
+| Review the original completion contract | [Hall of Fame completion program](completion-program.md) | Expedition architecture, information labels, claim ladder, qualification gates, and policy distillation |
+| Understand the Visual Apprentice stage | [Visual Apprentice v1](visual-apprentice.md) | Pixel inputs, self-generated demonstrations, reverse curriculum, recovery training, hardware bounds, and frozen evaluation gates |
+| Review the verified-frontier stage | [Frontier Apprentice](frontier-apprentice.md) | Verify-before-update milestone ratchet, adaptive exploration, full-game rewards, crash safety, and evaluation limits |
+| Understand the shared-policy learner | [Parallel recurrent PPO](parallel-ppo.md) | Four-worker PPO, pixels/RAM boundaries, verified curriculum, dense rewards, checkpoints, dashboard, and benchmark evidence |
+| Audit the V5.2 curriculum | [Version 5.2: the road to Brock](version-5-2-northbound.md) | V5.1's completed result, ten northbound lessons, recovery reward, evidence limits, and run questions |
 | Understand the composition pivot | [Version 6: remember the journey](version-6-consolidation.md) | Retained weights, backward rolling gates, canary evidence, claim boundaries, and the next imitation ablation |
 | Understand the game-naive reset | [Version 7: let a new player teach itself](version-7-self-taught.md) | Random power-on start, strict information rules, self-generated visual skills, self-imitation, canary evidence, and falsification gates |
 | Understand the closed V8 result | [Version 8: separate discovery from learning](version-8-distilled-student.md) | Why V7 remains the denominator; how the 0/7 canary qualified the mechanism; why the longer seven-skill run still ended at 1/47 and zero competent skills |
@@ -75,15 +49,15 @@ uses their goals before the story credits it with learning.
 | Audit every accepted and discarded idea | [Decision register](decision-register.md) | Append-only decisions, failed hypotheses, alternatives, evidence, and consequences |
 | Follow the central story | [Project narrative](narrative.md) | Why the failures and evidence are part of the project |
 | Understand the reward ladder | [Reward architecture](reward-architecture.md) | Actions, milestones, loop controls, and reporting boundaries |
-| See what is genuinely complete today | [Progress](progress.md) | What is verified, what is merely implemented, and what is still planned |
-| Follow the journey ahead | [Roadmap](roadmap.md) | Milestones, gates, dependencies, and definitions of done |
+| Audit evidence levels | [Progress](progress.md) | What was implemented, checked, repeated, evaluated, or rejected |
+| Review the concluded roadmap | [Roadmap](roadmap.md) | Completed milestones, failed gates, and intentionally unpursued work |
 | Understand the system | [Architecture](architecture.md) | How the emulator, agent, memory, watchdog, and referee fit together |
 | Audit the original instrumentation boundary | [State instrumentation](state-observation.md) | Six read-only harness/referee fields and their limits; V11's separately disclosed structured-state actor uses a broader assisted interface |
 | Judge future experimental claims | [Experiment protocol](experiment-protocol.md) | Training/evaluation separation, required metrics, and comparison rules |
 | Turn experiments into clear visuals | [Visual storytelling](visual-storytelling.md) | Charts, timelines, run summaries, and a possible video structure |
 | Generate a local result page | [Run reports](run-reports.md) | How a JSONL trace becomes a readable standalone report |
-| Audit the current repeated run | [Phase 0 evidence](../experiments/phase-0-bootstrap/README.md) | Public metadata, attempt ledger, exact hashes, and limitations |
-| Plan a video | [Video outline](video-outline.md) | Episode 0, series arc, shots, and claims checklist |
+| Audit the Phase 0 repeated run | [Phase 0 evidence](../experiments/phase-0-bootstrap/README.md) | Public metadata, attempt ledger, exact hashes, and limitations |
+| Review the shelved video plan | [Video outline](video-outline.md) | Historical series arc, shots, and claims checklist |
 | Translate technical terms | [Glossary](glossary.md) | Plain-language definitions used throughout the project |
 | Follow decisions chronologically | [Development log](devlog.md) | Dated implementation decisions and verified milestones |
 | Record an experiment | [Experiment template](experiment-template.md) | A reusable protocol and results record |
@@ -137,10 +111,10 @@ Read the [README](../README.md), [Experiment protocol](experiment-protocol.md), 
 sanitized trace. Use the exact commands and supported ROM fingerprint in the README; the ROM itself
 is never distributed here.
 
-### For someone extending the agent
+### For someone designing a successor
 
 Read [Architecture](architecture.md), [Roadmap](roadmap.md), and the
-[Contributing guide](../CONTRIBUTING.md). Start new evaluations from the
+[Contributing guide](../CONTRIBUTING.md). Begin a separately declared successor from the
 [experiment template](experiment-template.md) and complete an [agent card](agent-card-template.md).
 In particular, preserve the boundary between what the acting policy sees and what the referee may
 inspect.

@@ -307,25 +307,18 @@ A compact future update can use this table:
 | Result | _Task outcome plus uncertainty; never reward alone_ |
 | Artifacts | _Reviewed summary, metrics, trace, and generated visuals_ |
 
-## Next evidence targets
+## Closeout record
 
-The immediate goal is no longer another longer reward curve. The V11 opening boundary is qualified;
-the goal now is to observe whether the assisted hierarchy can turn that valid start into sustained,
-machine-verified story progress without overstating what its explicit assistance means.
+There is no active evidence target. The project ended after the final V12 result rather than
+extending another repair loop.
 
-1. Preserve the V7–V10 runs as immutable controls, including V10's complete 1,977-window recovery
-   denominator and negative 3/32 frozen-exam result.
-2. Preserve all four V11 canaries: C1 path failure, C2 authorization failure, C3 rejected false
-   state, and C4's qualified 136-action/70-call opening with real RIGHT-movement proof and objective
-   1/84.
-3. Keep the active unbounded run fail-closed. Reject any attempt that loads an adjacent state,
-   imports prior-run gameplay memory, advances an
-   objective without game evidence, or treats entry into the Champion room as completion.
-4. Record model/tool calls, controller actions, milestones, stalls, recoveries, interventions,
-   wall time, storage, and the exact terminal reason throughout the fresh clean-start attempt.
-5. If the hierarchy reaches the Hall of Fame, call it a disclosed assisted hybrid completion. Use
-   its complete success-and-failure trajectory for behavioral cloning and DAgger-style correction,
-   then replace and freeze components one at a time before making a learned-policy claim.
+1. V7–V10 remain preserved with their original configurations and terminal denominators.
+2. All V11 canaries and the stopped continuous run remain a disclosed assisted control.
+3. V12 remains the final experiential-learning result: Route 1, 55/502 frozen exams, zero competent
+   skills, zero composition, and no terminal power-on artifact.
+4. No Hall-of-Fame, stable opening-policy, or eventual-success claim is implied.
+5. Future work requires a separately declared successor project with a materially different
+   representation, anti-forgetting method, or temporal abstraction.
 
-See [Roadmap](roadmap.md) for acceptance gates and [Visual storytelling](visual-storytelling.md) for
-how those results should be shown.
+See the [concluded roadmap](roadmap.md) for the complete sequence and the
+[final retrospective](final-retrospective.md) for the interpretation.

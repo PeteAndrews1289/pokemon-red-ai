@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="title desc">
+  <title id="title">Pokémon Red AI V12 final result</title>
+  <desc id="desc">The final agent processed 8.24 million actions and replay-verified seven discoveries, but passed only 55 of 502 frozen exams and retained zero competent skills.</desc>
+  <rect width="1280" height="640" fill="#08111f"/>
+  <rect x="42" y="42" width="1196" height="556" rx="28" fill="#0f1b2d" stroke="#29415f" stroke-width="2"/>
+
+  <text x="86" y="110" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="38" font-weight="700">Discovery did not become durable competence</text>
+  <text x="86" y="148" fill="#9fb2ca" font-family="system-ui, sans-serif" font-size="20">Pokémon Red AI · V12 final experiential-learning result · July 2026</text>
+
+  <rect x="86" y="198" width="246" height="216" rx="18" fill="#14233a" stroke="#36557b"/>
+  <text x="112" y="242" fill="#8bd5ff" font-family="system-ui, sans-serif" font-size="18" font-weight="700">SELF-GENERATED PLAY</text>
+  <text x="112" y="314" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="47" font-weight="750">8.24M</text>
+  <text x="112" y="348" fill="#b8c6d9" font-family="system-ui, sans-serif" font-size="20">observed actions</text>
+  <text x="112" y="385" fill="#7dd3fc" font-family="ui-monospace, monospace" font-size="17">4,021 PPO updates</text>
+
+  <path d="M350 306 H402" stroke="#4f77a5" stroke-width="5" stroke-linecap="round"/>
+  <path d="M394 294 L410 306 L394 318" fill="none" stroke="#4f77a5" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="428" y="198" width="246" height="216" rx="18" fill="#14233a" stroke="#36557b"/>
+  <text x="454" y="242" fill="#86efac" font-family="system-ui, sans-serif" font-size="18" font-weight="700">VERIFIED DISCOVERY</text>
+  <text x="454" y="314" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="47" font-weight="750">7</text>
+  <text x="454" y="348" fill="#b8c6d9" font-family="system-ui, sans-serif" font-size="20">milestones admitted</text>
+  <text x="454" y="385" fill="#86efac" font-family="ui-monospace, monospace" font-size="17">frontier: Route 1</text>
+
+  <path d="M692 306 H744" stroke="#4f77a5" stroke-width="5" stroke-linecap="round"/>
+  <path d="M736 294 L752 306 L736 318" fill="none" stroke="#4f77a5" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="770" y="198" width="246" height="216" rx="18" fill="#14233a" stroke="#7f4b4b"/>
+  <text x="796" y="242" fill="#fda4af" font-family="system-ui, sans-serif" font-size="18" font-weight="700">FROZEN EVALUATION</text>
+  <text x="796" y="314" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="47" font-weight="750">55 / 502</text>
+  <text x="796" y="348" fill="#b8c6d9" font-family="system-ui, sans-serif" font-size="20">exam successes</text>
+  <text x="796" y="385" fill="#fda4af" font-family="ui-monospace, monospace" font-size="17">ground floor: 0 / 342</text>
+
+  <path d="M1034 306 H1086" stroke="#8f5656" stroke-width="5" stroke-linecap="round"/>
+  <path d="M1078 294 L1094 306 L1078 318" fill="none" stroke="#8f5656" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="1092" y="198" width="104" height="216" rx="18" fill="#321c25" stroke="#9f5968"/>
+  <text x="1144" y="278" text-anchor="middle" fill="#fda4af" font-family="system-ui, sans-serif" font-size="52" font-weight="800">0</text>
+  <text x="1144" y="316" text-anchor="middle" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="16" font-weight="700">durable</text>
+  <text x="1144" y="339" text-anchor="middle" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="16" font-weight="700">skills</text>
+  <text x="1144" y="373" text-anchor="middle" fill="#fda4af" font-family="system-ui, sans-serif" font-size="13">no</text>
+  <text x="1144" y="390" text-anchor="middle" fill="#fda4af" font-family="system-ui, sans-serif" font-size="13">composition</text>
+
+  <rect x="86" y="462" width="1110" height="86" rx="16" fill="#18273f"/>
+  <text x="641" y="500" text-anchor="middle" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="24" font-weight="700">Final conclusion</text>
+  <text x="641" y="532" text-anchor="middle" fill="#c9d5e5" font-family="system-ui, sans-serif" font-size="20">The agent could discover far more than one frozen policy could remember.</text>
+</svg>

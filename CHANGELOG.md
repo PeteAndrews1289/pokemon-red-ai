@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — Version 12 final experiential learner
+## Research closeout — Version 12 final experiential learner (July 2026)
 
 - Closed the final V12 run after 35,696.136 observed seconds and 8,236,144 observed actions. It
   made 4,021 PPO updates, replay-verified seven milestones through Route 1, observed 694 unique

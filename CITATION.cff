@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: "If you use this research harness or its experimental methodology, please cite this repository."
+title: "Pokémon Red AI: Discovery Without Durable Competence"
+type: software
+authors:
+  - family-names: Andrews
+    given-names: Peter
+repository-code: "https://github.com/PeteAndrews1289/pokemon-red-ai"
+url: "https://github.com/PeteAndrews1289/pokemon-red-ai"
+license: MIT
+date-released: 2026-07-28
+abstract: >-
+  A completed, reproducible study of whether one randomly initialized recurrent visual policy
+  could turn self-generated Pokémon Red experience into durable cumulative skills. The final V12
+  run processed 8.24 million actions and replay-verified seven discoveries through Route 1, but
+  frozen evaluation ended at 55/502 with zero competent skills and no composition.
+keywords:
+  - reinforcement learning
+  - continual learning
+  - recurrent PPO
+  - game AI
+  - reproducible research
+  - negative results

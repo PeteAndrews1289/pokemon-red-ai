@@ -178,13 +178,15 @@ local network or internet. No ROM bytes or emulator save states are served.
 
 ## Reproducing the legacy SSD-backed arena
 
-The internal disk is too full for a multi-day experiment. Use the external T7 volume:
+Use a mounted external volume and keep its location outside the repository:
 
 ```bash
-screen -L -Logfile "/Volumes/T7 Developer/PokemonRedAI/arena.console.log" \
+export POKEMON_AI_STORAGE="/path/to/external-storage/PokemonRedAI"
+
+screen -L -Logfile "$POKEMON_AI_STORAGE/arena.console.log" \
   -dmS pokemon-arena \
   .venv/bin/pokemon-red-ai arena-run \
-  --output "/Volumes/T7 Developer/PokemonRedAI/arenas/supervised-YYYYMMDD" \
+  --output "$POKEMON_AI_STORAGE/arenas/supervised-YYYYMMDD" \
   --hours 8 \
   --max-actions 50000000
 ```
@@ -192,8 +194,8 @@ screen -L -Logfile "/Volumes/T7 Developer/PokemonRedAI/arena.console.log" \
 Open `http://127.0.0.1:8765/index.html` while it is active.
 
 ```bash
-pokemon-red-ai arena-status "/Volumes/T7 Developer/PokemonRedAI/arenas/supervised-YYYYMMDD"
-pokemon-red-ai arena-stop "/Volumes/T7 Developer/PokemonRedAI/arenas/supervised-YYYYMMDD"
+pokemon-red-ai arena-status "$POKEMON_AI_STORAGE/arenas/supervised-YYYYMMDD"
+pokemon-red-ai arena-stop "$POKEMON_AI_STORAGE/arenas/supervised-YYYYMMDD"
 ```
 
 Stopping is graceful. Every agent receives a stop marker and writes a final checkpoint before the
@@ -206,7 +208,7 @@ still allocates one lane to Pure Monkey.
 
 ```bash
 pokemon-red-ai arena-run \
-  --output "/Volumes/T7 Developer/PokemonRedAI/arenas/four-agent-48h-YYYYMMDD" \
+  --output "$POKEMON_AI_STORAGE/arenas/four-agent-48h-YYYYMMDD" \
   --hours 48 \
   --max-actions 150000000 \
   --q-policy-buckets 1048576 \

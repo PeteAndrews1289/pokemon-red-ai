@@ -4,7 +4,7 @@ set -euo pipefail
 repository_root="$(cd "$(dirname "$0")/.." && pwd)"
 python_bin="$repository_root/.venv/bin/python"
 rom_path="${POKEMON_RED_ROM:-}"
-volume_root="${V12_VOLUME_ROOT:-/Volumes/T7 Developer}"
+volume_root="${V12_VOLUME_ROOT:-}"
 run_root="${V12_RUN_ROOT:-$volume_root/PokemonRedAI/v12/runs}"
 dashboard_port="${V12_DASHBOARD_PORT:-8777}"
 seed="${V12_SEED:-20260722}"
@@ -25,9 +25,13 @@ fi
   echo "Set POKEMON_RED_ROM to the private Pokemon Red ROM file before launch." >&2
   exit 1
 }
+[[ -n "$volume_root" ]] || {
+  echo "Set V12_VOLUME_ROOT to the mounted external-storage directory before launch." >&2
+  exit 1
+}
 [[ -d "$volume_root" ]] || {
   echo "The external SSD is not mounted at: $volume_root" >&2
-  echo "Mount the T7 before launching the fixed 48-hour experiment." >&2
+  echo "Mount the declared volume before launching the fixed 48-hour experiment." >&2
   exit 1
 }
 
