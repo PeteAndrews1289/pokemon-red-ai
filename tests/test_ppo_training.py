@@ -21,6 +21,11 @@ torch = pytest.importorskip("torch")
 import pokemon_red_ai.ppo_training as ppo_training_module
 from pokemon_red_ai.blind import BLIND_ACTIONS
 from pokemon_red_ai.milestones import MILESTONES
+from pokemon_red_ai.ppo import artifacts as artifacts_module
+from pokemon_red_ai.ppo import callback_v8 as callback_v8_module
+from pokemon_red_ai.ppo import distillation as distillation_module
+from pokemon_red_ai.ppo import environment as environment_module
+from pokemon_red_ai.ppo import observations as observations_module
 from pokemon_red_ai.ppo_training import (
     ACTION_HISTORY_LENGTH,
     GOAL_COUNT,
@@ -474,14 +479,14 @@ def test_v10_environment_wires_recovery_before_reset_and_action_limit_abandonmen
         value._write_frame = lambda: None
         return value
 
-    monkeypatch.setattr(ppo_training_module, "_execute_action", lambda *_args: True)
+    monkeypatch.setattr(environment_module, "_execute_action", lambda *_args: True)
     monkeypatch.setattr(
-        ppo_training_module,
+        environment_module,
         "milestone_progress_for_state",
         lambda *_args, **_kwargs: progress,
     )
     monkeypatch.setattr(
-        ppo_training_module,
+        environment_module,
         "preprocess_apprentice_frame",
         lambda *_args: np.zeros((72, 80), dtype=np.uint8),
     )
@@ -568,9 +573,9 @@ def test_v9_replay_stops_before_the_next_action_at_a_campaign_boundary(
         def load_state(self, _state: bytes) -> None:
             return None
 
-    monkeypatch.setattr(ppo_training_module, "PokemonRedEmulator", lambda _path: FakeEmulator())
+    monkeypatch.setattr(distillation_module, "PokemonRedEmulator", lambda _path: FakeEmulator())
     monkeypatch.setattr(
-        ppo_training_module,
+        distillation_module,
         "_execute_action",
         lambda _emulator, action: executed.append(action) is None,
     )
@@ -593,7 +598,7 @@ def test_v9_distillation_does_not_swallow_campaign_cancellation(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
-        ppo_training_module,
+        distillation_module,
         "_collect_distillation_signatures",
         lambda *_args, **_kwargs: (("start", 0), ("protected", 1)),
     )
@@ -607,14 +612,14 @@ def test_v9_distillation_does_not_swallow_campaign_cancellation(
         raise AssertionError("campaign cancellation should escape the distiller")
 
     monkeypatch.setattr(
-        ppo_training_module,
+        distillation_module,
         "_replay_distillation_terminal_signature",
         cancel_replay,
     )
-    monkeypatch.setattr(ppo_training_module, "distill_self_generated_trajectory", invoke_oracle)
+    monkeypatch.setattr(distillation_module, "distill_self_generated_trajectory", invoke_oracle)
 
     with pytest.raises(V9PracticeCancelled, match="stop_requested"):
-        ppo_training_module._distill_verified_actions(
+        distillation_module._distill_verified_actions(
             Path("unused.gb"),
             SimpleNamespace(),
             [1],
@@ -1310,8 +1315,8 @@ def test_v8_training_opens_only_one_bounded_hash_bound_shard_per_skill(
         opened.append(Path(path))
         return real_load(path, *args, **kwargs)
 
-    monkeypatch.setattr(ppo_training_module, "_sha256_file", recording_hash)
-    monkeypatch.setattr(ppo_training_module.np, "load", recording_load)
+    monkeypatch.setattr(artifacts_module, "_sha256_file", recording_hash)
+    monkeypatch.setattr(callback_v8_module.np, "load", recording_load)
 
     datasets, selections, practice_selections = PpoRunCallback._load_v8_student_datasets(callback)
 
@@ -1848,7 +1853,7 @@ def test_v8_stagnation_ignores_authored_route_and_mart_progress(
     def forbidden_route_guidance(*_args: object, **_kwargs: object) -> object:
         pytest.fail("blind stagnation tracking consulted authored route guidance")
 
-    monkeypatch.setattr("pokemon_red_ai.ppo_training.route_guidance", forbidden_route_guidance)
+    monkeypatch.setattr(observations_module, "route_guidance", forbidden_route_guidance)
     tracker = VisualStagnationTracker(
         cycle_window=16,
         cycle_unique_limit=1,
